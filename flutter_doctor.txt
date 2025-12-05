@@ -1,0 +1,39 @@
+﻿[ΓêÜ] Flutter (Channel stable, 3.38.3, on Microsoft Windows [Versi┬ón 10.0.26100.7171], locale es-US) [292ms]
+    ΓÇó Flutter version 3.38.3 on channel stable at C:\flutter
+    ΓÇó Upstream repository https://github.com/flutter/flutter.git
+    ΓÇó Framework revision 19074d12f7 (11 days ago), 2025-11-20 17:53:13 -0500
+    ΓÇó Engine revision 13e658725d
+    ΓÇó Dart version 3.10.1
+    ΓÇó DevTools version 2.51.1
+    ΓÇó Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging
+
+[ΓêÜ] Windows Version (11 Pro 64-bit, 24H2, 2009) [1,580ms]
+
+[ΓêÜ] Android toolchain - develop for Android devices (Android SDK version 35.0.0) [3.9s]
+    ΓÇó Android SDK at C:\Android
+    ΓÇó Emulator version unknown
+    ΓÇó Platform android-36, build-tools 35.0.0
+    ΓÇó Java binary at: C:\Program Files\Eclipse Adoptium\jdk-25.0.1.8-hotspot\bin\java
+      This JDK is specified by the JAVA_HOME environment variable.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    ΓÇó Java version OpenJDK Runtime Environment Temurin-25.0.1+8 (build 25.0.1+8-LTS)
+    ΓÇó All Android licenses accepted.
+
+[ΓêÜ] Chrome - develop for the web [115ms]
+    ΓÇó Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[X] Visual Studio - develop Windows apps [113ms]
+    X Visual Studio not installed; this is necessary to develop Windows apps.
+      Download at https://visualstudio.microsoft.com/downloads/.
+      Please install the "Desktop development with C++" workload, including all of its default components
+
+[ΓêÜ] Connected device (4 available) [604ms]
+    ΓÇó SM A146M (mobile) ΓÇó R5CWA1TK94E ΓÇó android-arm64  ΓÇó Android 15 (API 35)
+    ΓÇó Windows (desktop) ΓÇó windows     ΓÇó windows-x64    ΓÇó Microsoft Windows [Versi┬ón 10.0.26100.7171]
+    ΓÇó Chrome (web)      ΓÇó chrome      ΓÇó web-javascript ΓÇó Google Chrome 142.0.7444.176
+    ΓÇó Edge (web)        ΓÇó edge        ΓÇó web-javascript ΓÇó Microsoft Edge 142.0.3595.94
+
+[ΓêÜ] Network resources [622ms]
+    ΓÇó All expected network resources are available.
+
+! Doctor found issues in 1 category.
