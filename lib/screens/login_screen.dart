@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../theme/app_theme.dart';
 import 'register_screen.dart';
-import 'game_request_screen.dart';
+import 'scenarios_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
       playerProvider.login(_emailController.text, _passwordController.text);
       
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const GameRequestScreen()),
+        MaterialPageRoute(builder: (_) => const ScenariosScreen()),
       );
     }
   }
