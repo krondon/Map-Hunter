@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/player_provider.dart';
 import 'event_creation_screen.dart';
+import 'competitions_management_screen.dart';
 import 'requests_management_screen.dart';
 import 'user_management_screen.dart';
 import 'admin_login_screen.dart';
@@ -111,6 +112,19 @@ class DashboardScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (_) => const EventCreationScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 15),
+            _AdminMenuCard(
+              title: "Gestionar Competencias",
+              icon: Icons.emoji_events,
+              color: Colors.blueAccent,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const CompetitionsManagementScreen()),
                 );
               },
             ),

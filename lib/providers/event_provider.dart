@@ -23,38 +23,46 @@ class EventProvider with ChangeNotifier {
 
         // Leer bytes (funciona en Web y Móvil/Desktop de forma más robusta)
         final bytes = await imageFile.readAsBytes();
-        
+
         // Intentar adivinar el mimeType si viene nulo (común en Desktop)
         String mimeType = imageFile.mimeType ?? '';
         if (mimeType.isEmpty) {
-          if (fileExt == 'jpg' || fileExt == 'jpeg') mimeType = 'image/jpeg';
-          else if (fileExt == 'png') mimeType = 'image/png';
-          else mimeType = 'application/octet-stream';
+          if (fileExt == 'jpg' || fileExt == 'jpeg')
+            mimeType = 'image/jpeg';
+          else if (fileExt == 'png')
+            mimeType = 'image/png';
+          else
+            mimeType = 'application/octet-stream';
         }
 
         // Usar uploadBinary para mayor compatibilidad en todas las plataformas
         await _supabase.storage.from('events-images').uploadBinary(
-          filePath,
-          bytes,
-          fileOptions: FileOptions(contentType: mimeType, upsert: true),
-        );
+              filePath,
+              bytes,
+              fileOptions: FileOptions(contentType: mimeType, upsert: true),
+            );
 
         // Obtener URL pública
-        imageUrl = _supabase.storage.from('events-images').getPublicUrl(filePath);
+        imageUrl =
+            _supabase.storage.from('events-images').getPublicUrl(filePath);
       }
-      
+
       // 2. Insertar en la tabla 'events'
-      final response = await _supabase.from('events').insert({
-        'title': event.title,
-        'description': event.description,
-        'location': event.location,
-        'date': event.date.toIso8601String(),
-        'clue': event.clue,
-        'image_url': imageUrl,
-        'max_participants': event.maxParticipants,
-        'pin': event.pin,
-        'created_by_admin_id': _supabase.auth.currentUser?.id ?? 'admin_1',
-      }).select().single();
+      final response = await _supabase
+          .from('events')
+          .insert({
+            'title': event.title,
+            'description': event.description,
+            'location': event.location,
+            'date': event.date.toIso8601String(),
+            'clue': event.clue,
+            'image_url': imageUrl,
+            'max_participants': event.maxParticipants,
+            'pin': event.pin,
+            'created_by_admin_id': _supabase.auth.currentUser?.id ?? 'admin_1',
+          })
+          .select()
+          .single();
 
       // 3. Actualizar lista local
       final newEvent = Event(
@@ -69,12 +77,23 @@ class EventProvider with ChangeNotifier {
         maxParticipants: response['max_participants'] ?? 0,
         pin: response['pin'] ?? '',
       );
-      
+
       _events.add(newEvent);
       notifyListeners();
-      
     } catch (e) {
       print('Error creando evento: $e');
+      rethrow;
+    }
+  }
+
+  // Función para eliminar evento
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      await _supabase.from('events').delete().eq('id', eventId);
+      _events.removeWhere((e) => e.id == eventId);
+      notifyListeners();
+    } catch (e) {
+      print('Error eliminando evento: $e');
       rethrow;
     }
   }
@@ -83,20 +102,22 @@ class EventProvider with ChangeNotifier {
   Future<void> fetchEvents() async {
     try {
       final response = await _supabase.from('events').select();
-      
-      _events = (response as List).map((data) => Event(
-        id: data['id'],
-        title: data['title'],
-        description: data['description'] ?? '',
-        location: data['location'],
-        date: DateTime.parse(data['date']),
-        createdByAdminId: data['created_by_admin_id'] ?? '',
-        imageUrl: data['image_url'] ?? '',
-        clue: data['clue'],
-        maxParticipants: data['max_participants'] ?? 0,
-        pin: data['pin'] ?? '',
-      )).toList();
-      
+
+      _events = (response as List)
+          .map((data) => Event(
+                id: data['id'],
+                title: data['title'],
+                description: data['description'] ?? '',
+                location: data['location'],
+                date: DateTime.parse(data['date']),
+                createdByAdminId: data['created_by_admin_id'] ?? '',
+                imageUrl: data['image_url'] ?? '',
+                clue: data['clue'],
+                maxParticipants: data['max_participants'] ?? 0,
+                pin: data['pin'] ?? '',
+              ))
+          .toList();
+
       notifyListeners();
     } catch (e) {
       print('Error obteniendo eventos: $e');

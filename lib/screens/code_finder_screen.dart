@@ -15,7 +15,8 @@ class CodeFinderScreen extends StatefulWidget {
   State<CodeFinderScreen> createState() => _CodeFinderScreenState();
 }
 
-class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProviderStateMixin {
+class _CodeFinderScreenState extends State<CodeFinderScreen>
+    with TickerProviderStateMixin {
   // State for the "Hot/Cold" mechanic
   double _distanceToTarget = 800.0; // Start far away (meters)
   bool _isSimulationActive = true;
@@ -95,7 +96,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Icon(Icons.check_circle, color: AppTheme.successGreen, size: 60),
+        title: const Icon(Icons.check_circle,
+            color: AppTheme.successGreen, size: 60),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -112,15 +114,17 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
             ),
           ],
         ),
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => GameRequestScreen(
-                  eventId: widget.scenario.id,
-                  eventTitle: widget.scenario.name,
-                )),
+                MaterialPageRoute(
+                    builder: (_) => GameRequestScreen(
+                          eventId: widget.scenario.id,
+                          eventTitle: widget.scenario.name,
+                        )),
               );
             },
             child: const Text("SOLICITAR ACCESO"),
@@ -174,7 +178,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
 
           // Content
           SafeArea(
-            child: LayoutBuilder( // Use LayoutBuilder to check for available space
+            child: LayoutBuilder(
+              // Use LayoutBuilder to check for available space
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
@@ -184,7 +189,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                     ),
                     child: IntrinsicHeight(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Use spaceBetween instead of Spacer()
+                        mainAxisAlignment: MainAxisAlignment
+                            .spaceBetween, // Use spaceBetween instead of Spacer()
                         children: [
                           Column(
                             children: [
@@ -202,7 +208,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                                   children: [
                                     const Row(
                                       children: [
-                                        Icon(Icons.lightbulb, color: AppTheme.accentGold),
+                                        Icon(Icons.lightbulb,
+                                            color: AppTheme.accentGold),
                                         SizedBox(width: 10),
                                         Text(
                                           "PISTA INICIAL",
@@ -216,7 +223,10 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                                     const SizedBox(height: 10),
                                     Text(
                                       widget.scenario.starterClue,
-                                      style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.white),
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          height: 1.5,
+                                          color: Colors.white),
                                       textAlign: TextAlign.center,
                                     ),
                                   ],
@@ -273,7 +283,9 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                           if (_isSimulationActive && !showInput)
                             Column(
                               children: [
-                                const Text("SIMULAR DISTANCIA (DEMO)", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                const Text("SIMULAR DISTANCIA (DEMO)",
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.grey)),
                                 Slider(
                                   value: _distanceToTarget,
                                   min: 0,
@@ -293,7 +305,9 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                             AnimatedBuilder(
                               animation: _shakeController,
                               builder: (context, child) {
-                                final offset = math.sin(_shakeController.value * math.pi * 4) * 10;
+                                final offset = math.sin(
+                                        _shakeController.value * math.pi * 4) *
+                                    10;
                                 return Transform.translate(
                                   offset: Offset(offset, 0),
                                   child: child,
@@ -306,7 +320,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.accentGold.withOpacity(0.2),
+                                      color:
+                                          AppTheme.accentGold.withOpacity(0.2),
                                       blurRadius: 20,
                                       spreadRadius: 5,
                                     ),
@@ -326,10 +341,15 @@ class _CodeFinderScreenState extends State<CodeFinderScreen> with TickerProvider
                                       controller: _codeController,
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(fontSize: 24, letterSpacing: 5, color: Colors.white), // Added color: Colors.white explicitly
+                                      style: const TextStyle(
+                                          fontSize: 24,
+                                          letterSpacing: 5,
+                                          color: Colors
+                                              .white), // Added color: Colors.white explicitly
                                       decoration: const InputDecoration(
                                         hintText: "----",
-                                        hintStyle: TextStyle(color: Colors.white24),
+                                        hintStyle:
+                                            TextStyle(color: Colors.white24),
                                         filled: true,
                                         fillColor: Colors.black26,
                                       ),

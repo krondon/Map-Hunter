@@ -1,5 +1,7 @@
+import 'dart:async'; // Importar Timer
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/player_provider.dart';
 import '../providers/game_request_provider.dart';
 import '../theme/app_theme.dart';
@@ -21,26 +23,31 @@ class GameRequestScreen extends StatefulWidget {
   State<GameRequestScreen> createState() => _GameRequestScreenState();
 }
 
-class _GameRequestScreenState extends State<GameRequestScreen> with SingleTickerProviderStateMixin {
+class _GameRequestScreenState extends State<GameRequestScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
+  RealtimeChannel? _subscription;
+  Timer? _pollingTimer;
+
   // Variable para el truco de desarrollador
   int _devTapCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _setupRealtimeSubscription();
+    _startPolling(); // Iniciar sondeo como respaldo
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -48,24 +55,115 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _animationController.forward();
+  }
+
+  void _setupRealtimeSubscription() {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final userId = playerProvider.currentPlayer?.id;
+    final eventId = widget.eventId;
+
+    if (userId == null || eventId == null) return;
+
+    final supabase = Supabase.instance.client;
+
+    _subscription = supabase
+        .channel('game_requests_updates_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'game_requests',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            if (newRecord['event_id'] == eventId) {
+              final status = newRecord['status'];
+              if (status == 'approved') {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('¡Tu solicitud ha sido aprobada!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  // Navigate to Home
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  );
+                }
+              } else {
+                // Refresh to show rejected or other status
+                setState(() {});
+              }
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  void _startPolling() {
+    // Revisar cada 3 segundos por si falla el Realtime
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      await _checkApprovalStatus();
+    });
+  }
+
+  Future<void> _checkApprovalStatus() async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final requestProvider =
+        Provider.of<GameRequestProvider>(context, listen: false);
+    final userId = playerProvider.currentPlayer?.id;
+    final eventId = widget.eventId;
+
+    if (userId != null && eventId != null) {
+      final request =
+          await requestProvider.getRequestForPlayer(userId, eventId);
+
+      if (request != null && request.isApproved && mounted) {
+        _pollingTimer?.cancel(); // Detener polling
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Tu solicitud ha sido aprobada!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      } else if (mounted) {
+        // Actualizar UI si cambió algo (ej. rechazado)
+        setState(() {});
+      }
+    }
   }
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
+    _subscription?.unsubscribe();
     _animationController.dispose();
     super.dispose();
   }
 
   Future<void> _handleRequestJoin() async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
-    
+    final requestProvider =
+        Provider.of<GameRequestProvider>(context, listen: false);
+
     if (playerProvider.currentPlayer != null && widget.eventId != null) {
       try {
-        await requestProvider.submitRequest(playerProvider.currentPlayer!, widget.eventId!);
-        
+        await requestProvider.submitRequest(
+            playerProvider.currentPlayer!, widget.eventId!);
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -104,14 +202,13 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
 
   Future<void> _checkRequestStatus() async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
-    
+    final requestProvider =
+        Provider.of<GameRequestProvider>(context, listen: false);
+
     if (playerProvider.currentPlayer != null && widget.eventId != null) {
       final request = await requestProvider.getRequestForPlayer(
-        playerProvider.currentPlayer!.id,
-        widget.eventId!
-      );
-      
+          playerProvider.currentPlayer!.id, widget.eventId!);
+
       if (request != null && mounted) {
         _showRequestStatusDialog(request);
       }
@@ -141,7 +238,7 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                request.isApproved 
+                request.isApproved
                     ? Icons.check_circle
                     : request.isRejected
                         ? Icons.cancel
@@ -156,7 +253,8 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: request.statusColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -241,13 +339,14 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                   padding: const EdgeInsets.all(24.0),
                   child: FutureBuilder<GameRequest?>(
                     future: player != null && widget.eventId != null
-                        ? requestProvider.getRequestForPlayer(player.id, widget.eventId!)
+                        ? requestProvider.getRequestForPlayer(
+                            player.id, widget.eventId!)
                         : Future.value(null),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const CircularProgressIndicator();
                       }
-                      
+
                       final request = snapshot.data;
 
                       return Column(
@@ -261,7 +360,8 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                               gradient: AppTheme.primaryGradient,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.primaryPurple.withOpacity(0.5),
+                                  color:
+                                      AppTheme.primaryPurple.withOpacity(0.5),
                                   blurRadius: 40,
                                   spreadRadius: 10,
                                 ),
@@ -274,7 +374,7 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                             ),
                           ),
                           const SizedBox(height: 40),
-                          
+
                           // Welcome Message
                           Text(
                             '¡Bienvenido ${player?.name ?? "Jugador"}!',
@@ -282,7 +382,7 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Info Card
                           Container(
                             padding: const EdgeInsets.all(24),
@@ -312,7 +412,8 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                                 const SizedBox(height: 16),
                                 Text(
                                   '¿Te gustaría participar en este juego?',
-                                  style: Theme.of(context).textTheme.headlineSmall,
+                                  style:
+                                      Theme.of(context).textTheme.headlineSmall,
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 12),
@@ -324,92 +425,44 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                               ],
                             ),
                           ),
-                          
+
                           // Request Status
                           if (request != null) ...[
-                            GestureDetector(
-                              onTap: () {
-                                // TRUCO DE DESARROLLADOR: 
-                                // Tocar 5 veces para auto-aprobarse ya que no hay admin UI
-                                if (!request.isApproved) {
-                                  _devTapCount++;
-                                  if (_devTapCount >= 5) {
-                                    requestProvider.approveRequest(request.id);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text('⚡ DEV MODE: ¡Solicitud Aprobada!'),
-                                        backgroundColor: Colors.purple,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
-                                    );
-                                    _devTapCount = 0;
-                                    setState(() {}); // Refresh UI
-                                  }
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: request.statusColor.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: request.statusColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: request.statusColor,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    request.isApproved
+                                        ? Icons.check_circle
+                                        : request.isRejected
+                                            ? Icons.cancel
+                                            : Icons.hourglass_empty,
                                     color: request.statusColor,
-                                    width: 2,
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      request.isApproved 
-                                          ? Icons.check_circle
-                                          : request.isRejected
-                                              ? Icons.cancel
-                                              : Icons.hourglass_empty,
-                                      color: request.statusColor,
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Estado: ${request.statusText}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Estado: ${request.statusText}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 20),
                           ],
-                          
-                          if (request != null && !request.isApproved && !request.isRejected)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  await requestProvider.approveRequest(request.id);
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('¡Solicitud aprobada por simulación!'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                  setState(() {}); // Refresh UI
-                                },
-                                icon: const Icon(Icons.admin_panel_settings),
-                                label: const Text("Simular Aprobación de Admin"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
 
                           // Action Buttons
                           if (request == null)
@@ -422,7 +475,8 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.primaryPurple.withOpacity(0.4),
+                                      color: AppTheme.primaryPurple
+                                          .withOpacity(0.4),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
@@ -456,26 +510,27 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                               width: double.infinity,
                               height: 56,
                               child: ElevatedButton(
-                              onPressed: () {
-                                // Navigate to the actual game
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                onPressed: () {
+                                  // Navigate to the actual game
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                        builder: (_) => const HomeScreen()),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                'IR AL EVENTO',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
+                                child: const Text(
+                                  'IR AL EVENTO',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
-                              ),
                               ),
                             )
                           else
@@ -503,16 +558,18 @@ class _GameRequestScreenState extends State<GameRequestScreen> with SingleTicker
                                 ),
                               ),
                             ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Logout Button
                           TextButton(
                             onPressed: () {
                               playerProvider.logout();
-                              Navigator.of(context).popUntil((route) => route.isFirst);
+                              Navigator.of(context)
+                                  .popUntil((route) => route.isFirst);
                               Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                MaterialPageRoute(
+                                    builder: (_) => const LoginScreen()),
                               );
                             },
                             child: const Text(
