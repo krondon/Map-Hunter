@@ -65,6 +65,9 @@ lib/generated_plugin_registrant.dart
 .classpath
 .settings/
 
+
+**.sql
+
 # Simbolización crashlytics
 **/ios/**/Flutter/flutter_*.app.dSYM.zip
 

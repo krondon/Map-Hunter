@@ -33,10 +33,18 @@ class _GameRequestScreenState extends State<GameRequestScreen>
 
   // Variable para el truco de desarrollador
   int _devTapCount = 0;
+  
+  GameRequest? _gameRequest;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    // Cargar datos iniciales
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+    
     _setupRealtimeSubscription();
     _startPolling(); // Iniciar sondeo como respaldo
     _animationController = AnimationController(
@@ -82,28 +90,44 @@ class _GameRequestScreenState extends State<GameRequestScreen>
           callback: (payload) {
             final newRecord = payload.newRecord;
             if (newRecord['event_id'] == eventId) {
-              final status = newRecord['status'];
-              if (status == 'approved') {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('¡Tu solicitud ha sido aprobada!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  // Navigate to Home
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  );
-                }
-              } else {
-                // Refresh to show rejected or other status
-                setState(() {});
-              }
+              _checkApprovalStatus();
             }
           },
         )
         .subscribe();
+  }
+
+  Future<void> _loadInitialData() async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final requestProvider =
+        Provider.of<GameRequestProvider>(context, listen: false);
+    final userId = playerProvider.currentPlayer?.id;
+    final eventId = widget.eventId;
+
+    if (userId != null && eventId != null) {
+      try {
+        final request =
+            await requestProvider.getRequestForPlayer(userId, eventId);
+        if (mounted) {
+          setState(() {
+            _gameRequest = request;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _startPolling() {
@@ -128,6 +152,12 @@ class _GameRequestScreenState extends State<GameRequestScreen>
       final request =
           await requestProvider.getRequestForPlayer(userId, eventId);
 
+      if (mounted) {
+        setState(() {
+          _gameRequest = request;
+        });
+      }
+
       if (request != null && request.isApproved && mounted) {
         _pollingTimer?.cancel(); // Detener polling
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,9 +169,6 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
-      } else if (mounted) {
-        // Actualizar UI si cambió algo (ej. rechazado)
-        setState(() {});
       }
     }
   }
@@ -164,7 +191,16 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         await requestProvider.submitRequest(
             playerProvider.currentPlayer!, widget.eventId!);
 
+        // Refresh data
+        final request = await requestProvider.getRequestForPlayer(
+            playerProvider.currentPlayer!.id, widget.eventId!);
+
         if (!mounted) return;
+        
+        setState(() {
+          _gameRequest = request;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
@@ -187,7 +223,6 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             duration: const Duration(seconds: 3),
           ),
         );
-        setState(() {}); // Refresh UI
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -209,8 +244,13 @@ class _GameRequestScreenState extends State<GameRequestScreen>
       final request = await requestProvider.getRequestForPlayer(
           playerProvider.currentPlayer!.id, widget.eventId!);
 
-      if (request != null && mounted) {
-        _showRequestStatusDialog(request);
+      if (mounted) {
+        setState(() {
+          _gameRequest = request;
+        });
+        if (request != null) {
+          _showRequestStatusDialog(request);
+        }
       }
     }
   }
@@ -317,7 +357,6 @@ class _GameRequestScreenState extends State<GameRequestScreen>
   @override
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final requestProvider = Provider.of<GameRequestProvider>(context);
     final player = playerProvider.currentPlayer;
 
     return Scaffold(
@@ -337,165 +376,212 @@ class _GameRequestScreenState extends State<GameRequestScreen>
               child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
-                  child: FutureBuilder<GameRequest?>(
-                    future: player != null && widget.eventId != null
-                        ? requestProvider.getRequestForPlayer(
-                            player.id, widget.eventId!)
-                        : Future.value(null),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
-                      }
-
-                      final request = snapshot.data;
-
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Game Icon
-                          Container(
-                            padding: const EdgeInsets.all(30),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: AppTheme.primaryGradient,
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      AppTheme.primaryPurple.withOpacity(0.5),
-                                  blurRadius: 40,
-                                  spreadRadius: 10,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.sports_esports,
-                              size: 80,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-
-                          // Welcome Message
-                          Text(
-                            '¡Bienvenido ${player?.name ?? "Jugador"}!',
-                            style: Theme.of(context).textTheme.displayLarge,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Info Card
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            margin: const EdgeInsets.symmetric(vertical: 20),
-                            decoration: BoxDecoration(
-                              color: AppTheme.cardBg.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppTheme.primaryPurple.withOpacity(0.3),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                const Icon(
-                                  Icons.info_outline,
-                                  color: AppTheme.secondaryPink,
-                                  size: 50,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  '¿Te gustaría participar en este juego?',
-                                  style:
-                                      Theme.of(context).textTheme.headlineSmall,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Manda una solicitud para poder unirte. El administrador revisará tu solicitud antes de iniciar el juego.',
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Request Status
-                          if (request != null) ...[
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Game Icon
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(30),
                               decoration: BoxDecoration(
-                                color: request.statusColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
+                                shape: BoxShape.circle,
+                                gradient: AppTheme.primaryGradient,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        AppTheme.primaryPurple.withOpacity(0.5),
+                                    blurRadius: 40,
+                                    spreadRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.sports_esports,
+                                size: 80,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+
+                            // Welcome Message
+                            Text(
+                              '¡Bienvenido ${player?.name ?? "Jugador"}!',
+                              style: Theme.of(context).textTheme.displayLarge,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Info Card
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              margin: const EdgeInsets.symmetric(vertical: 20),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardBg.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: request.statusColor,
+                                  color: AppTheme.primaryPurple
+                                      .withOpacity(0.3),
                                   width: 2,
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    request.isApproved
-                                        ? Icons.check_circle
-                                        : request.isRejected
-                                            ? Icons.cancel
-                                            : Icons.hourglass_empty,
-                                    color: request.statusColor,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
                                   ),
-                                  const SizedBox(width: 12),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    color: AppTheme.secondaryPink,
+                                    size: 50,
+                                  ),
+                                  const SizedBox(height: 16),
                                   Text(
-                                    'Estado: ${request.statusText}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
+                                    '¿Te gustaría participar en este juego?',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Manda una solicitud para poder unirte. El administrador revisará tu solicitud antes de iniciar el juego.',
+                                    style:
+                                        Theme.of(context).textTheme.bodyLarge,
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
-                          ],
 
-                          // Action Buttons
-                          if (request == null)
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: Container(
+                            // Request Status
+                            if (_gameRequest != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  gradient: AppTheme.primaryGradient,
+                                  color: _gameRequest!.statusColor
+                                      .withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.primaryPurple
-                                          .withOpacity(0.4),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
+                                  border: Border.all(
+                                    color: _gameRequest!.statusColor,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _gameRequest!.isApproved
+                                          ? Icons.check_circle
+                                          : _gameRequest!.isRejected
+                                              ? Icons.cancel
+                                              : Icons.hourglass_empty,
+                                      color: _gameRequest!.statusColor,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Estado: ${_gameRequest!.statusText}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                     ),
                                   ],
                                 ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+
+                            // Action Buttons
+                            if (_gameRequest == null)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: AppTheme.primaryGradient,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.primaryPurple
+                                            .withOpacity(0.4),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      await _handleRequestJoin();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'ENVIAR SOLICITUD',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else if (_gameRequest!.isApproved)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
                                 child: ElevatedButton(
-                                  onPressed: () async {
-                                    await _handleRequestJoin();
-                                    setState(() {}); // Refresh UI
+                                  onPressed: () {
+                                    // Navigate to the actual game
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                          builder: (_) => const HomeScreen()),
+                                    );
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
+                                    backgroundColor: Colors.green,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
                                   child: const Text(
-                                    'ENVIAR SOLICITUD',
+                                    'IR AL EVENTO',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: OutlinedButton(
+                                  onPressed: _checkRequestStatus,
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(
+                                      color: _gameRequest!.statusColor,
+                                      width: 2,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'VER ESTADO DE SOLICITUD',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -504,86 +590,30 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                   ),
                                 ),
                               ),
-                            )
-                          else if (request.isApproved)
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // Navigate to the actual game
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                        builder: (_) => const HomeScreen()),
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'IR AL EVENTO',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: OutlinedButton(
-                                onPressed: _checkRequestStatus,
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color: request.statusColor,
-                                    width: 2,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'VER ESTADO DE SOLICITUD',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                  ),
+
+                            const SizedBox(height: 16),
+
+                            // Logout Button
+                            TextButton(
+                              onPressed: () {
+                                playerProvider.logout();
+                                Navigator.of(context)
+                                    .popUntil((route) => route.isFirst);
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                      builder: (_) => const LoginScreen()),
+                                );
+                              },
+                              child: const Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 14,
                                 ),
                               ),
                             ),
-
-                          const SizedBox(height: 16),
-
-                          // Logout Button
-                          TextButton(
-                            onPressed: () {
-                              playerProvider.logout();
-                              Navigator.of(context)
-                                  .popUntil((route) => route.isFirst);
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                    builder: (_) => const LoginScreen()),
-                              );
-                            },
-                            child: const Text(
-                              'Cerrar Sesión',
-                              style: TextStyle(
-                                color: Colors.white60,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                          ],
+                        ),
                 ),
               ),
             ),
