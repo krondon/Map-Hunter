@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/clue.dart';
 import '../models/player.dart';
 
@@ -7,6 +8,11 @@ class GameProvider extends ChangeNotifier {
   List<Player> _leaderboard = [];
   int _currentClueIndex = 0;
   bool _isGameActive = false;
+  bool _isLoading = false;
+  String? _currentEventId;
+  String? _errorMessage;
+  
+  final _supabase = Supabase.instance.client;
   
   List<Clue> get clues => _clues;
   List<Player> get leaderboard => _leaderboard;
@@ -16,146 +22,153 @@ class GameProvider extends ChangeNotifier {
   int get currentClueIndex => _currentClueIndex;
   
   bool get isGameActive => _isGameActive;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   int get completedClues => _clues.where((c) => c.isCompleted).length;
   int get totalClues => _clues.length;
+  String? get currentEventId => _currentEventId;
   
   GameProvider() {
-    _initializeMockData();
+    // _initializeMockData(); // Removed mock data
   }
   
-  void _initializeMockData() {
-    // Mock clues
-    _clues = [
-      Clue(
-        id: '1',
-        title: 'La Cámara Secreta',
-        description: 'Descifra el código de la bóveda antigua.',
-        hint: 'El año que cambió la historia.',
-        type: ClueType.qrScan,
-        puzzleType: PuzzleType.codeBreaker,
-        riddleQuestion: '¿En qué año comenzó el nuevo milenio?',
-        riddleAnswer: '2000',
-        xpReward: 100,
-        coinReward: 20,
-      ),
-      Clue(
-        id: '2',
-        title: 'Monumento Perdido',
-        description: 'Identifica esta maravilla del mundo.',
-        hint: 'Una de las 7 maravillas modernas.',
-        type: ClueType.qrScan,
-        puzzleType: PuzzleType.imageTrivia,
-        minigameUrl: 'https://picsum.photos/800/600?random=1',
-        riddleQuestion: '¿Qué monumento famoso es este?',
-        riddleAnswer: 'taj mahal',
-        xpReward: 150,
-        coinReward: 30,
-      ),
-      Clue(
-        id: '3',
-        title: 'El Tesoro Escondido',
-        description: 'Ordena las letras del cofre mágico.',
-        hint: 'Lo que todos los piratas buscan.',
-        type: ClueType.qrScan,
-        puzzleType: PuzzleType.wordScramble,
-        riddleQuestion: 'Ordena estas letras:',
-        riddleAnswer: 'TREASURE',
-        xpReward: 120,
-        coinReward: 25,
-      ),
-      Clue(
-        id: '4',
-        title: 'Acertijo del Sabio',
-        description: 'Resuelve el enigma ancestral.',
-        hint: 'Piensa en las horas del día.',
-        type: ClueType.qrScan,
-        puzzleType: PuzzleType.riddle,
-        riddleQuestion: 'Tengo cara pero no cuerpo, manos pero no puedo aplaudir. ¿Qué soy?',
-        riddleAnswer: 'reloj',
-        xpReward: 130,
-        coinReward: 28,
-      ),
-    ];
-    
-    // Desbloquear la primera pista
-    if (_clues.isNotEmpty) {
-      _clues[0].isLocked = false;
+  Future<void> fetchClues({String? eventId}) async {
+    if (eventId != null) {
+      _currentEventId = eventId;
     }
     
-    // Mock leaderboard
-    _leaderboard = [
-      Player(
-        id: '1',
-        name: 'Cazador Pro',
-        email: 'pro@game.com',
-        avatarUrl: 'https://i.pravatar.cc/150?img=1',
-        level: 8,
-        totalXP: 1250,
-        profession: 'Speedrunner',
-        coins: 350,
-      ),
-      Player(
-        id: '2',
-        name: 'Estratega Master',
-        email: 'master@game.com',
-        avatarUrl: 'https://i.pravatar.cc/150?img=2',
-        level: 7,
-        totalXP: 1100,
-        profession: 'Strategist',
-        coins: 280,
-      ),
-      Player(
-        id: '3',
-        name: 'Guerrero Audaz',
-        email: 'warrior@game.com',
-        avatarUrl: 'https://i.pravatar.cc/150?img=3',
-        level: 6,
-        totalXP: 950,
-        profession: 'Warrior',
-        coins: 220,
-      ),
-      Player(
-        id: '4',
-        name: 'Explorador',
-        email: 'explorer@game.com',
-        avatarUrl: 'https://i.pravatar.cc/150?img=4',
-        level: 5,
-        totalXP: 750,
-        profession: 'Balanced',
-        coins: 180,
-      ),
-      Player(
-        id: '5',
-        name: 'Novato Listo',
-        email: 'novice@game.com',
-        avatarUrl: 'https://i.pravatar.cc/150?img=5',
-        level: 3,
-        totalXP: 420,
-        profession: 'Novice',
-        coins: 95,
-      ),
-    ];
-  }
-  
-  void startGame() {
-    _isGameActive = true;
-    _currentClueIndex = 0;
+    final idToUse = eventId ?? _currentEventId;
+    
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+    
+    try {
+      final Map<String, dynamic> queryParams = {};
+      if (idToUse != null) queryParams['eventId'] = idToUse;
+
+      final response = await _supabase.functions.invoke(
+        'game-data', // Changed from game-api/clues
+        method: HttpMethod.get,
+        queryParameters: queryParams,
+      );
+      
+      if (response.status == 200) {
+        final List<dynamic> data = response.data;
+        _clues = data.map((json) => Clue.fromJson(json)).toList();
+        
+        // Find first unlocked but not completed clue to set as current
+        final index = _clues.indexWhere((c) => !c.isCompleted && !c.isLocked);
+        if (index != -1) {
+          _currentClueIndex = index;
+        } else {
+          _currentClueIndex = 0;
+        }
+      } else {
+        _errorMessage = 'Error fetching clues: ${response.status}';
+        debugPrint('Error fetching clues: ${response.status} ${response.data}');
+      }
+    } catch (e) {
+      _errorMessage = 'Error fetching clues: $e';
+      debugPrint('Error fetching clues: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
   
-  void completeCurrentClue() {
-    if (_currentClueIndex < _clues.length) {
-      // Marcar la pista actual como completada
-      _clues[_currentClueIndex].isCompleted = true;
+  Future<void> startGame(String eventId) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      final response = await _supabase.functions.invoke('game-play/start-game', 
+        body: {'eventId': eventId},
+        method: HttpMethod.post
+      );
       
-      // Desbloquear la siguiente pista si existe
-      if (_currentClueIndex + 1 < _clues.length) {
-        _clues[_currentClueIndex + 1].isLocked = false;
+      if (response.status == 200) {
+        _isGameActive = true;
+        await fetchClues(eventId: eventId);
+      } else {
+        debugPrint('Error starting game: ${response.status} ${response.data}');
       }
+    } catch (e) {
+      debugPrint('Error starting game: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
+  Future<bool> completeCurrentClue(String answer) async {
+    if (_currentClueIndex >= _clues.length) return false;
+    
+    final clue = _clues[_currentClueIndex];
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      final response = await _supabase.functions.invoke('game-play/complete-clue', 
+        body: {
+          'clueId': clue.id,
+          'answer': answer,
+        },
+        method: HttpMethod.post
+      );
       
-      // Avanzar al siguiente índice
-      _currentClueIndex++;
+      if (response.status == 200) {
+        // Refresh clues to get updated status and next unlock
+        // We need to know the current event ID to refresh correctly, 
+        // but fetchClues without ID might work if we assume user only plays one at a time
+        // or we store currentEventId in provider.
+        // For now, let's assume fetchClues handles it or we pass null (fetching all active clues?)
+        // Actually, fetchClues needs eventId to filter. 
+        // Let's assume we can get it from the current clue.
+        // But Clue model doesn't have eventId exposed in Dart yet (it's in DB).
+        // Let's add eventId to Clue model or just refresh all.
+        await fetchClues(); 
+        return true;
+      } else {
+        debugPrint('Error completing clue: ${response.status} ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error completing clue: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> skipCurrentClue() async {
+    if (_currentClueIndex >= _clues.length) return false;
+    
+    final clue = _clues[_currentClueIndex];
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      final response = await _supabase.functions.invoke('game-play/skip-clue', 
+        body: {
+          'clueId': clue.id,
+        },
+        method: HttpMethod.post
+      );
       
+      if (response.status == 200) {
+        await fetchClues();
+        return true;
+      } else {
+        debugPrint('Error skipping clue: ${response.status} ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error skipping clue: $e');
+      return false;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -168,16 +181,22 @@ class GameProvider extends ChangeNotifier {
     }
   }
   
-  void updateLeaderboard(Player player) {
-    final index = _leaderboard.indexWhere((p) => p.id == player.id);
-    if (index != -1) {
-      _leaderboard[index] = player;
-    } else {
-      _leaderboard.add(player);
+  Future<void> fetchLeaderboard() async {
+    try {
+      final data = await _supabase
+          .from('profiles')
+          .select()
+          .order('total_xp', ascending: false)
+          .limit(20);
+          
+      _leaderboard = (data as List).map((json) => Player.fromJson(json)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching leaderboard: $e');
     }
-    
-    // Sort by total XP
-    _leaderboard.sort((a, b) => b.totalXP.compareTo(a.totalXP));
-    notifyListeners();
+  }
+  
+  void updateLeaderboard(Player player) {
+    // Deprecated
   }
 }

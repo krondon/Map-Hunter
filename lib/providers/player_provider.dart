@@ -14,20 +14,30 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> login(String email, String password) async {
     try {
-      final response = await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
+      // Call Edge Function for login
+      final response = await _supabase.functions.invoke(
+        'auth-service/login',
+        body: {'email': email, 'password': password},
+        method: HttpMethod.post,
       );
 
-      if (response.user != null) {
-        await _fetchProfile(response.user!.id);
+      if (response.status != 200) {
+        final error = response.data['error'] ?? 'Error desconocido';
+        throw Exception(error);
       }
-    } on AuthException catch (e) {
-      debugPrint('Auth Error logging in: ${e.message}');
-      if (e.message.contains('Invalid login credentials')) {
-        throw Exception('Credenciales inválidas o email no confirmado.');
+
+      final data = response.data;
+      
+      if (data['session'] != null) {
+        // Set the session in the client to maintain auth state
+        await _supabase.auth.setSession(data['session']['refresh_token']);
+        
+        if (data['user'] != null) {
+          await _fetchProfile(data['user']['id']);
+        }
+      } else {
+         throw Exception('No se recibió sesión válida');
       }
-      throw Exception(e.message);
     } catch (e) {
       debugPrint('Error logging in: $e');
       rethrow;
@@ -36,16 +46,32 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> register(String name, String email, String password) async {
     try {
-      final response = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {'name': name}, // This triggers the handle_new_user trigger
+      // Call Edge Function for register
+      final response = await _supabase.functions.invoke(
+        'auth-service/register',
+        body: {'email': email, 'password': password, 'name': name},
+        method: HttpMethod.post,
       );
 
-      if (response.user != null) {
-        // Wait a bit for the trigger to create the profile
-        await Future.delayed(const Duration(seconds: 1));
-        await _fetchProfile(response.user!.id);
+      if (response.status != 200) {
+        final error = response.data['error'] ?? 'Error desconocido';
+        throw Exception(error);
+      }
+
+      final data = response.data;
+
+      if (data['session'] != null) {
+        // Set session if auto-confirm is enabled
+        await _supabase.auth.setSession(data['session']['refresh_token']);
+        
+        if (data['user'] != null) {
+          // Wait a bit for the trigger to create the profile
+          await Future.delayed(const Duration(seconds: 1));
+          await _fetchProfile(data['user']['id']);
+        }
+      } else if (data['user'] != null) {
+        // User created but maybe email confirmation is required
+        // Just return, user will need to confirm email
       }
     } catch (e) {
       debugPrint('Error registering: $e');
@@ -190,10 +216,24 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  void sabotageRival(String rivalId) {
-    if (_currentPlayer != null && _currentPlayer!.coins >= 50) {
-      _currentPlayer!.coins -= 50;
-      notifyListeners();
+  Future<bool> sabotageRival(String rivalId) async {
+    try {
+      final response = await _supabase.functions.invoke('game-play/sabotage-rival', 
+        body: {'rivalId': rivalId},
+        method: HttpMethod.post
+      );
+      
+      if (response.status == 200) {
+        // Refresh profile to show deducted coins
+        if (_currentPlayer != null) {
+          await _fetchProfile(_currentPlayer!.id);
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error sabotaging rival: $e');
+      return false;
     }
   }
 }

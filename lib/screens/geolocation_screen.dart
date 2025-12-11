@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/player_provider.dart';
 import '../providers/game_provider.dart';
 import '../theme/app_theme.dart';
 import 'dart:math' as math;
@@ -52,16 +51,15 @@ class _GeolocationScreenState extends State<GeolocationScreen> with SingleTicker
     });
   }
   
-  void _onTargetReached() {
-    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+  void _onTargetReached() async {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     
-    final clue = gameProvider.clues.firstWhere((c) => c.id == widget.clueId);
+    // Call backend
+    final success = await gameProvider.completeCurrentClue("ARRIVED");
     
-    playerProvider.addExperience(clue.xpReward);
-    playerProvider.addCoins(clue.coinReward);
-    playerProvider.updateStats('speed', 5);
-    gameProvider.completeCurrentClue();
+    if (!success) return;
+
+    if (!context.mounted) return;
     
     showDialog(
       context: context,

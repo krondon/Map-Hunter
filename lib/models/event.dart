@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
-
-class Event {
+class GameEvent {
   final String id;
   final String title;
   final String description;
@@ -14,7 +12,7 @@ class Event {
   final int maxParticipants; // Capacidad máxima
   final String pin; // Código de acceso para el usuario
 
-  Event({
+  GameEvent({
     required this.id,
     required this.title,
     required this.description,

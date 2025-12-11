@@ -31,7 +31,7 @@ class _CompetitionsManagementScreenState
     }
   }
 
-  Future<void> _deleteEvent(Event event) async {
+  Future<void> _deleteEvent(GameEvent event) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

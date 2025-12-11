@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import Provider
 import 'dart:ui';
 import '../models/scenario.dart';
-import '../models/event.dart'; // Import Event
 import '../providers/event_provider.dart'; // Import EventProvider
+import '../providers/game_provider.dart';
 import '../providers/player_provider.dart';
 import '../providers/game_request_provider.dart';
 import '../theme/app_theme.dart';
@@ -71,6 +71,11 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
     Navigator.pop(context); // Dismiss loading
 
     if (isParticipant) {
+      // Fetch clues for the selected event before navigating
+      await Provider.of<GameProvider>(context, listen: false).fetchClues(eventId: scenario.id);
+      
+      if (!mounted) return;
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
@@ -299,10 +304,10 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         Colors.transparent,
-                                        Colors.black.withOpacity(0.7),
+                                        Colors.black.withOpacity(0.6),
                                         Colors.black.withOpacity(0.9),
                                       ],
-                                      stops: const [0.5, 0.8, 1.0],
+                                      stops: const [0.3, 0.7, 1.0],
                                     ),
                                   ),
                                 ),
@@ -366,6 +371,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                           color: Colors.white,
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,
+                                          shadows: [
+                                            Shadow(
+                                              offset: Offset(0, 2),
+                                              blurRadius: 4,
+                                              color: Colors.black,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -378,6 +390,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                             style: const TextStyle(
                                               color: Colors.white70,
                                               fontSize: 14,
+                                              shadows: [
+                                                Shadow(
+                                                  offset: Offset(0, 1),
+                                                  blurRadius: 2,
+                                                  color: Colors.black,
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
@@ -386,8 +405,15 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                       Text(
                                         scenario.description,
                                         style: const TextStyle(
-                                          color: Colors.white60,
+                                          color: Colors.white70,
                                           fontSize: 12,
+                                          shadows: [
+                                            Shadow(
+                                              offset: Offset(0, 1),
+                                              blurRadius: 2,
+                                              color: Colors.black,
+                                            ),
+                                          ],
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,

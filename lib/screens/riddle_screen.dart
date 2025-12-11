@@ -18,20 +18,26 @@ class _RiddleScreenState extends State<RiddleScreen> {
   final _answerController = TextEditingController();
   bool _showError = false;
 
-  void _checkAnswer() {
+  void _checkAnswer() async {
     final userAnswer = _answerController.text.trim().toLowerCase();
     final correctAnswer = widget.clue.riddleAnswer?.toLowerCase() ?? '';
 
     if (userAnswer == correctAnswer) {
       // Respuesta correcta
-      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
-      playerProvider.addExperience(widget.clue.xpReward);
-      playerProvider.addCoins(widget.clue.coinReward);
-      gameProvider.completeCurrentClue();
+      // Call backend
+      final success = await gameProvider.completeCurrentClue(userAnswer);
 
-      _showSuccessDialog();
+      if (success) {
+        if (context.mounted) _showSuccessDialog();
+      } else {
+        if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error al completar. Intenta de nuevo.')),
+          );
+        }
+      }
     } else {
       // Respuesta incorrecta
       setState(() {

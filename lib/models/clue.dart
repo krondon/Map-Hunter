@@ -69,6 +69,35 @@ class Clue {
         return 'Tiendita';
     }
   }
+
+  factory Clue.fromJson(Map<String, dynamic> json) {
+    return Clue(
+      id: json['id'].toString(), // Handle int or string
+      title: json['title'],
+      description: json['description'] ?? '',
+      hint: json['hint'] ?? '',
+      type: ClueType.values.firstWhere(
+        (e) => e.toString().split('.').last == json['type'],
+        orElse: () => ClueType.qrScan,
+      ),
+      latitude: json['latitude'],
+      longitude: json['longitude'],
+      qrCode: json['qr_code'],
+      minigameUrl: json['minigame_url'],
+      xpReward: json['xp_reward'] ?? 0,
+      coinReward: json['coin_reward'] ?? 0,
+      isCompleted: json['isCompleted'] ?? false,
+      isLocked: json['isLocked'] ?? true,
+      riddleQuestion: json['riddle_question'],
+      riddleAnswer: json['riddle_answer'],
+      puzzleType: json['puzzle_type'] != null 
+        ? PuzzleType.values.firstWhere(
+            (e) => e.toString().split('.').last == json['puzzle_type'],
+            orElse: () => PuzzleType.riddle,
+          )
+        : PuzzleType.riddle,
+    );
+  }
 }
 
 enum PuzzleType {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/player_provider.dart';
 import '../providers/game_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/clue.dart';
@@ -24,7 +23,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     });
     
     // Simulate successful scan
-    Future.delayed(const Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 1), () async {
       if (!mounted) return;
 
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
@@ -40,11 +39,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         );
       } else {
         // Si no tiene acertijo, completar normalmente
-        final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-        playerProvider.addExperience(clue.xpReward);
-        playerProvider.addCoins(clue.coinReward);
-        gameProvider.completeCurrentClue();
-        _showSuccessDialog();
+        final success = await gameProvider.completeCurrentClue("SCANNED");
+        if (success && mounted) {
+          _showSuccessDialog();
+        }
       }
     });
   }

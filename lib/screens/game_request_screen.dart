@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/player_provider.dart';
 import '../providers/game_request_provider.dart';
+import '../providers/game_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/game_request.dart';
 import 'home_screen.dart';
@@ -31,8 +32,6 @@ class _GameRequestScreenState extends State<GameRequestScreen>
   RealtimeChannel? _subscription;
   Timer? _pollingTimer;
 
-  // Variable para el truco de desarrollador
-  int _devTapCount = 0;
   
   GameRequest? _gameRequest;
   bool _isLoading = true;
@@ -319,7 +318,15 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      // Initialize game and fetch clues
+                      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+                      if (widget.eventId != null) {
+                        await gameProvider.startGame(widget.eventId!);
+                      }
+                      
+                      if (!context.mounted) return;
+
                       Navigator.of(context).pop();
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -360,6 +367,15 @@ class _GameRequestScreenState extends State<GameRequestScreen>
     final player = playerProvider.currentPlayer;
 
     return Scaffold(
+      extendBodyBehindAppBar: true, // Para que el gradiente cubra todo
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

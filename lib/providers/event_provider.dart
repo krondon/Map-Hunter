@@ -6,12 +6,12 @@ import '../models/event.dart';
 
 class EventProvider with ChangeNotifier {
   final _supabase = Supabase.instance.client;
-  List<Event> _events = [];
+  List<GameEvent> _events = [];
 
-  List<Event> get events => _events;
+  List<GameEvent> get events => _events;
 
   // Función para crear el evento
-  Future<void> createEvent(Event event, XFile? imageFile) async {
+  Future<String?> createEvent(GameEvent event, XFile? imageFile) async {
     try {
       String imageUrl = event.imageUrl;
 
@@ -48,6 +48,8 @@ class EventProvider with ChangeNotifier {
       }
 
       // 2. Insertar en la tabla 'events'
+      debugPrint('Creating event with title: ${event.title}, description: ${event.description}');
+      
       final response = await _supabase
           .from('events')
           .insert({
@@ -65,7 +67,7 @@ class EventProvider with ChangeNotifier {
           .single();
 
       // 3. Actualizar lista local
-      final newEvent = Event(
+      final newEvent = GameEvent(
         id: response['id'],
         title: response['title'],
         description: response['description'] ?? '',
@@ -80,6 +82,7 @@ class EventProvider with ChangeNotifier {
 
       _events.add(newEvent);
       notifyListeners();
+      return newEvent.id;
     } catch (e) {
       print('Error creando evento: $e');
       rethrow;
@@ -104,7 +107,7 @@ class EventProvider with ChangeNotifier {
       final response = await _supabase.from('events').select();
 
       _events = (response as List)
-          .map((data) => Event(
+          .map((data) => GameEvent(
                 id: data['id'],
                 title: data['title'],
                 description: data['description'] ?? '',

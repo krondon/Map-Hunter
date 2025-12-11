@@ -425,7 +425,7 @@ class _RequestCard extends StatelessWidget {
               style: const TextStyle(color: Colors.white70),
             ),
             Text(
-              'Evento: ${request.eventTitle ?? "Evento General"}',
+              'Evento: ${request.eventTitle ?? "ID: ${request.eventId}"}',
               style: const TextStyle(color: Colors.white70),
             ),
             Text(

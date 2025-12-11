@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/player_provider.dart';
 import '../providers/game_provider.dart';
 import '../theme/app_theme.dart';
 import '../models/clue.dart';
@@ -460,12 +459,14 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final gameProvider = Provider.of<GameProvider>(context, listen: false);
-              gameProvider.completeCurrentClue();
-              Navigator.pop(context);
-              Navigator.pop(context);
-              Navigator.pop(context);
+              await gameProvider.skipCurrentClue();
+              if (context.mounted) {
+                Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
             child: const Text('Rendirse'),
@@ -776,12 +777,14 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final gameProvider = Provider.of<GameProvider>(context, listen: false);
-              gameProvider.completeCurrentClue();
-              Navigator.pop(context);
-              Navigator.pop(context);
-              Navigator.pop(context);
+              await gameProvider.skipCurrentClue();
+              if (context.mounted) {
+                Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
             child: const Text('Rendirse'),
@@ -986,13 +989,22 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
 }
 
 // --- HELPER: SUCCESS DIALOG ---
-void _showSuccessDialog(BuildContext context, Clue clue) {
-  final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+void _showSuccessDialog(BuildContext context, Clue clue) async {
   final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
-  playerProvider.addExperience(clue.xpReward);
-  playerProvider.addCoins(clue.coinReward);
-  gameProvider.completeCurrentClue();
+  // Call backend to complete clue
+  final success = await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "");
+
+  if (!success) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al completar el desafío. Intenta de nuevo.')),
+      );
+    }
+    return;
+  }
+
+  if (!context.mounted) return;
 
   showDialog(
     context: context,

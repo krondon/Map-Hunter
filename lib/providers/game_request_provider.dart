@@ -78,6 +78,11 @@ class GameRequestProvider extends ChangeNotifier {
           .select('*, profiles(name, email), events(title)')
           .order('created_at', ascending: false);
       
+      // Debug: Print first item to check structure
+      if ((data as List).isNotEmpty) {
+        debugPrint('First request data: ${data[0]}');
+      }
+
       _requests = (data as List).map((json) => GameRequest.fromJson(json)).toList();
       notifyListeners();
     } catch (e) {
@@ -87,27 +92,14 @@ class GameRequestProvider extends ChangeNotifier {
 
   Future<void> approveRequest(String requestId) async {
     try {
-      // 1. Get the request details first
-      final requestData = await _supabase
-          .from('game_requests')
-          .select()
-          .eq('id', requestId)
-          .single();
-          
-      final userId = requestData['user_id'];
-      final eventId = requestData['event_id'];
+      final response = await _supabase.functions.invoke('admin-actions/approve-request', 
+        body: {'requestId': requestId},
+        method: HttpMethod.post
+      );
 
-      // 2. Update status to approved
-      await _supabase
-          .from('game_requests')
-          .update({'status': 'approved'})
-          .eq('id', requestId);
-
-      // 3. Add to event_participants
-      await _supabase.from('event_participants').insert({
-        'user_id': userId,
-        'event_id': eventId,
-      });
+      if (response.status != 200) {
+        throw Exception('Failed to approve request: ${response.data}');
+      }
 
       // Refresh list
       await fetchAllRequests();

@@ -69,27 +69,64 @@ class CluesScreen extends StatelessWidget {
             
             // Clues list
             Expanded(
-              child: gameProvider.clues.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.explore_off,
-                          size: 80,
-                          color: Colors.white.withOpacity(0.3),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'No hay pistas disponibles',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: Colors.white54,
+              child: gameProvider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : gameProvider.errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error al cargar pistas',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Text(
+                                  gameProvider.errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: () => gameProvider.fetchClues(),
+                                child: const Text('Reintentar'),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
+                        )
+                      : gameProvider.clues.isEmpty
+                          ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.explore_off,
+                                size: 80,
+                                color: Colors.white.withOpacity(0.3),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'No hay pistas disponibles',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  color: Colors.white54,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ElevatedButton(
+                                onPressed: () {
+                                  gameProvider.fetchClues();
+                                },
+                                child: const Text('Recargar'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: gameProvider.clues.length,
                     itemBuilder: (context, index) {

@@ -29,20 +29,38 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       setState(() => _isLoading = true);
 
       try {
-        // Intentar iniciar sesión con Supabase
+        // Intentar iniciar sesión con Supabase usando Edge Function
         final supabase = Supabase.instance.client;
 
-        final authResponse = await supabase.auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        final response = await supabase.functions.invoke(
+          'auth-service/login',
+          body: {
+            'email': _emailController.text.trim(),
+            'password': _passwordController.text,
+          },
+          method: HttpMethod.post,
         );
 
-        if (authResponse.user != null) {
+        if (response.status != 200) {
+          throw Exception(response.data['error'] ?? 'Error al iniciar sesión');
+        }
+
+        final data = response.data;
+        
+        if (data['session'] != null) {
+          await supabase.auth.setSession(data['session']['refresh_token']);
+        } else {
+           throw Exception('No se recibió una sesión válida');
+        }
+
+        final user = supabase.auth.currentUser;
+
+        if (user != null) {
           // Verificar el rol del usuario en la tabla profiles
           final profile = await supabase
               .from('profiles')
               .select('role')
-              .eq('id', authResponse.user!.id)
+              .eq('id', user.id)
               .single();
 
           final role = profile['role'] as String?;
