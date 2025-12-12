@@ -57,6 +57,11 @@ class GameProvider extends ChangeNotifier {
         final List<dynamic> data = response.data;
         _clues = data.map((json) => Clue.fromJson(json)).toList();
         
+        // Debug logs to verify clue status
+        for (var c in _clues) {
+          debugPrint('Clue ${c.title} (ID: ${c.id}): locked=${c.isLocked}, completed=${c.isCompleted}');
+        }
+        
         // Find first unlocked but not completed clue to set as current
         final index = _clues.indexWhere((c) => !c.isCompleted && !c.isLocked);
         if (index != -1) {

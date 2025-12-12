@@ -155,7 +155,8 @@ class _CluesScreenState extends State<CluesScreen> {
                     itemCount: gameProvider.clues.length,
                     itemBuilder: (context, index) {
                       final clue = gameProvider.clues[index];
-                      final isLocked = index > 0 && !gameProvider.clues[index - 1].isCompleted;
+                      // Usamos la propiedad del modelo que viene de la BD, es más seguro y respeta el desbloqueo del backend
+                      final isLocked = clue.isLocked;
                       
                       return ClueCard(
                         clue: clue,
