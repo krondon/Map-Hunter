@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // <--- IMPORTANTE: Necesario para inputFormatters
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../theme/app_theme.dart';
@@ -33,7 +34,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       try {
         final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
         
-        // Show loading indicator
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -47,9 +47,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         
         if (!mounted) return;
-        Navigator.pop(context); // Dismiss loading
+        Navigator.pop(context);
 
-        // Show success message and navigate to Login
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -60,8 +59,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Go back to LoginScreen
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
                 },
                 child: const Text('OK'),
               ),
@@ -70,7 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       } catch (e) {
         if (!mounted) return;
-        Navigator.pop(context); // Dismiss loading
+        Navigator.pop(context);
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -96,7 +95,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Back button
               Align(
                 alignment: Alignment.topLeft,
                 child: IconButton(
@@ -114,7 +112,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Title
                           Text(
                             'Crear Cuenta',
                             style: Theme.of(context).textTheme.displayLarge,
@@ -126,18 +123,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 40),
                           
-                          // Name field
+                          // ==========================================
+                          // CAMPO NOMBRE CON BLOQUEO DE ENTRADA
+                          // ==========================================
                           TextFormField(
                             controller: _nameController,
                             style: const TextStyle(color: Colors.white),
+                            // Aquí están los formateadores que bloquean la entrada
+                            inputFormatters: [
+                              // 1. Limita la longitud a 50 caracteres (no deja escribir más)
+                              LengthLimitingTextInputFormatter(50),
+                              // 2. Solo permite letras (a-z, A-Z), vocales con tilde, ñ y espacios.
+                              // Cualquier otra tecla (números, símbolos) será ignorada.
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]'),
+                              ),
+                            ],
                             decoration: const InputDecoration(
-                              labelText: 'Nombre',
+                              labelText: 'Nombre Completo',
                               labelStyle: TextStyle(color: Colors.white60),
                               prefixIcon: Icon(Icons.person_outline, color: Colors.white60),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Ingresa tu nombre';
+                              }
+                              // La validación de caracteres extraños ya no es necesaria aquí 
+                              // porque inputFormatters no deja escribirlos, pero mantenemos
+                              // la validación de "Nombre Completo" (espacio).
+                              if (!value.trim().contains(' ')) {
+                                return 'Ingresa tu nombre completo (Nombre y Apellido)';
                               }
                               return null;
                             },
@@ -193,6 +208,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               }
                               if (value.length < 6) {
                                 return 'Mínimo 6 caracteres';
+                              }
+                              if (value.length > 30) {
+                                return 'Máximo 30 caracteres';
                               }
                               return null;
                             },
