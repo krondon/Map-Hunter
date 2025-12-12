@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../providers/player_provider.dart';
 import '../models/player.dart';
 import '../theme/app_theme.dart';
@@ -81,6 +82,13 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         }
 
+        // Solicitar permisos de ubicación
+        print("DEBUG: Iniciando chequeo de permisos...");
+        await _checkPermissions();
+        print("DEBUG: Permisos chequeados. Navegando a ScenariosScreen...");
+
+        if (!mounted) return;
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const ScenariosScreen()),
         );
@@ -95,6 +103,90 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    // Si falta algo, mostramos el BottomSheet explicativo antes de pedirlo nativamente
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever ||
+        !serviceEnabled) {
+      if (mounted) {
+        await showModalBottomSheet(
+          context: context,
+          isDismissible: false,
+          enableDrag: false,
+          backgroundColor: AppTheme.cardBg,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) => Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.location_on_outlined,
+                    size: 60, color: AppTheme.accentGold),
+                const SizedBox(height: 16),
+                const Text(
+                  'Ubicación Necesaria',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Para encontrar los tesoros ocultos, necesitamos acceder a tu ubicación.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentGold,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _requestNativePermissions();
+                    },
+                    child: const Text('ACTIVAR UBICACIÓN',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } else {
+      // Si ya tiene todo, solo verificamos por seguridad
+      await _requestNativePermissions();
+    }
+  }
+
+  Future<void> _requestNativePermissions() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      try {
+        await Geolocator.getCurrentPosition(
+            timeLimit: const Duration(seconds: 2));
+      } catch (_) {}
     }
   }
 

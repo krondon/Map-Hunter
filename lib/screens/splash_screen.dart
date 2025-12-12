@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:math' as math;
 import 'login_screen.dart';
 import '../theme/app_theme.dart';
@@ -10,10 +11,11 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _pulseController;
-  
+
   final List<String> _loadingPhrases = [
     "Calibrando brújula...",
     "Descifrando mapas antiguos...",
@@ -21,13 +23,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     "Convocando a los espíritus...",
     "Afilando espadas...",
   ];
-  
+
   int _phraseIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Controlador para el logo giratorio
     _controller = AnimationController(
       duration: const Duration(seconds: 2),
@@ -53,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       }
     });
   }
-  
+
   void _cyclePhrases() async {
     for (int i = 0; i < 5; i++) {
       await Future.delayed(const Duration(milliseconds: 800));
@@ -92,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 );
               },
             ),
-            
+
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -138,9 +140,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Título
                 const Text(
                   'TREASURE HUNT',
@@ -152,7 +154,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     fontFamily: 'sans-serif',
                   ),
                 ),
-                
+
                 const Text(
                   'RPG',
                   style: TextStyle(
@@ -162,9 +164,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     letterSpacing: 8,
                   ),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // Frases de carga cambiantes
                 SizedBox(
                   height: 30,
@@ -181,15 +183,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Barra de progreso
                 SizedBox(
                   width: 200,
                   child: LinearProgressIndicator(
                     backgroundColor: Colors.white10,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentGold),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppTheme.accentGold),
                   ),
                 ),
               ],
@@ -211,16 +214,17 @@ class RadarPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final maxRadius = math.max(size.width, size.height) * 0.8;
-    
+
     final Paint paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
     // Dibujar 3 ondas expansivas
     for (int i = 0; i < 3; i++) {
-      final double opacity = (1.0 - ((animationValue + i * 0.33) % 1.0)).clamp(0.0, 1.0);
+      final double opacity =
+          (1.0 - ((animationValue + i * 0.33) % 1.0)).clamp(0.0, 1.0);
       final double radius = maxRadius * ((animationValue + i * 0.33) % 1.0);
-      
+
       paint.color = AppTheme.primaryPurple.withOpacity(opacity * 0.3);
       canvas.drawCircle(center, radius, paint);
     }
