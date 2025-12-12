@@ -83,7 +83,7 @@ class _CompetitionsManagementScreenState
     // Solo retornamos el contenido, el Dashboard provee el Scaffold y Header
     return Container(
       decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
+        gradient: AppTheme.darkGradient,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +100,7 @@ class _CompetitionsManagementScreenState
               ),
             ),
           ),
-          
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -109,11 +109,13 @@ class _CompetitionsManagementScreenState
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.event_busy, size: 64, color: Colors.white.withOpacity(0.3)),
+                            Icon(Icons.event_busy,
+                                size: 64, color: Colors.white.withOpacity(0.3)),
                             const SizedBox(height: 16),
                             const Text(
                               "No hay competencias activas",
-                              style: TextStyle(color: Colors.white70, fontSize: 18),
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 18),
                             ),
                           ],
                         ),
@@ -121,7 +123,8 @@ class _CompetitionsManagementScreenState
                     : ListView.separated(
                         padding: const EdgeInsets.all(24),
                         itemCount: events.length,
-                        separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                        separatorBuilder: (ctx, i) =>
+                            const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final event = events[index];
                           return Card(
@@ -129,7 +132,8 @@ class _CompetitionsManagementScreenState
                             color: AppTheme.cardBg,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: Colors.white.withOpacity(0.05)),
+                              side: BorderSide(
+                                  color: Colors.white.withOpacity(0.05)),
                             ),
                             child: Column(
                               children: [
@@ -144,14 +148,18 @@ class _CompetitionsManagementScreenState
                                         borderRadius: BorderRadius.circular(12),
                                         image: event.imageUrl.isNotEmpty
                                             ? DecorationImage(
-                                                image: NetworkImage(event.imageUrl),
+                                                image: NetworkImage(
+                                                    event.imageUrl),
                                                 fit: BoxFit.cover,
                                               )
                                             : null,
-                                        color: AppTheme.primaryPurple.withOpacity(0.2),
+                                        color: AppTheme.primaryPurple
+                                            .withOpacity(0.2),
                                       ),
                                       child: event.imageUrl.isEmpty
-                                          ? const Icon(Icons.confirmation_number, color: AppTheme.primaryPurple)
+                                          ? const Icon(
+                                              Icons.confirmation_number,
+                                              color: AppTheme.primaryPurple)
                                           : null,
                                     ),
                                   ),
@@ -165,23 +173,69 @@ class _CompetitionsManagementScreenState
                                   ),
                                   subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
-                                    child: Row(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Icon(Icons.location_on, size: 14, color: Colors.white54),
-                                        const SizedBox(width: 4),
-                                        Text(event.location, style: const TextStyle(color: Colors.white54)),
-                                        const SizedBox(width: 16),
-                                        Icon(Icons.calendar_today, size: 14, color: Colors.white54),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          event.date.toString().split(' ')[0],
-                                          style: const TextStyle(color: Colors.white54),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Icon(Icons.location_on,
+                                                size: 14,
+                                                color: Colors.white54),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                event.locationName ??
+                                                    'Sin ubicación',
+                                                style: const TextStyle(
+                                                    color: Colors.white54),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Wrap(
+                                          spacing: 12,
+                                          runSpacing: 4,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.calendar_today,
+                                                    size: 14,
+                                                    color: Colors.white54),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  event.date
+                                                      .toString()
+                                                      .split(' ')[0],
+                                                  style: const TextStyle(
+                                                      color: Colors.white54),
+                                                ),
+                                              ],
+                                            ),
+                                            if (event.latitude != null &&
+                                                event.longitude != null)
+                                              Text(
+                                                '(${event.latitude.toStringAsFixed(4)}, ${event.longitude.toStringAsFixed(4)})',
+                                                style: const TextStyle(
+                                                    color: Colors.white38,
+                                                    fontSize: 12),
+                                              ),
+                                          ],
                                         ),
                                       ],
                                     ),
                                   ),
                                   trailing: IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.redAccent),
                                     onPressed: () => _deleteEvent(event),
                                     tooltip: "Eliminar Evento",
                                   ),
@@ -191,18 +245,24 @@ class _CompetitionsManagementScreenState
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.2),
-                                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                                    borderRadius: const BorderRadius.vertical(
+                                        bottom: Radius.circular(16)),
                                   ),
                                   child: OutlinedButton.icon(
                                     onPressed: () {
                                       // TODO: Navegar al detalle
                                     },
-                                    icon: const Icon(Icons.visibility, size: 18),
-                                    label: const Text("Ver Detalles y Solicitudes"),
+                                    icon:
+                                        const Icon(Icons.visibility, size: 18),
+                                    label: const Text(
+                                        "Ver Detalles y Solicitudes"),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppTheme.accentGold,
-                                      side: const BorderSide(color: AppTheme.accentGold, width: 0.5),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      side: const BorderSide(
+                                          color: AppTheme.accentGold,
+                                          width: 0.5),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12),
                                     ),
                                   ),
                                 ),

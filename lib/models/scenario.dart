@@ -8,6 +8,8 @@ class Scenario {
   final int maxPlayers;
   final String starterClue;
   final String secretCode; // The code they need to find
+  final double? latitude;
+  final double? longitude;
 
   const Scenario({
     required this.id,
@@ -19,5 +21,7 @@ class Scenario {
     required this.maxPlayers,
     required this.starterClue,
     required this.secretCode,
+    this.latitude,
+    this.longitude,
   });
 }

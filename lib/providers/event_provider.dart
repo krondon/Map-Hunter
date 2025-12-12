@@ -48,14 +48,19 @@ class EventProvider with ChangeNotifier {
       }
 
       // 2. Insertar en la tabla 'events'
-      debugPrint('Creating event with title: ${event.title}, description: ${event.description}');
-      
+      debugPrint(
+          'Creating event with title: ${event.title}, description: ${event.description}');
+
       final response = await _supabase
           .from('events')
           .insert({
             'title': event.title,
             'description': event.description,
-            'location': event.location,
+            'location_name': event.locationName,
+            'location':
+                event.locationName, // Asegura que location siempre tenga valor
+            'latitude': event.latitude,
+            'longitude': event.longitude,
             'date': event.date.toIso8601String(),
             'clue': event.clue,
             'image_url': imageUrl,
@@ -71,7 +76,17 @@ class EventProvider with ChangeNotifier {
         id: response['id'],
         title: response['title'],
         description: response['description'] ?? '',
-        location: response['location'],
+        locationName: response['location_name'] ?? '',
+        latitude: (response['latitude'] is double)
+            ? response['latitude']
+            : (response['latitude'] != null
+                ? double.tryParse(response['latitude'].toString()) ?? 0.0
+                : 0.0),
+        longitude: (response['longitude'] is double)
+            ? response['longitude']
+            : (response['longitude'] != null
+                ? double.tryParse(response['longitude'].toString()) ?? 0.0
+                : 0.0),
         date: DateTime.parse(response['date']),
         createdByAdminId: response['created_by_admin_id'] ?? '',
         imageUrl: response['image_url'] ?? '',
@@ -111,7 +126,17 @@ class EventProvider with ChangeNotifier {
                 id: data['id'],
                 title: data['title'],
                 description: data['description'] ?? '',
-                location: data['location'],
+                locationName: data['location_name'] ?? '',
+                latitude: (data['latitude'] is double)
+                    ? data['latitude']
+                    : (data['latitude'] != null
+                        ? double.tryParse(data['latitude'].toString()) ?? 0.0
+                        : 0.0),
+                longitude: (data['longitude'] is double)
+                    ? data['longitude']
+                    : (data['longitude'] != null
+                        ? double.tryParse(data['longitude'].toString()) ?? 0.0
+                        : 0.0),
                 date: DateTime.parse(data['date']),
                 createdByAdminId: data['created_by_admin_id'] ?? '',
                 imageUrl: data['image_url'] ?? '',
