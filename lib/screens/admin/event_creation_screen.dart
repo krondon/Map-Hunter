@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../models/event.dart';
@@ -77,7 +78,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     if (_maxParticipants <= 0) isValid = false;
     if (_pin.length != 6) isValid = false; // El PIN debe ser exacto
     if (_clue.isEmpty) isValid = false;
-    
+
     // Validamos Imagen y Mapa
     if (_selectedImage == null) isValid = false;
     if (_latitude == null || _longitude == null) isValid = false;
@@ -103,68 +104,222 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     latlng.LatLng? picked;
     String? address;
     latlng.LatLng temp = initial;
+    final MapController mapController = MapController();
+    final TextEditingController searchController = TextEditingController();
+    Timer? debounce;
+    List<dynamic> suggestions = [];
 
     await showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setStateDialog) => AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            contentPadding: EdgeInsets.zero,
-            content: SizedBox(
-              width: 350,
-              height: 400,
-              child: Stack(
-                children: [
-                  FlutterMap(
-                    options: MapOptions(
-                      center: initial,
-                      zoom: 14,
-                      onTap: (tapPos, latLng) {
-                        setStateDialog(() {
-                          temp = latLng;
-                        });
-                      },
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                        subdomains: const ['a', 'b', 'c', 'd'],
-                        userAgentPackageName: 'com.juegoqr.app',
-                        tileProvider: NetworkTileProvider(),
+          builder: (context, setStateDialog) {
+            Future<void> searchLocation() async {
+              final query = searchController.text;
+              if (query.isEmpty) {
+                setStateDialog(() => suggestions = []);
+                return;
+              }
+
+              final apiKey = 'pk.45e576837f12504a63c6d1893820f1cf';
+              final url = Uri.parse(
+                  'https://us1.locationiq.com/v1/search.php?key=$apiKey&q=$query&format=json&limit=5&countrycodes=ve');
+
+              try {
+                final response = await http.get(url);
+                if (response.statusCode == 200) {
+                  final data = json.decode(response.body);
+                  if (data is List) {
+                    setStateDialog(() {
+                      suggestions = data;
+                    });
+                  }
+                }
+              } catch (e) {
+                debugPrint('Error searching: $e');
+              }
+            }
+
+            void selectSuggestion(dynamic suggestion) {
+              final lat = double.parse(suggestion['lat']);
+              final lon = double.parse(suggestion['lon']);
+              final display = suggestion['display_name'];
+              final newPos = latlng.LatLng(lat, lon);
+
+              setStateDialog(() {
+                temp = newPos;
+                suggestions = [];
+                searchController.text = display;
+              });
+              mapController.move(newPos, 15);
+              FocusScope.of(context).unfocus();
+            }
+
+            return AlertDialog(
+              backgroundColor: AppTheme.cardBg,
+              contentPadding: const EdgeInsets.all(15),
+              content: SizedBox(
+                width: 350,
+                height: 450,
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24),
                       ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            width: 40,
-                            height: 40,
-                            point: temp,
-                            child: const Icon(Icons.location_on,
-                                color: Colors.red, size: 40),
+                      child: TextField(
+                        controller: searchController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Buscar dirección...',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 15, vertical: 12),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.search, color: Colors.white),
+                            onPressed: searchLocation,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          picked = temp;
-                          Navigator.of(context).pop();
+                        ),
+                        onChanged: (value) {
+                          if (debounce?.isActive ?? false) debounce!.cancel();
+                          debounce =
+                              Timer(const Duration(milliseconds: 400), () {
+                            searchLocation();
+                          });
                         },
-                        child: const Text('Seleccionar esta ubicación'),
                       ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            FlutterMap(
+                              mapController: mapController,
+                              options: MapOptions(
+                                center: initial,
+                                zoom: 14,
+                                cameraConstraint: CameraConstraint.contain(
+                                  bounds: LatLngBounds(
+                                    const latlng.LatLng(
+                                        0.5, -73.5), // Suroeste de Venezuela
+                                    const latlng.LatLng(
+                                        12.5, -59.5), // Noreste de Venezuela
+                                  ),
+                                ),
+                                minZoom: 5,
+                                onTap: (tapPos, latLng) {
+                                  setStateDialog(() {
+                                    temp = latLng;
+                                    suggestions = [];
+                                  });
+                                },
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate:
+                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.juegoqr.app',
+                                  tileProvider: NetworkTileProvider(),
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      width: 40,
+                                      height: 40,
+                                      point: temp,
+                                      child: const Icon(Icons.location_on,
+                                          color: Colors.red, size: 40),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            if (suggestions.isNotEmpty)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: 200,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E1E1E),
+                                    borderRadius: const BorderRadius.vertical(
+                                        bottom: Radius.circular(8)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.5),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ListView.separated(
+                                    padding: EdgeInsets.zero,
+                                    itemCount: suggestions.length,
+                                    separatorBuilder: (_, __) => const Divider(
+                                        height: 1, color: Colors.white10),
+                                    itemBuilder: (context, index) {
+                                      final item = suggestions[index];
+                                      return ListTile(
+                                        dense: true,
+                                        title: Text(
+                                          item['display_name'] ?? '',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        onTap: () => selectSuggestion(item),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            Positioned(
+                              bottom: 10,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    // Validación geográfica estricta para Venezuela
+                                    if (temp.latitude < 0.5 ||
+                                        temp.latitude > 12.5 ||
+                                        temp.longitude < -73.5 ||
+                                        temp.longitude > -59.5) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              '⚠️ Por favor selecciona una ubicación dentro de Venezuela'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    picked = temp;
+                                    Navigator.of(context).pop();
+                                  },
+                                  child:
+                                      const Text('Seleccionar esta ubicación'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -571,31 +726,34 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                          child: TextFormField(
-                            initialValue: _pin,
-                            // 1. Muestra el teclado numérico
-                            keyboardType: TextInputType.number, 
-                            // 2. Solo permite dígitos y máximo 6 caracteres
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(6),
-                            ],
-                            decoration: inputDecoration.copyWith(
-                              labelText: 'PIN de Acceso',
-                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
-                              hintText: '123456', // Opcional: ayuda visual
+                              child: TextFormField(
+                                initialValue: _pin,
+                                // 1. Muestra el teclado numérico
+                                keyboardType: TextInputType.number,
+                                // 2. Solo permite dígitos y máximo 6 caracteres
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(6),
+                                ],
+                                decoration: inputDecoration.copyWith(
+                                  labelText: 'PIN de Acceso',
+                                  prefixIcon: const Icon(Icons.lock_outline,
+                                      color: Colors.white54),
+                                  hintText: '123456', // Opcional: ayuda visual
+                                ),
+                                style: const TextStyle(color: Colors.white),
+                                // 3. Valida que no esté vacío y que tenga exactamente 6 números
+                                validator: (v) {
+                                  if (v == null || v.isEmpty)
+                                    return 'Requerido';
+                                  if (v.length != 6)
+                                    return 'El PIN debe ser de 6 dígitos';
+                                  return null;
+                                },
+                                onChanged: (v) => _pin = v,
+                                onSaved: (v) => _pin = v!,
+                              ),
                             ),
-                            style: const TextStyle(color: Colors.white),
-                            // 3. Valida que no esté vacío y que tenga exactamente 6 números
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'Requerido';
-                              if (v.length != 6) return 'El PIN debe ser de 6 dígitos';
-                              return null;
-                            },
-                            onChanged: (v) => _pin = v,
-                            onSaved: (v) => _pin = v!,
-                          ),
-                        ),
                             const SizedBox(width: 20),
                             Expanded(
                               flex: 2,
@@ -618,12 +776,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         ),
                         const SizedBox(height: 40),
 
-                          // Generador de Pistas
+                        // Generador de Pistas
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white10),
-                            borderRadius: BorderRadius.circular(12)),
+                              border: Border.all(color: Colors.white10),
+                              borderRadius: BorderRadius.circular(12)),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -643,48 +801,52 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(2), // Max. 2 dígitos
+                                        LengthLimitingTextInputFormatter(
+                                            2), // Max. 2 dígitos
                                       ],
                                       decoration: inputDecoration.copyWith(
-                                          contentPadding: const EdgeInsets.all(10),
+                                          contentPadding:
+                                              const EdgeInsets.all(10),
                                           isDense: true,
                                           // Opcional: Mostrar un hint de la restricción
-                                          hintText: 'Max 12'), 
-                                      style: const TextStyle(color: Colors.white),
+                                          hintText: 'Max 12'),
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                       onChanged: (v) {
-                                    int? parsedValue = int.tryParse(v);
-                                    
-                                    // Aplicar la restricción al estado
-                                    if (parsedValue != null) {
-                                      // Si el valor es mayor a 12, se queda en 12. Si es 0 o menos, se queda en 0.
-                                      if (parsedValue > 12) {
-                                        _numberOfClues = 12;
-                                        // Opcional: Forzar la actualización del campo visual si se excede 12
-                                        // Es mejor dejar que el validador maneje la retroalimentación
-                                      } else if (parsedValue < 0) {
-                                        _numberOfClues = 0;
-                                      } else {
-                                        _numberOfClues = parsedValue;
-                                      }
-                                    } else if (v.isEmpty) {
-                                      _numberOfClues = 0;
-                                    }
-                                    // Se debe llamar a setState aquí para reflejar el cambio en el campo
-                                    // (si quieres que se limite visualmente al escribir un 13)
-                                    setState(() {
-                                      // Esto asegura que el campo se limite visualmente si el usuario intenta escribir más de 12
-                                      _numberOfClues; 
-                                    });
-                                  },
-                                  // Opcional, pero recomendado: validar para mostrar el error al usuario
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) return 'Requerido';
-                                    int? num = int.tryParse(v);
-                                    if (num == null || num <= 0) return 'Mín. 1';
-                                    if (num > 12) return 'Máximo 12 pistas';
-                                    return null;
-                                  },
+                                        int? parsedValue = int.tryParse(v);
 
+                                        // Aplicar la restricción al estado
+                                        if (parsedValue != null) {
+                                          // Si el valor es mayor a 12, se queda en 12. Si es 0 o menos, se queda en 0.
+                                          if (parsedValue > 12) {
+                                            _numberOfClues = 12;
+                                            // Opcional: Forzar la actualización del campo visual si se excede 12
+                                            // Es mejor dejar que el validador maneje la retroalimentación
+                                          } else if (parsedValue < 0) {
+                                            _numberOfClues = 0;
+                                          } else {
+                                            _numberOfClues = parsedValue;
+                                          }
+                                        } else if (v.isEmpty) {
+                                          _numberOfClues = 0;
+                                        }
+                                        // Se debe llamar a setState aquí para reflejar el cambio en el campo
+                                        // (si quieres que se limite visualmente al escribir un 13)
+                                        setState(() {
+                                          // Esto asegura que el campo se limite visualmente si el usuario intenta escribir más de 12
+                                          _numberOfClues;
+                                        });
+                                      },
+                                      // Opcional, pero recomendado: validar para mostrar el error al usuario
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty)
+                                          return 'Requerido';
+                                        int? num = int.tryParse(v);
+                                        if (num == null || num <= 0)
+                                          return 'Mín. 1';
+                                        if (num > 12) return 'Máximo 12 pistas';
+                                        return null;
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 10),
@@ -692,14 +854,15 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                     onPressed: () {
                                       // *** Punto de restricción (2) - Lógica en la función ***
                                       if (_numberOfClues > 12) {
-                                        _numberOfClues = 12; // Asegura que el valor de estado no exceda
+                                        _numberOfClues =
+                                            12; // Asegura que el valor de estado no exceda
                                       }
                                       if (_numberOfClues <= 0) {
                                         // Opcional: Mostrar un mensaje al usuario
                                         return; // No hacer nada si no hay pistas
                                       }
                                       // Llama a la función de generación con el valor validado
-                                      _generateClueForms(); 
+                                      _generateClueForms();
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.accentGold,
@@ -712,23 +875,31 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               if (_clueForms.isNotEmpty) ...[
                                 const SizedBox(height: 20),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     IconButton(
                                       onPressed: _currentClueIndex > 0
-                                          ? () => setState(() => _currentClueIndex--)
+                                          ? () => setState(
+                                              () => _currentClueIndex--)
                                           : null,
-                                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                                      icon: const Icon(Icons.arrow_back_ios,
+                                          color: Colors.white),
                                     ),
                                     Text(
                                       "Pista ${_currentClueIndex + 1} de ${_clueForms.length}",
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                     IconButton(
-                                      onPressed: _currentClueIndex < _clueForms.length - 1
-                                          ? () => setState(() => _currentClueIndex++)
+                                      onPressed: _currentClueIndex <
+                                              _clueForms.length - 1
+                                          ? () => setState(
+                                              () => _currentClueIndex++)
                                           : null,
-                                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                                      icon: const Icon(Icons.arrow_forward_ios,
+                                          color: Colors.white),
                                     ),
                                   ],
                                 ),
@@ -745,52 +916,95 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                     child: Column(
                                       children: [
                                         TextFormField(
-                                          initialValue: _clueForms[_currentClueIndex]['title'],
-                                          decoration: inputDecoration.copyWith(labelText: 'Título de la Pista'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => _clueForms[_currentClueIndex]['title'] = v,
+                                          initialValue:
+                                              _clueForms[_currentClueIndex]
+                                                  ['title'],
+                                          decoration: inputDecoration.copyWith(
+                                              labelText: 'Título de la Pista'),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) =>
+                                              _clueForms[_currentClueIndex]
+                                                  ['title'] = v,
                                         ),
                                         const SizedBox(height: 10),
                                         TextFormField(
-                                          initialValue: _clueForms[_currentClueIndex]['description'],
-                                          decoration: inputDecoration.copyWith(labelText: 'Descripción'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => _clueForms[_currentClueIndex]['description'] = v,
+                                          initialValue:
+                                              _clueForms[_currentClueIndex]
+                                                  ['description'],
+                                          decoration: inputDecoration.copyWith(
+                                              labelText: 'Descripción'),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) =>
+                                              _clueForms[_currentClueIndex]
+                                                  ['description'] = v,
                                         ),
                                         const SizedBox(height: 10),
                                         TextFormField(
-                                          initialValue: _clueForms[_currentClueIndex]['riddle_question'],
-                                          decoration: inputDecoration.copyWith(labelText: 'Pregunta / Acertijo'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => _clueForms[_currentClueIndex]['riddle_question'] = v,
+                                          initialValue:
+                                              _clueForms[_currentClueIndex]
+                                                  ['riddle_question'],
+                                          decoration: inputDecoration.copyWith(
+                                              labelText: 'Pregunta / Acertijo'),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) =>
+                                              _clueForms[_currentClueIndex]
+                                                  ['riddle_question'] = v,
                                         ),
                                         const SizedBox(height: 10),
                                         TextFormField(
-                                          initialValue: _clueForms[_currentClueIndex]['riddle_answer'],
-                                          decoration: inputDecoration.copyWith(labelText: 'Respuesta Correcta'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => _clueForms[_currentClueIndex]['riddle_answer'] = v,
+                                          initialValue:
+                                              _clueForms[_currentClueIndex]
+                                                  ['riddle_answer'],
+                                          decoration: inputDecoration.copyWith(
+                                              labelText: 'Respuesta Correcta'),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) =>
+                                              _clueForms[_currentClueIndex]
+                                                  ['riddle_answer'] = v,
                                         ),
                                         const SizedBox(height: 10),
                                         Row(
                                           children: [
                                             Expanded(
                                               child: TextFormField(
-                                                initialValue: _clueForms[_currentClueIndex]['xp_reward'].toString(),
-                                                decoration: inputDecoration.copyWith(labelText: 'XP'),
-                                                keyboardType: TextInputType.number,
-                                                style: const TextStyle(color: Colors.white),
-                                                onChanged: (v) => _clueForms[_currentClueIndex]['xp_reward'] = int.tryParse(v) ?? 0,
+                                                initialValue: _clueForms[
+                                                            _currentClueIndex]
+                                                        ['xp_reward']
+                                                    .toString(),
+                                                decoration: inputDecoration
+                                                    .copyWith(labelText: 'XP'),
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                                onChanged: (v) => _clueForms[
+                                                            _currentClueIndex]
+                                                        ['xp_reward'] =
+                                                    int.tryParse(v) ?? 0,
                                               ),
                                             ),
                                             const SizedBox(width: 10),
                                             Expanded(
                                               child: TextFormField(
-                                                initialValue: _clueForms[_currentClueIndex]['coin_reward'].toString(),
-                                                decoration: inputDecoration.copyWith(labelText: 'Monedas'),
-                                                keyboardType: TextInputType.number,
-                                                style: const TextStyle(color: Colors.white),
-                                                onChanged: (v) => _clueForms[_currentClueIndex]['coin_reward'] = int.tryParse(v) ?? 0,
+                                                initialValue: _clueForms[
+                                                            _currentClueIndex]
+                                                        ['coin_reward']
+                                                    .toString(),
+                                                decoration:
+                                                    inputDecoration.copyWith(
+                                                        labelText: 'Monedas'),
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                                onChanged: (v) => _clueForms[
+                                                            _currentClueIndex]
+                                                        ['coin_reward'] =
+                                                    int.tryParse(v) ?? 0,
                                               ),
                                             ),
                                           ],
@@ -813,14 +1027,15 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                             // 4. LÓGICA DEL BOTÓN MODIFICADA
                             // Si es válido y no está cargando, ejecuta _submitForm.
                             // Si no, es null (deshabilitado).
-                            onPressed: (_isFormValid && !_isLoading) 
-                                ? _submitForm 
-                                : null, 
+                            onPressed: (_isFormValid && !_isLoading)
+                                ? _submitForm
+                                : null,
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryPurple,
-                                // El color se ajusta solo cuando está disabled, 
+                                // El color se ajusta solo cuando está disabled,
                                 // pero si quieres forzar estilo visual puedes hacerlo aquí
-                                disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                                disabledBackgroundColor:
+                                    Colors.grey.withOpacity(0.3),
                                 disabledForegroundColor: Colors.white30,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12)),
