@@ -5,13 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'providers/game_provider.dart';
-import 'providers/player_provider.dart';
-import 'providers/game_request_provider.dart';
-import 'theme/app_theme.dart';
+import 'features/game/providers/game_provider.dart';
+import 'features/auth/providers/player_provider.dart';
+import 'features/game/providers/game_request_provider.dart';
+import 'core/theme/app_theme.dart';
 
-import 'providers/event_provider.dart'; 
-import 'screens/admin/auth_save.dart'; 
+import 'features/game/providers/event_provider.dart'; 
+import 'features/admin/screens/auth_save.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

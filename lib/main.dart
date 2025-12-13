@@ -6,15 +6,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importar dotenv
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importar Supabase
 
 // Imports existentes
-import 'screens/splash_screen.dart';
-import 'providers/game_provider.dart';
-import 'providers/player_provider.dart';
-import 'providers/game_request_provider.dart';
-import 'theme/app_theme.dart';
+import 'features/auth/screens/splash_screen.dart';
+import 'features/game/providers/game_provider.dart';
+import 'features/auth/providers/player_provider.dart';
+import 'features/game/providers/game_request_provider.dart';
+import 'core/theme/app_theme.dart';
 
 // 2. Imports nuevos para el Administrador
-import 'providers/event_provider.dart'; 
-import 'screens/admin/admin_login_screen.dart'; 
+import 'features/game/providers/event_provider.dart'; 
+import 'features/admin/screens/admin_login_screen.dart'; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

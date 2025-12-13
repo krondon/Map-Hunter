@@ -1,0 +1,347 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../auth/providers/player_provider.dart';
+import 'event_creation_screen.dart';
+import 'competitions_management_screen.dart';
+import 'requests_management_screen.dart';
+import 'user_management_screen.dart';
+import 'admin_login_screen.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  int _selectedIndex = 0;
+
+  // Lista de vistas disponibles
+  final List<Widget> _views = [
+    const _WelcomeDashboardView(), // Dashboard General / Resumen
+    const EventCreationScreen(), // Crear Competencia
+    const CompetitionsManagementScreen(), // Gestionar Competencias
+    const RequestsManagementScreen(), // Gestionar Solicitudes
+    const UserManagementScreen(), // Usuarios
+  ];
+
+  // Títulos para la navegación
+  final List<String> _titles = [
+    "Dashboard",
+    "Crear Evento",
+    "Competencias",
+    "Solicitudes",
+    "Usuarios",
+    "Reportes", // Placeholder
+    "Configuración" // Placeholder
+  ];
+
+  final List<IconData> _icons = [
+    Icons.dashboard,
+    Icons.add_circle_outline,
+    Icons.emoji_events,
+    Icons.assignment_ind,
+    Icons.people,
+    Icons.bar_chart,
+    Icons.settings,
+  ];
+
+  void _handleLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white)),
+        content: const Text('¿Estás seguro de que deseas salir?',
+            style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Salir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true && context.mounted) {
+      await Provider.of<PlayerProvider>(context, listen: false).logout();
+      if (context.mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Usamos LayoutBuilder para adaptarnos si es Web/Desktop
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Scaffold(
+          backgroundColor: AppTheme.darkBg,
+          body: Column(
+            children: [
+              // ------------------------------------------------
+              // 1. HEADER SUPERIOR (Logo + Usuario)
+              // ------------------------------------------------
+              Container(
+                height: 70,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Logo / Título
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryPurple.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings,
+                          color: AppTheme.primaryPurple),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "Sistema Administrativo",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          "Treasure Hunt RPG",
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // Información de Usuario
+                    Row(
+                      children: [
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: const [
+                            Text(
+                              "Administrador",
+                              style: TextStyle(
+                                  color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              "admin@system.com", // Placeholder o obtener real
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 12),
+                        CircleAvatar(
+                          backgroundColor: AppTheme.secondaryPink,
+                          child: const Text("A",
+                              style: TextStyle(
+                                  color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(Icons.logout, color: Colors.white54),
+                          tooltip: "Salir",
+                          onPressed: () => _handleLogout(context),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // ------------------------------------------------
+              // 2. BARRA DE NAVEGACIÓN HORIZONTAL
+              // ------------------------------------------------
+              Container(
+                height: 60,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2342), // Un tono ligeramente diferente
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      offset: const Offset(0, 4),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _titles.length,
+                  itemBuilder: (context, index) {
+                    final isSelected = _selectedIndex == index;
+                    return GestureDetector(
+                      onTap: () {
+                         if (index < _views.length) {
+                             setState(() => _selectedIndex = index);
+                         } else {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                             const SnackBar(content: Text("Módulo en desarrollo"))
+                           );
+                         }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.primaryPurple.withOpacity(0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: isSelected ? Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)) : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _icons[index],
+                              size: 20,
+                              color: isSelected ? AppTheme.primaryPurple : Colors.white54,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _titles[index],
+                              style: TextStyle(
+                                color: isSelected ? AppTheme.primaryPurple : Colors.white70,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // ------------------------------------------------
+              // 3. ÁREA DE CONTENIDO PRINCIPAL
+              // ------------------------------------------------
+              Expanded(
+                child: Container(
+                  color: AppTheme.darkBg,
+                  // Usamos IndexedStack para mantener el estado de las vistas
+                  // Pero OJO: Si las vistas tienen Scaffold, puede haber conflicto visual.
+                  // Lo ideal es envolverlas en un Theme que elimine el AppBar si es necesario,
+                  // o simplemente aceptar que tendrán un "Header" interno.
+                  child: IndexedStack(
+                    index: _selectedIndex < _views.length ? _selectedIndex : 0,
+                    children: _views,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Vista simple para el "Home" del dashboard
+class _WelcomeDashboardView extends StatelessWidget {
+  const _WelcomeDashboardView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.analytics, size: 80, color: Colors.white24),
+          const SizedBox(height: 20),
+          const Text(
+            "Bienvenido al Panel de Administración",
+            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Selecciona una opción del menú superior para comenzar.",
+            style: TextStyle(color: Colors.white54),
+          ),
+          const SizedBox(height: 40),
+          // Resumen rápido (Cards estilo Dashboard)
+          Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            alignment: WrapAlignment.center,
+            children: [
+              _SummaryCard(
+                  title: "Usuarios Activos", value: "...", color: Colors.blue),
+              _SummaryCard(
+                  title: "Eventos Creados", value: "...", color: Colors.orange),
+              _SummaryCard(
+                  title: "Solicitudes Pendientes", value: "...", color: Colors.purple),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final Color color;
+
+  const _SummaryCard(
+      {required this.title, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 250,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border(left: BorderSide(color: color, width: 4)),
+        boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0,4))
+        ]
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 8),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
