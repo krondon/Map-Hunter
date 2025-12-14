@@ -18,15 +18,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  // Lista de vistas disponibles
-  final List<Widget> _views = [
-    const _WelcomeDashboardView(), // Dashboard General / Resumen
-    const EventCreationScreen(), // Crear Competencia
-    const CompetitionsManagementScreen(), // Gestionar Competencias
-    const RequestsManagementScreen(), // Gestionar Solicitudes
-    const UserManagementScreen(), // Usuarios
-  ];
-
   // Títulos para la navegación
   final List<String> _titles = [
     "Dashboard",
@@ -34,8 +25,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     "Competencias",
     "Solicitudes",
     "Usuarios",
-    "Reportes", // Placeholder
-    "Configuración" // Placeholder
+    "Reportes", 
+    "Configuración" 
   ];
 
   final List<IconData> _icons = [
@@ -47,6 +38,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.bar_chart,
     Icons.settings,
   ];
+
+  /// Método para resetear la vista al Dashboard principal.
+  /// Se pasa como callback al EventCreationScreen.
+  void _goToDashboard() {
+    setState(() {
+      _selectedIndex = 0;
+    });
+  }
 
   void _handleLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
@@ -81,7 +80,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Usamos LayoutBuilder para adaptarnos si es Web/Desktop
+    // DEFINIMOS LAS VISTAS DENTRO DEL BUILD
+    // Esto es necesario para poder pasarle la función _goToDashboard
+    final List<Widget> views = [
+      const _WelcomeDashboardView(), // Index 0
+      
+      // Index 1: Le pasamos el callback aquí
+      EventCreationScreen(
+        onEventCreated: _goToDashboard,
+      ), 
+      
+      const CompetitionsManagementScreen(), // Index 2
+      const RequestsManagementScreen(),     // Index 3
+      const UserManagementScreen(),         // Index 4
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Scaffold(
@@ -150,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              "admin@system.com", // Placeholder o obtener real
+                              "admin@system.com", 
                               style: TextStyle(
                                 color: Colors.white54,
                                 fontSize: 12,
@@ -184,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 height: 60,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E2342), // Un tono ligeramente diferente
+                  color: const Color(0xFF1E2342), 
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -201,7 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     final isSelected = _selectedIndex == index;
                     return GestureDetector(
                       onTap: () {
-                         if (index < _views.length) {
+                        // Usamos la lista local 'views' para verificar longitud
+                         if (index < views.length) {
                              setState(() => _selectedIndex = index);
                          } else {
                            ScaffoldMessenger.of(context).showSnackBar(
@@ -249,13 +263,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: Container(
                   color: AppTheme.darkBg,
-                  // Usamos IndexedStack para mantener el estado de las vistas
-                  // Pero OJO: Si las vistas tienen Scaffold, puede haber conflicto visual.
-                  // Lo ideal es envolverlas en un Theme que elimine el AppBar si es necesario,
-                  // o simplemente aceptar que tendrán un "Header" interno.
                   child: IndexedStack(
-                    index: _selectedIndex < _views.length ? _selectedIndex : 0,
-                    children: _views,
+                    // Usamos la lista local 'views'
+                    index: _selectedIndex < views.length ? _selectedIndex : 0,
+                    children: views, 
                   ),
                 ),
               ),
@@ -267,7 +278,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-// Vista simple para el "Home" del dashboard
+// ------------------------------------------------------------------
+// WIDGETS AUXILIARES (Sin cambios, pero necesarios para compilar)
+// ------------------------------------------------------------------
+
 class _WelcomeDashboardView extends StatelessWidget {
   const _WelcomeDashboardView();
 
@@ -289,12 +303,11 @@ class _WelcomeDashboardView extends StatelessWidget {
             style: TextStyle(color: Colors.white54),
           ),
           const SizedBox(height: 40),
-          // Resumen rápido (Cards estilo Dashboard)
           Wrap(
             spacing: 20,
             runSpacing: 20,
             alignment: WrapAlignment.center,
-            children: [
+            children: const [
               _SummaryCard(
                   title: "Usuarios Activos", value: "...", color: Colors.blue),
               _SummaryCard(

@@ -15,7 +15,13 @@ import '../../../core/theme/app_theme.dart';
 import '../../game/models/clue.dart';
 
 class EventCreationScreen extends StatefulWidget {
-  const EventCreationScreen({super.key});
+  // 1. Agregamos el callback aquí
+  final VoidCallback? onEventCreated;
+
+  const EventCreationScreen({
+    super.key, 
+    this.onEventCreated, // 2. Lo recibimos en el constructor
+  });
 
   @override
   State<EventCreationScreen> createState() => _EventCreationScreenState();
@@ -471,7 +477,13 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('✅ Competencia creada con éxito')),
           );
+          
+          // 3. Limpiamos el formulario
           _resetForm();
+
+          // 4. EJECUTAMOS LA REDIRECCIÓN
+          // Esto avisará al Dashboard que debe cambiar de pantalla
+          widget.onEventCreated?.call(); 
         }
       } catch (error) {
         if (createdEventId != null) {
