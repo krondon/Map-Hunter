@@ -315,6 +315,23 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                 "${_distanceToTarget.toInt()}m del objetivo",
                                 style: const TextStyle(color: Colors.white54),
                               ),
+                              
+                              // Botón de depuración para simular cercanía
+                              Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _distanceToTarget = 5.0;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.bug_report, color: Colors.white30, size: 16),
+                                  label: const Text(
+                                    "Simular Estar Cerca (Debug)",
+                                    style: TextStyle(color: Colors.white30, fontSize: 12),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
 

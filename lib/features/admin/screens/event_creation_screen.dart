@@ -221,11 +221,17 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               ),
                               children: [
                                 TileLayer(
-                                  urlTemplate:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.juegoqr.app',
-                                  tileProvider: NetworkTileProvider(),
-                                ),
+                                    // Utilizamos la URL con subdominios. Esto ayuda al navegador a cargar
+                                    // las imágenes más rápido y a veces resuelve problemas de CORS.
+                                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                                    
+                                    // Agregar los subdominios es crucial
+                                    subdomains: const ['a', 'b', 'c'],
+                                    
+                                    // ASEGÚRATE de que estas dos líneas estén COMENTADAS/ELIMINADAS:
+                                    // userAgentPackageName: 'com.juegoqr.app', 
+                                    // tileProvider: NetworkTileProvider(), // Puedes eliminarlo o mantenerlo
+                                  ),
                                 MarkerLayer(
                                   markers: [
                                     Marker(

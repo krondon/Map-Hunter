@@ -1,3 +1,6 @@
+import 'dart:io' show Platform; // Agrega esto al inicio con los otros imports
+import 'package:flutter/foundation.dart' show kIsWeb; // Opcional, por si usas Web también
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import Provider
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
@@ -54,31 +57,47 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
   }
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
-    // 1. Solicitar permisos de ubicación al ingresar
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+    
+    // --- INICIO DE LA MODIFICACIÓN ---
+    // Solo verificamos permisos si NO estamos en Windows (y no es Web, por si acaso)
+    // Esto permite probar en Windows sin GPS, pero mantiene la seguridad en Android/iOS.
+    bool shouldCheckLocation = true;
+    try {
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        shouldCheckLocation = false;
+      }
+    } catch (e) {
+      // Si falla la detección de plataforma (raro), asumimos que sí debe verificar (móvil/web)
+      shouldCheckLocation = true; 
+    }
+
+    if (shouldCheckLocation) {
+      // 1. Lógica original de permisos de ubicación
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content:
+                      Text('Se requieren permisos de ubicación para participar')),
+            );
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content:
-                    Text('Se requieren permisos de ubicación para participar')),
+                content: Text(
+                    'Los permisos de ubicación están denegados permanentemente. Habilítalos en la configuración.')),
           );
         }
         return;
       }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Los permisos de ubicación están denegados permanentemente. Habilítalos en la configuración.')),
-        );
-      }
-      return;
     }
 
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
