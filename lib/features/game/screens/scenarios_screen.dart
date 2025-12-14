@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import Provider
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'dart:ui';
 import '../models/scenario.dart';
 import '../providers/event_provider.dart'; // Import EventProvider
@@ -27,6 +28,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
   @override
   void initState() {
     super.initState();
+    print("DEBUG: ScenariosScreen initState");
     _pageController = PageController(viewportFraction: 0.85);
     // Cargar eventos al iniciar
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -35,7 +37,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
   }
 
   Future<void> _loadEvents() async {
+    print("DEBUG: _loadEvents start");
     await Provider.of<EventProvider>(context, listen: false).fetchEvents();
+    print("DEBUG: _loadEvents end. Mounted: $mounted");
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -50,6 +54,33 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
   }
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
+    // 1. Solicitar permisos de ubicación al ingresar
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Se requieren permisos de ubicación para participar')),
+          );
+        }
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Los permisos de ubicación están denegados permanentemente. Habilítalos en la configuración.')),
+        );
+      }
+      return;
+    }
+
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final requestProvider =
         Provider.of<GameRequestProvider>(context, listen: false);
@@ -76,12 +107,8 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
 
       if (!mounted) return;
 
-      Navigator.push(
-      context, 
-      MaterialPageRoute(
-        builder: (_) => HomeScreen(eventId: scenario.id) 
-      )
-    );
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
     } else {
       // Check if there is already a request
       final request = await requestProvider.getRequestForPlayer(
@@ -110,6 +137,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print("DEBUG: ScenariosScreen build. isLoading: $_isLoading");
     final eventProvider = Provider.of<EventProvider>(context);
 
     // Convertir Eventos a Escenarios
@@ -119,11 +147,12 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
       // 1. Prioridad: Mostrar el nombre del lugar si existe
       if (event.locationName.isNotEmpty) {
         location = event.locationName;
-      } 
+      }
       // 2. Si no hay nombre, mostramos las coordenadas numéricas
       else {
         // Convertimos latitud y longitud a texto con 4 decimales
-        location = '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}';
+        location =
+            '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}';
       }
       double? latitude;
       double? longitude;
@@ -315,47 +344,59 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                         children: [
                                           // Background Image
                                           // VERIFICACIÓN: Solo intentamos cargar si la URL no está vacía y empieza con http
-                                (scenario.imageUrl.isNotEmpty && scenario.imageUrl.startsWith('http'))
-                                    ? Image.network(
+                                          (scenario.imageUrl.isNotEmpty &&
+                                                  scenario.imageUrl
+                                                      .startsWith('http'))
+                                              ? Image.network(
                                                   scenario.imageUrl,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder:
-                                                (context, error, stackTrace) {
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
                                                     return Container(
                                                       color: Colors.grey[800],
                                                       child: const Icon(
-                                                    Icons.broken_image,
-                                                    size: 50,
-                                                    color: Colors.white54),
+                                                          Icons.broken_image,
+                                                          size: 50,
+                                                          color:
+                                                              Colors.white54),
                                                     );
                                                   },
-                                                  loadingBuilder: (context, child,
-                                                loadingProgress) {
-                                                   if (loadingProgress == null)
-                                                return child;
-                                                   return Container(
-                                                     color: Colors.black26,
-                                                     child: const Center(
-                                                    
-                                                child:
-                                                        CircularProgressIndicator(
-                                                            color: AppTheme
-                                                                .accentGold)),
-                                                   );
+                                                  loadingBuilder: (context,
+                                                      child, loadingProgress) {
+                                                    if (loadingProgress == null)
+                                                      return child;
+                                                    return Container(
+                                                      color: Colors.black26,
+                                                      child: const Center(
+                                                          child: CircularProgressIndicator(
+                                                              color: AppTheme
+                                                                  .accentGold)),
+                                                    );
                                                   },
                                                 )
-                                    // SI LA URL ESTÁ VACÍA, MOSTRAMOS UN PLACEHOLDER
-                                    : Container(
-                                        color: Colors.grey[900],
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: const [
-                                            Icon(Icons.image_not_supported, size: 50, color: Colors.white24),
-                                            SizedBox(height: 8),
-                                            Text("Sin imagen", style: TextStyle(color: Colors.white24, fontSize: 12)),
-                                          ],
-                                        ),
-                                      ),
+                                              // SI LA URL ESTÁ VACÍA, MOSTRAMOS UN PLACEHOLDER
+                                              : Container(
+                                                  color: Colors.grey[900],
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: const [
+                                                      Icon(
+                                                          Icons
+                                                              .image_not_supported,
+                                                          size: 50,
+                                                          color:
+                                                              Colors.white24),
+                                                      SizedBox(height: 8),
+                                                      Text("Sin imagen",
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .white24,
+                                                              fontSize: 12)),
+                                                    ],
+                                                  ),
+                                                ),
 
                                           // Gradient Overlay
                                           Container(
@@ -385,30 +426,6 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                                 // State Tag
                                                 Row(
                                                   children: [
-                                                    Container(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 12,
-                                                          vertical: 6),
-                                                      decoration: BoxDecoration(
-                                                        color: AppTheme
-                                                            .secondaryPink,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(20),
-                                                      ),
-                                                      child: Text(
-                                                        scenario.state
-                                                            .toUpperCase(),
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 10,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 8),
                                                     Container(
                                                       padding: const EdgeInsets
                                                           .symmetric(
@@ -469,30 +486,6 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                                   ),
                                                 ),
                                                 const SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    const Icon(
-                                                        Icons.location_on,
-                                                        color: Colors.white70,
-                                                        size: 16),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      scenario.location,
-                                                      style: const TextStyle(
-                                                        color: Colors.white70,
-                                                        fontSize: 14,
-                                                        shadows: [
-                                                          Shadow(
-                                                            offset:
-                                                                Offset(0, 1),
-                                                            blurRadius: 2,
-                                                            color: Colors.black,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
                                                 const SizedBox(height: 16),
                                                 Text(
                                                   scenario.description,

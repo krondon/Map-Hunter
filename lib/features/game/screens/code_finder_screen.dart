@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'dart:async';
 import 'dart:math' as math;
 import '../models/scenario.dart';
@@ -19,8 +20,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     with TickerProviderStateMixin {
   // State for the "Hot/Cold" mechanic
   double _distanceToTarget = 800.0; // Start far away (meters)
-  bool _isSimulationActive = true;
-  Timer? _simulationTimer;
+  StreamSubscription<Position>? _positionStreamSubscription;
 
   // Controllers
   final TextEditingController _codeController = TextEditingController();
@@ -36,17 +36,55 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     )..repeat();
 
     _shakeController = AnimationController(
-          duration: const Duration(milliseconds: 500),
-          vsync: this,
-        );
-        
-        // DEBUG: Imprimir el código secreto
-        print("SECRET CODE FOR ${widget.scenario.name}: ${widget.scenario.secretCode}");
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // DEBUG: Imprimir el código secreto
+    print(
+        "SECRET CODE FOR ${widget.scenario.name}: ${widget.scenario.secretCode}");
+
+    // Iniciar rastreo de ubicación real
+    _startLocationUpdates();
+  }
+
+  Future<void> _startLocationUpdates() async {
+    // Verificar si tenemos coordenadas del objetivo
+    if (widget.scenario.latitude == null || widget.scenario.longitude == null) {
+      print("ERROR: El escenario no tiene coordenadas definidas.");
+      return;
+    }
+
+    // Configuración de precisión para el stream
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 2, // Actualizar cada 2 metros
+    );
+
+    _positionStreamSubscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+            (Position position) {
+      // Calcular distancia en tiempo real
+      double distanceInMeters = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        widget.scenario.latitude!,
+        widget.scenario.longitude!,
+      );
+
+      if (mounted) {
+        setState(() {
+          _distanceToTarget = distanceInMeters;
+        });
       }
+    }, onError: (error) {
+      print("Error en stream de ubicación: $error");
+    });
+  }
 
   @override
   void dispose() {
-    _simulationTimer?.cancel();
+    _positionStreamSubscription?.cancel();
     _codeController.dispose();
     _pulseController.dispose();
     _shakeController.dispose();
@@ -281,27 +319,6 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                           ),
 
                           const SizedBox(height: 40),
-
-                          // Debug Slider (Simulation)
-                          if (_isSimulationActive && !showInput)
-                            Column(
-                              children: [
-                                const Text("SIMULAR DISTANCIA (DEMO)",
-                                    style: TextStyle(
-                                        fontSize: 10, color: Colors.grey)),
-                                Slider(
-                                  value: _distanceToTarget,
-                                  min: 0,
-                                  max: 1000,
-                                  activeColor: _temperatureColor,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _distanceToTarget = val;
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
 
                           // Code Input Area
                           if (showInput)
