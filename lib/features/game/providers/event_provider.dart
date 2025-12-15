@@ -43,6 +43,7 @@ class EventProvider with ChangeNotifier {
       final response = await _supabase
           .from('events')
           .insert({
+            'id': event.id, // Permitimos ID generado por cliente (UUID)
             'title': event.title,
             'description': event.description,
             'location_name': event.locationName,

@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import '../models/scenario.dart';
 import '../../../core/theme/app_theme.dart';
 import 'game_request_screen.dart';
+import 'qr_scanner_screen.dart'; // Import scanner
 
 class CodeFinderScreen extends StatefulWidget {
   final Scenario scenario;
@@ -89,6 +90,76 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     _pulseController.dispose();
     _shakeController.dispose();
     super.dispose();
+  }
+
+  void _handleScannedCode(String scannedCode) {
+    // Handle Format: "EVENT:{id}:{pin}"
+    String pin = scannedCode;
+    if (pin.startsWith("EVENT:")) {
+      final parts = pin.split(':');
+      if (parts.length >= 3) {
+        pin = parts[2];
+      }
+    }
+    
+    _codeController.text = pin;
+    _verifyCode();
+  }
+
+  void _showManualPinDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        String tempPin = "";
+        return AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: const Text("Simulador de QR", style: TextStyle(color: AppTheme.accentGold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Ingresa el PIN manualmente para simular un escaneo exitoso:", style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 20),
+              TextField(
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                maxLength: 6,
+                style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 5),
+                textAlign: TextAlign.center,
+                decoration: const InputDecoration(
+                  counterText: "",
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.accentGold)),
+                ),
+                onChanged: (v) => tempPin = v,
+                onSubmitted: (v) {
+                  Navigator.pop(context);
+                  if (v.isNotEmpty) {
+                    _codeController.text = v;
+                    _verifyCode();
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (tempPin.isNotEmpty) {
+                  _codeController.text = tempPin;
+                  _verifyCode();
+                }
+              },
+              child: const Text("Simular", style: TextStyle(color: AppTheme.accentGold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Visual Helpers based on distance
@@ -388,35 +459,82 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 10),
-                                    TextField(
-                                    controller: _codeController,
-                                    keyboardType: TextInputType.number,
-                                    textAlign: TextAlign.center,
-                                    
-                                    // --- NUEVO: Restricciones de entrada ---
-                                    maxLength: 6, // Limita físicamente a 6 caracteres
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly, // Solo permite números
-                                    ],
-                                    // ---------------------------------------
-                                    
-                                    style: const TextStyle(
-                                        fontSize: 24,
-                                        letterSpacing: 5,
-                                        color: Colors.white),
-                                    decoration: const InputDecoration(
-                                      hintText: "000000", // Ajustado a 6 ceros visualmente
-                                      hintStyle: TextStyle(color: Colors.white24),
-                                      filled: true,
-                                      fillColor: Colors.black26,
-                                      
-                                      // --- NUEVO: Ocultar el contador "0/6" ---
-                                      counterText: "", 
-                                      // ----------------------------------------
+                                    // --- QR CODE SECTION (Primary) ---
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          const Icon(Icons.qr_code_2, size: 60, color: AppTheme.accentGold),
+                                          const SizedBox(height: 10),
+                                          const Text(
+                                            "Escanea el QR del evento",
+                                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppTheme.accentGold,
+                                                foregroundColor: Colors.black,
+                                                padding: const EdgeInsets.symmetric(vertical: 15),
+                                              ),
+                                              onPressed: () async {
+                                                final scannedCode = await Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+                                                );
+                                                if (scannedCode != null) {
+                                                  _handleScannedCode(scannedCode);
+                                                }
+                                              },
+                                              icon: const Icon(Icons.camera_alt),
+                                              label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    onSubmitted: (_) => _verifyCode(),
-                                  ),
+                                    
+                                    const SizedBox(height: 30),
+                                    const Divider(color: Colors.white24),
                                     const SizedBox(height: 10),
+
+                                    // --- BOTÓN DE SIMULACIÓN DIRECTA (DEV) ---
+                                    // Solicitud del usuario: Eliminar input manual y poner botón que pase directamente
+                                    Column(
+                                      children: [
+                                        const Text(
+                                          "Modo Desarrollador",
+                                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        TextButton.icon(
+                                          onPressed: () {
+                                            // Simular automáticamente el código correcto
+                                            _codeController.text = widget.scenario.secretCode;
+                                            _verifyCode();
+                                          },
+                                          icon: const Icon(Icons.developer_mode, color: AppTheme.accentGold),
+                                          label: const Text(
+                                            "SIMULAR ACCESO (SALTAR QR)",
+                                            style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold),
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            backgroundColor: AppTheme.accentGold.withOpacity(0.1),
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Hidden TextField for logic compatibility (optional, better to use variable)
+                                    // kept invisible or removed. We will use _codeController programmatically.
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton(

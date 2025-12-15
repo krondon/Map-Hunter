@@ -1,110 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/game_provider.dart';
-import '../../auth/providers/player_provider.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../core/theme/app_theme.dart';
-import '../models/clue.dart';
-import 'puzzle_screen.dart';
 
 class QRScannerScreen extends StatefulWidget {
-  final String clueId;
+  final String? expectedClueId; // Optional validation
   
-  const QRScannerScreen({super.key, required this.clueId});
+  const QRScannerScreen({super.key, this.expectedClueId});
 
   @override
   State<QRScannerScreen> createState() => _QRScannerScreenState();
 }
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
-  bool _isScanning = true;
-  bool _isProcessing = false; // Nuevo estado para feedback visual
-  
-  void _simulateScan() {
-    if (_isProcessing) return;
+  bool _isProcessing = false;
+  final MobileScannerController cameraController = MobileScannerController();
 
-    setState(() { 
-      _isScanning = false;
-      _isProcessing = true; 
-    });
-    
-    Future.delayed(const Duration(seconds: 1), () async {
-      if (!mounted) return;
-      final gameProvider = Provider.of<GameProvider>(context, listen: false);
-      
-      try {
-        // 1. DESBLOQUEAR LA PISTA (Quitar el candado visualmente)
-        gameProvider.unlockClue(widget.clueId);
-        
-        final clue = gameProvider.clues.firstWhere((c) => c.id == widget.clueId);
-        
-        // 2. LÓGICA DE REDIRECCIÓN
-        if (clue.type.toString().contains('minigame') || clue.puzzleType != PuzzleType.riddle) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PuzzleScreen(clue: clue),
-            ),
-          );
-        } else {
-          // Caso especial: Check-in sin minijuego
-          final success = await gameProvider.completeCurrentClue("SCANNED", clueId: widget.clueId);
-          
-          if (success && mounted) {
-             final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-             if (playerProvider.currentPlayer != null) {
-                playerProvider.addExperience(clue.xpReward);
-                playerProvider.addCoins(clue.coinReward);
-             }
-             _showSuccessDialog();
-          }
-        }
-      } catch (e) {
-        debugPrint("Error en escaneo: $e");
-        setState(() => _isProcessing = false);
-      }
-    });
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.successGreen.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle, size: 60, color: AppTheme.successGreen),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '¡Ubicación Confirmada!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Dialog
-                Navigator.pop(context); // Screen
-              },
-              child: const Text('Continuar'),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _onDetect(BarcodeCapture capture) {
+    if (_isProcessing) return;
+    final List<Barcode> barcodes = capture.barcodes;
+    
+    for (final barcode in barcodes) {
+      if (barcode.rawValue != null) {
+        setState(() => _isProcessing = true);
+        final code = barcode.rawValue!;
+        debugPrint('QR Scanned: $code');
+        
+        // Return validity or code
+        Navigator.pop(context, code);
+        return; // Process only first valid code
+      }
+    }
   }
 
   @override
@@ -114,140 +45,163 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Escanear QR', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text("Escanear QR", style: TextStyle(color: Colors.white)),
+        // Actions removed temporarily to ensure compatibility with MobileScanner v7+
+        // functionality can be re-added once API is verified.
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // 1. ÁREA DE CÁMARA (Expansible)
-          Expanded(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Simulación de cámara (Fondo)
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: Colors.grey[900],
-                  child: Center(
-                    child: Icon(
-                      Icons.camera_alt_outlined, 
-                      size: 80, 
-                      color: Colors.white.withOpacity(0.1)
-                    ),
-                  ),
-                ),
-                
-                // Marco de Escaneo
-                Container(
-                  width: 280,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _isProcessing 
-                        ? AppTheme.successGreen 
-                        : (_isScanning ? AppTheme.accentGold : AppTheme.successGreen),
-                      width: 4,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_isScanning ? AppTheme.accentGold : AppTheme.successGreen).withOpacity(0.2),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      )
-                    ],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Línea de escaneo animada (simulada estática por ahora)
-                      if (_isScanning)
-                        Container(
-                          width: 260,
-                          height: 2,
-                          color: AppTheme.accentGold.withOpacity(0.5),
-                        ),
-                      
-                      // Icono de estado
-                      if (!_isScanning)
-                         const Icon(Icons.check_circle, size: 80, color: AppTheme.successGreen),
-                    ],
-                  ),
-                ),
-                
-                // Texto de instrucción
-                Positioned(
-                  bottom: 40,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _isProcessing 
-                        ? 'Procesando...' 
-                        : (_isScanning ? 'Apunta al código QR' : '¡Escaneado!'),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                  ),
-                ),
-              ],
+          MobileScanner(
+            controller: cameraController,
+            onDetect: _onDetect,
+          ),
+          // Overlay
+          Container(
+            decoration: ShapeDecoration(
+              shape: QrScannerOverlayShape(
+                borderColor: AppTheme.accentGold,
+                borderRadius: 20,
+                borderLength: 40,
+                borderWidth: 10,
+                cutOutSize: 300,
+              ),
             ),
           ),
-          
-          // 2. ÁREA DE BOTÓN "SIMULAR" (Fija abajo)
-          // Esto garantiza que el botón esté "debajo de la vista" y siempre visible
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.cardBg,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "MODO DESARROLLADOR",
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 10,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.bold
-                  ),
+          if (_isProcessing)
+             Container(
+              color: Colors.black54,
+              child: const Center(child: CircularProgressIndicator(color: AppTheme.accentGold)),
+             ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                widget.expectedClueId != null 
+                    ? "Busca el código QR de la pista" 
+                    : "Escanea el código QR",
+                style: const TextStyle(
+                  color: Colors.white, 
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(blurRadius: 10, color: Colors.black)],
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: (_isScanning && !_isProcessing) ? _simulateScan : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentGold,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)
-                      ),
-                      elevation: 0,
-                    ),
-                    icon: _isProcessing 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                      : const Icon(Icons.qr_code_scanner),
-                    label: Text(
-                      _isProcessing ? 'VERIFICANDO...' : 'SIMULAR ESCANEO QR',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10), // Padding seguro inferior extra
-              ],
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class QrScannerOverlayShape extends ShapeBorder {
+  final Color borderColor;
+  final double borderWidth;
+  final Color overlayColor;
+  final double borderRadius;
+  final double borderLength;
+  final double cutOutSize;
+
+  QrScannerOverlayShape({
+    this.borderColor = Colors.red,
+    this.borderWidth = 10.0,
+    this.overlayColor = const Color.fromRGBO(0, 0, 0, 80),
+    this.borderRadius = 0,
+    this.borderLength = 40,
+    this.cutOutSize = 250,
+  });
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+    return Path()
+      ..fillType = PathFillType.evenOdd
+      ..addPath(getOuterPath(rect), Offset.zero)
+      ..addRect(_getCutOutRect(rect));
+  }
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    return Path()..addRect(rect);
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    final width = rect.width;
+    final borderWidthSize = width / 2;
+    final height = rect.height;
+    final borderOffset = borderWidth / 2;
+    final _cutOutSize = cutOutSize != null && cutOutSize < width
+        ? cutOutSize
+        : width - borderOffset;
+
+    final backgroundPaint = Paint()
+      ..color = overlayColor
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth;
+
+    final boxPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.fill;
+
+    final cutOutRect = _getCutOutRect(rect);
+
+    canvas
+      ..saveLayer(
+        rect,
+        backgroundPaint,
+      )
+      ..drawRect(
+        rect,
+        backgroundPaint,
+      )
+      ..drawRect(
+        cutOutRect,
+        Paint()..blendMode = BlendMode.clear,
+      )
+      ..restore();
+
+    final cutOutPath = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          cutOutRect,
+          Radius.circular(borderRadius),
+        ),
+      );
+
+    canvas.drawPath(cutOutPath, borderPaint);
+  }
+
+  Rect _getCutOutRect(Rect rect) {
+    final width = rect.width;
+    final height = rect.height;
+    final _cutOutSize = cutOutSize != null && cutOutSize < width
+        ? cutOutSize
+        : width - 40;
+    final cutOutHeight = _cutOutSize;
+
+    return Rect.fromLTWH(
+      width / 2 - _cutOutSize / 2,
+      height / 2 - cutOutHeight / 2,
+      _cutOutSize,
+      cutOutHeight,
+    );
+  }
+  
+  @override
+  ShapeBorder scale(double t) {
+    return QrScannerOverlayShape(
+      borderColor: borderColor,
+      borderWidth: borderWidth * t,
+      overlayColor: overlayColor,
     );
   }
 }

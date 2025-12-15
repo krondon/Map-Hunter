@@ -12,15 +12,20 @@ import 'package:http/http.dart' as http;
 import '../../game/models/event.dart';
 import '../../game/providers/event_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:math';
 import '../../game/models/clue.dart';
+import '../widgets/qr_display_dialog.dart';
 
 class EventCreationScreen extends StatefulWidget {
   // 1. Agregamos el callback aquí
   final VoidCallback? onEventCreated;
+  final GameEvent? event; // Agregamos el campo event
 
   const EventCreationScreen({
     super.key, 
-    this.onEventCreated, // 2. Lo recibimos en el constructor
+    this.onEventCreated,
+    this.event, // Agregamos al constructor
   });
 
   @override
@@ -47,6 +52,29 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   XFile? _selectedImage;
   bool _isLoading = false;
   bool _isFormValid = false;
+  late String _eventId; // ID del evento (existente o nuevo generado)
+
+  @override
+  void initState() {
+    super.initState();
+    // Si editamos, usamos el ID existente. Si es nuevo, generamos UUID
+    _eventId = widget.event?.id ?? const Uuid().v4();
+    
+    // Si editamos, cargamos datos
+    if (widget.event != null) {
+       _title = widget.event!.title;
+       _description = widget.event!.description;
+       _locationName = widget.event!.locationName;
+       _latitude = widget.event!.latitude;
+       _longitude = widget.event!.longitude;
+       _clue = widget.event!.clue;
+       _pin = widget.event!.pin;
+       _maxParticipants = widget.event!.maxParticipants;
+       _selectedDate = widget.event!.date;
+       // Nota: la imagen y las pistas se cargan aparte o no se editan aqui directamente si no se cambian
+       _checkFormValidity();
+    }
+  }
 
   // // Para mostrar el nombre del estado/ciudad si se desea
   // final List<String> _states = [
@@ -382,6 +410,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           final newItems = _numberOfClues - _clueForms.length;
           for (int i = 0; i < newItems; i++) {
             _clueForms.add({
+              'id': const Uuid().v4(), // Generamos ID único para la pista
               'title': 'Pista ${_clueForms.length + 1}',
               'description': '',
               // Aseguramos que 'type' sea 'minigame' por defecto para las pistas
@@ -435,7 +464,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
       setState(() => _isLoading = true);
 
       final newEvent = GameEvent(
-        id: DateTime.now().toString(),
+        id: _eventId, // Usamos el ID consistente
         title: _title,
         description: _description,
         locationName: _locationName!,
@@ -527,6 +556,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
       _currentClueIndex = 0;
       _selectedImage = null;
       _isLoading = false;
+      _eventId = const Uuid().v4(); // Reset with new ID for next creation
     });
   }
 
@@ -817,29 +847,76 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  TextFormField(
-                                    initialValue: _pin,
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(6),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          initialValue: _pin,
+                                          keyboardType: TextInputType.number,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.digitsOnly,
+                                            LengthLimitingTextInputFormatter(6),
+                                          ],
+                                          decoration: inputDecoration.copyWith(
+                                            labelText: 'PIN de Acceso',
+                                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
+                                            hintText: '123456',
+                                          ),
+                                          style: const TextStyle(color: Colors.white),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) return 'Requerido';
+                                            if (v.length != 6) return 'El PIN debe ser de 6 dígitos';
+                                            return null;
+                                          },
+                                          onChanged: (v) => _pin = v,
+                                          onSaved: (v) => _pin = v!,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        height: 56,
+                                        width: 56,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.accentGold.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
+                                          tooltip: "Generar QR",
+                                          onPressed: () {
+                                            // Auto-generar PIN si está vacío
+                                            if (_pin.isEmpty || _pin.length != 6) {
+                                              final random = Random();
+                                              final newPin = (100000 + random.nextInt(900000)).toString();
+                                              setState(() {
+                                                _pin = newPin;
+                                              });
+                                              // Necesitamos refrescar el campo de texto visualmente
+                                              // Como usamos initialValue, la mejor forma es reconstruir o usar controller.
+                                              // Por simplicidad en este refactor, mostramos SnackBar avisando del autocompletado
+                                              // y el QR se genera con el nuevo valor.
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('PIN generado automáticamente: $_pin')),
+                                              );
+                                            }
+                                            
+                                            // Mostrar QR usando el ID pre-generado
+                                            if (_pin.length == 6) {
+                                              final qrData = "EVENT:$_eventId:$_pin"; // Usamos _eventId que ya existe
+                                              showDialog(
+                                                context: context,
+                                                builder: (_) => QRDisplayDialog(
+                                                  data: qrData,
+                                                  title: "QR de Acceso",
+                                                  label: "PIN: $_pin",
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
                                     ],
-                                    decoration: inputDecoration.copyWith(
-                                      labelText: 'PIN de Acceso',
-                                      prefixIcon: const Icon(Icons.lock_outline,
-                                          color: Colors.white54),
-                                      hintText: '123456',
-                                    ),
-                                    style: const TextStyle(color: Colors.white),
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty)
-                                        return 'Requerido';
-                                      if (v.length != 6)
-                                        return 'El PIN debe ser de 6 dígitos';
-                                      return null;
-                                    },
-                                    onChanged: (v) => _pin = v,
-                                    onSaved: (v) => _pin = v!,
                                   ),
                                   const SizedBox(height: 20),
                                   TextFormField(
@@ -864,29 +941,71 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    child: TextFormField(
-                                      initialValue: _pin,
-                                      keyboardType: TextInputType.number,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(6),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextFormField(
+                                            initialValue: _pin,
+                                            keyboardType: TextInputType.number,
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.digitsOnly,
+                                              LengthLimitingTextInputFormatter(6),
+                                            ],
+                                            decoration: inputDecoration.copyWith(
+                                              labelText: 'PIN de Acceso',
+                                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
+                                              hintText: '123456',
+                                            ),
+                                            style: const TextStyle(color: Colors.white),
+                                            validator: (v) {
+                                              if (v == null || v.isEmpty) return 'Requerido';
+                                              if (v.length != 6) return 'El PIN debe ser de 6 dígitos';
+                                              return null;
+                                            },
+                                            onChanged: (v) => _pin = v,
+                                            onSaved: (v) => _pin = v!,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          height: 56,
+                                          width: 56,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.accentGold.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
+                                            tooltip: "Generar QR",
+                                            onPressed: () {
+                                              // Auto-generar PIN si está vacío
+                                              if (_pin.isEmpty || _pin.length != 6) {
+                                                final random = Random();
+                                                final newPin = (100000 + random.nextInt(900000)).toString();
+                                                setState(() {
+                                                  _pin = newPin;
+                                                });
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text('PIN generado automáticamente: $_pin')),
+                                                );
+                                              }
+
+                                              if (_pin.length == 6) {
+                                                final qrData = "EVENT:$_eventId:$_pin"; // Usamos _eventId
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (_) => QRDisplayDialog(
+                                                    data: qrData,
+                                                    title: "QR de Acceso",
+                                                    label: "PIN: $_pin",
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        ),
                                       ],
-                                      decoration: inputDecoration.copyWith(
-                                        labelText: 'PIN de Acceso',
-                                        prefixIcon: const Icon(Icons.lock_outline,
-                                            color: Colors.white54),
-                                        hintText: '123456',
-                                      ),
-                                      style: const TextStyle(color: Colors.white),
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty)
-                                          return 'Requerido';
-                                        if (v.length != 6)
-                                          return 'El PIN debe ser de 6 dígitos';
-                                        return null;
-                                      },
-                                      onChanged: (v) => _pin = v,
-                                      onSaved: (v) => _pin = v!,
                                     ),
                                   ),
                                   const SizedBox(width: 20),
@@ -1170,12 +1289,42 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                                         const SizedBox(height: 15),
 
-                                        // --- TÍTULO ---
-                                        TextFormField(
-                                          initialValue: _clueForms[_currentClueIndex]['title'],
-                                          decoration: inputDecoration.copyWith(labelText: 'Título de la Pista'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => _clueForms[_currentClueIndex]['title'] = v,
+                                        // --- TÍTULO Y QR ---
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                initialValue: _clueForms[_currentClueIndex]['title'],
+                                                decoration: inputDecoration.copyWith(labelText: 'Título de la Pista'),
+                                                style: const TextStyle(color: Colors.white),
+                                                onChanged: (v) => _clueForms[_currentClueIndex]['title'] = v,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            
+                                            // BOTÓN GENERAR QR (NUEVO)
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: _clueForms[_currentClueIndex]['id'] == null ? Colors.grey : AppTheme.accentGold,
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: IconButton(
+                                                icon: const Icon(Icons.qr_code_2, color: Colors.black),
+                                                tooltip: "Generar QR para esta pista",
+                                                onPressed: () {
+                                                  final clueId = _clueForms[_currentClueIndex]['id'];
+                                                  if (clueId != null) {
+                                                    final qrData = "CLUE:$_eventId:$clueId";
+                                                    _showQRDialog(qrData, "QR de Pista $_eventId");
+                                                  } else {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text("Error: ID de pista no generado")),
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 10),
 
@@ -1376,12 +1525,23 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         const SizedBox(height: 40),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showQRDialog(String data, String label) {
+    showDialog(
+      context: context,
+      builder: (context) => QRDisplayDialog(
+        data: data,
+        title: "QR DE: $label",
+        label: label,
       ),
     );
   }

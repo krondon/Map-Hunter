@@ -10,6 +10,7 @@ import '../../game/models/game_request.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import '../../../core/theme/app_theme.dart';
+import '../widgets/qr_display_dialog.dart';
 
 class CompetitionDetailScreen extends StatefulWidget {
   final GameEvent event;
@@ -41,6 +42,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   late String _title;
   late String _description;
   late String _locationName;
+
+  void _showQRDialog(String data, String title, String label) {
+    showDialog(
+      context: context,
+      builder: (_) => QRDisplayDialog(data: data, title: title, label: label),
+    );
+  }
   late double _latitude;
   late double _longitude;
   late String _clue;
@@ -253,6 +261,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
             ),
             const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: TextFormField(
@@ -266,6 +275,30 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     ],
                     validator: (v) => v!.length != 6 ? 'Debe tener 6 dígitos' : null,
                     onSaved: (v) => _pin = v!,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentGold.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
+                    tooltip: "Ver QR del Evento",
+                    onPressed: () {
+                      if (_pin.length == 6) {
+                        final qrData = "EVENT:${widget.event.id}:$_pin";
+                        _showQRDialog(qrData, "QR de Acceso", "PIN: $_pin");
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Guarda el PIN primero')),
+                        );
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -381,9 +414,22 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                 ),
                 title: Text(clue.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 subtitle: Text("${clue.typeName} - ${clue.puzzleType.label}", style: const TextStyle(color: Colors.white70)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit, color: AppTheme.accentGold),
-                  onPressed: () => _showEditClueDialog(clue),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
+                      tooltip: "Ver QR",
+                      onPressed: () {
+                         final qrData = "CLUE:${widget.event.id}:${clue.id}";
+                         _showQRDialog(qrData, clue.title, "Pista: ${clue.puzzleType.label}");
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: AppTheme.accentGold),
+                      onPressed: () => _showEditClueDialog(clue),
+                    ),
+                  ],
                 ),
               ),
             );
