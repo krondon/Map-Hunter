@@ -1,3 +1,4 @@
+import 'dart:async'; // Necesario para el Timer
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/clue.dart';
@@ -12,13 +13,15 @@ class GameProvider extends ChangeNotifier {
   String? _currentEventId;
   String? _errorMessage;
   
+  // Timer para el ranking en tiempo real
+  Timer? _leaderboardTimer;
+  
   final _supabase = Supabase.instance.client;
   
   List<Clue> get clues => _clues;
   List<Player> get leaderboard => _leaderboard;
   Clue? get currentClue => _currentClueIndex < _clues.length ? _clues[_currentClueIndex] : null;
   
-  // Getter que faltaba para el Mini Mapa
   int get currentClueIndex => _currentClueIndex;
   
   bool get isGameActive => _isGameActive;
@@ -29,8 +32,93 @@ class GameProvider extends ChangeNotifier {
   String? get currentEventId => _currentEventId;
   
   GameProvider() {
-    // _initializeMockData(); // Removed mock data
+    // Constructor
   }
+  
+  // --- GESTIÓN DEL RANKING EN TIEMPO REAL ---
+
+  /// Inicia la actualización automática del ranking cada 20 segundos
+  void startLeaderboardUpdates() {
+    // 1. Carga inicial inmediata
+    fetchLeaderboard();
+    
+    // 2. Limpiar timer anterior si existe
+    stopLeaderboardUpdates();
+    
+    // 3. Configurar nuevo timer
+    _leaderboardTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (_currentEventId != null) {
+        // fetchLeaderboard silent=true para no mostrar loading spinners
+        _fetchLeaderboardInternal(silent: true);
+      }
+    });
+  }
+
+  /// Detiene la actualización automática (llamar en dispose)
+  void stopLeaderboardUpdates() {
+    _leaderboardTimer?.cancel();
+    _leaderboardTimer = null;
+  }
+
+  /// Método público para cargar ranking (puede mostrar loading)
+  Future<void> fetchLeaderboard() async {
+    await _fetchLeaderboardInternal(silent: false);
+  }
+
+  /// Lógica interna de carga del ranking
+  Future<void> _fetchLeaderboardInternal({bool silent = false}) async {
+    // Necesitamos un evento activo para filtrar
+    if (_currentEventId == null) return;
+
+    try {
+      // Consultamos directamente la VISTA SQL creada
+      // Esto es mucho más rápido y eficiente que una Edge Function para polling
+      final List<dynamic> data = await _supabase
+          .from('event_leaderboard')
+          .select()
+          .eq('event_id', _currentEventId!) // Asumiendo que la vista tiene event_id si filtramos por evento
+          .order('completed_clues', ascending: false) // Más pistas primero
+          .order('last_completion_time', ascending: true) // Desempate: quien terminó antes
+          .limit(50);
+
+      _leaderboard = data.map((json) {
+        // TRUCO: Para no romper el modelo Player ni modificar otros archivos,
+        // inyectamos el conteo de pistas ('completed_clues') en el campo 'total_xp'.
+        // Así la UI mostrará el número de pistas usando el campo existente.
+        if (json['completed_clues'] != null) {
+          json['total_xp'] = json['completed_clues'];
+        }
+        return Player.fromJson(json);
+      }).toList();
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching leaderboard: $e');
+      // Intentamos fallback a la Edge Function si la vista falla o no existe
+      if (!silent) _fetchLeaderboardFallback();
+    }
+  }
+
+  // Fallback a la lógica antigua por si acaso
+  Future<void> _fetchLeaderboardFallback() async {
+     try {
+      final response = await _supabase.functions.invoke(
+        'game-play/get-leaderboard',
+        body: {'eventId': _currentEventId},
+        method: HttpMethod.post,
+      );
+
+      if (response.status == 200) {
+        final List<dynamic> data = response.data;
+        _leaderboard = data.map((json) => Player.fromJson(json)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fallback leaderboard: $e');
+    }
+  }
+
+  // --- FIN GESTIÓN RANKING ---
   
   Future<void> fetchClues({String? eventId, bool silent = false}) async {
     if (eventId != null) {
@@ -70,76 +158,18 @@ class GameProvider extends ChangeNotifier {
           debugPrint('Clue ${c.title} (ID: ${c.id}): locked=${c.isLocked}, completed=${c.isCompleted}');
         }
         
-        // // --- DEMO: Inject Tic Tac Toe Clue (First - UNLOCKED) ---
-        // _clues.insert(0, Clue(
-        //   id: 'demo_tictactoe',
-        //   title: 'La Vieja (Tic Tac Toe)',
-        //   description: 'Gana una partida contra la IA para avanzar.',
-        //   hint: 'Coloca 3 fichas en línea antes que la IA.',
-        //   type: ClueType.minigame,
-        //   puzzleType: PuzzleType.ticTacToe,
-        //   xpReward: 200,
-        //   coinReward: 50,
-        //   isLocked: false,
-        //   isCompleted: false,
-        // ));
-
-        // // --- DEMO: Inject Hangman Clue (Second - LOCKED) ---
-        // _clues.insert(1, Clue(
-        //   id: 'demo_hangman',
-        //   title: 'El Ahorcado',
-        //   description: 'Adivina la palabra antes de que te ahorquen.',
-        //   hint: 'Ve a la Cafetería y escanea el código QR en la caja.',
-        //   riddleQuestion: 'Framework de Google', // Pista del juego
-        //   riddleAnswer: 'FLUTTER',
-        //   type: ClueType.minigame,
-        //   puzzleType: PuzzleType.hangman,
-        //   xpReward: 150,
-        //   coinReward: 40,
-        //   isLocked: true,
-        //   isCompleted: false,
-        // ));
-        
-        // // --- DEMO: Inject Sliding Puzzle Clue (Third - LOCKED) ---
-        // _clues.insert(2, Clue(
-        //   id: 'demo_puzzle_sliding',
-        //   title: 'Rompecabezas Sliding',
-        //   description: 'Ordena las piezas para resolver el acertijo.',
-        //   hint: 'Dirígete al Laboratorio de Computación y busca el código cerca de la impresora.',
-        //   type: ClueType.minigame,
-        //   puzzleType: PuzzleType.slidingPuzzle,
-        //   xpReward: 150,
-        //   coinReward: 100,
-        //   isLocked: true,
-        //   isCompleted: false,
-        // ));
-        // ---------------------------------------------
-        
-        if (response.status == 200) {
-        final List<dynamic> data = response.data;
-        _clues = data.map((json) => Clue.fromJson(json)).toList();
-        
-        // Debug logs to verify clue status
-        for (var c in _clues) {
-          debugPrint('Clue ${c.title} (ID: ${c.id}): locked=${c.isLocked}, completed=${c.isCompleted}');
-        }
-        
         // Find first unlocked but not completed clue to set as current
         final index = _clues.indexWhere((c) => !c.isCompleted && !c.isLocked);
         if (index != -1) {
           _currentClueIndex = index;
         } else {
-          // If all are completed, set index to length (end of list)
           _currentClueIndex = _clues.length;
         }
-      }
       } else {
         _errorMessage = 'Error fetching clues: ${response.status}';
-        debugPrint('Error fetching clues: ${response.status} ${response.data}');
       }
     } catch (e) {
       _errorMessage = 'Error fetching clues: $e';
-      debugPrint('Error fetching clues: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -174,7 +204,7 @@ class GameProvider extends ChangeNotifier {
     final index = _clues.indexWhere((c) => c.id == clueId);
     if (index != -1) {
       _clues[index].isLocked = false;
-      _currentClueIndex = index; // Move to this clue
+      _currentClueIndex = index;
       notifyListeners();
     }
   }
@@ -183,83 +213,52 @@ class GameProvider extends ChangeNotifier {
     final index = _clues.indexWhere((c) => c.id == clueId);
     if (index != -1) {
       _clues[index].isCompleted = true;
-      // Note: We do NOT auto-unlock the next clue here. 
-      // The user must scan a QR code to call unlockClue() for the next one.
       notifyListeners();
     }
   }
 
-  // Método auxiliar para manejar la lógica local de avance
-  void _advanceToNextClueLocal() {
-    // 1. Marcar la pista actual como completada
-    if (_currentClueIndex < _clues.length) {
-      _clues[_currentClueIndex].isCompleted = true;
-    }
-
-    // 2. Verificar si hay una siguiente pista
-    final nextIndex = _currentClueIndex + 1;
-    if (nextIndex < _clues.length) {
-      // 3. Desbloquear la siguiente pista visualmente
-      _clues[nextIndex].isLocked = false;
-      
-      // 4. Actualizar el índice actual para que el mapa apunte a la nueva meta
-      _currentClueIndex = nextIndex;
-    }
-  }
-
   Future<bool> completeCurrentClue(String answer, {String? clueId}) async {
-  String targetId;
+    String targetId;
 
-  if (clueId != null) {
-    targetId = clueId;
-  } else {
-    if (_currentClueIndex >= _clues.length) return false;
-    targetId = _clues[_currentClueIndex].id;
-  }
-  
-  // --- ACTUALIZACIÓN OPTIMISTA (UI INMEDIATA) ---
-  int localIndex = _clues.indexWhere((c) => c.id == targetId);
-  if (localIndex != -1) {
-    // 1. Marcar actual como completada
-    _clues[localIndex].isCompleted = true;
-    
-    // 2. Mover el índice a la siguiente pista
-    if (localIndex + 1 < _clues.length) {
-      // IMPORTANTE: NO DESBLOQUEAMOS LA SIGUIENTE (isLocked se queda en true)
-      // _clues[localIndex + 1].isLocked = false; // <--- LÍNEA ELIMINADA/COMENTADA
-      
-      // Solo actualizamos el índice para que el mapa sepa cuál es la meta actual
-      _currentClueIndex = localIndex + 1; 
-    }
-    notifyListeners();
-  }
-  // ----------------------------------------------
-
-  try {
-    // Llamada al backend en segundo plano
-    final response = await _supabase.functions.invoke('game-play/complete-clue', 
-      body: {
-        'clueId': targetId, 
-        'answer': answer,
-      },
-      method: HttpMethod.post
-    );
-    
-    if (response.status == 200) {
-      // Confirmamos con los datos reales del servidor PERO SILENCIOSAMENTE
-      // para no bloquear la UI con un spinner global
-      await fetchClues(silent: true); 
-      return true;
+    if (clueId != null) {
+      targetId = clueId;
     } else {
-      debugPrint('Error completing clue: ${response.status} ${response.data}');
-      // Si falló el servidor, deberíamos revertir (opcional), pero por ahora dejamos el error
+      if (_currentClueIndex >= _clues.length) return false;
+      targetId = _clues[_currentClueIndex].id;
+    }
+    
+    // --- ACTUALIZACIÓN OPTIMISTA ---
+    int localIndex = _clues.indexWhere((c) => c.id == targetId);
+    if (localIndex != -1) {
+      _clues[localIndex].isCompleted = true;
+      if (localIndex + 1 < _clues.length) {
+        _currentClueIndex = localIndex + 1; 
+      }
+      notifyListeners();
+    }
+
+    try {
+      final response = await _supabase.functions.invoke('game-play/complete-clue', 
+        body: {
+          'clueId': targetId, 
+          'answer': answer,
+        },
+        method: HttpMethod.post
+      );
+      
+      if (response.status == 200) {
+        await fetchClues(silent: true); 
+        // También actualizamos el ranking si completó una pista
+        fetchLeaderboard(); 
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error completing clue: $e');
       return false;
     }
-  } catch (e) {
-    debugPrint('Error completing clue: $e');
-    return false;
   }
-}
   
   Future<bool> skipCurrentClue() async {
     if (_currentClueIndex >= _clues.length) return false;
@@ -280,7 +279,6 @@ class GameProvider extends ChangeNotifier {
         await fetchClues();
         return true;
       } else {
-        debugPrint('Error skipping clue: ${response.status} ${response.data}');
         return false;
       }
     } catch (e) {
@@ -300,30 +298,13 @@ class GameProvider extends ChangeNotifier {
     }
   }
   
-  Future<void> fetchLeaderboard() async {
-    // Necesitamos un evento activo para filtrar
-    if (_currentEventId == null) return;
-
-    try {
-      final response = await _supabase.functions.invoke(
-        'game-play/get-leaderboard',
-        body: {'eventId': _currentEventId},
-        method: HttpMethod.post,
-      );
-
-      if (response.status == 200) {
-        final List<dynamic> data = response.data;
-        _leaderboard = data.map((json) => Player.fromJson(json)).toList();
-        notifyListeners();
-      } else {
-        debugPrint('Error fetching leaderboard: ${response.status} ${response.data}');
-      }
-    } catch (e) {
-      debugPrint('Error fetching leaderboard: $e');
-    }
-  }
-  
   void updateLeaderboard(Player player) {
     // Deprecated
+  }
+  
+  @override
+  void dispose() {
+    stopLeaderboardUpdates();
+    super.dispose();
   }
 }

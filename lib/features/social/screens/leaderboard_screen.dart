@@ -16,10 +16,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Cargar el ranking apenas se abre la pantalla
+    // Cargar el ranking y comenzar el polling cada 20s
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<GameProvider>(context, listen: false).fetchLeaderboard();
+      Provider.of<GameProvider>(context, listen: false).startLeaderboardUpdates();
     });
+  }
+
+  @override
+  void dispose() {
+    // Detener el timer al salir para ahorrar recursos
+    Provider.of<GameProvider>(context, listen: false).stopLeaderboardUpdates();
+    super.dispose();
   }
 
   @override
@@ -49,7 +56,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Top jugadores',
+                          'Más pistas completadas', // Cambio de texto para reflejar la lógica
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                       ],
@@ -115,9 +122,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   ],
                 ),
               ),
-            const SizedBox(height: 20),
             
+            // Si hay menos de 3, mostrar mensaje o lista simple
+            if (leaderboard.isEmpty)
+               const Expanded(child: Center(child: Text("Cargando ranking...", style: TextStyle(color: Colors.white70)))),
+
             // Rest of the leaderboard
+            if (leaderboard.isNotEmpty)
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -159,7 +170,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ],
               ),
               child: CircleAvatar(
-                backgroundImage: NetworkImage(player.avatarUrl),
+                backgroundImage: (player.avatarUrl.isNotEmpty) 
+                  ? NetworkImage(player.avatarUrl) 
+                  : null,
+                child: (player.avatarUrl.isEmpty) 
+                  ? const Icon(Icons.person) 
+                  : null,
               ),
             ),
             Positioned(
@@ -216,7 +232,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           ),
           child: Center(
             child: Text(
-              '${player.totalXP} XP',
+              '${player.totalXP} Pistas', // CAMBIO AQUI: XP -> Pistas
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,

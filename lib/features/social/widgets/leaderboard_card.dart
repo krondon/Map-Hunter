@@ -65,7 +65,7 @@ class LeaderboardCard extends StatelessWidget {
           
           const SizedBox(width: 12),
           
-          // BORRA EL CIRCLEAVATAR Y PEGA SOLO ESTO:
+          // Avatar
           Container(
             width: 44, // Equivalente a radius 22 * 2
             height: 44,
@@ -111,7 +111,7 @@ class LeaderboardCard extends StatelessWidget {
             ),
           ),
           
-          // Stats
+          // Stats (Ahora muestra Pistas en lugar de XP)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -131,8 +131,9 @@ class LeaderboardCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
+              // Aquí mostramos "Pistas" porque el provider inyectó el conteo en totalXP
               Text(
-                '${player.totalXP} XP',
+                '${player.totalXP} Pistas', 
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.white70,
