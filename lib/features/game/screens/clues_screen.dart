@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
+import '../../auth/providers/player_provider.dart'; // IMPORT AGREGADO
 import '../../../core/theme/app_theme.dart';
 import '../widgets/clue_card.dart';
 import '../../../shared/widgets/progress_header.dart';
@@ -30,8 +31,10 @@ class _CluesScreenState extends State<CluesScreen> {
     super.initState();
     // 2. Llamamos al provider apenas carga la pantalla usando el ID recibido
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<GameProvider>(context, listen: false)
-          .fetchClues(eventId: widget.eventId);
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      gameProvider.fetchClues(eventId: widget.eventId);
+      // Opcional: Cargar ranking inicial para que la pista no se vea vacía
+      gameProvider.fetchLeaderboard(); 
     });
   }
 
@@ -127,8 +130,10 @@ class _CluesScreenState extends State<CluesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Consumer<GameProvider>(
                 builder: (context, game, _) {
+                  // CORRECCIÓN AQUI: Usamos los nuevos parámetros
                   return RaceTrackWidget(
-                    currentClueIndex: game.currentClueIndex,
+                    leaderboard: game.leaderboard,
+                    currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                     totalClues: game.clues.length,
                   );
                 },

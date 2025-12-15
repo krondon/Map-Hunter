@@ -9,7 +9,6 @@ import 'riddle_screen.dart';
 import '../widgets/minigames/sliding_puzzle_minigame.dart';
 import '../widgets/minigames/tic_tac_toe_minigame.dart';
 import '../widgets/minigames/hangman_minigame.dart';
-import 'qr_scanner_screen.dart';
 
 class PuzzleScreen extends StatelessWidget {
   final Clue clue;
@@ -248,13 +247,14 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                 ),
               ),
 
-              // Mini Mapa de Carrera
+              // Mini Mapa de Carrera - CORREGIDO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
                     return RaceTrackWidget(
-                      currentClueIndex: game.currentClueIndex,
+                      leaderboard: game.leaderboard,
+                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
                       onSurrender: () => showSkipDialog(context),
                     );
@@ -539,13 +539,14 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                 ),
               ),
 
-              // Mini Mapa
+              // Mini Mapa - CORREGIDO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
                     return RaceTrackWidget(
-                      currentClueIndex: game.currentClueIndex,
+                      leaderboard: game.leaderboard,
+                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
                       onSurrender: () => showSkipDialog(context),
                     );
@@ -857,13 +858,14 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
                 ),
               ),
 
-              // Mini Mapa
+              // Mini Mapa - CORREGIDO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
                     return RaceTrackWidget(
-                      currentClueIndex: game.currentClueIndex,
+                      leaderboard: game.leaderboard,
+                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
                       onSurrender: () => showSkipDialog(context),
                     );
@@ -1254,13 +1256,14 @@ class SlidingPuzzleWrapper extends StatelessWidget {
                 ),
               ),
               
-              // Mini Mapa de Carrera
+              // Mini Mapa de Carrera - CORREGIDO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
                     return RaceTrackWidget(
-                      currentClueIndex: game.currentClueIndex,
+                      leaderboard: game.leaderboard,
+                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
                       onSurrender: () => showSkipDialog(context),
                     );
@@ -1329,13 +1332,14 @@ class TicTacToeWrapper extends StatelessWidget {
                 ),
               ),
               
-              // Mini Mapa de Carrera
+              // Mini Mapa de Carrera - CORREGIDO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
                     return RaceTrackWidget(
-                      currentClueIndex: game.currentClueIndex,
+                      leaderboard: game.leaderboard,
+                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
                       onSurrender: () => showSkipDialog(context),
                     );
@@ -1404,13 +1408,14 @@ class HangmanWrapper extends StatelessWidget {
                 ),
               ),
               
-              // Mini Mapa de Carrera
+              // Mini Mapa de Carrera - CORREGIDO
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
                     return RaceTrackWidget(
-                      currentClueIndex: game.currentClueIndex,
+                      leaderboard: game.leaderboard,
+                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
                       onSurrender: () => showSkipDialog(context),
                     );
