@@ -13,9 +13,10 @@ class PlayerProvider extends ChangeNotifier {
 
   bool get isLoggedIn => _currentPlayer != null;
 
+  // --- AUTHENTICATION ---
+
   Future<void> login(String email, String password) async {
     try {
-      // Call Edge Function for login
       final response = await _supabase.functions.invoke(
         'auth-service/login',
         body: {'email': email, 'password': password},
@@ -30,7 +31,6 @@ class PlayerProvider extends ChangeNotifier {
       final data = response.data;
       
       if (data['session'] != null) {
-        // Set the session in the client to maintain auth state
         await _supabase.auth.setSession(data['session']['refresh_token']);
         
         if (data['user'] != null) {
@@ -47,7 +47,6 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> register(String name, String email, String password) async {
     try {
-      // Call Edge Function for register
       final response = await _supabase.functions.invoke(
         'auth-service/register',
         body: {'email': email, 'password': password, 'name': name},
@@ -62,17 +61,12 @@ class PlayerProvider extends ChangeNotifier {
       final data = response.data;
 
       if (data['session'] != null) {
-        // Set session if auto-confirm is enabled
         await _supabase.auth.setSession(data['session']['refresh_token']);
         
         if (data['user'] != null) {
-          // Wait a bit for the trigger to create the profile
           await Future.delayed(const Duration(seconds: 1));
           await _fetchProfile(data['user']['id']);
         }
-      } else if (data['user'] != null) {
-        // User created but maybe email confirmation is required
-        // Just return, user will need to confirm email
       }
     } catch (e) {
       debugPrint('Error registering: $e');
@@ -80,21 +74,38 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> logout() async {
+    await _profileSubscription?.cancel();
+    await _supabase.auth.signOut();
+    _currentPlayer = null;
+    notifyListeners();
+  }
+
+  // --- PROFILE MANAGEMENT ---
+
   StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
+
+  Future<void> refreshProfile() async {
+    if (_currentPlayer != null) {
+      await _fetchProfile(_currentPlayer!.id);
+    }
+  }
 
   Future<void> _fetchProfile(String userId) async {
     try {
-      // Subscribe to changes
       _subscribeToProfile(userId);
 
-      final data =
-          await _supabase.from('profiles').select().eq('id', userId).single();
+      final data = await _supabase.from('profiles').select().eq('id', userId).single();
 
       _currentPlayer = Player.fromJson(data);
+      
+      // IMPORTANTE: Una vez cargado el perfil, sobreescribimos el inventario
+      // con los datos reales de la tabla 'player_powers'
+      await syncRealInventory();
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error fetching profile: $e');
-      // If profile doesn't exist yet (race condition), maybe retry or handle gracefully
     }
   }
 
@@ -106,10 +117,8 @@ class PlayerProvider extends ChangeNotifier {
         .eq('id', userId)
         .listen((data) {
           if (data.isNotEmpty) {
-            // Preserve local fields if necessary or just reload
-            // In a real game, be careful not to overwrite local optimistic updates
-            // But for sabotage (blinded), we WANT the server state.
             _currentPlayer = Player.fromJson(data.first);
+            syncRealInventory(); 
             notifyListeners();
           }
         }, onError: (e) {
@@ -117,12 +126,140 @@ class PlayerProvider extends ChangeNotifier {
         });
   }
 
-  Future<void> logout() async {
-    await _profileSubscription?.cancel();
-    await _supabase.auth.signOut();
-    _currentPlayer = null;
-    notifyListeners();
+  // --- LOGICA DE PODERES E INVENTARIO (BACKEND INTEGRATION) ---
+
+  Future<void> syncRealInventory() async {
+    if (_currentPlayer == null) return;
+
+    try {
+      // Usamos get_my_inventory RPC si existe para ser más robustos contra RLS,
+      // pero mantenemos la lógica de lectura directa si tu RPC no devuelve el formato exacto.
+      // Si tienes problemas de RLS aquí también, cambia esto a usar 'get_my_inventory'.
+      
+      final gamePlayerRes = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', _currentPlayer!.id)
+          .maybeSingle(); 
+
+      if (gamePlayerRes == null) {
+        _currentPlayer!.inventory.clear();
+        notifyListeners();
+        return;
+      }
+
+      final String gamePlayerId = gamePlayerRes['id'];
+
+      final List<dynamic> powersData = await _supabase
+          .from('player_powers')
+          .select('power_id, quantity')
+          .eq('game_player_id', gamePlayerId)
+          .gt('quantity', 0); 
+
+      List<String> realInventory = [];
+      for (var item in powersData) {
+        final String pId = item['power_id'];
+        final int qty = item['quantity'];
+        for (var i = 0; i < qty; i++) {
+          realInventory.add(pId);
+        }
+      }
+
+      _currentPlayer!.inventory.clear();
+      _currentPlayer!.inventory.addAll(realInventory);
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint('Error syncing real inventory: $e');
+      // Si falla por RLS, intenta limpiar inventario local para evitar inconsistencias
+    }
   }
+
+  Future<bool> usePower({
+    required String powerId, 
+    required String targetUserId 
+  }) async {
+    if (_currentPlayer == null) return false;
+
+    try {
+      final casterRes = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', _currentPlayer!.id)
+          .maybeSingle();
+
+      if (casterRes == null) return false;
+      final String casterId = casterRes['id'];
+
+      final targetRes = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .maybeSingle();
+
+      if (targetRes == null) return false;
+      final String targetId = targetRes['id'];
+
+      final response = await _supabase.rpc('use_power_mechanic', params: {
+        'p_caster_id': casterId,
+        'p_target_id': targetId,
+        'p_power_id': powerId,
+      });
+
+      if (response['success'] == true) {
+        await syncRealInventory();
+        
+        if (targetUserId == _currentPlayer!.id) {
+           await Future.delayed(const Duration(milliseconds: 200));
+           final profileData = await _supabase.from('profiles').select().eq('id', _currentPlayer!.id).single();
+           _currentPlayer = Player.fromJson(profileData);
+           await syncRealInventory(); 
+        }
+        
+        return true;
+      } else {
+        debugPrint('Fallo lógica Backend: ${response['message']}');
+        return false;
+      }
+
+    } catch (e) {
+      debugPrint('Error crítico al usar poder: $e');
+      return false;
+    }
+  }
+
+  // --- LÓGICA DE TIENDA (CORREGIDA) ---
+
+  /// Compra un ítem usando RPC para evitar error 42P17 (Infinite Recursion)
+  Future<bool> purchaseItem(String itemId, int cost) async {
+    if (_currentPlayer == null) return false;
+    if (_currentPlayer!.coins < cost) return false;
+
+    try {
+      // LLAMADA RPC SEGURA: Toda la lógica (check saldo, restar, dar item) ocurre en el servidor
+      final response = await _supabase.rpc('buy_item', params: {
+        'p_user_id': _currentPlayer!.id,
+        'p_item_id': itemId,
+        'p_cost': cost
+      });
+
+      // Manejo de respuesta
+      if (response != null && response['success'] == true) {
+        // Actualizamos la UI inmediatamente
+        await refreshProfile(); 
+        return true;
+      } else {
+        debugPrint("Error en compra (Backend): ${response['message']}");
+        return false;
+      }
+
+    } catch (e) {
+      debugPrint("Error crítico RPC compra: $e");
+      return false;
+    }
+  }
+
+  // --- SOCIAL & ADMIN ---
 
   Future<void> fetchAllPlayers() async {
     try {
@@ -131,8 +268,7 @@ class PlayerProvider extends ChangeNotifier {
           .select()
           .order('name', ascending: true);
 
-      _allPlayers =
-          (data as List).map((json) => Player.fromJson(json)).toList();
+      _allPlayers = (data as List).map((json) => Player.fromJson(json)).toList();
       notifyListeners();
     } catch (e) {
       debugPrint('Error fetching all players: $e');
@@ -141,15 +277,12 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> toggleBanUser(String userId, bool ban) async {
     try {
-      // Ejecutar la función de Supabase para banear/desbanear
       await _supabase.rpc('toggle_ban',
           params: {'user_id': userId, 'new_status': ban ? 'banned' : 'active'});
 
-      // Actualizar estado local
       final index = _allPlayers.indexWhere((p) => p.id == userId);
       if (index != -1) {
-        _allPlayers[index].status =
-            ban ? PlayerStatus.banned : PlayerStatus.active;
+        _allPlayers[index].status = ban ? PlayerStatus.banned : PlayerStatus.active;
         notifyListeners();
       }
     } catch (e) {
@@ -168,149 +301,4 @@ class PlayerProvider extends ChangeNotifier {
       rethrow;
     }
   }
-
-  // Methods below would need to be updated to sync with Supabase DB
-  // For now, we'll keep them updating local state, but in a real app
-  // they should call RPCs or update tables.
-
-  void addExperience(int xp) {
-    if (_currentPlayer != null) {
-      final oldLevel = _currentPlayer!.level;
-      _currentPlayer!.addExperience(xp);
-
-      if (_currentPlayer!.level > oldLevel) {
-        // Level up!
-        _currentPlayer!.updateProfession();
-      }
-      notifyListeners();
-    }
-  }
-
-  void addCoins(int amount) {
-    if (_currentPlayer != null) {
-      _currentPlayer!.coins += amount;
-      notifyListeners();
-    }
-  }
-
-  bool spendCoins(int amount) {
-    if (_currentPlayer != null && _currentPlayer!.coins >= amount) {
-      _currentPlayer!.coins -= amount;
-      notifyListeners();
-      return true;
-    }
-    return false;
-  }
-
-  void addItemToInventory(String item) {
-    if (_currentPlayer != null) {
-      _currentPlayer!.addItem(item);
-      // Sync with DB
-      _updateInventoryInDb();
-      notifyListeners();
-    }
-  }
-
-  Future<void> _updateInventoryInDb() async {
-    if (_currentPlayer == null) return;
-    try {
-      await _supabase.from('profiles').update({
-        'inventory': _currentPlayer!.inventory
-      }).eq('id', _currentPlayer!.id);
-    } catch (e) {
-      debugPrint('Error updating inventory: $e');
-    }
-  }
-
-  bool useItemFromInventory(String item) {
-    if (_currentPlayer != null && _currentPlayer!.removeItem(item)) {
-      _updateInventoryInDb();
-      notifyListeners();
-      return true;
-    }
-    return false;
-  }
-
-  Future<bool> applySabotage(String targetId, String itemId) async {
-    try {
-      // 1. Remove from inventory
-      if (!useItemFromInventory(itemId)) return false;
-
-      // 2. Determine effect
-      String status = 'frozen'; // default fallback
-      int durationSeconds = 120; // 2 mins default
-
-      if (itemId == 'black_screen') {
-        status = 'blinded';
-        durationSeconds = 5;
-      } else if (itemId == 'freeze') {
-        status = 'frozen';
-        durationSeconds = 120;
-      } else if (itemId == 'slow_motion') {
-        status = 'slowed';
-        durationSeconds = 120; // 2 minutes
-      }
-      
-      final frozenUntil = DateTime.now().add(Duration(seconds: durationSeconds));
-
-      // 3. Update target in DB
-      await _supabase.from('profiles').update({
-        'status': status,
-        'frozen_until': frozenUntil.toIso8601String(),
-      }).eq('id', targetId);
-      
-      return true;
-    } catch (e) {
-      debugPrint('Error applying sabotage: $e');
-      // If failed, maybe should add item back? ignoring for now.
-      return false;
-    }
-  }
-
-  void freezePlayer(DateTime until) {
-    if (_currentPlayer != null) {
-      _currentPlayer!.status = PlayerStatus.frozen;
-      _currentPlayer!.frozenUntil = until;
-      notifyListeners();
-    }
-  }
-
-  void unfreezePlayer() {
-    if (_currentPlayer != null) {
-      _currentPlayer!.status = PlayerStatus.active;
-      _currentPlayer!.frozenUntil = null;
-      notifyListeners();
-    }
-  }
-
-  void updateStats(String stat, int value) {
-    if (_currentPlayer != null) {
-      _currentPlayer!.stats[stat] =
-          (_currentPlayer!.stats[stat] as int) + value;
-      _currentPlayer!.updateProfession();
-      notifyListeners();
-    }
-  }
-
-  Future<bool> sabotageRival(String rivalId) async {
-    try {
-      final response = await _supabase.functions.invoke('game-play/sabotage-rival', 
-        body: {'rivalId': rivalId},
-        method: HttpMethod.post
-      );
-      
-      if (response.status == 200) {
-        // Refresh profile to show deducted coins
-        if (_currentPlayer != null) {
-          await _fetchProfile(_currentPlayer!.id);
-        }
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint('Error sabotaging rival: $e');
-      return false;
-    }
-  }
 }
-

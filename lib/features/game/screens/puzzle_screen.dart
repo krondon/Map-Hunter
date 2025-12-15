@@ -125,8 +125,6 @@ void showSkipDialog(BuildContext context) {
           onPressed: () {
             Navigator.pop(context); // Dialog
             Navigator.pop(context); // PuzzleScreen
-            // Intentamos cerrar una pantalla más por si venimos del scanner
-            // Navigator.pop(context); // Opcional según flujo
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('No se desbloqueó la siguiente pista. Intenta resolver otro desafío.'),
@@ -1002,7 +1000,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
   final gameProvider = Provider.of<GameProvider>(context, listen: false);
   final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
-  // 1. Mostrar indicador de carga para dar feedback inmediato
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -1015,11 +1012,9 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
   
   try {
     if (clue.id.startsWith('demo_')) {
-      // Si es demo, solo local
       gameProvider.completeLocalClue(clue.id);
       success = true;
     } else {
-      // Llamada al backend
       success = await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "");
     }
   } catch (e) {
@@ -1027,18 +1022,14 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     success = false;
   }
 
-  // 2. Cerrar indicador de carga
   if (context.mounted) {
     Navigator.pop(context); 
   }
 
   if (success) {
-      // ¡AQUÍ ESTÁ LA SOLUCIÓN!
-      // Actualizamos visualmente las monedas y XP del usuario inmediatamente
-      // Esto asegura que la barra superior refleje los cambios al instante.
+      // CORRECCIÓN: Actualizar perfil desde servidor
       if (playerProvider.currentPlayer != null) {
-        playerProvider.addExperience(clue.xpReward);
-        playerProvider.addCoins(clue.coinReward);
+        await playerProvider.refreshProfile();
       }
   } else {
     if (context.mounted) {
@@ -1137,13 +1128,7 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // --- CORRECCIÓN DE NAVEGACIÓN ---
-                      
-                      // 1. Cerrar solo el Diálogo (usando el contexto del builder)
                       Navigator.of(dialogContext).pop(); 
-                      
-                      // 2. Pequeño delay para asegurar que el diálogo cerró visualmente
-                      // y luego cerrar la pantalla del Puzzle usando el contexto padre
                       Future.delayed(const Duration(milliseconds: 100), () {
                         if (context.mounted) {
                           Navigator.of(context).pop(); 
@@ -1164,7 +1149,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
               ],
             ),
           ),
-          // Icono flotante
            Positioned(
             top: -40,
             child: Container(

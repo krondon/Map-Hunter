@@ -103,34 +103,11 @@ class InventoryScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Inventory items
+              
+              // Inventory items grid
               Expanded(
                 child: player.inventory.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.shopping_bag_outlined,
-                              size: 80,
-                              color: Colors.white.withOpacity(0.3),
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'Inventario vacío',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: Colors.white54,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Visita La Tiendita para comprar poderes',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyState(context)
                     : GridView.builder(
                         padding: const EdgeInsets.all(16),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -142,142 +119,24 @@ class InventoryScreen extends StatelessWidget {
                         itemCount: player.inventory.length,
                         itemBuilder: (context, index) {
                           final itemId = player.inventory[index];
-                          final item = PowerItem.getShopItems().firstWhere(
+                          
+                          // Buscamos la definición del item para pintarlo (Nombre, Icono)
+                          // Si no existe en la lista estática, creamos un placeholder.
+                          final itemDef = PowerItem.getShopItems().firstWhere(
                             (item) => item.id == itemId,
                             orElse: () => PowerItem(
-                              id: 'unknown',
-                              name: 'Desconocido ($itemId)',
-                              description: 'Item no encontrado',
-                              type: PowerType.debuff,
+                              id: itemId,
+                              name: 'Poder Misterioso',
+                              description: 'Poder desconocido',
+                              type: PowerType.buff,
                               cost: 0,
-                              icon: '❓',
+                              icon: '⚡',
                             ),
                           );
                         
                           return InventoryItemCard(
-                            item: item,
-                            onUse: () async {
-                              final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                              
-                              // Check if item is a sabotage (requires target)
-                              // Assuming all items here are sabotages/buffs that might need target or self.
-                              // For simplicity, let's treat "freeze_screen" and others as targetable.
-                              // Buffs like "shield" might be self-cast.
-                              
-                              if (item.id == 'black_screen' || item.id == 'freeze' || item.id == 'time_penalty' || item.id == 'slow_motion') {
-                                final gameProvider = Provider.of<GameProvider>(context, listen: false);
-                                
-                                // Determinar la lista de jugadores base
-                                List<dynamic> sourcePlayers = [];
-                                
-                                if (gameProvider.currentEventId != null) {
-                                  // Si hay evento activo, usar leaderboard (participantes del evento)
-                                  await gameProvider.fetchLeaderboard();
-                                  sourcePlayers = gameProvider.leaderboard;
-                                } else {
-                                  // Fallback: Si no hay evento, usar todos (para pruebas)
-                                  if (playerProvider.allPlayers.isEmpty) {
-                                    await playerProvider.fetchAllPlayers();
-                                  }
-                                  sourcePlayers = playerProvider.allPlayers;
-                                }
-
-                                // Filtrar el jugador actual
-                                final rivals = sourcePlayers
-                                    .where((p) => p.id != player.id)
-                                    .toList();
-
-                                if (!context.mounted) return;
-
-                                if (rivals.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('No hay rivales disponibles')),
-                                  );
-                                  return;
-                                }
-
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    backgroundColor: AppTheme.cardBg,
-                                    title: Text(
-                                      'Usar ${item.name}',
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                    content: SizedBox(
-                                      width: double.maxFinite,
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text(
-                                            'Selecciona un rival:',
-                                            style: TextStyle(color: Colors.white70),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          Flexible(
-                                            child: ListView.builder(
-                                              shrinkWrap: true,
-                                              itemCount: rivals.length,
-                                              itemBuilder: (context, i) {
-                                                final rival = rivals[i];
-                                                return ListTile(
-                                                  leading: CircleAvatar(
-                                                    backgroundColor: AppTheme.accentGold,
-                                                    child: Text(rival.name.isEmpty ? '?' : rival.name[0].toUpperCase()),
-                                                  ),
-                                                  title: Text(
-                                                    rival.name.isEmpty ? 'Jugador' : rival.name,
-                                                    style: const TextStyle(color: Colors.white),
-                                                  ),
-                                                  onTap: () async {
-                                                    Navigator.pop(context); // Close dialog
-                                                    
-                                                    final success = await playerProvider.applySabotage(rival.id, item.id);
-                                                    
-                                                    if (!context.mounted) return;
-                                                    
-                                                    if (success) {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        SnackBar(
-                                                          content: Text('¡Saboteaste a ${rival.name}!'),
-                                                          backgroundColor: AppTheme.successGreen,
-                                                        ),
-                                                      );
-                                                    } else {
-                                                      ScaffoldMessenger.of(context).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text('Error al aplicar sabotaje'),
-                                                          backgroundColor: AppTheme.dangerRed,
-                                                        ),
-                                                      );
-                                                    }
-                                                  },
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Cancelar'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              } else {
-                                // Self-cast items (shield, speed_boost, etc.)
-                                playerProvider.useItemFromInventory(itemId);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('${item.name} usado!'),
-                                    backgroundColor: AppTheme.successGreen,
-                                  ),
-                                );
-                              }
-                            },
+                            item: itemDef,
+                            onUse: () => _handleItemUse(context, itemDef, player.id),
                           );
                         },
                       ),
@@ -291,6 +150,183 @@ class InventoryScreen extends StatelessWidget {
         label: const Text('Ir al Mall'),
         icon: const Icon(Icons.store),
         backgroundColor: AppTheme.accentGold,
+      ),
+    );
+  }
+
+  /// Lógica centralizada para usar items (Ataque vs Defensa)
+  Future<void> _handleItemUse(BuildContext context, PowerItem item, String myPlayerId) async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+
+    // Lista de IDs considerados ofensivos/sabotaje
+    // Lo ideal es mover esto a una propiedad `isOffensive` en tu modelo PowerItem
+    final offensiveItems = ['freeze', 'black_screen', 'slow_motion', 'time_penalty'];
+    final bool requiresTarget = offensiveItems.contains(item.id) || item.type == PowerType.debuff;
+
+    if (requiresTarget) {
+      // --- MODO ATAQUE: SELECCIONAR RIVAL ---
+      
+      // 1. Obtener lista de candidatos (Rivales)
+      List<dynamic> candidates = [];
+      
+      if (gameProvider.currentEventId != null && gameProvider.leaderboard.isNotEmpty) {
+        // Usar leaderboard del evento actual si existe
+        candidates = gameProvider.leaderboard;
+      } else {
+        // Fallback: Cargar lista global si no hay evento o leaderboard vacío
+        if (playerProvider.allPlayers.isEmpty) {
+           await playerProvider.fetchAllPlayers();
+        }
+        candidates = playerProvider.allPlayers;
+      }
+
+      // 2. Filtrar: Excluirme a mí mismo
+      final rivals = candidates.where((p) => p.id != myPlayerId).toList();
+
+      if (!context.mounted) return;
+
+      if (rivals.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hay rivales disponibles para atacar')),
+        );
+        return;
+      }
+
+      // 3. Mostrar Diálogo
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: Text(
+            'Lanzar ${item.name}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: Column(
+              children: [
+                const Text(
+                  'Selecciona una víctima:',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: rivals.length,
+                    separatorBuilder: (_, __) => const Divider(color: Colors.white12),
+                    itemBuilder: (context, i) {
+                      final rival = rivals[i];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.dangerRed,
+                          child: Text(rival.name.isNotEmpty ? rival.name[0].toUpperCase() : 'R'),
+                        ),
+                        title: Text(
+                          rival.name,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        trailing: const Icon(Icons.gps_fixed, color: AppTheme.dangerRed),
+                        onTap: () {
+                          Navigator.pop(context); // Cerrar
+                          _executePower(context, item, rival.id, rival.name, isOffensive: true);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      );
+
+    } else {
+      // --- MODO DEFENSA/BUFF: SE APLICA A UNO MISMO ---
+      _executePower(context, item, myPlayerId, "ti mismo", isOffensive: false);
+    }
+  }
+
+  Future<void> _executePower(
+    BuildContext context, 
+    PowerItem item, 
+    String targetId, 
+    String targetName,
+    {required bool isOffensive}
+  ) async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+
+    // Feedback visual de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppTheme.accentGold)
+      ),
+    );
+
+    // Ejecutar lógica en backend
+    final success = await playerProvider.usePower(
+      powerId: item.id,
+      targetUserId: targetId,
+    );
+
+    if (!context.mounted) return;
+    Navigator.pop(context); // Cerrar loading
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isOffensive 
+              ? '¡Ataque enviado a $targetName!' 
+              : '¡${item.name} activado!'
+          ),
+          backgroundColor: AppTheme.successGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se pudo usar el objeto (¿Sin munición?)'),
+          backgroundColor: AppTheme.dangerRed,
+        ),
+      );
+    }
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_bag_outlined,
+            size: 80,
+            color: Colors.white.withOpacity(0.3),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Inventario vacío',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: Colors.white54,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Visita La Tiendita para comprar poderes',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

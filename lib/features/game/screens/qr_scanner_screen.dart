@@ -17,7 +17,7 @@ class QRScannerScreen extends StatefulWidget {
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
   bool _isScanning = true;
-  bool _isProcessing = false; // Nuevo estado para feedback visual
+  bool _isProcessing = false;
   
   void _simulateScan() {
     if (_isProcessing) return;
@@ -32,12 +32,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       
       try {
-        // 1. DESBLOQUEAR LA PISTA (Quitar el candado visualmente)
         gameProvider.unlockClue(widget.clueId);
         
         final clue = gameProvider.clues.firstWhere((c) => c.id == widget.clueId);
         
-        // 2. LÓGICA DE REDIRECCIÓN
         if (clue.type.toString().contains('minigame') || clue.puzzleType != PuzzleType.riddle) {
           Navigator.pushReplacement(
             context,
@@ -46,16 +44,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             ),
           );
         } else {
-          // Caso especial: Check-in sin minijuego
           final success = await gameProvider.completeCurrentClue("SCANNED", clueId: widget.clueId);
           
           if (success && mounted) {
              final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-             if (playerProvider.currentPlayer != null) {
-                playerProvider.addExperience(clue.xpReward);
-                playerProvider.addCoins(clue.coinReward);
-             }
-             _showSuccessDialog();
+             // CORRECCIÓN: Refrescar perfil en lugar de sumar manualmente
+             await playerProvider.refreshProfile();
+             
+             if (mounted) _showSuccessDialog();
           }
         }
       } catch (e) {
@@ -96,8 +92,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Dialog
-                Navigator.pop(context); // Screen
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               child: const Text('Continuar'),
             ),
@@ -119,12 +115,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
       body: Column(
         children: [
-          // 1. ÁREA DE CÁMARA (Expansible)
           Expanded(
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Simulación de cámara (Fondo)
                 Container(
                   width: double.infinity,
                   height: double.infinity,
@@ -137,8 +131,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     ),
                   ),
                 ),
-                
-                // Marco de Escaneo
                 Container(
                   width: 280,
                   height: 280,
@@ -161,22 +153,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Línea de escaneo animada (simulada estática por ahora)
                       if (_isScanning)
                         Container(
                           width: 260,
                           height: 2,
                           color: AppTheme.accentGold.withOpacity(0.5),
                         ),
-                      
-                      // Icono de estado
                       if (!_isScanning)
                          const Icon(Icons.check_circle, size: 80, color: AppTheme.successGreen),
                     ],
                   ),
                 ),
-                
-                // Texto de instrucción
                 Positioned(
                   bottom: 40,
                   child: Container(
@@ -196,9 +183,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ],
             ),
           ),
-          
-          // 2. ÁREA DE BOTÓN "SIMULAR" (Fija abajo)
-          // Esto garantiza que el botón esté "debajo de la vista" y siempre visible
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -242,7 +226,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10), // Padding seguro inferior extra
+                const SizedBox(height: 10),
               ],
             ),
           ),

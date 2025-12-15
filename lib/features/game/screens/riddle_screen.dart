@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
-import '../../auth/providers/player_provider.dart'; // IMPORT AGREGADO
+import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/clue.dart';
 
@@ -40,13 +40,10 @@ class _RiddleScreenState extends State<RiddleScreen> {
         if (!mounted) return; 
 
         if (success) {
-          // ACTUALIZACIÓN DE RECURSOS EN EL FRONT
-          if (playerProvider.currentPlayer != null) {
-            playerProvider.addExperience(widget.clue.xpReward);
-            playerProvider.addCoins(widget.clue.coinReward);
-          }
+          // CORRECCIÓN: Actualizar datos desde el servidor
+          await playerProvider.refreshProfile();
           
-          _showSuccessDialog();
+          if (mounted) _showSuccessDialog();
         } else {
            ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Error al guardar el progreso.')),
@@ -115,10 +112,7 @@ void _showSuccessDialog() {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            // 1. Cerrar el AlertDialog
             Navigator.of(context).pop(); 
-            
-            // 2. Cerrar la pantalla del Riddle
             Future.delayed(const Duration(milliseconds: 100), () {
               if (context.mounted) {
                 Navigator.of(context).pop(true); 
@@ -134,6 +128,7 @@ void _showSuccessDialog() {
 }
   @override
   Widget build(BuildContext context) {
+    // UI sin cambios
     return Scaffold(
       appBar: AppBar(
         title: const Text('Resolver Acertijo'),
@@ -142,14 +137,14 @@ void _showSuccessDialog() {
         iconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      backgroundColor: Colors.transparent, // Asumiendo que hay un fondo detrás
+      backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
-      body: Container( // Añadido fondo para consistencia
+      body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.darkGradient,
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 100, 24, 24), // Ajuste top por AppBar
+          padding: const EdgeInsets.fromLTRB(24, 100, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
