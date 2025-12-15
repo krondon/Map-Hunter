@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/player_provider.dart';
 import 'event_creation_screen.dart';
@@ -279,11 +280,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 // ------------------------------------------------------------------
-// WIDGETS AUXILIARES (Sin cambios, pero necesarios para compilar)
+// WIDGETS AUXILIARES
 // ------------------------------------------------------------------
 
-class _WelcomeDashboardView extends StatelessWidget {
+class _WelcomeDashboardView extends StatefulWidget {
   const _WelcomeDashboardView();
+
+  @override
+  State<_WelcomeDashboardView> createState() => _WelcomeDashboardViewState();
+}
+
+class _WelcomeDashboardViewState extends State<_WelcomeDashboardView> {
+  String _activeUsers = "...";
+  String _createdEvents = "...";
+  String _pendingRequests = "...";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    final supabase = Supabase.instance.client;
+    try {
+      // 1. Count Users (Profiles)
+      final usersCount = await supabase
+          .from('profiles')
+          .count(CountOption.exact);
+      
+      // 2. Count Events
+      final eventsCount = await supabase
+          .from('events')
+          .count(CountOption.exact);
+
+      // 3. Count Pending Requests
+      final requestsCount = await supabase
+          .from('game_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .count(CountOption.exact);
+
+      if (mounted) {
+        setState(() {
+          _activeUsers = usersCount.toString();
+          _createdEvents = eventsCount.toString();
+          // requestsCount is a PostgrestResponse because we used .select()
+          _pendingRequests = requestsCount.count.toString(); 
+        });
+      }
+    } catch (e) {
+      print('Error fetching dashboard stats: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -307,13 +356,13 @@ class _WelcomeDashboardView extends StatelessWidget {
             spacing: 20,
             runSpacing: 20,
             alignment: WrapAlignment.center,
-            children: const [
+            children: [
               _SummaryCard(
-                  title: "Usuarios Activos", value: "...", color: Colors.blue),
+                  title: "Usuarios Activos", value: _activeUsers, color: Colors.blue),
               _SummaryCard(
-                  title: "Eventos Creados", value: "...", color: Colors.orange),
+                  title: "Eventos Creados", value: _createdEvents, color: Colors.orange),
               _SummaryCard(
-                  title: "Solicitudes Pendientes", value: "...", color: Colors.purple),
+                  title: "Solicitudes Pendientes", value: _pendingRequests, color: Colors.purple),
             ],
           )
         ],

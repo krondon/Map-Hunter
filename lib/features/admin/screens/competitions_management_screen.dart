@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../game/providers/event_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../game/models/event.dart';
+import 'competition_detail_screen.dart';
 
 class CompetitionsManagementScreen extends StatefulWidget {
   const CompetitionsManagementScreen({super.key});
@@ -250,7 +251,14 @@ class _CompetitionsManagementScreenState
                                   ),
                                   child: OutlinedButton.icon(
                                     onPressed: () {
-                                      // TODO: Navegar al detalle
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              CompetitionDetailScreen(
+                                                  event: event),
+                                        ),
+                                      ).then((_) => _loadEvents()); // Refresh on return
                                     },
                                     icon:
                                         const Icon(Icons.visibility, size: 18),
