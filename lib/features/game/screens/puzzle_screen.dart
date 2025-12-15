@@ -10,34 +10,75 @@ import '../widgets/minigames/sliding_puzzle_minigame.dart';
 import '../widgets/minigames/tic_tac_toe_minigame.dart';
 import '../widgets/minigames/hangman_minigame.dart';
 import 'qr_scanner_screen.dart';
+import '../services/penalty_service.dart'; // IMPORT AGREGADO
 
-class PuzzleScreen extends StatelessWidget {
+class PuzzleScreen extends StatefulWidget {
   final Clue clue;
 
   const PuzzleScreen({super.key, required this.clue});
 
   @override
+  State<PuzzleScreen> createState() => _PuzzleScreenState();
+}
+
+class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver {
+  final PenaltyService _penaltyService = PenaltyService();
+  bool _legalExit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Bandera arriba: El jugador está intentando jugar. Si sale sin _finishLegally, será penalizado.
+    _penaltyService.attemptStartGame();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // LEAVER BUSTER: Si minimiza (paused) y no ha salido legalmente, lo sacamos.
+    // Esto previene trampas de salir al home del móvil para buscar respuestas.
+    if (state == AppLifecycleState.paused && !_legalExit) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Cierre forzoso = Penalización latente en backend
+      }
+    }
+  }
+
+  // Helper para marcar salida legal (Ganar o Rendirse)
+  Future<void> _finishLegally() async {
+    _legalExit = true;
+    await _penaltyService.markGameFinishedLegally();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    switch (clue.puzzleType) {
+    // Pasamos _finishLegally a TODOS los hijos para que avisen antes de cerrar
+    switch (widget.clue.puzzleType) {
       case PuzzleType.codeBreaker:
-        return CodeBreakerWidget(clue: clue);
+        return CodeBreakerWidget(clue: widget.clue, onFinish: _finishLegally);
       case PuzzleType.imageTrivia:
-        return ImageTriviaWidget(clue: clue);
+        return ImageTriviaWidget(clue: widget.clue, onFinish: _finishLegally);
       case PuzzleType.wordScramble:
-        return WordScrambleWidget(clue: clue);
+        return WordScrambleWidget(clue: widget.clue, onFinish: _finishLegally);
       case PuzzleType.riddle:
-        return RiddleScreen(clue: clue);
+        return RiddleScreen(clue: widget.clue, onFinish: _finishLegally);
       case PuzzleType.slidingPuzzle:
-        return SlidingPuzzleWrapper(clue: clue);
+        return SlidingPuzzleWrapper(clue: widget.clue, onFinish: _finishLegally);
       case PuzzleType.ticTacToe:
-        return TicTacToeWrapper(clue: clue);
+        return TicTacToeWrapper(clue: widget.clue, onFinish: _finishLegally);
       case PuzzleType.hangman:
-        return HangmanWrapper(clue: clue);
+        return HangmanWrapper(clue: widget.clue, onFinish: _finishLegally);
     }
   }
 }
 
-// --- FUNCIONES HELPER GLOBALES ---
+// --- FUNCIONES HELPER GLOBALES MODIFICADAS PARA PENALTY SYSTEM ---
 
 void showClueSelector(BuildContext context, Clue currentClue) {
   final gameProvider = Provider.of<GameProvider>(context, listen: false);
@@ -106,7 +147,7 @@ void showClueSelector(BuildContext context, Clue currentClue) {
   );
 }
 
-void showSkipDialog(BuildContext context) {
+void showSkipDialog(BuildContext context, VoidCallback? onSurrenderAction) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
@@ -122,7 +163,12 @@ void showSkipDialog(BuildContext context) {
           child: const Text('Cancelar'),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
+            // SI SE RINDE, ES UNA SALIDA LEGAL (AUNQUE PERDEDORA)
+            if (onSurrenderAction != null) {
+              onSurrenderAction();
+            }
+
             Navigator.pop(context); // Dialog
             Navigator.pop(context); // PuzzleScreen
             // Intentamos cerrar una pantalla más por si venimos del scanner
@@ -147,7 +193,9 @@ void showSkipDialog(BuildContext context) {
 // --- WIDGET: CODE BREAKER ---
 class CodeBreakerWidget extends StatefulWidget {
   final Clue clue;
-  const CodeBreakerWidget({super.key, required this.clue});
+  final VoidCallback onFinish; // AGREGADO
+
+  const CodeBreakerWidget({super.key, required this.clue, required this.onFinish});
 
   @override
   State<CodeBreakerWidget> createState() => _CodeBreakerWidgetState();
@@ -178,6 +226,8 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
     final expected = widget.clue.riddleAnswer?.trim() ?? "";
     
     if (_enteredCode == expected) {
+      // ÉXITO: LLAMAR CALLBACK LEGAL
+      widget.onFinish();
       _showSuccessDialog(context, widget.clue);
     } else {
       setState(() {
@@ -239,7 +289,7 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                     const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 20),
-                      onPressed: () => showSkipDialog(context),
+                      onPressed: () => showSkipDialog(context, widget.onFinish), // Pasamos callback
                       tooltip: 'Rendirse',
                     ),
                   ],
@@ -255,7 +305,7 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                       leaderboard: game.leaderboard,
                       currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
+                      onSurrender: () => showSkipDialog(context, widget.onFinish), // Pasamos callback
                     );
                   },
                 ),
@@ -427,7 +477,9 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
 // --- WIDGET: IMAGE TRIVIA ---
 class ImageTriviaWidget extends StatefulWidget {
   final Clue clue;
-  const ImageTriviaWidget({super.key, required this.clue});
+  final VoidCallback onFinish; // AGREGADO
+
+  const ImageTriviaWidget({super.key, required this.clue, required this.onFinish});
 
   @override
   State<ImageTriviaWidget> createState() => _ImageTriviaWidgetState();
@@ -442,6 +494,8 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
     final correctAnswer = widget.clue.riddleAnswer?.trim().toLowerCase() ?? "";
 
     if (userAnswer == correctAnswer || (correctAnswer.isNotEmpty && userAnswer.contains(correctAnswer.split(' ').first))) {
+      // ÉXITO: LLAMAR CALLBACK LEGAL
+      widget.onFinish();
       _showSuccessDialog(context, widget.clue);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -471,6 +525,8 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // RENDICIÓN = SALIDA LEGAL
+              widget.onFinish();
               final gameProvider = Provider.of<GameProvider>(context, listen: false);
               await gameProvider.skipCurrentClue();
               if (context.mounted) {
@@ -541,7 +597,7 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                       leaderboard: game.leaderboard,
                       currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
+                      onSurrender: () => showSkipDialog(context, widget.onFinish), // Pasamos callback
                     );
                   },
                 ),
@@ -725,7 +781,9 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
 // --- WIDGET: WORD SCRAMBLE ---
 class WordScrambleWidget extends StatefulWidget {
   final Clue clue;
-  const WordScrambleWidget({super.key, required this.clue});
+  final VoidCallback onFinish; // AGREGADO
+
+  const WordScrambleWidget({super.key, required this.clue, required this.onFinish});
 
   @override
   State<WordScrambleWidget> createState() => _WordScrambleWidgetState();
@@ -758,6 +816,8 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
 
   void _checkAnswer() {
     if (_currentWord == widget.clue.riddleAnswer?.toUpperCase()) {
+      // ÉXITO: LLAMAR CALLBACK LEGAL
+      widget.onFinish();
       _showSuccessDialog(context, widget.clue);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -788,6 +848,8 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // RENDICIÓN = SALIDA LEGAL
+              widget.onFinish();
               final gameProvider = Provider.of<GameProvider>(context, listen: false);
               await gameProvider.skipCurrentClue();
               if (context.mounted) {
@@ -858,7 +920,7 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
                       leaderboard: game.leaderboard,
                       currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
+                      onSurrender: () => showSkipDialog(context, widget.onFinish), // Pasamos callback
                     );
                   },
                 ),
@@ -997,12 +1059,11 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
 }
 
 
-// --- HELPER: SUCCESS DIALOG (CORREGIDO) ---
+// --- HELPER: SUCCESS DIALOG ---
 void _showSuccessDialog(BuildContext context, Clue clue) async {
   final gameProvider = Provider.of<GameProvider>(context, listen: false);
   final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
-  // 1. Mostrar indicador de carga para dar feedback inmediato
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -1015,11 +1076,9 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
   
   try {
     if (clue.id.startsWith('demo_')) {
-      // Si es demo, solo local
       gameProvider.completeLocalClue(clue.id);
       success = true;
     } else {
-      // Llamada al backend
       success = await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "");
     }
   } catch (e) {
@@ -1027,15 +1086,11 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     success = false;
   }
 
-  // 2. Cerrar indicador de carga
   if (context.mounted) {
     Navigator.pop(context); 
   }
 
   if (success) {
-      // ¡AQUÍ ESTÁ LA SOLUCIÓN!
-      // Actualizamos visualmente las monedas y XP del usuario inmediatamente
-      // Esto asegura que la barra superior refleje los cambios al instante.
       if (playerProvider.currentPlayer != null) {
         playerProvider.addExperience(clue.xpReward);
         playerProvider.addCoins(clue.coinReward);
@@ -1054,7 +1109,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
 
   if (!context.mounted) return;
 
-  // Lógica para determinar si hay siguiente paso (visual)
   final clues = gameProvider.clues;
   final currentIdx = clues.indexWhere((c) => c.id == clue.id);
   Clue? nextClue;
@@ -1137,13 +1191,7 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // --- CORRECCIÓN DE NAVEGACIÓN ---
-                      
-                      // 1. Cerrar solo el Diálogo (usando el contexto del builder)
                       Navigator.of(dialogContext).pop(); 
-                      
-                      // 2. Pequeño delay para asegurar que el diálogo cerró visualmente
-                      // y luego cerrar la pantalla del Puzzle usando el contexto padre
                       Future.delayed(const Duration(milliseconds: 100), () {
                         if (context.mounted) {
                           Navigator.of(context).pop(); 
@@ -1208,7 +1256,9 @@ Widget _buildRewardBadge(IconData icon, String label, Color color) {
 // --- WIDGET: SLIDING PUZZLE WRAPPER ---
 class SlidingPuzzleWrapper extends StatelessWidget {
   final Clue clue;
-  const SlidingPuzzleWrapper({super.key, required this.clue});
+  final VoidCallback onFinish; // AGREGADO
+
+  const SlidingPuzzleWrapper({super.key, required this.clue, required this.onFinish});
 
   @override
   Widget build(BuildContext context) {
@@ -1258,7 +1308,7 @@ class SlidingPuzzleWrapper extends StatelessWidget {
                       leaderboard: game.leaderboard,
                       currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
+                      onSurrender: () => showSkipDialog(context, onFinish), // Pasamos callback
                     );
                   },
                 ),
@@ -1269,7 +1319,11 @@ class SlidingPuzzleWrapper extends StatelessWidget {
               Expanded(
                 child: SlidingPuzzleMinigame(
                   clue: clue,
-                  onSuccess: () => _showSuccessDialog(context, clue),
+                  onSuccess: () {
+                    // ÉXITO: LLAMAR CALLBACK LEGAL
+                    onFinish();
+                    _showSuccessDialog(context, clue);
+                  },
                 ),
               ),
             ],
@@ -1283,7 +1337,9 @@ class SlidingPuzzleWrapper extends StatelessWidget {
 // --- WIDGET: TIC TAC TOE WRAPPER ---
 class TicTacToeWrapper extends StatelessWidget {
   final Clue clue;
-  const TicTacToeWrapper({super.key, required this.clue});
+  final VoidCallback onFinish; // AGREGADO
+
+  const TicTacToeWrapper({super.key, required this.clue, required this.onFinish});
 
   @override
   Widget build(BuildContext context) {
@@ -1333,7 +1389,7 @@ class TicTacToeWrapper extends StatelessWidget {
                       leaderboard: game.leaderboard,
                       currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
+                      onSurrender: () => showSkipDialog(context, onFinish), // Pasamos callback
                     );
                   },
                 ),
@@ -1344,7 +1400,11 @@ class TicTacToeWrapper extends StatelessWidget {
               Expanded(
                 child: TicTacToeMinigame(
                   clue: clue,
-                  onSuccess: () => _showSuccessDialog(context, clue),
+                  onSuccess: () {
+                    // ÉXITO: LLAMAR CALLBACK LEGAL
+                    onFinish();
+                    _showSuccessDialog(context, clue);
+                  },
                 ),
               ),
             ],
@@ -1358,7 +1418,9 @@ class TicTacToeWrapper extends StatelessWidget {
 // --- WIDGET: HANGMAN WRAPPER ---
 class HangmanWrapper extends StatelessWidget {
   final Clue clue;
-  const HangmanWrapper({super.key, required this.clue});
+  final VoidCallback onFinish; // AGREGADO
+
+  const HangmanWrapper({super.key, required this.clue, required this.onFinish});
 
   @override
   Widget build(BuildContext context) {
@@ -1408,7 +1470,7 @@ class HangmanWrapper extends StatelessWidget {
                       leaderboard: game.leaderboard,
                       currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
                       totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
+                      onSurrender: () => showSkipDialog(context, onFinish), // Pasamos callback
                     );
                   },
                 ),
@@ -1419,7 +1481,11 @@ class HangmanWrapper extends StatelessWidget {
               Expanded(
                 child: HangmanMinigame(
                   clue: clue,
-                  onSuccess: () => _showSuccessDialog(context, clue),
+                  onSuccess: () {
+                    // ÉXITO: LLAMAR CALLBACK LEGAL
+                    onFinish();
+                    _showSuccessDialog(context, clue);
+                  },
                 ),
               ),
             ],

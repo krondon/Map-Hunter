@@ -1,12 +1,12 @@
-import 'dart:io' show Platform; // Agrega esto al inicio con los otros imports
-import 'package:flutter/foundation.dart' show kIsWeb; // Opcional, por si usas Web también
+import 'dart:io' show Platform; 
+import 'package:flutter/foundation.dart' show kIsWeb; 
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Import Provider
-import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:provider/provider.dart'; 
+import 'package:geolocator/geolocator.dart'; 
 import 'dart:ui';
 import '../models/scenario.dart';
-import '../providers/event_provider.dart'; // Import EventProvider
+import '../providers/event_provider.dart'; 
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../providers/game_request_provider.dart';
@@ -15,6 +15,7 @@ import 'code_finder_screen.dart';
 import 'game_request_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../layouts/screens/home_screen.dart';
+import '../services/penalty_service.dart'; // IMPORT AGREGADO
 
 class ScenariosScreen extends StatefulWidget {
   const ScenariosScreen({super.key});
@@ -27,13 +28,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
   late PageController _pageController;
   int _currentPage = 0;
   bool _isLoading = true;
+  final PenaltyService _penaltyService = PenaltyService(); // INSTANCIA SERVICIO
 
   @override
   void initState() {
     super.initState();
     print("DEBUG: ScenariosScreen initState");
     _pageController = PageController(viewportFraction: 0.85);
-    // Cargar eventos al iniciar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadEvents();
     });
@@ -58,21 +59,17 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
     
-    // --- INICIO DE LA MODIFICACIÓN ---
-    // Solo verificamos permisos si NO estamos en Windows (y no es Web, por si acaso)
-    // Esto permite probar en Windows sin GPS, pero mantiene la seguridad en Android/iOS.
+    // Solo verificamos permisos si NO estamos en Windows
     bool shouldCheckLocation = true;
     try {
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         shouldCheckLocation = false;
       }
     } catch (e) {
-      // Si falla la detección de plataforma (raro), asumimos que sí debe verificar (móvil/web)
       shouldCheckLocation = true; 
     }
 
     if (shouldCheckLocation) {
-      // 1. Lógica original de permisos de ubicación
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -120,6 +117,37 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
     Navigator.pop(context); // Dismiss loading
 
     if (isParticipant) {
+      // --- INICIO LEAVER BUSTER CHECK ---
+      // 1. Verificar si está baneado antes de entrar al mapa
+      final banEnd = await _penaltyService.attemptStartGame();
+      
+      if (!mounted) return;
+
+      if (banEnd != null) {
+        // Usuario castigado
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: const Text('⛔ Acceso Denegado', style: TextStyle(color: AppTheme.dangerRed)),
+            content: Text(
+              'Has sido penalizado por abandonar una partida en curso.\n\nPodrás volver a jugar a las: ${banEnd.hour.toString().padLeft(2, '0')}:${banEnd.minute.toString().padLeft(2, '0')}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))
+            ],
+          ),
+        );
+        return; // DETENER NAVEGACIÓN
+      } else {
+        // 2. Si no está baneado, marcamos finish legally INMEDIATAMENTE
+        // porque el mapa (HomeScreen) es zona segura.
+        await _penaltyService.markGameFinishedLegally();
+      }
+      // --- FIN LEAVER BUSTER CHECK ---
+
       // Fetch clues for the selected event before navigating
       await Provider.of<GameProvider>(context, listen: false)
           .fetchClues(eventId: scenario.id);
@@ -161,15 +189,11 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
 
     // Convertir Eventos a Escenarios
     final List<Scenario> scenarios = eventProvider.events.map((event) {
-      // Compatibilidad con eventos antiguos y nuevos
       String location = '';
-      // 1. Prioridad: Mostrar el nombre del lugar si existe
       if (event.locationName.isNotEmpty) {
         location = event.locationName;
       }
-      // 2. Si no hay nombre, mostramos las coordenadas numéricas
       else {
-        // Convertimos latitud y longitud a texto con 4 decimales
         location =
             '${event.location.latitude.toStringAsFixed(4)}, ${event.location.longitude.toStringAsFixed(4)}';
       }
@@ -327,14 +351,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                     value = (1 - (value.abs() * 0.3))
                                         .clamp(0.0, 1.0);
                                   } else {
-                                    // Initial state
                                     value = index == _currentPage ? 1.0 : 0.7;
                                   }
 
                                   return Center(
                                     child: SizedBox(
                                       height: Curves.easeOut.transform(value) *
-                                          450, // Responsive height
+                                          450, 
                                       width:
                                           Curves.easeOut.transform(value) * 400,
                                       child: child,
@@ -362,7 +385,6 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                         fit: StackFit.expand,
                                         children: [
                                           // Background Image
-                                          // VERIFICACIÓN: Solo intentamos cargar si la URL no está vacía y empieza con http
                                           (scenario.imageUrl.isNotEmpty &&
                                                   scenario.imageUrl
                                                       .startsWith('http'))
@@ -393,7 +415,6 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                                     );
                                                   },
                                                 )
-                                              // SI LA URL ESTÁ VACÍA, MOSTRAMOS UN PLACEHOLDER
                                               : Container(
                                                   color: Colors.grey[900],
                                                   child: Column(
@@ -539,7 +560,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                                                       foregroundColor:
                                                           Colors.black,
                                                       elevation:
-                                                          8, // Added elevation for tactile feel
+                                                          8, 
                                                     ),
                                                     child: const Text(
                                                         "SELECCIONAR",
