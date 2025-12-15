@@ -203,6 +203,10 @@ class EventProvider with ChangeNotifier {
         'riddle_question': clue.riddleQuestion,
         'riddle_answer': clue.riddleAnswer,
         'xp_reward': clue.xpReward,
+        'coin_reward': clue.coinReward,
+        'latitude': clue.latitude,
+        'longitude': clue.longitude,
+        'hint': clue.hint,
       }).eq('id', clue.id);
       
       notifyListeners();
@@ -238,8 +242,9 @@ class EventProvider with ChangeNotifier {
         'riddle_answer': clue.riddleAnswer,
         'xp_reward': clue.xpReward,
         'coin_reward': clue.coinReward,
-        'sequence_index': nextOrder, // Fix: use correct column name
-        // 'is_locked': true, // Default - removed as column doesn't exist
+        'sequence_index': nextOrder,
+        'latitude': clue.latitude,
+        'longitude': clue.longitude,
       });
       
       notifyListeners();

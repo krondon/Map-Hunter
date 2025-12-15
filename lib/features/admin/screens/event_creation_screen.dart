@@ -391,6 +391,9 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
               'riddle_answer': '',
               'xp_reward': 50,
               'coin_reward': 10,
+              'hint': '',
+              'latitude': null,
+              'longitude': null,
             });
           }
         } else {
@@ -1246,6 +1249,86 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                                 style: const TextStyle(color: Colors.white),
                                                 onChanged: (v) => _clueForms[_currentClueIndex]['coin_reward'] = int.tryParse(v) ?? 0,
                                               ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 10),
+
+                                        // --- GEOLOCALIZACIÓN ---
+                                        const Text("📍 Geolocalización (Opcional)", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 10),
+                                        TextFormField(
+                                          initialValue: _clueForms[_currentClueIndex]['hint'],
+                                          decoration: inputDecoration.copyWith(
+                                            labelText: 'Pista de Ubicación QR (ej: Detrás del árbol)',
+                                            prefixIcon: const Icon(Icons.location_on, color: Colors.white54),
+                                          ),
+                                          style: const TextStyle(color: Colors.white),
+                                          onChanged: (v) => _clueForms[_currentClueIndex]['hint'] = v,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                key: ValueKey('lat_${_clueForms[_currentClueIndex]['latitude']}'),
+                                                initialValue: _clueForms[_currentClueIndex]['latitude']?.toString() ?? '',
+                                                decoration: inputDecoration.copyWith(labelText: 'Latitud'),
+                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                style: const TextStyle(color: Colors.white),
+                                                onChanged: (v) => _clueForms[_currentClueIndex]['latitude'] = double.tryParse(v),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: TextFormField(
+                                                key: ValueKey('long_${_clueForms[_currentClueIndex]['longitude']}'),
+                                                initialValue: _clueForms[_currentClueIndex]['longitude']?.toString() ?? '',
+                                                decoration: inputDecoration.copyWith(labelText: 'Longitud'),
+                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                style: const TextStyle(color: Colors.white),
+                                                onChanged: (v) => _clueForms[_currentClueIndex]['longitude'] = double.tryParse(v),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            TextButton.icon(
+                                              icon: const Icon(Icons.store, size: 16),
+                                              label: const Text("Usar Evento", style: TextStyle(fontSize: 12)),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _clueForms[_currentClueIndex]['latitude'] = _latitude;
+                                                  _clueForms[_currentClueIndex]['longitude'] = _longitude;
+                                                });
+                                              },
+                                            ),
+                                            TextButton.icon(
+                                              icon: const Icon(Icons.my_location, size: 16),
+                                              label: const Text("Mi Ubicación", style: TextStyle(fontSize: 12)),
+                                              onPressed: () async {
+                                                try {
+                                                  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                                                  if (!serviceEnabled) throw Exception("GPS desactivado");
+                                                  
+                                                  LocationPermission permission = await Geolocator.checkPermission();
+                                                  if (permission == LocationPermission.denied) {
+                                                    permission = await Geolocator.requestPermission();
+                                                    if (permission == LocationPermission.denied) throw Exception("Permiso denegado");
+                                                  }
+                                                  
+                                                  Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
+                                                  setState(() {
+                                                    _clueForms[_currentClueIndex]['latitude'] = position.latitude;
+                                                    _clueForms[_currentClueIndex]['longitude'] = position.longitude;
+                                                  });
+                                                } catch(e) {
+                                                  if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                                                }
+                                              },
                                             ),
                                           ],
                                         ),

@@ -7,6 +7,8 @@ import '../../game/models/clue.dart';
 import '../../game/providers/event_provider.dart';
 import '../../game/providers/game_request_provider.dart';
 import '../../game/models/game_request.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import '../../../core/theme/app_theme.dart';
 
 class CompetitionDetailScreen extends StatefulWidget {
@@ -21,6 +23,19 @@ class CompetitionDetailScreen extends StatefulWidget {
 class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
+
+  // Helper method for consistent input styling
+  InputDecoration _buildInputDecoration(String label, {IconData? icon}) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.black26,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      labelStyle: const TextStyle(color: Colors.white70),
+      prefixIcon: icon != null ? Icon(icon, color: Colors.white54) : null,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
 
   // Form State
   late String _title;
@@ -385,6 +400,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     String answer = clue.riddleAnswer ?? '';
     PuzzleType selectedType = clue.puzzleType;
     int xp = clue.xpReward;
+    String hint = clue.hint;
+    double? latitude = clue.latitude;
+    double? longitude = clue.longitude;
 
     showDialog(
       context: context,
@@ -401,13 +419,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     value: selectedType,
                     dropdownColor: AppTheme.darkBg,
                     isExpanded: true, // Fix overflow
-                    decoration: InputDecoration(
-                      labelText: 'Tipo de Minijuego',
-                      filled: true,
-                      fillColor: Colors.black26,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      labelStyle: const TextStyle(color: Colors.white70),
-                    ),
+                    decoration: _buildInputDecoration('Tipo de Minijuego', icon: Icons.games),
                     style: const TextStyle(color: Colors.white),
                     items: PuzzleType.values.map((type) {
                       return DropdownMenuItem(
@@ -429,10 +441,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     },
                   ),
                   const SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   TextFormField(
                     initialValue: title,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Título', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Título'),
                     onChanged: (v) => title = v,
                   ),
                   const SizedBox(height: 10),
@@ -440,7 +453,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     initialValue: question,
                     maxLines: 2,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Pregunta / Instrucción', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Pregunta / Instrucción'),
                     onChanged: (v) => question = v,
                   ),
                   const SizedBox(height: 10),
@@ -448,15 +461,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     TextFormField(
                       initialValue: answer,
                       style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'Respuesta Correcta', labelStyle: TextStyle(color: Colors.white70)),
+                      decoration: _buildInputDecoration('Respuesta Correcta'),
                       onChanged: (v) => answer = v,
                     ),
+                  const SizedBox(height: 10),
                   const SizedBox(height: 10),
                   TextFormField(
                     initialValue: xp.toString(),
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Puntos XP', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Puntos XP'),
                     onChanged: (v) => xp = int.tryParse(v) ?? 50,
                   ),
                   const SizedBox(height: 10),
@@ -464,8 +478,84 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     initialValue: clue.coinReward.toString(),
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Monedas', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Monedas'),
                     onChanged: (v) => clue = clue.copyWith(coinReward: int.tryParse(v) ?? 10),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text("📍 Geolocalización (Opcional)", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    initialValue: hint,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _buildInputDecoration('Pista de Ubicación QR (ej: Detrás del árbol)', icon: Icons.location_on),
+                    onChanged: (v) => hint = v,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          key: Key('lat_$latitude'), // Force rebuild on change
+                          initialValue: latitude?.toString() ?? '',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _buildInputDecoration('Latitud'),
+                          onChanged: (v) => latitude = double.tryParse(v),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                           key: Key('long_$longitude'),
+                          initialValue: longitude?.toString() ?? '',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _buildInputDecoration('Longitud'),
+                          onChanged: (v) => longitude = double.tryParse(v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.store, size: 16),
+                        label: const Text("Usar Evento", style: TextStyle(fontSize: 12)),
+                        onPressed: () {
+                           setStateDialog(() {
+                             latitude = widget.event.latitude;
+                             longitude = widget.event.longitude;
+                           });
+                        },
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.my_location, size: 16),
+                        label: const Text("Mi Ubicación", style: TextStyle(fontSize: 12)),
+                         onPressed: () async {
+                           try {
+                             bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                             if (!serviceEnabled) throw Exception("GPS desactivado");
+                             
+                             LocationPermission permission = await Geolocator.checkPermission();
+                             if (permission == LocationPermission.denied) {
+                               permission = await Geolocator.requestPermission();
+                               if (permission == LocationPermission.denied) throw Exception("Permiso denegado");
+                             }
+                             
+                             Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
+                             setStateDialog(() {
+                               latitude = position.latitude;
+                               longitude = position.longitude;
+                             });
+                           } catch(e) {
+                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                           }
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -522,10 +612,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                   id: clue.id,
                   title: title,
                   description: description, // Keep original or add field if needed
-                  hint: clue.hint,
+                  hint: hint, // Updated value
                   type: clue.type,
-                  latitude: clue.latitude,
-                  longitude: clue.longitude,
+                  latitude: latitude, // Updated value
+                  longitude: longitude, // Updated value
                   qrCode: clue.qrCode,
                   minigameUrl: clue.minigameUrl,
                   xpReward: xp,
@@ -564,7 +654,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     String answer = '';
     PuzzleType selectedType = PuzzleType.riddle;
     int xp = 50;
+
     int coins = 10;
+    String hint = '';
+    double? latitude;
+    double? longitude;
 
     showDialog(
       context: context,
@@ -581,13 +675,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     value: selectedType,
                     dropdownColor: AppTheme.darkBg,
                     isExpanded: true, // Fix overflow
-                    decoration: InputDecoration(
-                      labelText: 'Tipo de Minijuego',
-                      filled: true,
-                      fillColor: Colors.black26,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      labelStyle: const TextStyle(color: Colors.white70),
-                    ),
+                    decoration: _buildInputDecoration('Tipo de Minijuego', icon: Icons.games),
                     style: const TextStyle(color: Colors.white),
                     items: PuzzleType.values.map((type) {
                       return DropdownMenuItem(
@@ -609,15 +697,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     },
                   ),
                   const SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   TextFormField(
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Título', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Título'),
                     onChanged: (v) => title = v,
                   ),
                   const SizedBox(height: 10),
                    TextFormField(
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Descripción / Historia', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Descripción / Historia'),
                     onChanged: (v) => description = v,
                   ),
                   const SizedBox(height: 10),
@@ -625,14 +714,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     initialValue: question,
                     maxLines: 2,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Pregunta / Instrucción', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Pregunta / Instrucción'),
                     onChanged: (v) => question = v,
                   ),
                   const SizedBox(height: 10),
                   if (!selectedType.isAutoValidation)
                     TextFormField(
                       style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'Respuesta Correcta', labelStyle: TextStyle(color: Colors.white70)),
+                      decoration: _buildInputDecoration('Respuesta Correcta'),
                       onChanged: (v) => answer = v,
                     ),
                   const SizedBox(height: 10),
@@ -640,7 +729,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     initialValue: xp.toString(),
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Puntos XP', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Puntos XP'),
                     onChanged: (v) => xp = int.tryParse(v) ?? 50,
                   ),
                   const SizedBox(height: 10),
@@ -648,8 +737,83 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                     initialValue: coins.toString(),
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Monedas', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: _buildInputDecoration('Monedas'),
                     onChanged: (v) => coins = int.tryParse(v) ?? 10,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text("📍 Geolocalización (Opcional)", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _buildInputDecoration('Pista de Ubicación QR (ej: Detrás del árbol)', icon: Icons.location_on),
+                    onChanged: (v) => hint = v,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          key: Key('lat_add_$latitude'), 
+                          initialValue: latitude?.toString() ?? '',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _buildInputDecoration('Latitud'),
+                          onChanged: (v) => latitude = double.tryParse(v),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                           key: Key('long_add_$longitude'),
+                          initialValue: longitude?.toString() ?? '',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _buildInputDecoration('Longitud'),
+                          onChanged: (v) => longitude = double.tryParse(v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton.icon(
+                        icon: const Icon(Icons.store, size: 16),
+                        label: const Text("Usar Evento", style: TextStyle(fontSize: 12)),
+                        onPressed: () {
+                           setStateDialog(() {
+                             latitude = widget.event.latitude;
+                             longitude = widget.event.longitude;
+                           });
+                        },
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.my_location, size: 16),
+                        label: const Text("Mi Ubicación", style: TextStyle(fontSize: 12)),
+                         onPressed: () async {
+                           try {
+                             bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                             if (!serviceEnabled) throw Exception("GPS desactivado");
+                             
+                             LocationPermission permission = await Geolocator.checkPermission();
+                             if (permission == LocationPermission.denied) {
+                               permission = await Geolocator.requestPermission();
+                               if (permission == LocationPermission.denied) throw Exception("Permiso denegado");
+                             }
+                             
+                             Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
+                             setStateDialog(() {
+                               latitude = position.latitude;
+                               longitude = position.longitude;
+                             });
+                           } catch(e) {
+                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                           }
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -675,10 +839,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                   id: '', // Will be generated by DB
                   title: title,
                   description: description,
-                  hint: '',
+                  hint: hint,
                   type: ClueType.minigame, // Default to minigame
                   xpReward: xp,
                   coinReward: coins,
+                  latitude: latitude,
+                  longitude: longitude,
                   puzzleType: selectedType,
                   riddleQuestion: question,
                   riddleAnswer: answer,
