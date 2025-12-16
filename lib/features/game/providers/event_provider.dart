@@ -233,7 +233,7 @@ class EventProvider with ChangeNotifier {
       }
 
       await _supabase.from('clues').insert({
-        'event_id': eventId,
+        'event_id': eventId.trim(),
         'title': clue.title,
         'description': clue.description,
         'hint': clue.hint,
