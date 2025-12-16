@@ -45,10 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Esta aplicación necesita acceder a tu ubicación para crear competiciones y mostrar el mapa.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Esta aplicación necesita acceder a tu ubicación incluso cuando está en segundo plano para funcionalidades de geolocalización.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Esta aplicación necesita acceder a tu cámara para escanear códigos QR de eventos y pistas.</string>
 </dict>
 </plist>

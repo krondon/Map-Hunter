@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../game/providers/event_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../game/models/event.dart';
+import 'competition_detail_screen.dart';
 
 class CompetitionsManagementScreen extends StatefulWidget {
   const CompetitionsManagementScreen({super.key});
@@ -89,15 +90,24 @@ class _CompetitionsManagementScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Título de la Sección (Opcional, ya está en las pestañas, pero ayuda al contexto)
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 24, 24, 0),
-            child: Text(
-              "Gestionar Competencias",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Gestionar Competencias",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _isLoading ? null : _loadEvents,
+                ),
+              ],
             ),
           ),
 
@@ -250,7 +260,14 @@ class _CompetitionsManagementScreenState
                                   ),
                                   child: OutlinedButton.icon(
                                     onPressed: () {
-                                      // TODO: Navegar al detalle
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              CompetitionDetailScreen(
+                                                  event: event),
+                                        ),
+                                      ).then((_) => _loadEvents()); // Refresh on return
                                     },
                                     icon:
                                         const Icon(Icons.visibility, size: 18),

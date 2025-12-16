@@ -43,6 +43,44 @@ class Clue {
     this.riddleAnswer,
     this.puzzleType = PuzzleType.riddle, // Por defecto es acertijo
   });
+
+  Clue copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? hint,
+    ClueType? type,
+    double? latitude,
+    double? longitude,
+    String? qrCode,
+    String? minigameUrl,
+    int? xpReward,
+    int? coinReward,
+    bool? isCompleted,
+    bool? isLocked,
+    String? riddleQuestion,
+    String? riddleAnswer,
+    PuzzleType? puzzleType,
+  }) {
+    return Clue(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      hint: hint ?? this.hint,
+      type: type ?? this.type,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      qrCode: qrCode ?? this.qrCode,
+      minigameUrl: minigameUrl ?? this.minigameUrl,
+      xpReward: xpReward ?? this.xpReward,
+      coinReward: coinReward ?? this.coinReward,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isLocked: isLocked ?? this.isLocked,
+      riddleQuestion: riddleQuestion ?? this.riddleQuestion,
+      riddleAnswer: riddleAnswer ?? this.riddleAnswer,
+      puzzleType: puzzleType ?? this.puzzleType,
+    );
+  }
   
   String get typeIcon {
     switch (type) {
@@ -95,7 +133,7 @@ class Clue {
       xpReward: json['xp_reward'] ?? 0,
       coinReward: json['coin_reward'] ?? 0,
       isCompleted: json['isCompleted'] ?? false,
-      isLocked: json['isLocked'] ?? true,
+      isLocked: json['is_locked'] ?? true,
       riddleQuestion: json['riddle_question'],
       riddleAnswer: json['riddle_answer'],
       puzzleType: json['puzzle_type'] != null 

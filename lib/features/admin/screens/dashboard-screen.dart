@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/player_provider.dart';
 import 'event_creation_screen.dart';
@@ -99,71 +100,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, constraints) {
         return Scaffold(
           backgroundColor: AppTheme.darkBg,
-          body: Column(
-            children: [
-              // ------------------------------------------------
-              // 1. HEADER SUPERIOR (Logo + Usuario)
-              // ------------------------------------------------
-              Container(
-                height: 70,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardBg,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.white.withOpacity(0.1),
+
+          body: SafeArea(
+            child: Column(
+              children: [
+                // ------------------------------------------------
+                // 1. HEADER SUPERIOR (Logo + Usuario)
+                // ------------------------------------------------
+                Container(
+                  height: 70,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                      ),
                     ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    // Logo / Título
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryPurple.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: [
+                      // Logo / Título
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryPurple.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.admin_panel_settings,
+                            color: AppTheme.primaryPurple),
                       ),
-                      child: const Icon(Icons.admin_panel_settings,
-                          color: AppTheme.primaryPurple),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Sistema Administrativo",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        Text(
-                          "Treasure Hunt RPG",
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    // Información de Usuario
-                    Row(
-                      children: [
-                        Column(
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
-                              "Administrador",
+                              "Sistema Admin", // Shortened title
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                             Text(
-                              "admin@system.com", 
+                              "Treasure Hunt RPG",
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.white54,
                                 fontSize: 12,
@@ -171,106 +155,135 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 12),
-                        CircleAvatar(
-                          backgroundColor: AppTheme.secondaryPink,
-                          child: const Text("A",
-                              style: TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold)),
-                        ),
-                        const SizedBox(width: 16),
-                        IconButton(
-                          icon: const Icon(Icons.logout, color: Colors.white54),
-                          tooltip: "Salir",
-                          onPressed: () => _handleLogout(context),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // ------------------------------------------------
-              // 2. BARRA DE NAVEGACIÓN HORIZONTAL
-              // ------------------------------------------------
-              Container(
-                height: 60,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E2342), 
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      offset: const Offset(0, 4),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _titles.length,
-                  itemBuilder: (context, index) {
-                    final isSelected = _selectedIndex == index;
-                    return GestureDetector(
-                      onTap: () {
-                        // Usamos la lista local 'views' para verificar longitud
-                         if (index < views.length) {
-                             setState(() => _selectedIndex = index);
-                         } else {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             const SnackBar(content: Text("Módulo en desarrollo"))
-                           );
-                         }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppTheme.primaryPurple.withOpacity(0.15)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: isSelected ? Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)) : null,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _icons[index],
-                              size: 20,
-                              color: isSelected ? AppTheme.primaryPurple : Colors.white54,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _titles[index],
-                              style: TextStyle(
-                                color: isSelected ? AppTheme.primaryPurple : Colors.white70,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    );
-                  },
-                ),
-              ),
-
-              // ------------------------------------------------
-              // 3. ÁREA DE CONTENIDO PRINCIPAL
-              // ------------------------------------------------
-              Expanded(
-                child: Container(
-                  color: AppTheme.darkBg,
-                  child: IndexedStack(
-                    // Usamos la lista local 'views'
-                    index: _selectedIndex < views.length ? _selectedIndex : 0,
-                    children: views, 
+                      // Información de Usuario
+                      Row(
+                        children: [
+                          // Ocutar email en pantallas muy pequeñas si es necesario, 
+                          // pero con Expanded en el titulo deberia bastar.
+                          // Usaremos un constrained box para el email si queremos.
+                           if (MediaQuery.of(context).size.width > 600) ...[
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: const [
+                                Text(
+                                  "Administrador",
+                                  style: TextStyle(
+                                      color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "admin@system.com", 
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 12),
+                           ],
+                          CircleAvatar(
+                            backgroundColor: AppTheme.secondaryPink,
+                            radius: 16, // Smaller avatar
+                            child: const Text("A",
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.white54),
+                            tooltip: "Salir",
+                            onPressed: () => _handleLogout(context),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+
+                // ------------------------------------------------
+                // 2. BARRA DE NAVEGACIÓN HORIZONTAL
+                // ------------------------------------------------
+                Container(
+                  height: 60,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2342), 
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        offset: const Offset(0, 4),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _titles.length,
+                    itemBuilder: (context, index) {
+                      final isSelected = _selectedIndex == index;
+                      return GestureDetector(
+                        onTap: () {
+                          // Usamos la lista local 'views' para verificar longitud
+                           if (index < views.length) {
+                               setState(() => _selectedIndex = index);
+                           } else {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               const SnackBar(content: Text("Módulo en desarrollo"))
+                             );
+                           }
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.primaryPurple.withOpacity(0.15)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: isSelected ? Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)) : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _icons[index],
+                                size: 20,
+                                color: isSelected ? AppTheme.primaryPurple : Colors.white54,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _titles[index],
+                                style: TextStyle(
+                                  color: isSelected ? AppTheme.primaryPurple : Colors.white70,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // ------------------------------------------------
+                // 3. ÁREA DE CONTENIDO PRINCIPAL
+                // ------------------------------------------------
+                Expanded(
+                  child: Container(
+                    color: AppTheme.darkBg,
+                    child: IndexedStack(
+                      // Usamos la lista local 'views'
+                      index: _selectedIndex < views.length ? _selectedIndex : 0,
+                      children: views, 
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -279,44 +292,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 // ------------------------------------------------------------------
-// WIDGETS AUXILIARES (Sin cambios, pero necesarios para compilar)
+// WIDGETS AUXILIARES
 // ------------------------------------------------------------------
 
-class _WelcomeDashboardView extends StatelessWidget {
+class _WelcomeDashboardView extends StatefulWidget {
   const _WelcomeDashboardView();
+
+  @override
+  State<_WelcomeDashboardView> createState() => _WelcomeDashboardViewState();
+}
+
+class _WelcomeDashboardViewState extends State<_WelcomeDashboardView> {
+  String _activeUsers = "...";
+  String _createdEvents = "...";
+  String _pendingRequests = "...";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    final supabase = Supabase.instance.client;
+    try {
+      // 1. Count Users (Profiles)
+      final usersCount = await supabase
+          .from('profiles')
+          .count(CountOption.exact);
+      
+      // 2. Count Events
+      final eventsCount = await supabase
+          .from('events')
+          .count(CountOption.exact);
+
+      // 3. Count Pending Requests
+      final requestsCount = await supabase
+          .from('game_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .count(CountOption.exact);
+
+      if (mounted) {
+        setState(() {
+          _activeUsers = usersCount.toString();
+          _createdEvents = eventsCount.toString();
+          // requestsCount is a PostgrestResponse because we used .select()
+          _pendingRequests = requestsCount.count.toString(); 
+        });
+      }
+    } catch (e) {
+      print('Error fetching dashboard stats: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.analytics, size: 80, color: Colors.white24),
-          const SizedBox(height: 20),
-          const Text(
-            "Bienvenido al Panel de Administración",
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            "Selecciona una opción del menú superior para comenzar.",
-            style: TextStyle(color: Colors.white54),
-          ),
-          const SizedBox(height: 40),
-          Wrap(
-            spacing: 20,
-            runSpacing: 20,
-            alignment: WrapAlignment.center,
-            children: const [
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.analytics, size: 80, color: Colors.white24),
+              const SizedBox(height: 20),
+              const Text(
+                "Bienvenido al Panel de Administración",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "Selecciona una opción del menú superior para comenzar.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54),
+              ),
+              const SizedBox(height: 40),
+              Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                alignment: WrapAlignment.center,
+            children: [
               _SummaryCard(
-                  title: "Usuarios Activos", value: "...", color: Colors.blue),
+                  title: "Usuarios Activos", value: _activeUsers, color: Colors.blue),
               _SummaryCard(
-                  title: "Eventos Creados", value: "...", color: Colors.orange),
+                  title: "Eventos Creados", value: _createdEvents, color: Colors.orange),
               _SummaryCard(
-                  title: "Solicitudes Pendientes", value: "...", color: Colors.purple),
+                  title: "Solicitudes Pendientes", value: _pendingRequests, color: Colors.purple),
             ],
           )
         ],
+      ),
+        ),
       ),
     );
   }

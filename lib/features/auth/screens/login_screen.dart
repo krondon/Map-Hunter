@@ -6,6 +6,7 @@ import '../../../shared/models/player.dart';
 import '../../../core/theme/app_theme.dart';
 import 'register_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
+import '../../admin/screens/dashboard-screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -75,9 +76,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (!mounted) return;
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ScenariosScreen()),
-        );
+        // Redirigir según el rol
+        if (player != null && player.role == 'admin') {
+           Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const ScenariosScreen()),
+          );
+        }
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context); // Dismiss loading

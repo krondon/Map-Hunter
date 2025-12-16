@@ -5,7 +5,6 @@ import 'dashboard-screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
-
   @override
   State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
@@ -15,7 +14,29 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
+  bool _isLoading = true; // Start true to hide form while checking session
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    // Check if user is already logged in
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      // Small delay to ensure context is ready
+      await Future.delayed(Duration.zero);
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
+    } else {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -128,7 +149,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           gradient: AppTheme.darkGradient,
         ),
         child: SafeArea(
-          child: Center(
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple))
+            : Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Container(

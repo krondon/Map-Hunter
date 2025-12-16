@@ -10,6 +10,7 @@ import 'qr_scanner_screen.dart';
 import 'geolocation_screen.dart';
 import '../../mall/screens/shop_screen.dart';
 import 'puzzle_screen.dart';
+import '../../game/models/clue.dart'; // Import para usar tipo Clue
 
 class CluesScreen extends StatefulWidget {
   // 1. Recibimos el ID del evento obligatorio
@@ -73,7 +74,7 @@ class _CluesScreenState extends State<CluesScreen> {
       case 'qrScan':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => QRScannerScreen(clueId: clueId)),
+          MaterialPageRoute(builder: (_) => QRScannerScreen(expectedClueId: clueId)),
         );
         break;
       case 'geolocation':
@@ -110,6 +111,9 @@ class _CluesScreenState extends State<CluesScreen> {
         break;
     }
   }
+
+  // Estado local para recordar qué pistas ya se escanearon en esta sesión
+  final Set<String> _scannedClues = {};
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +220,10 @@ class _CluesScreenState extends State<CluesScreen> {
                             // 3. Presente: (es el índice actual)
                             final bool isCurrent = index == currentIndex;
 
+                            if (isCurrent) {
+                              print("DEBUG: Clue $index (Current) - isLocked: ${clue.isLocked}, isCompleted: ${clue.isCompleted}, scanned: ${_scannedClues.contains(clue.id)}");
+                            }
+
                             // DETERMINAR SI SE MUESTRA EL CANDADO VISUALMENTE
                             // Una pista está bloqueada visualmente si es futura O si es la actual y aún tiene isLocked true
                             final bool showLockIcon = isFuture || (isCurrent && clue.isLocked);
@@ -224,7 +232,7 @@ class _CluesScreenState extends State<CluesScreen> {
                               clue: clue,
                               // Usamos showLockIcon para que la UI pinte el candado correctamente
                               isLocked: showLockIcon, 
-                              onTap: () {
+                              onTap: () async {
                                 // A. Si es una pista futura, bloqueamos
                                 if (isFuture) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -241,14 +249,14 @@ class _CluesScreenState extends State<CluesScreen> {
 
                                 // C. Si es la pista ACTUAL (La misión activa)
                                 if (isCurrent) {
-                                  if (clue.isLocked) {
-                                    // --- CORRECCIÓN CLAVE: SI ESTÁ BLOQUEADA, IR AL ESCÁNER QR ---
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => QRScannerScreen(clueId: clue.id)),
-                                    );
+                                  // Verificamos si ya fue escaneada en esta sesión OR si está bloqueada visualmente
+                                  // OJO: Si NO está en _scannedClues, pedimos QR.
+                                  if (!_scannedClues.contains(clue.id)) {
+                                    // NO escaneada -> Pedir QR
+                                    _showUnlockClueDialog(context, clue);
+                                    return; 
                                   } else {
-                                    // --- SI YA ESTÁ DESBLOQUEADA, IR AL MINIJUEGO ---
+                                    // YA escaneada -> Jugar
                                     _handleClueAction(context, clue.id, clue.type.toString().split('.').last);
                                   }
                                 }
@@ -263,4 +271,93 @@ class _CluesScreenState extends State<CluesScreen> {
       ),
     );
   }
+
+  // --- NUEVO DIÁLOGO DE DESBLOQUEO ---
+  void _showUnlockClueDialog(BuildContext context, Clue clue) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Row(
+          children: [
+            Icon(Icons.lock, color: AppTheme.accentGold),
+            SizedBox(width: 10),
+            Text("Desbloquear Misión", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Para acceder a esta misión, debes encontrar el código QR en la ubicación real.",
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 20),
+            // Opción 1: Escanear
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentGold,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () async {
+                  Navigator.pop(context); // Cerrar diálogo
+                  final scannedCode = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+                  );
+                  
+                  if (scannedCode != null) {
+                     // Formato esperado: CLUE:{eventId}:{clueId}
+                     // O simplemente el ID de la pista si es un código simple
+                     // Aquí asumimos validación básica
+                     if (scannedCode.toString().contains(clue.id) || scannedCode.toString().startsWith("CLUE:")) {
+                        // ÉXITO
+                        _unlockAndProceed(clue);
+                     } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Código QR incorrecto para esta misión.")),
+                        );
+                     }
+                  }
+                },
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text("ESCANEAR QR"),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Divider(color: Colors.white24),
+            const SizedBox(height: 10),
+            // Opción 2: Simular (Dev)
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _unlockAndProceed(clue); // Bypass directo
+                },
+                icon: const Icon(Icons.developer_mode, color: Colors.white54),
+                label: const Text("SIMULAR (DEV)", style: TextStyle(color: Colors.white54)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _unlockAndProceed(Clue clue) {
+    setState(() {
+      _scannedClues.add(clue.id);
+    });
+    
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    gameProvider.unlockClue(clue.id);
+    
+    // Navegar al minijuego correspondiente
+    _handleClueAction(context, clue.id, clue.type.toString().split('.').last);
+  }
+
 }

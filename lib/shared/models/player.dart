@@ -3,6 +3,7 @@ class Player {
   final String name;
   final String email;
   final String avatarUrl;
+  final String role; // 'admin' or 'user'
   int level;
   int experience;
   int totalXP;
@@ -19,6 +20,7 @@ class Player {
     required this.name,
     required this.email,
     this.avatarUrl = '',
+    this.role = 'user',
     this.level = 1,
     this.experience = 0,
     this.totalXP = 0,
@@ -43,6 +45,7 @@ class Player {
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       avatarUrl: json['avatar_url'] ?? '',
+      role: json['role'] ?? 'user',
       level: json['level'] ?? 1,
       experience: json['experience'] ?? 0,
       totalXP: json['total_xp'] ?? 0,
