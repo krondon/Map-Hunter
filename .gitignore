@@ -77,3 +77,5 @@ supabase/functions/auth-service/index.ts
 supabase/functions/game-data/index.ts
 supabase/functions/game-play/index.ts
 supabase/functions/game-api/index.ts
+
+.env
