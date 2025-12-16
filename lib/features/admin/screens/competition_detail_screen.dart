@@ -7,7 +7,6 @@ import '../../game/models/clue.dart';
 import '../../game/providers/event_provider.dart';
 import '../../game/providers/game_request_provider.dart';
 import '../../game/models/game_request.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import '../../../core/theme/app_theme.dart';
 import '../widgets/qr_display_dialog.dart';
@@ -698,7 +697,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     String description = '';
     String question = '';
     String answer = '';
-    PuzzleType selectedType = PuzzleType.riddle;
+    // CORRECCIÓN: 'riddle' ya no existe en PuzzleType.
+    PuzzleType selectedType = PuzzleType.slidingPuzzle; 
     int xp = 50;
 
     int coins = 10;

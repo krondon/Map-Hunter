@@ -76,34 +76,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     }
   }
 
-  // // Para mostrar el nombre del estado/ciudad si se desea
-  // final List<String> _states = [
-  //   'Amazonas',
-  //   'Anzoátegui',
-  //   'Apure',
-  //   'Aragua',
-  //   'Barinas',
-  //   'Bolívar',
-  //   'Carabobo',
-  //   'Cojedes',
-  //   'Delta Amacuro',
-  //   'Distrito Capital',
-  //   'Falcón',
-  //   'Guárico',
-  //   'La Guaira',
-  //   'Lara',
-  //   'Mérida',
-  //   'Miranda',
-  //   'Monagas',
-  //   'Nueva Esparta',
-  //   'Portuguesa',
-  //   'Sucre',
-  //   'Táchira',
-  //   'Trujillo',
-  //   'Yaracuy',
-  //   'Zulia'
-  // ];
-
   void _checkFormValidity() {
     bool isValid = true;
 
@@ -262,10 +234,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                     
                                     // Agregar los subdominios es crucial
                                     subdomains: const ['a', 'b', 'c'],
-                                    
-                                    // ASEGÚRATE de que estas dos líneas estén COMENTADAS/ELIMINADAS:
-                                    // userAgentPackageName: 'com.juegoqr.app', 
-                                    // tileProvider: NetworkTileProvider(), // Puedes eliminarlo o mantenerlo
                                   ),
                                 MarkerLayer(
                                   markers: [
@@ -397,13 +365,13 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     if (image != null) {
       setState(() {
         _selectedImage = image;
-        _checkFormValidity(); // <--- AGREGAR ESTO
+        _checkFormValidity();
       });
     }
   }
 
-    void _generateClueForms() {
-        if (_numberOfClues > 0) {
+  void _generateClueForms() {
+    if (_numberOfClues > 0) {
       setState(() {
         _currentClueIndex = 0;
         if (_clueForms.length < _numberOfClues) {
@@ -414,8 +382,9 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
               'title': 'Pista ${_clueForms.length + 1}',
               'description': '',
               // Aseguramos que 'type' sea 'minigame' por defecto para las pistas
-              'type': 'minigame', 
-              'puzzle_type': 'riddle', // Valor por defecto
+              'type': 'minigame',
+              // CORRECCIÓN: Usamos slidingPuzzle en lugar de riddle
+              'puzzle_type': PuzzleType.slidingPuzzle.dbValue, 
               'riddle_question': '',
               'riddle_answer': '',
               'xp_reward': 50,
@@ -432,9 +401,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     } else {
       setState(() => _clueForms = []);
     }
-}
+  }
       
-  
   Future<void> _submitForm() async {
     if (_isLoading) return;
 
@@ -893,9 +861,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                                 _pin = newPin;
                                               });
                                               // Necesitamos refrescar el campo de texto visualmente
-                                              // Como usamos initialValue, la mejor forma es reconstruir o usar controller.
-                                              // Por simplicidad en este refactor, mostramos SnackBar avisando del autocompletado
-                                              // y el QR se genera con el nuevo valor.
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(content: Text('PIN generado automáticamente: $_pin')),
                                               );
@@ -1238,7 +1203,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                                       // --- 1. SELECTOR DE TIPO DE JUEGO (DINÁMICO) ---
                                       DropdownButtonFormField<String>(
-                                        value: _clueForms[_currentClueIndex]['puzzle_type'] ?? PuzzleType.riddle.dbValue,
+                                        // CORRECCIÓN: Usamos slidingPuzzle como fallback seguro
+                                        value: _clueForms[_currentClueIndex]['puzzle_type'] ?? PuzzleType.slidingPuzzle.dbValue,
                                         isExpanded: true, // Fix overflow
                                         decoration: inputDecoration.copyWith(
                                           labelText: 'Tipo de Desafío',
@@ -1266,7 +1232,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                                             final selectedType = PuzzleType.values.firstWhere(
                                               (e) => e.dbValue == selectedValue, 
-                                              orElse: () => PuzzleType.riddle
+                                              // CORRECCIÓN: Usamos slidingPuzzle como fallback seguro
+                                              orElse: () => PuzzleType.slidingPuzzle
                                             );
 
                                             // Aplicamos la lógica automática centralizada
@@ -1345,9 +1312,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                           decoration: inputDecoration.copyWith(
                                             labelText: _clueForms[_currentClueIndex]['puzzle_type'] == 'hangman' 
                                                 ? 'Pista de la Palabra (Ej: Framework de Google)' 
-                                                : _clueForms[_currentClueIndex]['puzzle_type'] == 'riddle' 
-                                                    ? 'Pregunta del Acertijo'
-                                                    : 'Instrucción del Juego',
+                                                // CORRECCIÓN: Eliminada referencia a riddle
+                                                : 'Instrucción del Juego',
                                           ),
                                           style: const TextStyle(color: Colors.white),
                                           onChanged: (v) => _clueForms[_currentClueIndex]['riddle_question'] = v,
@@ -1355,19 +1321,14 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                         const SizedBox(height: 10),
 
                                         // --- RESPUESTA CORRECTA (Oculto para juegos automáticos) ---
-                                        // Solo mostramos este campo si es 'riddle' o 'hangman'
-                                        if (_clueForms[_currentClueIndex]['puzzle_type'] == 'riddle' || 
-                                            _clueForms[_currentClueIndex]['puzzle_type'] == 'hangman')
+                                        // CORRECCIÓN: Solo mostramos si es Hangman (Ahorcado), ya que Riddle fue eliminado
+                                        if (_clueForms[_currentClueIndex]['puzzle_type'] == 'hangman')
                                           TextFormField(
                                             key: ValueKey('a_${_clueForms[_currentClueIndex]['puzzle_type']}'),
                                             initialValue: _clueForms[_currentClueIndex]['riddle_answer'],
                                             decoration: inputDecoration.copyWith(
-                                              labelText: _clueForms[_currentClueIndex]['puzzle_type'] == 'hangman' 
-                                                  ? 'Palabra a Adivinar (Ej: FLUTTER)' 
-                                                  : 'Respuesta Exacta',
-                                              helperText: _clueForms[_currentClueIndex]['puzzle_type'] == 'hangman' 
-                                                  ? 'Sin espacios ni caracteres especiales preferiblemente.' 
-                                                  : null,
+                                              labelText: 'Palabra a Adivinar (Ej: FLUTTER)',
+                                              helperText: 'Sin espacios ni caracteres especiales preferiblemente.',
                                               helperStyle: TextStyle(color: Colors.white54)
                                             ),
                                             style: const TextStyle(color: Colors.white),
