@@ -1,3 +1,17 @@
+import 'package:flutter/material.dart';
+
+enum PowerType {
+  buff,   // Beneficio propio (Escudo, Vida)
+  debuff, // Ataque al rival (Congelar, Pantalla negra)
+  utility, // Utilidad (Pista, Radar)
+  blind, // Específico para pantalla negra
+  freeze, // Específico para congelar
+  shield, // Específico para escudo
+  timePenalty, // Específico para penalización
+  hint, // Específico para pista
+  speedBoost // Específico para velocidad
+}
+
 class PowerItem {
   final String id;
   final String name;
@@ -5,102 +19,116 @@ class PowerItem {
   final PowerType type;
   final int cost;
   final String icon;
+  final Color color;
   final int durationMinutes;
-  
-  PowerItem({
+
+  const PowerItem({
     required this.id,
     required this.name,
     required this.description,
     required this.type,
     required this.cost,
     required this.icon,
-    this.durationMinutes = 2,
+    this.color = Colors.blue,
+    this.durationMinutes = 0,
   });
-  
+
+  // ESTA ES LA LISTA MAESTRA QUE DEBE COINCIDIR CON LA BASE DE DATOS
   static List<PowerItem> getShopItems() {
     return [
-      PowerItem(
-        id: 'black_screen', // Changed from freeze_screen to match DB
-        name: 'Pantalla Negra',
-        description: 'Deja la pantalla negra a un jugador por 5 segundos',
-        type: PowerType.blind,
-        cost: 100,
-        icon: '🕶️',
-        durationMinutes: 0,
-      ),
-      PowerItem(
-        id: 'slow_motion',
-        name: 'Cámara Lenta',
-        description: 'Ralentiza las animaciones del rival (2 min)',
-        type: PowerType.debuff, // We'll add slowMotion type later or reuse debuff
-        cost: 80,
-        icon: '🐢',
-        durationMinutes: 2,
-      ),
-      PowerItem(
-        id: 'energy_drink',
-        name: 'Bebida Energética',
-        description: 'Recupera energía (placeholder)',
-        type: PowerType.buff,
-        cost: 20,
-        icon: '🥤',
-      ),
-      PowerItem(
-        id: 'freeze',
+      // --- OFENSIVOS ---
+      const PowerItem(
+        id: 'freeze', // ID EXACTO DE LA BD
         name: 'Congelar',
         description: 'Congela a un jugador por 2 minutos',
         type: PowerType.freeze,
         cost: 50,
         icon: '❄️',
+        color: Colors.cyan,
         durationMinutes: 2,
       ),
-      PowerItem(
-        id: 'shield',
-        name: 'Escudo',
-        description: 'Te protege de sabotajes por 5 minutos',
-        type: PowerType.shield,
-        cost: 75,
-        icon: '🛡️',
-        durationMinutes: 5,
+      const PowerItem(
+        id: 'black_screen', // ID EXACTO DE LA BD
+        name: 'Pantalla Negra',
+        description: 'Ciega al rival temporalmente',
+        type: PowerType.blind,
+        cost: 100,
+        icon: '🕶️',
+        color: Colors.black87,
+        durationMinutes: 0, 
       ),
-      PowerItem(
+      const PowerItem(
+        id: 'slow_motion',
+        name: 'Cámara Lenta',
+        description: 'Ralentiza al oponente',
+        type: PowerType.debuff,
+        cost: 80,
+        icon: '🐢',
+        color: Colors.orange,
+        durationMinutes: 2,
+      ),
+      const PowerItem(
         id: 'time_penalty',
         name: 'Penalización',
-        description: 'Resta 3 minutos a otro jugador',
+        description: 'Resta tiempo al oponente',
         type: PowerType.timePenalty,
         cost: 60,
         icon: '⏱️',
+        color: Colors.redAccent,
         durationMinutes: 3,
       ),
-      PowerItem(
-        id: 'hint',
-        name: 'Pista Extra',
-        description: 'Revela información adicional',
-        type: PowerType.hint,
-        cost: 30,
-        icon: '💡',
+
+      // --- DEFENSIVOS ---
+      const PowerItem(
+        id: 'shield', // ID EXACTO DE LA BD
+        name: 'Escudo',
+        description: 'Protección contra ataques',
+        type: PowerType.shield,
+        cost: 75,
+        icon: '🛡️',
+        color: Colors.indigo,
+        durationMinutes: 5,
       ),
-      PowerItem(
+      const PowerItem(
         id: 'speed_boost',
         name: 'Velocidad',
-        description: 'Aumenta tu velocidad por 3 minutos',
+        description: 'Aumenta tu velocidad',
         type: PowerType.speedBoost,
         cost: 40,
         icon: '⚡',
+        color: Colors.yellow,
         durationMinutes: 3,
+      ),
+      const PowerItem(
+        id: 'energy_drink',
+        name: 'Bebida Energética',
+        description: 'Recupera energía',
+        type: PowerType.buff,
+        cost: 20,
+        icon: '🥤',
+        color: Colors.green,
+      ),
+      
+      // --- UTILIDAD ---
+      const PowerItem(
+        id: 'hint',
+        name: 'Pista Extra',
+        description: 'Revela información clave',
+        type: PowerType.hint,
+        cost: 30,
+        icon: '💡',
+        color: Colors.amber,
+      ),
+      // --- IMPORTANTE: Agregamos este por si acaso quedó basura vieja en la BD ---
+      const PowerItem(
+        id: 'return', 
+        name: 'Devolución',
+        description: 'Devuelve el ataque',
+        type: PowerType.utility,
+        cost: 60,
+        icon: '↩️',
+        color: Colors.purple,
       ),
     ];
   }
-}
-
-enum PowerType {
-  freeze,
-  blind,
-  shield,
-  timePenalty,
-  hint,
-  speedBoost,
-  buff,
-  debuff,
-  slowMotion, // Added new type
 }

@@ -18,6 +18,13 @@ class InventoryScreen extends StatelessWidget {
     if (player == null) {
       return const Center(child: Text('No player data'));
     }
+
+    // Agrupar items repetidos
+    final Map<String, int> inventoryCounts = {};
+    for (var itemId in player.inventory) {
+      inventoryCounts[itemId] = (inventoryCounts[itemId] ?? 0) + 1;
+    }
+    final uniqueItems = inventoryCounts.keys.toList();
     
     return Scaffold(
       body: Container(
@@ -116,9 +123,10 @@ class InventoryScreen extends StatelessWidget {
                           mainAxisSpacing: 12,
                           childAspectRatio: 0.85,
                         ),
-                        itemCount: player.inventory.length,
+                        itemCount: uniqueItems.length,
                         itemBuilder: (context, index) {
-                          final itemId = player.inventory[index];
+                          final itemId = uniqueItems[index];
+                          final count = inventoryCounts[itemId] ?? 1;
                           
                           // Buscamos la definición del item para pintarlo (Nombre, Icono)
                           // Si no existe en la lista estática, creamos un placeholder.
@@ -136,6 +144,7 @@ class InventoryScreen extends StatelessWidget {
                         
                           return InventoryItemCard(
                             item: itemDef,
+                            count: count,
                             onUse: () => _handleItemUse(context, itemDef, player.id),
                           );
                         },

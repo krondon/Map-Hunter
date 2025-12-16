@@ -128,42 +128,58 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   // --- LOGICA DE PODERES E INVENTARIO (BACKEND INTEGRATION) ---
-
-  Future<void> syncRealInventory() async {
+Future<void> syncRealInventory() async {
     if (_currentPlayer == null) return;
 
     try {
+      debugPrint("Sincronizando inventario para user: ${_currentPlayer!.id}");
+
+      // 1. Obtenemos el GamePlayer MÁS RECIENTE
+      // Ordenamos por joined_at descendente para asegurar que es el juego actual
       final gamePlayerRes = await _supabase
           .from('game_players')
-          .select('id, lives') // Agregamos lives por si acaso quieres sincronizarlo aquí
+          .select('id, lives')
           .eq('user_id', _currentPlayer!.id)
+          .order('joined_at', ascending: false) // <--- CRÍTICO
+          .limit(1)
           .maybeSingle(); 
 
       if (gamePlayerRes == null) {
+        debugPrint("Usuario no tiene game_player activo.");
         _currentPlayer!.inventory.clear();
         notifyListeners();
         return;
       }
 
-      // Opcional: Sincronizar vidas si el modelo Player no lo trajo de profiles
       if (gamePlayerRes['lives'] != null) {
          _currentPlayer!.lives = gamePlayerRes['lives'];
       }
 
       final String gamePlayerId = gamePlayerRes['id'];
+      debugPrint("GamePlayer encontrado: $gamePlayerId");
 
+      // 2. Traer poderes con JOIN
       final List<dynamic> powersData = await _supabase
           .from('player_powers')
-          .select('power_id, quantity')
+          .select('quantity, powers!inner(slug)') // !inner fuerza a que exista el poder
           .eq('game_player_id', gamePlayerId)
           .gt('quantity', 0); 
 
+      debugPrint("Poderes encontrados en BD: ${powersData.length}");
+
       List<String> realInventory = [];
+      
       for (var item in powersData) {
-        final String pId = item['power_id'];
-        final int qty = item['quantity'];
-        for (var i = 0; i < qty; i++) {
-          realInventory.add(pId);
+        final powerDetails = item['powers'];
+        // Protección extra contra nulos
+        if (powerDetails != null && powerDetails['slug'] != null) {
+          final String pId = powerDetails['slug']; 
+          final int qty = item['quantity'];
+          
+          debugPrint("Agregando $qty de $pId");
+          for (var i = 0; i < qty; i++) {
+            realInventory.add(pId);
+          }
         }
       }
 
@@ -172,10 +188,9 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
 
     } catch (e) {
-      debugPrint('Error syncing real inventory: $e');
+      debugPrint('Error CRITICO syncing real inventory: $e');
     }
   }
-
   Future<bool> usePower({
     required String powerId, 
     required String targetUserId 
