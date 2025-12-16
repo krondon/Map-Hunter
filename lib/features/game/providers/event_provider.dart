@@ -133,6 +133,34 @@ class EventProvider with ChangeNotifier {
   // Eliminar evento
   Future<void> deleteEvent(String eventId) async {
     try {
+      // 1. Buscar el evento localmente para obtener la URL de la imagen
+      final index = _events.indexWhere((e) => e.id == eventId);
+      if (index != -1) {
+        final event = _events[index];
+        
+        // 2. Intentar borrar imagen de Storage si existe
+        if (event.imageUrl.isNotEmpty) {
+          try {
+            // URL típica: .../storage/v1/object/public/events-images/events/timestamp.jpg
+            // Necesitamos extraer: events/timestamp.jpg
+            final uri = Uri.parse(event.imageUrl);
+            // La estructura del path suele incluir el bucket 'events-images'
+            // Buscamos el segmento después del bucket
+            final pathSegments = uri.pathSegments;
+            final bucketIndex = pathSegments.indexOf('events-images');
+            
+            if (bucketIndex != -1 && bucketIndex < pathSegments.length - 1) {
+              final filePath = pathSegments.sublist(bucketIndex + 1).join('/');
+              print('🗑️ Intetando borrar imagen: $filePath');
+              await _supabase.storage.from('events-images').remove([filePath]);
+            }
+          } catch (e) {
+            print('⚠️ Error eliminando imagen del storage (no bloqueante): $e');
+            // Continuamos con el borrado del registro aunque falle la imagen
+          }
+        }
+      }
+
       await _supabase.from('events').delete().eq('id', eventId);
       _events.removeWhere((e) => e.id == eventId);
       notifyListeners();
