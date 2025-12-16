@@ -145,6 +145,7 @@ class Clue {
     );
   }
 }
+// ... imports
 
 enum PuzzleType {
   riddle,       
@@ -153,14 +154,16 @@ enum PuzzleType {
   wordScramble, 
   slidingPuzzle, 
   ticTacToe, 
-  hangman;
+  hangman,
+  tetris,         // NUEVO
+  findDifference, // NUEVO
+  flags,          // NUEVO
+  minesweeper,    // NUEVO
+  snake,          // NUEVO
+  blockFill;      // NUEVO
 
-  // --- EXTENSIÓN: Propiedades para el Panel de Admin ---
-
-  // 1. El valor exacto que se guarda en la Base de Datos (PostgreSQL)
   String get dbValue => toString().split('.').last;
 
-  // 2. El texto bonito que verá el Administrador en el Dropdown
   String get label {
     switch (this) {
       case PuzzleType.riddle: return '❓ Acertijo de Texto';
@@ -170,27 +173,44 @@ enum PuzzleType {
       case PuzzleType.codeBreaker: return '🔢 Descifrar Código';
       case PuzzleType.imageTrivia: return '🖼️ Trivia de Imagen';
       case PuzzleType.wordScramble: return '🔠 Ordenar Palabras';
+      // --- NUEVOS ---
+      case PuzzleType.tetris: return '🧱 Tetris';
+      case PuzzleType.findDifference: return '🔎 Encuentra la Diferencia';
+      case PuzzleType.flags: return '🏳️ Banderas (Quiz)';
+      case PuzzleType.minesweeper: return '💣 Buscaminas';
+      case PuzzleType.snake: return '🐍 Snake (Culebrita)';
+      case PuzzleType.blockFill: return '🟦 Rellenar Bloques';
     }
   }
 
-  // 3. ¿El juego valida la victoria automáticamente? (Ej: TicTacToe envía "WIN")
-  // Si es true, ocultamos el campo de respuesta en el admin.
   bool get isAutoValidation {
     switch (this) {
       case PuzzleType.ticTacToe:
-      case PuzzleType.slidingPuzzle:
+      case PuzzleType.slidingPuzzle:      // Todos estos validan la victoria internamente
+      case PuzzleType.tetris:
+      case PuzzleType.findDifference:
+      case PuzzleType.flags:
+      case PuzzleType.minesweeper:
+      case PuzzleType.snake:
+      case PuzzleType.blockFill:
         return true; 
       default:
         return false;
     }
   }
 
-  // 4. Pregunta o instrucción por defecto para ahorrar tiempo al admin
   String get defaultQuestion {
     switch (this) {
       case PuzzleType.ticTacToe: return 'Gana una partida contra la IA';
       case PuzzleType.slidingPuzzle: return 'Ordena la imagen correctamente';
       case PuzzleType.hangman: return 'Pista sobre la palabra...';
+      // --- NUEVOS ---
+      case PuzzleType.tetris: return 'Alcanza el puntaje objetivo';
+      case PuzzleType.findDifference: return 'Encuentra el icono diferente';
+      case PuzzleType.flags: return 'Adivina 5 banderas correctamente';
+      case PuzzleType.minesweeper: return 'Descubre todas las casillas seguras';
+      case PuzzleType.snake: return 'Come 15 manzanas sin chocar';
+      case PuzzleType.blockFill: return 'Rellena todo el camino';
       default: return '';
     }
   }

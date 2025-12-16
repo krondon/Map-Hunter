@@ -106,61 +106,6 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     _verifyCode();
   }
 
-  void _showManualPinDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        String tempPin = "";
-        return AlertDialog(
-          backgroundColor: AppTheme.cardBg,
-          title: const Text("Simulador de QR", style: TextStyle(color: AppTheme.accentGold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Ingresa el PIN manualmente para simular un escaneo exitoso:", style: TextStyle(color: Colors.white70)),
-              const SizedBox(height: 20),
-              TextField(
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                maxLength: 6,
-                style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 5),
-                textAlign: TextAlign.center,
-                decoration: const InputDecoration(
-                  counterText: "",
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.accentGold)),
-                ),
-                onChanged: (v) => tempPin = v,
-                onSubmitted: (v) {
-                  Navigator.pop(context);
-                  if (v.isNotEmpty) {
-                    _codeController.text = v;
-                    _verifyCode();
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                if (tempPin.isNotEmpty) {
-                  _codeController.text = tempPin;
-                  _verifyCode();
-                }
-              },
-              child: const Text("Simular", style: TextStyle(color: AppTheme.accentGold)),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   // Visual Helpers based on distance
   String get _temperatureStatus {

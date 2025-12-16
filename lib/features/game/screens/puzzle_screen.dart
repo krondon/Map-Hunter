@@ -6,10 +6,19 @@ import '../../../core/theme/app_theme.dart';
 import '../models/clue.dart';
 import '../widgets/race_track_widget.dart';
 import 'riddle_screen.dart';
+
+// --- Imports de Minijuegos Existentes ---
 import '../widgets/minigames/sliding_puzzle_minigame.dart';
 import '../widgets/minigames/tic_tac_toe_minigame.dart';
 import '../widgets/minigames/hangman_minigame.dart';
-import 'qr_scanner_screen.dart';
+
+// --- Imports de NUEVOS Minijuegos ---
+import '../widgets/minigames/tetris_minigame.dart';
+import '../widgets/minigames/find_difference_minigame.dart';
+import '../widgets/minigames/flags_minigame.dart';
+import '../widgets/minigames/minesweeper_minigame.dart';
+import '../widgets/minigames/snake_minigame.dart';
+import '../widgets/minigames/block_fill_minigame.dart';
 
 class PuzzleScreen extends StatelessWidget {
   final Clue clue;
@@ -19,6 +28,7 @@ class PuzzleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (clue.puzzleType) {
+      // --- JUEGOS CLÁSICOS ---
       case PuzzleType.codeBreaker:
         return CodeBreakerWidget(clue: clue);
       case PuzzleType.imageTrivia:
@@ -33,6 +43,22 @@ class PuzzleScreen extends StatelessWidget {
         return TicTacToeWrapper(clue: clue);
       case PuzzleType.hangman:
         return HangmanWrapper(clue: clue);
+      
+      // --- JUEGOS NUEVOS ---
+      case PuzzleType.tetris:
+        return TetrisWrapper(clue: clue);
+      case PuzzleType.findDifference:
+        // El archivo find_difference_minigame.dart ya incluye su propio Wrapper público
+        return FindDifferenceWrapper(clue: clue); 
+      case PuzzleType.flags:
+        return FlagsWrapper(clue: clue);
+      case PuzzleType.minesweeper:
+        return MinesweeperWrapper(clue: clue);
+      case PuzzleType.snake:
+        return SnakeWrapper(clue: clue);
+      case PuzzleType.blockFill:
+        return BlockFillWrapper(clue: clue);
+        
     }
   }
 }
@@ -141,8 +167,8 @@ void showSkipDialog(BuildContext context) {
   );
 }
 
+// --- WIDGETS INTEGRADOS ---
 
-// --- WIDGET: CODE BREAKER ---
 class CodeBreakerWidget extends StatefulWidget {
   final Clue clue;
   const CodeBreakerWidget({super.key, required this.clue});
@@ -174,7 +200,6 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
 
   void _checkCode() {
     final expected = widget.clue.riddleAnswer?.trim() ?? "";
-    
     if (_enteredCode == expected) {
       _showSuccessDialog(context, widget.clue);
     } else {
@@ -194,191 +219,62 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar compacto
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppTheme.accentGold),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${widget.clue.xpReward} XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.swap_horiz, color: AppTheme.secondaryPink, size: 20),
-                      onPressed: () => showClueSelector(context, widget.clue),
-                      tooltip: 'Cambiar Pista',
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 20),
-                      onPressed: () => showSkipDialog(context),
-                      tooltip: 'Rendirse',
-                    ),
-                  ],
+    return _buildMinigameScaffold(
+      context, 
+      widget.clue,
+      SingleChildScrollView( 
+        // --- CORRECCIÓN AQUÍ: Se agregó EdgeInsets.symmetric ---
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryPurple.withOpacity(0.3), AppTheme.secondaryPink.withOpacity(0.3)],
                 ),
               ),
-
-              // Mini Mapa de Carrera
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Consumer<GameProvider>(
-                  builder: (context, game, _) {
-                    return RaceTrackWidget(
-                      leaderboard: game.leaderboard,
-                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                      totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.primaryPurple.withOpacity(0.3),
-                              AppTheme.secondaryPink.withOpacity(0.3),
-                            ],
-                          ),
-                        ),
-                        child: const Icon(Icons.lock_outline, size: 35, color: AppTheme.accentGold),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      const Text(
-                        'CAJA FUERTE',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 2,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        widget.clue.riddleQuestion ?? "Ingresa el código de 4 dígitos",
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(4, (index) {
-                          final hasDigit = index < _enteredCode.length;
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: 45,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: hasDigit 
-                                ? AppTheme.successGreen.withOpacity(0.2) 
-                                : Colors.black.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _isError 
-                                  ? AppTheme.dangerRed 
-                                  : (hasDigit ? AppTheme.successGreen : Colors.grey),
-                                width: 2,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                hasDigit ? _enteredCode[index] : '',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: _isError ? AppTheme.dangerRed : Colors.white,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1.5,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
-                        itemCount: 12,
-                        itemBuilder: (context, index) {
-                          if (index == 9) {
-                            return _buildKey(
-                              icon: Icons.backspace_outlined,
-                              onTap: _onDelete,
-                              color: AppTheme.warningOrange,
-                            );
-                          }
-                          if (index == 10) {
-                            return _buildKey(text: '0', onTap: () => _onDigitPress('0'));
-                          }
-                          if (index == 11) {
-                            return _buildKey(
-                              icon: Icons.check_circle,
-                              onTap: _enteredCode.length == 4 ? _checkCode : null,
-                              color: AppTheme.successGreen,
-                            );
-                          }
-
-                          final digit = '${index + 1}';
-                          return _buildKey(text: digit, onTap: () => _onDigitPress(digit));
-                        },
-                      ),
-
-                      const SizedBox(height: 10),
-                    ],
+              child: const Icon(Icons.lock_outline, size: 35, color: AppTheme.accentGold),
+            ),
+            const SizedBox(height: 10),
+            const Text('CAJA FUERTE', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
+            const SizedBox(height: 8),
+            Text(widget.clue.riddleQuestion ?? "Ingresa el código de 4 dígitos", style: const TextStyle(color: Colors.white70, fontSize: 12), textAlign: TextAlign.center),
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(4, (index) {
+                final hasDigit = index < _enteredCode.length;
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: 45, height: 50,
+                  decoration: BoxDecoration(
+                    color: hasDigit ? AppTheme.successGreen.withOpacity(0.2) : Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _isError ? AppTheme.dangerRed : (hasDigit ? AppTheme.successGreen : Colors.grey), width: 2),
                   ),
-                ),
+                  child: Center(child: Text(hasDigit ? _enteredCode[index] : '', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _isError ? AppTheme.dangerRed : Colors.white))),
+                );
+              }),
+            ),
+            const SizedBox(height: 15),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3, childAspectRatio: 1.5, crossAxisSpacing: 10, mainAxisSpacing: 10,
               ),
-            ],
-          ),
+              itemCount: 12,
+              itemBuilder: (context, index) {
+                if (index == 9) return _buildKey(icon: Icons.backspace_outlined, onTap: _onDelete, color: AppTheme.warningOrange);
+                if (index == 10) return _buildKey(text: '0', onTap: () => _onDigitPress('0'));
+                if (index == 11) return _buildKey(icon: Icons.check_circle, onTap: _enteredCode.length == 4 ? _checkCode : null, color: AppTheme.successGreen);
+                final digit = '${index + 1}';
+                return _buildKey(text: digit, onTap: () => _onDigitPress(digit));
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -395,25 +291,11 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            gradient: onTap != null
-                ? LinearGradient(
-                    colors: [
-                      AppTheme.primaryPurple.withOpacity(0.2),
-                      AppTheme.secondaryPink.withOpacity(0.2),
-                    ],
-                  )
-                : null,
+            gradient: onTap != null ? LinearGradient(colors: [AppTheme.primaryPurple.withOpacity(0.2), AppTheme.secondaryPink.withOpacity(0.2)]) : null,
           ),
           child: Center(
             child: text != null
-                ? Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: color ?? Colors.white,
-                    ),
-                  )
+                ? Text(text, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color ?? Colors.white))
                 : Icon(icon, color: color ?? Colors.white, size: 20),
           ),
         ),
@@ -422,11 +304,9 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
   }
 }
 
-// --- WIDGET: IMAGE TRIVIA ---
 class ImageTriviaWidget extends StatefulWidget {
   final Clue clue;
   const ImageTriviaWidget({super.key, required this.clue});
-
   @override
   State<ImageTriviaWidget> createState() => _ImageTriviaWidgetState();
 }
@@ -438,293 +318,66 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
   void _checkAnswer() {
     final userAnswer = _controller.text.trim().toLowerCase();
     final correctAnswer = widget.clue.riddleAnswer?.trim().toLowerCase() ?? "";
-
     if (userAnswer == correctAnswer || (correctAnswer.isNotEmpty && userAnswer.contains(correctAnswer.split(' ').first))) {
       _showSuccessDialog(context, widget.clue);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Respuesta incorrecta. Intenta de nuevo.'),
-          backgroundColor: AppTheme.dangerRed,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ Incorrecto'), backgroundColor: AppTheme.dangerRed));
     }
-  }
-
-  void _skipChallenge() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text('¿Rendirse?', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Perderás las recompensas de este desafío.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final gameProvider = Provider.of<GameProvider>(context, listen: false);
-              await gameProvider.skipCurrentClue();
-              if (context.mounted) {
-                Navigator.pop(context);
-                Navigator.pop(context);
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
-            child: const Text('Rendirse'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppTheme.accentGold),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${widget.clue.xpReward} XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: _skipChallenge,
-                      icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 16),
-                      label: const Text('Rendirse', style: TextStyle(color: AppTheme.dangerRed, fontSize: 11)),
-                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                    ),
-                  ],
+    return _buildMinigameScaffold(
+      context,
+      widget.clue,
+      SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Icon(Icons.image_outlined, size: 35, color: AppTheme.secondaryPink),
+            const SizedBox(height: 8),
+            const Text('DESAFÍO VISUAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 15),
+            Container(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.5), blurRadius: 15)]),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  widget.clue.minigameUrl ?? 'https://via.placeholder.com/400',
+                  height: 180, width: double.infinity, fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, stack) => Container(height: 180, color: AppTheme.cardBg, child: const Center(child: Icon(Icons.broken_image, color: Colors.white38))),
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Consumer<GameProvider>(
-                  builder: (context, game, _) {
-                    return RaceTrackWidget(
-                      leaderboard: game.leaderboard,
-                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                      totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
-                    );
-                  },
-                ),
+            ),
+            const SizedBox(height: 15),
+            Text(widget.clue.riddleQuestion ?? "¿Qué es esto?", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              style: const TextStyle(color: Colors.white, fontSize: 14), textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                hintText: 'Tu respuesta...', hintStyle: const TextStyle(color: Colors.white38),
+                filled: true, fillColor: AppTheme.cardBg,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
-
-              const SizedBox(height: 10),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.image_outlined, size: 35, color: AppTheme.secondaryPink),
-                      const SizedBox(height: 8),
-
-                      const Text(
-                        'DESAFÍO VISUAL',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryPurple.withOpacity(0.5),
-                              blurRadius: 15,
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            widget.clue.minigameUrl ?? 'https://via.placeholder.com/400',
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                height: 180,
-                                color: AppTheme.cardBg,
-                                child: const Center(child: CircularProgressIndicator(color: AppTheme.accentGold)),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 180,
-                                color: AppTheme.cardBg,
-                                child: const Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.broken_image, size: 40, color: Colors.white38),
-                                      SizedBox(height: 5),
-                                      Text('Error', style: TextStyle(color: Colors.white38, fontSize: 11)),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      Text(
-                        widget.clue.riddleQuestion ?? "¿Qué es esto?",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: _controller,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                        textAlign: TextAlign.center,
-                        decoration: InputDecoration(
-                          hintText: 'Tu respuesta...',
-                          hintStyle: const TextStyle(color: Colors.white38),
-                          filled: true,
-                          fillColor: AppTheme.cardBg,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
-                          prefixIcon: const Icon(Icons.edit, color: AppTheme.secondaryPink, size: 18),
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      if (_showHint)
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentGold.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.accentGold),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.lightbulb, color: AppTheme.accentGold, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  widget.clue.hint,
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      const SizedBox(height: 12),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => setState(() => _showHint = !_showHint),
-                              icon: Icon(
-                                _showHint ? Icons.visibility_off : Icons.visibility,
-                                size: 16,
-                                color: AppTheme.accentGold,
-                              ),
-                              label: Text(
-                                _showHint ? 'Ocultar' : 'Pista',
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: AppTheme.accentGold),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              onPressed: _checkAnswer,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.successGreen,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              child: const Text(
-                                'VERIFICAR',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            if (_showHint) Container(padding: const EdgeInsets.all(10), margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: AppTheme.accentGold.withOpacity(0.1), border: Border.all(color: AppTheme.accentGold), borderRadius: BorderRadius.circular(8)), child: Text(widget.clue.hint, style: const TextStyle(color: Colors.white70))),
+            Row(children: [
+              Expanded(child: OutlinedButton(onPressed: () => setState(() => _showHint = !_showHint), child: Text(_showHint ? "Ocultar" : "Pista"))),
+              const SizedBox(width: 10),
+              Expanded(flex: 2, child: ElevatedButton(onPressed: _checkAnswer, style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successGreen), child: const Text("VERIFICAR")))
+            ]),
+          ],
         ),
       ),
     );
   }
 }
 
-// --- WIDGET: WORD SCRAMBLE ---
 class WordScrambleWidget extends StatefulWidget {
   final Clue clue;
   const WordScrambleWidget({super.key, required this.clue});
-
   @override
   State<WordScrambleWidget> createState() => _WordScrambleWidgetState();
 }
@@ -758,244 +411,51 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
     if (_currentWord == widget.clue.riddleAnswer?.toUpperCase()) {
       _showSuccessDialog(context, widget.clue);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Incorrecto. Intenta de nuevo.'),
-          backgroundColor: AppTheme.dangerRed,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ Incorrecto'), backgroundColor: AppTheme.dangerRed));
       _onReset();
     }
   }
 
-  void _skipChallenge() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text('¿Rendirse?', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Perderás las recompensas de este desafío.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final gameProvider = Provider.of<GameProvider>(context, listen: false);
-              await gameProvider.skipCurrentClue();
-              if (context.mounted) {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
-            child: const Text('Rendirse'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppTheme.accentGold),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${widget.clue.xpReward} XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: _skipChallenge,
-                      icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 16),
-                      label: const Text('Rendirse', style: TextStyle(color: AppTheme.dangerRed, fontSize: 11)),
-                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
-                    ),
-                  ],
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Consumer<GameProvider>(
-                  builder: (context, game, _) {
-                    return RaceTrackWidget(
-                      leaderboard: game.leaderboard,
-                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                      totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.shuffle, size: 40, color: AppTheme.secondaryPink),
-                      const SizedBox(height: 8),
-
-                      const Text(
-                        'PALABRA MISTERIOSA',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        widget.clue.riddleQuestion ?? "Ordena las letras",
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.accentGold, width: 2),
-                        ),
-                        child: Text(
-                          _currentWord.padRight(widget.clue.riddleAnswer?.length ?? 8, '_').split('').join(' '),
-                          style: const TextStyle(
-                            color: AppTheme.accentGold,
-                            fontSize: 20,
-                            letterSpacing: 4,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: _shuffledLetters.map((letter) {
-                          return GestureDetector(
-                            onTap: () => _onLetterTap(letter),
-                            child: Container(
-                              width: 45,
-                              height: 45,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [AppTheme.primaryPurple, AppTheme.secondaryPink],
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  letter,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _onReset,
-                              icon: const Icon(Icons.refresh, size: 16, color: AppTheme.warningOrange),
-                              label: const Text(
-                                'Reiniciar',
-                                style: TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: AppTheme.warningOrange),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              onPressed: _currentWord.length == (widget.clue.riddleAnswer?.length ?? 0)
-                                  ? _checkAnswer
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.successGreen,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              child: const Text(
-                                'COMPROBAR',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return _buildMinigameScaffold(
+      context, widget.clue,
+      SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            const Icon(Icons.shuffle, size: 40, color: AppTheme.secondaryPink),
+            const SizedBox(height: 8),
+            const Text('PALABRA MISTERIOSA', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(10), border: Border.all(color: AppTheme.accentGold, width: 2)),
+              child: Text(_currentWord.padRight(widget.clue.riddleAnswer?.length ?? 8, '_').split('').join(' '), style: const TextStyle(color: AppTheme.accentGold, fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
+              children: _shuffledLetters.map((letter) => GestureDetector(
+                onTap: () => _onLetterTap(letter),
+                child: Container(width: 45, height: 45, decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppTheme.primaryPurple, AppTheme.secondaryPink]), borderRadius: BorderRadius.circular(8)), child: Center(child: Text(letter, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)))),
+              )).toList(),
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: OutlinedButton(onPressed: _onReset, child: const Text("Reiniciar"))),
+              const SizedBox(width: 10),
+              Expanded(flex: 2, child: ElevatedButton(onPressed: _currentWord.length == (widget.clue.riddleAnswer?.length ?? 0) ? _checkAnswer : null, style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successGreen), child: const Text("COMPROBAR"))),
+            ]),
+          ],
         ),
       ),
     );
   }
 }
 
+// --- LOGICA DE VICTORIA ---
 
-// --- HELPER: SUCCESS DIALOG (CORREGIDO) ---
 void _showSuccessDialog(BuildContext context, Clue clue) async {
   final gameProvider = Provider.of<GameProvider>(context, listen: false);
   final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
@@ -1015,7 +475,7 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
       gameProvider.completeLocalClue(clue.id);
       success = true;
     } else {
-      success = await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "");
+      success = await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "WIN");
     }
   } catch (e) {
     debugPrint("Error completando pista: $e");
@@ -1027,7 +487,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
   }
 
   if (success) {
-      // CORRECCIÓN: Actualizar perfil desde servidor
       if (playerProvider.currentPlayer != null) {
         await playerProvider.refreshProfile();
       }
@@ -1045,7 +504,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
 
   if (!context.mounted) return;
 
-  // Lógica para determinar si hay siguiente paso (visual)
   final clues = gameProvider.clues;
   final currentIdx = clues.indexWhere((c) => c.id == clue.id);
   Clue? nextClue;
@@ -1064,7 +522,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
         alignment: Alignment.topCenter,
         clipBehavior: Clip.none,
         children: [
-          // Content Card
           Container(
             padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 20),
             decoration: BoxDecoration(
@@ -1083,8 +540,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
-                
-                // Información Desbloqueada
                 Container(
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.symmetric(vertical: 10),
@@ -1106,7 +561,6 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
                     ],
                   ),
                 ),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1115,14 +569,12 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
                     _buildRewardBadge(Icons.monetization_on, "+${clue.coinReward}", Colors.amber),
                   ],
                 ),
-                
                 if (showNextStep) ...[
                   const SizedBox(height: 20),
                   Text("¡Siguiente misión desbloqueada en el mapa!", 
                     style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12, fontStyle: FontStyle.italic),
                   ),
                 ],
-
                 const SizedBox(height: 25),
                 SizedBox(
                   width: double.infinity,
@@ -1167,249 +619,133 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     ),
   );
 }
+
 Widget _buildRewardBadge(IconData icon, String label, Color color) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(
-      color: color.withOpacity(0.2),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: color.withOpacity(0.5)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 14),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
-        ),
-      ],
-    ),
+    decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.5))),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: color, size: 14), const SizedBox(width: 4), Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12))]),
   );
 }
 
-// --- WIDGET: SLIDING PUZZLE WRAPPER ---
+// --- WRAPPERS ---
+
 class SlidingPuzzleWrapper extends StatelessWidget {
   final Clue clue;
   const SlidingPuzzleWrapper({super.key, required this.clue});
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withOpacity(0.2), 
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppTheme.accentGold),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${clue.xpReward} XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Consumer<GameProvider>(
-                  builder: (context, game, _) {
-                    return RaceTrackWidget(
-                      leaderboard: game.leaderboard,
-                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                      totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
-                    );
-                  },
-                ),
-              ),
-              
-              const SizedBox(height: 10),
-              
-              Expanded(
-                child: SlidingPuzzleMinigame(
-                  clue: clue,
-                  onSuccess: () => _showSuccessDialog(context, clue),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, SlidingPuzzleMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
 }
 
-// --- WIDGET: TIC TAC TOE WRAPPER ---
 class TicTacToeWrapper extends StatelessWidget {
   final Clue clue;
   const TicTacToeWrapper({super.key, required this.clue});
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withOpacity(0.2), 
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppTheme.accentGold),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${clue.xpReward} XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Consumer<GameProvider>(
-                  builder: (context, game, _) {
-                    return RaceTrackWidget(
-                      leaderboard: game.leaderboard,
-                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                      totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
-                    );
-                  },
-                ),
-              ),
-              
-              const SizedBox(height: 10),
-              
-              Expanded(
-                child: TicTacToeMinigame(
-                  clue: clue,
-                  onSuccess: () => _showSuccessDialog(context, clue),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, TicTacToeMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
 }
 
-// --- WIDGET: HANGMAN WRAPPER ---
 class HangmanWrapper extends StatelessWidget {
   final Clue clue;
   const HangmanWrapper({super.key, required this.clue});
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, HangmanMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
+}
+
+class TetrisWrapper extends StatelessWidget {
+  final Clue clue;
+  const TetrisWrapper({super.key, required this.clue});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, TetrisMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
+}
+
+class FlagsWrapper extends StatelessWidget {
+  final Clue clue;
+  const FlagsWrapper({super.key, required this.clue});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, FlagsMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
+}
+
+class MinesweeperWrapper extends StatelessWidget {
+  final Clue clue;
+  const MinesweeperWrapper({super.key, required this.clue});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, MinesweeperMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
+}
+
+class SnakeWrapper extends StatelessWidget {
+  final Clue clue;
+  const SnakeWrapper({super.key, required this.clue});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, SnakeMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
+}
+
+class BlockFillWrapper extends StatelessWidget {
+  final Clue clue;
+  const BlockFillWrapper({super.key, required this.clue});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(context, clue, BlockFillMinigame(clue: clue, onSuccess: () => _showSuccessDialog(context, clue)));
+}
+
+Widget _buildMinigameScaffold(BuildContext context, Clue clue, Widget child) {
+  return Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // AppBar Personalizado
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentGold.withOpacity(0.2), 
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: AppTheme.accentGold),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentGold.withOpacity(0.2), 
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppTheme.accentGold),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+${clue.xpReward} XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ],
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+${clue.xpReward} XP',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Consumer<GameProvider>(
-                  builder: (context, game, _) {
-                    return RaceTrackWidget(
-                      leaderboard: game.leaderboard,
-                      currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                      totalClues: game.clues.length,
-                      onSurrender: () => showSkipDialog(context),
-                    );
-                  },
-                ),
+            ),
+            
+            // Mapa de Progreso
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Consumer<GameProvider>(
+                builder: (context, game, _) {
+                  return RaceTrackWidget(
+                    leaderboard: game.leaderboard,
+                    currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
+                    totalClues: game.clues.length,
+                    onSurrender: () => showSkipDialog(context),
+                  );
+                },
               ),
-              
-              const SizedBox(height: 10),
-              
-              Expanded(
-                child: HangmanMinigame(
-                  clue: clue,
-                  onSuccess: () => _showSuccessDialog(context, clue),
-                ),
-              ),
-            ],
-          ),
+            ),
+            
+            const SizedBox(height: 10),
+            
+            Expanded(child: child),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }

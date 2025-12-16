@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../models/clue.dart';
-import '../../../auth/providers/player_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class BlockFillMinigame extends StatefulWidget {

@@ -126,6 +126,8 @@ class _CluesScreenState extends State<CluesScreen> {
       child: SafeArea(
         child: Column(
           children: [
+
+            
             // Header
             const ProgressHeader(),
             

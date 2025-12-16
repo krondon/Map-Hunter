@@ -99,9 +99,10 @@ class PlayerProvider extends ChangeNotifier {
 
       _currentPlayer = Player.fromJson(data);
       
-      // IMPORTANTE: Una vez cargado el perfil, sobreescribimos el inventario
-      // con los datos reales de la tabla 'player_powers'
+      // IMPORTANTE: Una vez cargado el perfil, sincronizamos inventario y vidas reales
       await syncRealInventory();
+      // Nota: Si tus vidas no están en la tabla 'profiles' sino solo en 'game_players',
+      // deberías sincronizarlas aquí también, similar a syncRealInventory.
       
       notifyListeners();
     } catch (e) {
@@ -132,13 +133,9 @@ class PlayerProvider extends ChangeNotifier {
     if (_currentPlayer == null) return;
 
     try {
-      // Usamos get_my_inventory RPC si existe para ser más robustos contra RLS,
-      // pero mantenemos la lógica de lectura directa si tu RPC no devuelve el formato exacto.
-      // Si tienes problemas de RLS aquí también, cambia esto a usar 'get_my_inventory'.
-      
       final gamePlayerRes = await _supabase
           .from('game_players')
-          .select('id')
+          .select('id, lives') // Agregamos lives por si acaso quieres sincronizarlo aquí
           .eq('user_id', _currentPlayer!.id)
           .maybeSingle(); 
 
@@ -146,6 +143,11 @@ class PlayerProvider extends ChangeNotifier {
         _currentPlayer!.inventory.clear();
         notifyListeners();
         return;
+      }
+
+      // Opcional: Sincronizar vidas si el modelo Player no lo trajo de profiles
+      if (gamePlayerRes['lives'] != null) {
+         _currentPlayer!.lives = gamePlayerRes['lives'];
       }
 
       final String gamePlayerId = gamePlayerRes['id'];
@@ -171,7 +173,6 @@ class PlayerProvider extends ChangeNotifier {
 
     } catch (e) {
       debugPrint('Error syncing real inventory: $e');
-      // Si falla por RLS, intenta limpiar inventario local para evitar inconsistencias
     }
   }
 
@@ -211,9 +212,8 @@ class PlayerProvider extends ChangeNotifier {
         
         if (targetUserId == _currentPlayer!.id) {
            await Future.delayed(const Duration(milliseconds: 200));
-           final profileData = await _supabase.from('profiles').select().eq('id', _currentPlayer!.id).single();
-           _currentPlayer = Player.fromJson(profileData);
-           await syncRealInventory(); 
+           // Refresco simple
+           await refreshProfile(); 
         }
         
         return true;
@@ -228,24 +228,20 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- LÓGICA DE TIENDA (CORREGIDA) ---
+  // --- LÓGICA DE TIENDA ---
 
-  /// Compra un ítem usando RPC para evitar error 42P17 (Infinite Recursion)
   Future<bool> purchaseItem(String itemId, int cost) async {
     if (_currentPlayer == null) return false;
     if (_currentPlayer!.coins < cost) return false;
 
     try {
-      // LLAMADA RPC SEGURA: Toda la lógica (check saldo, restar, dar item) ocurre en el servidor
       final response = await _supabase.rpc('buy_item', params: {
         'p_user_id': _currentPlayer!.id,
         'p_item_id': itemId,
         'p_cost': cost
       });
 
-      // Manejo de respuesta
       if (response != null && response['success'] == true) {
-        // Actualizamos la UI inmediatamente
         await refreshProfile(); 
         return true;
       } else {
@@ -256,6 +252,47 @@ class PlayerProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint("Error crítico RPC compra: $e");
       return false;
+    }
+  }
+
+  // --- MINIGAME LIFE MANAGEMENT (OPTIMIZED RPC) ---
+
+  Future<void> loseLife() async {
+    if (_currentPlayer == null) return;
+    
+    // Evitamos llamada si ya está en 0 localmente para ahorrar red, 
+    // aunque el backend es la fuente de verdad.
+    if (_currentPlayer!.lives <= 0) return;
+
+    try {
+      // Llamada RPC atómica: la base de datos resta y nos devuelve el valor final
+      final int newLives = await _supabase.rpc('lose_life', params: {
+        'p_user_id': _currentPlayer!.id,
+      });
+
+      // Actualizamos estado local inmediatamente con la respuesta real del servidor
+      _currentPlayer!.lives = newLives;
+      notifyListeners();
+      
+    } catch (e) {
+      debugPrint("Error perdiendo vida: $e");
+      // Opcional: Revertir UI o mostrar error
+    }
+  }
+
+  Future<void> resetLives() async {
+    if (_currentPlayer == null) return;
+
+    try {
+      final int newLives = await _supabase.rpc('reset_lives', params: {
+        'p_user_id': _currentPlayer!.id,
+      });
+
+      _currentPlayer!.lives = newLives;
+      notifyListeners();
+
+    } catch (e) {
+      debugPrint("Error reseteando vidas: $e");
     }
   }
 
