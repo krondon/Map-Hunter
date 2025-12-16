@@ -115,7 +115,13 @@ enum PuzzleType {
   wordScramble, 
   slidingPuzzle, 
   ticTacToe, 
-  hangman;
+  hangman,
+  tetris,
+  flags,
+  blockFill,
+  findDifference,
+  minesweeper,
+  snake;
 
   // --- EXTENSIÓN: Propiedades para el Panel de Admin ---
 
@@ -132,6 +138,12 @@ enum PuzzleType {
       case PuzzleType.codeBreaker: return '🔢 Descifrar Código';
       case PuzzleType.imageTrivia: return '🖼️ Trivia de Imagen';
       case PuzzleType.wordScramble: return '🔠 Ordenar Palabras';
+      case PuzzleType.tetris: return '🧱 Tetris';
+      case PuzzleType.flags: return '🏳️ Banderas';
+      case PuzzleType.blockFill: return '🟦 Rellenar Bloques';
+      case PuzzleType.findDifference: return '🔍 Encontrar Diferencias';
+      case PuzzleType.minesweeper: return '💣 Buscaminas';
+      case PuzzleType.snake: return '🐍 Serpiente';
     }
   }
 
@@ -141,7 +153,13 @@ enum PuzzleType {
     switch (this) {
       case PuzzleType.ticTacToe:
       case PuzzleType.slidingPuzzle:
-        return true; 
+      case PuzzleType.tetris:
+      case PuzzleType.flags:
+      case PuzzleType.blockFill:
+      case PuzzleType.findDifference:
+      case PuzzleType.minesweeper:
+      case PuzzleType.snake:
+        return true;  
       default:
         return false;
     }
@@ -153,6 +171,12 @@ enum PuzzleType {
       case PuzzleType.ticTacToe: return 'Gana una partida contra la IA';
       case PuzzleType.slidingPuzzle: return 'Ordena la imagen correctamente';
       case PuzzleType.hangman: return 'Pista sobre la palabra...';
+      case PuzzleType.tetris: return 'Consigue los puntos necesarios';
+      case PuzzleType.flags: return 'Adivina la bandera correcta';
+      case PuzzleType.blockFill: return 'Rellena todos los bloques sin repetir';
+      case PuzzleType.findDifference: return 'Encuentra las diferencias';
+      case PuzzleType.minesweeper: return 'Despeja el campo sin detonar minas';
+      case PuzzleType.snake: return 'Come manzanas y no choques';
       default: return '';
     }
   }

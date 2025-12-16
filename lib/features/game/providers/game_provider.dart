@@ -153,17 +153,173 @@ class GameProvider extends ChangeNotifier {
         final List<dynamic> data = response.data;
         _clues = data.map((json) => Clue.fromJson(json)).toList();
         
-        // Debug logs to verify clue status
-        for (var c in _clues) {
-          debugPrint('Clue ${c.title} (ID: ${c.id}): locked=${c.isLocked}, completed=${c.isCompleted}');
+        // --- INYECCIÓN DE CAMPAÑA DEMO (TODOS LOS MINIJUEGOS) ---
+        // FORZAR MODO DEMO: Ignoramos lo que venga del backend para mostrar todos los juegos creados.
+        if (true) {
+           _clues.clear(); // Limpiamos para evitar duplicados o datos parciales del backend
+           int level = 1;
+
+           // PISTA 1: Objeto Oculto (Requires QR Scan to start)
+           _clues.add(Clue(
+             id: 'demo_level_${level++}', 
+             title: 'Nivel 1: El Comienzo',
+             description: 'Escanea el QR para iniciar tu misión.',
+             hint: 'Busca el código en la entrada.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.findDifference, 
+             riddleQuestion: 'Encuentra el objeto perdido',
+             xpReward: 100,
+             coinReward: 50,
+             isLocked: false, // DESBLOQUEADA VISUALMENTE (Requiere QR interna)
+             isCompleted: false,
+           ));
+
+           // PISTA 2: Buscaminas
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 2: Campo Minado',
+             description: 'Cuidado donde pisas.',
+             hint: 'Usa las banderas.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.minesweeper, 
+             riddleQuestion: 'Despeja el campo',
+             xpReward: 120,
+             coinReward: 60,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 3: Serpiente
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 3: Serpiente Glotona',
+             description: 'Alimenta a la bestia.',
+             hint: 'No choques con las paredes.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.snake, 
+             riddleQuestion: 'Come 15 manzanas',
+             xpReward: 140,
+             coinReward: 70,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 4: Puzzle Deslizante
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 4: Rompecabezas',
+             description: 'Ordena la imagen.',
+             hint: 'Mueve las piezas al espacio vacío.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.slidingPuzzle, 
+             riddleQuestion: 'Completa la imagen',
+             xpReward: 160,
+             coinReward: 80,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 5: La Vieja (Tic Tac Toe)
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 5: La Vieja',
+             description: 'Gana a la IA.',
+             hint: 'Haz una línea de 3.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.ticTacToe, 
+             riddleQuestion: 'Gana la partida',
+             xpReward: 180,
+             coinReward: 90,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 6: Ahorcado
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 6: El Ahorcado',
+             description: 'Adivina la palabra secreta.',
+             hint: 'Cuidado con tus vidas.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.hangman, 
+             riddleQuestion: 'Descubre la palabra',
+             xpReward: 200,
+             coinReward: 100,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 7: Rellenar Bloques
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 7: Laberinto de Color',
+             description: 'Pinta todo el camino sin repetir.',
+             hint: 'Planifica tu ruta.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.blockFill, 
+             riddleQuestion: 'Llena todos los bloques',
+             xpReward: 220,
+             coinReward: 110,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 8: Banderas
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel 8: Banderas del Mundo',
+             description: 'Viaja sin moverte.',
+             hint: 'Conoce tu geografía.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.flags, 
+             riddleQuestion: 'Identifica el país',
+             xpReward: 240,
+             coinReward: 120,
+             isLocked: true, 
+             isCompleted: false,
+           ));
+
+           // PISTA 9: Tetris (Final Boss)
+           _clues.add(Clue(
+             id: 'demo_level_${level++}',
+             title: 'Nivel Final: Tetris',
+             description: 'La prueba definitiva de agilidad.',
+             hint: 'Completa líneas.',
+             type: ClueType.minigame,
+             puzzleType: PuzzleType.tetris, 
+             riddleQuestion: 'Sobrevive y gana puntos',
+             xpReward: 500,
+             coinReward: 250,
+             isLocked: true, 
+             isCompleted: false,
+           ));
         }
+
+        // --- LÓGICA DE PROGRESIÓN ESTRICTA ---
+        // 1. Encontrar la primera pista NO completada.
+        int firstIncomplete = _clues.indexWhere((c) => !c.isCompleted);
         
-        // Find first unlocked but not completed clue to set as current
-        final index = _clues.indexWhere((c) => !c.isCompleted && !c.isLocked);
-        if (index != -1) {
-          _currentClueIndex = index;
+        if (firstIncomplete == -1) {
+           // Si todas están completas (Juego terminado), nos quedamos en la última
+           _currentClueIndex = _clues.length - 1;
         } else {
-          _currentClueIndex = _clues.length;
+           _currentClueIndex = firstIncomplete;
+           
+           // ASEGURAR ESTRUCTURA "CANDADO":
+           // La pista actual (_currentClueIndex) es la única "Activa".
+           // Si está locked, el usuario debe escanear QR.
+           // Si está unlocked, el usuario puede jugar.
+           // Todas las pistas FUTURAS deben star locked.
+           // Todas las pistas PASADAS están completed (y visualmente unlocked/check).
+           
+           for (int i = 0; i < _clues.length; i++) {
+              if (i > firstIncomplete) {
+                  _clues[i].isLocked = true; // Futuro bloqueado
+              }
+           }
+           // La pista actual (firstIncomplete) mantiene su estado de 'isLocked'.
+           // Si queremos obligar a scannear QR para la PRIMERA, la dejamos en true.
+           // Si ya scanneó, estará en false.
         }
       } else {
         _errorMessage = 'Error fetching clues: ${response.status}';
@@ -201,6 +357,17 @@ class GameProvider extends ChangeNotifier {
   }
   
   void unlockClue(String clueId) {
+    if (clueId == 'demo_flags_01') {
+      final index = _clues.indexWhere((c) => c.id == clueId);
+      if (index != -1) {
+        _clues[index].isLocked = false;
+        _clues[index].isCompleted = false; // FORCE UNCOMPLETE
+        _currentClueIndex = index;
+        notifyListeners();
+        return;
+      }
+    }
+
     final index = _clues.indexWhere((c) => c.id == clueId);
     if (index != -1) {
       _clues[index].isLocked = false;
@@ -300,6 +467,12 @@ class GameProvider extends ChangeNotifier {
   
   void updateLeaderboard(Player player) {
     // Deprecated
+  }
+  
+  void resetGame() {
+    _clues.clear();
+    _currentClueIndex = 0;
+    fetchClues(silent: false); // Reloads demo data fresh
   }
   
   @override

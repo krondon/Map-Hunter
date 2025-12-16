@@ -71,7 +71,7 @@ lib/generated_plugin_registrant.dart
 # Simbolización crashlytics
 **/ios/**/Flutter/flutter_*.app.dSYM.zip
 
-.env
+
 supabase/functions/admin-actions/index.ts
 supabase/functions/auth-service/index.ts
 supabase/functions/game-data/index.ts

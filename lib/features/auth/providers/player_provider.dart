@@ -312,5 +312,22 @@ class PlayerProvider extends ChangeNotifier {
       return false;
     }
   }
+  // --- MINIGAME LIFE MANAGEMENT ---
+  void loseLife() {
+    if (_currentPlayer != null) {
+      if (_currentPlayer!.lives > 0) {
+        _currentPlayer!.lives--;
+        notifyListeners();
+      }
+    }
+  }
+
+  void resetLives() {
+    if (_currentPlayer != null) {
+      _currentPlayer!.lives = 3;
+      notifyListeners();
+    }
+  }
+
 }
 

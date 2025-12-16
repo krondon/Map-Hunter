@@ -122,7 +122,44 @@ class _CluesScreenState extends State<CluesScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Botón de regreso pequeño y discreto
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.arrow_back_ios, color: Colors.white70, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Escenarios", 
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.bold)
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: AppTheme.accentGold, size: 20),
+                      tooltip: 'Reiniciar Juego',
+                      onPressed: () {
+                         Provider.of<GameProvider>(context, listen: false).resetGame();
+                         ScaffoldMessenger.of(context).showSnackBar(
+                           const SnackBar(content: Text("Juego reiniciado"))
+                         );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Header Original (Intacto)
             const ProgressHeader(),
             
             // Mini Mapa de Carrera (Mario Kart Style)
