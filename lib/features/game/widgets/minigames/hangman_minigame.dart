@@ -119,25 +119,35 @@ class _HangmanMinigameState extends State<HangmanMinigame> {
     _loseLife("Te has rendido.");
   }
 
-  void _loseLife(String reason) {
-    if (!mounted) return;
-    _stopTimer();
-    
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
-    if (playerProvider.currentPlayer != null) {
-      gameProvider.loseLife(playerProvider.currentPlayer!.id).then((_) {
-        if (!mounted) return;
-        
-        if (gameProvider.lives <= 0) {
-          _showGameOverDialog();
-        } else {
-          _showTryAgainDialog(reason);
-        }
-      });
+  // hangman_minigame.dart
+
+void _loseLife(String reason) {
+  if (!mounted) return;
+  _stopTimer();
+  
+  final gameProvider = Provider.of<GameProvider>(context, listen: false);
+  final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+  
+  final userId = playerProvider.currentPlayer?.id;
+  
+  if (userId != null) {
+    // Verificación de debug para ti:
+    if (gameProvider.currentEventId == null) {
+       debugPrint("¡Cuidado! El minijuego se inició sin un Event ID en el GameProvider");
     }
+
+    gameProvider.loseLife(userId).then((_) {
+      if (!mounted) return;
+      
+      // Ahora usamos el estado actualizado del provider
+      if (gameProvider.lives <= 0) {
+        _showGameOverDialog();
+      } else {
+        _showTryAgainDialog(reason);
+      }
+    });
   }
+}
 
   void _showTryAgainDialog(String reason) {
     showDialog(

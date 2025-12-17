@@ -225,6 +225,14 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                _startNewGame(); 
             },
             child: const Text("Reintentar"),
+          ),
+          TextButton(
+            onPressed: () {
+               Navigator.pop(context);
+              Navigator.pop(context
+              ); 
+            },
+            child: const Text("Salir"),
           )
         ],
       ),
