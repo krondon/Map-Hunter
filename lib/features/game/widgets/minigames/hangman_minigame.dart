@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../providers/game_provider.dart';
 
 class HangmanMinigame extends StatefulWidget {
   final Clue clue;
@@ -122,16 +123,19 @@ class _HangmanMinigameState extends State<HangmanMinigame> {
     if (!mounted) return;
     _stopTimer();
     
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    
     if (playerProvider.currentPlayer != null) {
-      playerProvider.currentPlayer!.lives--;
-      playerProvider.notifyListeners();
-
-      if (playerProvider.currentPlayer!.lives <= 0) {
-        _showGameOverDialog();
-      } else {
-        _showTryAgainDialog(reason);
-      }
+      gameProvider.loseLife(playerProvider.currentPlayer!.id).then((_) {
+        if (!mounted) return;
+        
+        if (gameProvider.lives <= 0) {
+          _showGameOverDialog();
+        } else {
+          _showTryAgainDialog(reason);
+        }
+      });
     }
   }
 
@@ -209,12 +213,16 @@ class _HangmanMinigameState extends State<HangmanMinigame> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Vidas
-                Row(
-                  children: [
-                    const Icon(Icons.favorite, color: AppTheme.dangerRed, size: 24),
-                    const SizedBox(width: 5),
-                    Text("x${player?.lives ?? 0}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
+                Consumer<GameProvider>(
+                  builder: (context, game, _) {
+                    return Row(
+                      children: [
+                        const Icon(Icons.favorite, color: AppTheme.dangerRed, size: 24),
+                        const SizedBox(width: 5),
+                        Text("x${game.lives}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    );
+                  }
                 ),
                 
                 // Timer

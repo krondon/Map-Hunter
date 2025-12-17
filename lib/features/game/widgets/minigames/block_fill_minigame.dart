@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/clue.dart';
+import '../../../auth/providers/player_provider.dart';
+import '../../providers/game_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class BlockFillMinigame extends StatefulWidget {
@@ -131,9 +134,56 @@ class _BlockFillMinigameState extends State<BlockFillMinigame> {
   }
 
   void _loseLife(String reason) {
-    // Sin sistema de vidas - solo reinicia
     _timer?.cancel();
-    _showGameOverDialog(reason);
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    
+    if (playerProvider.currentPlayer != null) {
+      gameProvider.loseLife(playerProvider.currentPlayer!.id).then((_) {
+         if (!mounted) return;
+         
+         if (gameProvider.lives <= 0) {
+            _showGameOverDialog("Te has quedado sin vidas.");
+         } else {
+            _showTryAgainDialog(reason);
+         }
+      });
+    }
+  }
+
+  void _showTryAgainDialog(String reason) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text("¡Fallaste!", style: TextStyle(color: AppTheme.dangerRed)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(reason, style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 10),
+            const Text("Has perdido 1 vida ❤️", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _startNewGame();
+            },
+            child: const Text("Reintentar"),
+          ),
+          TextButton(
+            onPressed: () {
+               Navigator.pop(context); // Dialog
+               Navigator.pop(context); // Screen
+            },
+            child: const Text("Salir"),
+          )
+        ],
+      ),
+    );
   }
 
   void _showGameOverDialog(String message) {

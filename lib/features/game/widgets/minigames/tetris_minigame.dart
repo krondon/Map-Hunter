@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
+import '../../providers/game_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class TetrisMinigame extends StatefulWidget {
@@ -270,16 +271,20 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   }
   
   void _loseLife(String reason) {
+    _timer?.cancel();
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    
     if (playerProvider.currentPlayer != null) {
-      playerProvider.currentPlayer!.lives--;
-      playerProvider.notifyListeners();
-
-      if (playerProvider.currentPlayer!.lives <= 0) {
-        _showGameOverDialog();
-      } else {
-        _showTryAgainDialog(reason);
-      }
+      gameProvider.loseLife(playerProvider.currentPlayer!.id).then((_) {
+         if (!mounted) return;
+         
+         if (gameProvider.lives <= 0) {
+            _showGameOverDialog();
+         } else {
+            _showTryAgainDialog(reason);
+         }
+      });
     }
   }
 

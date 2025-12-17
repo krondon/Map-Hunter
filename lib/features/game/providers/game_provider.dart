@@ -66,6 +66,9 @@ Future<void> loseLife(String userId) async {
   // Nota: _lives es tu variable local para actualización optimista
   if (_lives <= 0) return;
   
+  // Validamos que exista un evento activo para restar vidas de ESE evento
+  if (_currentEventId == null) return;
+  
   try {
     // 1. Optimistic Update (Feedback instantáneo visual)
     _lives--;
@@ -75,6 +78,7 @@ Future<void> loseLife(String userId) async {
     // Usamos la función que acabamos de mejorar en SQL
     final response = await _supabase.rpc('lose_life', params: {
       'p_user_id': userId,
+      'p_event_id': _currentEventId,
     });
     
     // 3. Sincronizar verdad (Response trae las vidas reales restantes)
@@ -175,9 +179,11 @@ Future<void> loseLife(String userId) async {
 
   // --- FIN GESTIÓN RANKING ---
   
-  Future<void> fetchClues({String? eventId, bool silent = false}) async {
-    if (eventId != null) {
+  Future<void> fetchClues({String? eventId, bool silent = false, String? userId}) async {
+    // Si el evento es nuevo, reseteamos las vidas localmente para no mostrar las del evento anterior
+    if (eventId != null && eventId != _currentEventId) {
       _currentEventId = eventId;
+      _lives = 3; // Valor por defecto temporal mientras carga el real
     }
     
     final idToUse = eventId ?? _currentEventId;
@@ -189,13 +195,11 @@ Future<void> loseLife(String userId) async {
     }
     
     try {
-      if (idToUse == null) {
-         debugPrint('Warning: fetchClues called without eventId');
-         if (!silent) {
-           _isLoading = false;
-           notifyListeners();
-         }
-         return;
+      if (idToUse == null) return;
+
+      // --- NUEVO: Sincronizar vidas inmediatamente si tenemos el userId ---
+      if (userId != null) {
+        await fetchLives(userId); 
       }
 
       final response = await _supabase.functions.invoke(
@@ -208,20 +212,8 @@ Future<void> loseLife(String userId) async {
         final List<dynamic> data = response.data;
         _clues = data.map((json) => Clue.fromJson(json)).toList();
         
-        // Debug logs to verify clue status
-        for (var c in _clues) {
-          debugPrint('Clue ${c.title} (ID: ${c.id}): locked=${c.isLocked}, completed=${c.isCompleted}');
-        }
-        
-        // Find first unlocked but not completed clue to set as current
         final index = _clues.indexWhere((c) => !c.isCompleted && !c.isLocked);
-        if (index != -1) {
-          _currentClueIndex = index;
-        } else {
-          _currentClueIndex = _clues.length;
-        }
-      } else {
-        _errorMessage = 'Error fetching clues: ${response.status}';
+        _currentClueIndex = (index != -1) ? index : _clues.length;
       }
     } catch (e) {
       _errorMessage = 'Error fetching clues: $e';
@@ -230,7 +222,6 @@ Future<void> loseLife(String userId) async {
       notifyListeners();
     }
   }
-  
   Future<void> startGame(String eventId) async {
     _isLoading = true;
     notifyListeners();

@@ -4,6 +4,7 @@ import '../../auth/providers/player_provider.dart';
 import '../models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/shop_item_card.dart';
+import '../../game/providers/game_provider.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -19,6 +20,17 @@ class _ShopScreenState extends State<ShopScreen> {
     if (_isLoading) return;
 
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+
+    final String? eventId = gameProvider.currentEventId;
+
+
+    if (eventId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error: Debes estar en un evento para comprar.')),
+    );
+    return;
+  }
     
     // Validar visualmente antes de llamar al backend
     if ((playerProvider.currentPlayer?.coins ?? 0) < item.cost) {
@@ -34,7 +46,7 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await playerProvider.purchaseItem(item.id, item.cost);
+      final success = await playerProvider.purchaseItem(item.id, eventId, item.cost);
       
       if (!mounted) return;
 

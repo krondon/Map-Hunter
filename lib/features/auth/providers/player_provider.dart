@@ -247,13 +247,14 @@ Future<void> syncRealInventory() async {
 
  // player_provider.dart
 
-Future<bool> purchaseItem(String itemId, int cost, {bool isPower = true}) async {
+Future<bool> purchaseItem(String itemId, String eventId, int cost, {bool isPower = true}) async {
   if (currentPlayer == null) return false;
 
   try {
     // Llamada a la función SQL mejorada
     final response = await Supabase.instance.client.rpc('buy_item', params: {
       'p_user_id': currentPlayer!.id,
+      'p_event_id': eventId,
       'p_item_id': itemId,
       'p_cost': cost,
       'p_is_power': isPower, // Enviamos si es poder o item normal

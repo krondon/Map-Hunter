@@ -71,6 +71,7 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   }
 
   void _loseLife(String reason) {
+    _stopTimer(); // Asegurar detención
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     
@@ -295,12 +296,16 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Vidas
-              Row(
-                children: [
-                  const Icon(Icons.favorite, color: AppTheme.dangerRed),
-                  const SizedBox(width: 5),
-                  Text("x${player?.lives ?? 0}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                ],
+              Consumer<GameProvider>(
+                builder: (context, game, _) {
+                  return Row(
+                    children: [
+                      const Icon(Icons.favorite, color: AppTheme.dangerRed),
+                      const SizedBox(width: 5),
+                      Text("x${game.lives}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  );
+                }
               ),
               // Timer
               Container(

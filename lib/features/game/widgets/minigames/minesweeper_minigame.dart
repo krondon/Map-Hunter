@@ -220,6 +220,7 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
   }
 
   void _loseGlobalLife(String reason, {bool timeOut = false}) {
+    _timer?.cancel(); // Detener timer inmediatamente
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     
@@ -230,7 +231,6 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
          
          // Si se quedó sin vidas globales -> Game Over Definitivo
          if (gameProvider.lives <= 0) {
-            _timer?.cancel();
             _showGameOverDialog("Te has quedado sin vidas globales.");
          } else {
             // Si le quedan vidas, reiniciamos el nivel tras una pausa
@@ -352,15 +352,15 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
         ),
         
         // Vidas Globales (Solo visualización)
-        Consumer<PlayerProvider>(
-            builder: (context, playerProvider, _) {
+        Consumer<GameProvider>(
+            builder: (context, game, _) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(3, (index) {
                   return Icon(
-                      index < (playerProvider.currentPlayer?.lives ?? 0) ? Icons.favorite : Icons.favorite_border,
+                      index < game.lives ? Icons.favorite : Icons.favorite_border,
                       color: AppTheme.dangerRed,
                       size: 24,
                   );

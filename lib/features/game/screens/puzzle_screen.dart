@@ -108,6 +108,54 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    // TAREA 4: Bloqueo de Acceso si no hay vidas
+    final gameProvider = Provider.of<GameProvider>(context);
+    
+    if (gameProvider.lives <= 0) {
+      // Retornar contenedor negro con aviso
+      // Nota: El diálogo _showNoLivesDialog ya se muestra en initState/checkLives,
+      // pero aquí aseguramos que no se renderice el juego.
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.heart_broken, color: AppTheme.dangerRed, size: 64),
+              const SizedBox(height: 20),
+              const Text(
+                "¡SIN VIDAS!",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "No puedes jugar sin vidas.",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.dangerRed,
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                ),
+                child: const Text("Salir", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Pasamos _finishLegally a TODOS los hijos para que avisen antes de cerrar o ganar
     switch (widget.clue.puzzleType) {
 

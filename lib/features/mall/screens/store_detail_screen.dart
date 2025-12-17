@@ -24,6 +24,15 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+
+    final String? eventId = gameProvider.currentEventId;
+  
+  if (eventId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No hay un evento activo seleccionado.')),
+    );
+    return;
+  }
     
     // Verificar límite de vidas
     if (item.id == 'extra_life') {
@@ -59,6 +68,7 @@ setState(() => _isLoading = true);
       // 1. Intentar comprar
       await playerProvider.purchaseItem(
         item.id, 
+        eventId,
         item.cost, 
         isPower: item.type != PowerType.utility // Ejemplo de lógica
       );

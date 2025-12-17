@@ -25,18 +25,27 @@ class ProfileScreen extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Logout button at top right
-              Container(
-                alignment: Alignment.topRight,
-                padding: const EdgeInsets.only(top: 10, right: 16),
-                child: IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white70),
-                  onPressed: () {
-                    playerProvider.logout();
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  },
+              // Header buttons (Back & Logout)
+              Padding(
+                padding: const EdgeInsets.only(top: 10, left: 16, right: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white70),
+                      tooltip: 'Volver a Escenarios',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.logout, color: Colors.white70),
+                      onPressed: () {
+                        playerProvider.logout();
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
               
