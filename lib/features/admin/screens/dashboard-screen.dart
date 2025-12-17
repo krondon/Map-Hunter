@@ -8,6 +8,7 @@ import 'competitions_management_screen.dart';
 import 'requests_management_screen.dart';
 import 'user_management_screen.dart';
 import 'admin_login_screen.dart';
+import '../../auth/screens/login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -73,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await Provider.of<PlayerProvider>(context, listen: false).logout();
       if (context.mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+          MaterialPageRoute(builder: (_) => LoginScreen()),
         );
       }
     }
