@@ -27,7 +27,7 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   // Config
   static const int rows = 20;
   static const int cols = 20;
-  static const int winScore = 15;
+  static const int winScore = 10;
   
   // Game State
   List<Point<int>> _snake = [const Point(10, 10)];
