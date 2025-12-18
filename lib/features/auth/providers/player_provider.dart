@@ -137,6 +137,11 @@ Future<void> fetchInventory(String userId, String eventId) async {
   Future<bool> purchaseItem(String itemId, String eventId, int cost, {bool isPower = true}) async {
     if (_currentPlayer == null) return false;
 
+    // MANEJO ESPECIAL PARA VIDAS (extra_life)
+    if (itemId == 'extra_life') {
+      return _purchaseLifeManual(eventId, cost);
+    }
+
     try {
       // Llamada a la función SQL: buy_item
       await _supabase.rpc('buy_item', params: {
@@ -160,6 +165,54 @@ Future<void> fetchInventory(String userId, String eventId) async {
       debugPrint("Error en compra: $e");
       // Re-lanzamos el error para que el SnackBar en la UI lo muestre
       rethrow;
+    }
+  }
+
+  Future<bool> _purchaseLifeManual(String eventId, int cost) async {
+    try {
+      // 1. Validar monedas localmente
+      if ((_currentPlayer?.coins ?? 0) < cost) {
+        return false;
+      }
+
+      // 2. Obtener game_player_id y vidas actuales
+      final gpResponse = await _supabase
+          .from('game_players')
+          .select('id, lives')
+          .eq('user_id', _currentPlayer!.id)
+          .eq('event_id', eventId)
+          .single();
+      
+      final String gamePlayerId = gpResponse['id'];
+      final int currentLives = gpResponse['lives'];
+
+      // 3. Realizar actualizaciones
+      // A. Restar monedas en profiles
+      await _supabase.from('profiles').update({
+        'total_coins': _currentPlayer!.coins - cost
+      }).eq('id', _currentPlayer!.id);
+
+      // B. Sumar vida en game_players
+      await _supabase.from('game_players').update({
+        'lives': currentLives + 1
+      }).eq('id', gamePlayerId);
+
+      // C. Registrar transacción
+      await _supabase.from('transactions').insert({
+        'game_player_id': gamePlayerId,
+        'transaction_type': 'purchase',
+        'coins_change': -cost,
+        'description': 'Compra de Vida Extra',
+      });
+
+      // 4. Actualizar estado local
+      _currentPlayer!.coins -= cost;
+      notifyListeners();
+      
+      return true;
+    } catch (e) {
+      debugPrint("Error comprando vida manualmente: $e");
+      return false;
     }
   }
 

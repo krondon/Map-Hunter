@@ -31,6 +31,28 @@ class _ShopScreenState extends State<ShopScreen> {
     );
     return;
   }
+
+    // Determinar si es un poder (p_is_power en SQL)
+    // Excluimos utilidades y vidas de la lógica de la tabla player_powers
+    final bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
+
+    // Verificar límite de vidas
+    if (item.id == 'extra_life') {
+      if (playerProvider.currentPlayer != null) {
+         // Actualizar vidas antes de verificar
+         await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+      }
+      
+      if (gameProvider.lives >= 3) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Ya tienes el máximo de vidas (3)!'),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+        return;
+      }
+    }
     
     // Validar visualmente antes de llamar al backend
     if ((playerProvider.currentPlayer?.coins ?? 0) < item.cost) {
@@ -46,7 +68,12 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await playerProvider.purchaseItem(item.id, eventId, item.cost, );
+      final success = await playerProvider.purchaseItem(
+        item.id, 
+        eventId, 
+        item.cost, 
+        isPower: isPower
+      );
       
       if (!mounted) return;
 
@@ -57,6 +84,11 @@ class _ShopScreenState extends State<ShopScreen> {
             backgroundColor: AppTheme.successGreen,
           ),
         );
+
+        // Actualizar vidas si se compró una vida
+        if (item.id == 'extra_life' && playerProvider.currentPlayer != null) {
+           await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
