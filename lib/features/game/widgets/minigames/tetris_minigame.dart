@@ -6,6 +6,7 @@ import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class TetrisMinigame extends StatefulWidget {
   final Clue clue;
@@ -41,6 +42,15 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   int _level = 1;
   int _linesCleared = 0;
   
+  // Audio
+  late AudioPlayer _audioPlayer;
+  bool _isMusicPlaying = false;
+  // Usando un link de Archive.org que es muy persistente
+  static const String _tetrisMusicUrl = "https://archive.org/download/TetrisThemeA/Tetris%20Theme%20A.mp3";
+  
+  // Próxima pieza
+  int? _nextPieceIndex;
+  
   // Tetrominoes
   final List<List<Point<int>>> _tetrominoes = [
     [const Point(0, 0), const Point(1, 0), const Point(2, 0), const Point(3, 0)], // I
@@ -65,7 +75,37 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    _audioPlayer.setVolume(1.0);
+    
+    // Iniciar lo más rápido posible
+    _playMusic();
     _startGame();
+  }
+
+  Future<void> _playMusic() async {
+    try {
+      debugPrint("DEBUG: Intentando reproducir música de Tetris...");
+      await _audioPlayer.play(UrlSource(_tetrisMusicUrl));
+      if (mounted) {
+        setState(() => _isMusicPlaying = true);
+      }
+      debugPrint("DEBUG: Música iniciada correctamente.");
+    } catch (e) {
+      debugPrint("ERROR en _playMusic: $e");
+    }
+  }
+
+  Future<void> _stopMusic() async {
+    try {
+      await _audioPlayer.pause();
+      if (mounted) {
+        setState(() => _isMusicPlaying = false);
+      }
+    } catch (e) {
+      debugPrint("ERROR en _stopMusic: $e");
+    }
   }
 
   void _startGame() {
@@ -97,14 +137,24 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
 
   void _spawnPiece() {
     final random = Random();
-    final index = random.nextInt(_tetrominoes.length);
+    
+    // Si no hay próxima pieza (inicio), generamos una
+    if (_nextPieceIndex == null) {
+      _nextPieceIndex = random.nextInt(_tetrominoes.length);
+    }
+    
+    final index = _nextPieceIndex!;
     currentPiece = List.from(_tetrominoes[index]);
     currentPieceColor = _tetrominoColors[index];
     currentPiecePosition = Point((columns - 4) ~/ 2, 0);
 
+    // Generamos la siguiente
+    _nextPieceIndex = random.nextInt(_tetrominoes.length);
+
     if (!_isValidPosition(currentPiece, currentPiecePosition)) {
       _gameOver();
     }
+    setState(() {});
   }
 
   bool _isValidPosition(List<Point<int>> piece, Point<int> position) {
@@ -347,6 +397,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -365,6 +416,11 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
               // Vidas
               Row(
                 children: [
+                   IconButton(
+                    icon: Icon(_isMusicPlaying ? Icons.music_note : Icons.music_off, color: Colors.white54),
+                    onPressed: () => _isMusicPlaying ? _stopMusic() : _playMusic(),
+                  ),
+                  const SizedBox(width: 5),
                   const Icon(Icons.favorite, color: AppTheme.dangerRed),
                   const SizedBox(width: 5),
                   Text("x${player?.lives ?? 0}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -397,54 +453,85 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
         ),
         const SizedBox(height: 10),
 
-        // Game Board
+        // Game Board & Next Piece Sidebar
         Expanded(
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: columns / rows,
-              child: Container(
-                margin: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Column(
-                  children: List.generate(rows, (y) {
-                    return Expanded(
-                      child: Row(
-                        children: List.generate(columns, (x) {
-                          Color? color = board[y][x];
-                          
-                          // Draw current piece
-                          bool isCurrentPiece = false;
-                          for (var p in currentPiece) {
-                            if (currentPiecePosition.y + p.y == y && currentPiecePosition.x + p.x == x) {
-                              color = currentPieceColor;
-                              isCurrentPiece = true;
-                              break;
-                            }
-                          }
-
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Main Board
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: columns / rows,
+                    child: Container(
+                      margin: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        border: Border.all(color: Colors.white24, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.1), blurRadius: 20)
+                        ]
+                      ),
+                      child: Column(
+                        children: List.generate(rows, (y) {
                           return Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.all(1),
-                              decoration: BoxDecoration(
-                                color: color ?? Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(2),
-                                border: isCurrentPiece || color != null 
-                                  ? Border.all(color: Colors.white.withOpacity(0.5), width: 0.5) 
-                                  : null,
-                              ),
+                            child: Row(
+                              children: List.generate(columns, (x) {
+                                Color? color = board[y][x];
+                                
+                                bool isCurrentPiece = false;
+                                for (var p in currentPiece) {
+                                  if (currentPiecePosition.y + p.y == y && currentPiecePosition.x + p.x == x) {
+                                    color = currentPieceColor;
+                                    isCurrentPiece = true;
+                                    break;
+                                  }
+                                }
+
+                                return Expanded(
+                                  child: Container(
+                                    margin: const EdgeInsets.all(0.5),
+                                    decoration: BoxDecoration(
+                                      color: color ?? Colors.white.withOpacity(0.02),
+                                      borderRadius: BorderRadius.circular(1),
+                                      border: isCurrentPiece || color != null 
+                                        ? Border.all(color: Colors.white.withOpacity(0.3), width: 0.5) 
+                                        : null,
+                                    ),
+                                  ),
+                                );
+                              }),
                             ),
                           );
                         }),
                       ),
-                    );
-                  }),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              
+              // Right Sidebar (Next Piece)
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 20, right: 10),
+                  child: Column(
+                    children: [
+                      const Text("SIGUIENTE", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      _buildNextPiecePreview(),
+                      const Spacer(),
+                      // Score info
+                      _buildMiniStat("LVL", "$_level"),
+                      const SizedBox(height: 10),
+                      _buildMiniStat("LINES", "$_linesCleared"),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -467,7 +554,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
 
   Widget _buildControlBtn(IconData icon, VoidCallback onTap, {Color color = Colors.white}) {
     return GestureDetector(
-      onTap: onTap,
+      onTapDown: (_) => onTap(),
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
@@ -477,6 +564,54 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
         ),
         child: Icon(icon, color: color, size: 28),
       ),
+    );
+  }
+
+  Widget _buildNextPiecePreview() {
+    if (_nextPieceIndex == null) return const SizedBox();
+    
+    final piece = _tetrominoes[_nextPieceIndex!];
+    final color = _tetrominoColors[_nextPieceIndex!];
+    
+    return Container(
+      width: 60,
+      height: 60,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black38,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Center(
+        child: LayoutBuilder(builder: (context, constraints) {
+          final size = constraints.maxWidth / 4;
+          return Stack(
+            children: piece.map((p) {
+              return Positioned(
+                left: p.x * size,
+                top: p.y * size,
+                child: Container(
+                  width: size - 1,
+                  height: size - 1,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 8)),
+        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+      ],
     );
   }
 }

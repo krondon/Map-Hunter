@@ -37,7 +37,7 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
   List<String>? _currentOptions;
   int _localAttempts = 3; // Intentos dentro del juego
 
-  // Lista de países (Abreviada para el ejemplo, usa tu lista completa)
+  // Lista de países balanceada (Nivel Intermedio)
   final List<Map<String, String>> _allCountries = [
     {'code': 've', 'name': 'Venezuela'},
     {'code': 'es', 'name': 'España'},
@@ -50,7 +50,30 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     {'code': 'mx', 'name': 'México'},
     {'code': 'it', 'name': 'Italia'},
     {'code': 'ca', 'name': 'Canadá'},
-    // ... agrega el resto de tu lista aquí
+    {'code': 'pt', 'name': 'Portugal'},
+    {'code': 'au', 'name': 'Australia'},
+    {'code': 'kr', 'name': 'Corea del Sur'},
+    {'code': 'ch', 'name': 'Suiza'},
+    {'code': 'gr', 'name': 'Grecia'},
+    {'code': 'be', 'name': 'Bélgica'},
+    {'code': 'nl', 'name': 'Países Bajos'},
+    {'code': 'se', 'name': 'Suecia'},
+    {'code': 'no', 'name': 'Noruega'},
+    {'code': 'dk', 'name': 'Dinamarca'},
+    {'code': 'fi', 'name': 'Finlandia'},
+    {'code': 'pl', 'name': 'Polonia'},
+    {'code': 'tr', 'name': 'Turquía'},
+    {'code': 'za', 'name': 'Sudáfrica'},
+    {'code': 'eg', 'name': 'Egipto'},
+    {'code': 'th', 'name': 'Tailandia'},
+    {'code': 'vn', 'name': 'Vietnam'},
+    {'code': 'ph', 'name': 'Filipinas'},
+    {'code': 'my', 'name': 'Malasia'},
+    {'code': 'id', 'name': 'Indonesia'},
+    {'code': 'co', 'name': 'Colombia'},
+    {'code': 'cl', 'name': 'Chile'},
+    {'code': 'pe', 'name': 'Perú'},
+    {'code': 'uy', 'name': 'Uruguay'},
   ];
 
   @override

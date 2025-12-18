@@ -46,6 +46,11 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   Timer? _countdownTimer;
   int _secondsRemaining = 90;
 
+  // Pre-game Countdown
+  int _preStartCount = 3;
+  bool _showingPreStart = false;
+  Timer? _preStartTimer;
+
   @override
   void initState() {
     super.initState();
@@ -56,12 +61,14 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   void dispose() {
     _gameLoop?.cancel();
     _countdownTimer?.cancel();
+    _preStartTimer?.cancel();
     super.dispose();
   }
 
   void _startNewGame() {
     _gameLoop?.cancel();
     _countdownTimer?.cancel();
+    _preStartTimer?.cancel();
     
     setState(() {
       _snake = [const Point(10, 10), const Point(9, 10), const Point(8, 10)];
@@ -69,14 +76,38 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
       _nextDirection = Direction.right;
       _score = 0;
       _secondsRemaining = 90;
-      _isPlaying = true;
+      _isPlaying = false;
       _isGameOver = false;
       _crashAllowance = 3; // Reset intentos
       _generateFood();
+      _showingPreStart = true;
+      _preStartCount = 3;
     });
 
-    _startCountdown();
-    _startGameLoop();
+    _runPreStartCountdown();
+  }
+
+  void _runPreStartCountdown() {
+    _preStartTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      setState(() {
+        if (_preStartCount > 1) {
+          _preStartCount--;
+        } else if (_preStartCount == 1) {
+          _preStartCount = 0; // 0 will represent "YA!"
+        } else {
+          timer.cancel();
+          _showingPreStart = false;
+          _isPlaying = true;
+          _startCountdown();
+          _startGameLoop();
+        }
+      });
+    });
   }
   
   void _startGameLoop() {
@@ -277,159 +308,255 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
     return Column(
         children: [
             // Header Info
+            // Header Info reducido
             Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                         // Score
+                        Expanded(
+                          child: Container(
+                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                               decoration: BoxDecoration(
+                                 color: Colors.black45,
+                                 borderRadius: BorderRadius.circular(15),
+                                 border: Border.all(color: AppTheme.successGreen.withOpacity(0.3)),
+                               ),
+                               child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text("🍎", style: TextStyle(fontSize: 16)),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "$_score / $winScore", 
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)
+                                    ),
+                                  ],
+                               ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Intentos
                         Container(
-                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                             decoration: BoxDecoration(
-                               color: Colors.black26,
-                               borderRadius: BorderRadius.circular(20),
-                               border: Border.all(color: AppTheme.successGreen.withOpacity(0.5)),
-                             ),
+                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                              child: Row(
-                                children: [
-                                  const Text("🍎", style: TextStyle(fontSize: 20)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    "$_score / $winScore", 
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)
-                                  ),
-                                ],
+                                 mainAxisSize: MainAxisSize.min,
+                                 children: List.generate(3, (index) {
+                                   return Icon(
+                                       index < _crashAllowance ? Icons.flash_on : Icons.flash_off,
+                                       color: index < _crashAllowance ? AppTheme.accentGold : Colors.white24,
+                                       size: 18,
+                                   );
+                                 }),
                              ),
                         ),
-                        
+                        const SizedBox(width: 8),
                         // Timer
-                        Container(
-                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                             decoration: BoxDecoration(
-                               color: isLowTime ? AppTheme.dangerRed.withOpacity(0.2) : Colors.black26,
-                               borderRadius: BorderRadius.circular(20),
-                               border: Border.all(color: isLowTime ? AppTheme.dangerRed : Colors.white24),
-                             ),
-                             child: Row(
-                                children: [
-                                  Icon(Icons.timer, color: isLowTime ? AppTheme.dangerRed : Colors.white70, size: 22),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    "$minutes:$seconds", 
-                                    style: TextStyle(
-                                      color: isLowTime ? AppTheme.dangerRed : Colors.white, 
-                                      fontWeight: FontWeight.bold, 
-                                      fontSize: 18
-                                    )
-                                  ),
-                                ],
-                             ),
+                        Expanded(
+                          child: Container(
+                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                               decoration: BoxDecoration(
+                                 color: isLowTime ? AppTheme.dangerRed.withOpacity(0.2) : Colors.black45,
+                                 borderRadius: BorderRadius.circular(15),
+                                 border: Border.all(color: isLowTime ? AppTheme.dangerRed : Colors.white12),
+                               ),
+                               child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.timer_outlined, color: isLowTime ? AppTheme.dangerRed : Colors.white70, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      "$minutes:$seconds", 
+                                      style: TextStyle(
+                                        color: isLowTime ? AppTheme.dangerRed : Colors.white, 
+                                        fontWeight: FontWeight.bold, 
+                                        fontSize: 14
+                                      )
+                                    ),
+                                  ],
+                               ),
+                          ),
                         ),
                     ],
                 ),
             ),
              
-             // Intentos Locales (Visualización con Icons)
-             Padding(
-               padding: const EdgeInsets.only(bottom: 15),
-               child: Row(
-                   mainAxisAlignment: MainAxisAlignment.center,
-                   children: List.generate(3, (index) {
-                   return Padding(
-                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                     child: Icon(
-                         index < _crashAllowance ? Icons.flash_on : Icons.flash_off,
-                         color: index < _crashAllowance ? AppTheme.accentGold : Colors.grey,
-                         size: 28,
-                     ),
-                   );
-                   }),
-               ),
-             ),
-            
-            const Text("Desliza para moverte 👆👇👈👉", style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.2)),
             const SizedBox(height: 10),
 
-            // GAME AREA
             Expanded(
-                child: Center(
-                    child: GestureDetector(
-                        onVerticalDragUpdate: (details) {
-                            if (details.delta.dy > 10) _onChangeDirection(Direction.down);
-                            else if (details.delta.dy < -10) _onChangeDirection(Direction.up);
-                        },
-                        onHorizontalDragUpdate: (details) {
-                            if (details.delta.dx > 10) _onChangeDirection(Direction.right);
-                            else if (details.delta.dx < -10) _onChangeDirection(Direction.left);
-                        },
-                        child: Container(
-                            margin: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                                color: const Color(0xFF1E1E1E),
-                                border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5), width: 2),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.2), blurRadius: 20, spreadRadius: 2)
-                                ]
-                            ),
-                            child: AspectRatio(
-                                aspectRatio: cols / rows,
-                                child: LayoutBuilder(
-                                    builder: (context, constraints) {
-                                        final cellSize = constraints.maxWidth / cols;
-                                        return Stack(
-                                            children: [
-                                                CustomPaint(
-                                                  size: Size(constraints.maxWidth, constraints.maxHeight),
-                                                  painter: GridPainter(rows, cols, Colors.white.withOpacity(0.03)),
-                                                ),
-                                                
-                                                if (_food != null)
-                                                    Positioned(
-                                                        left: _food!.x * cellSize,
-                                                        top: _food!.y * cellSize,
-                                                        child: Container(
-                                                            width: cellSize,
-                                                            height: cellSize,
-                                                            alignment: Alignment.center,
-                                                            child: Text("🍎", style: TextStyle(fontSize: cellSize * 0.8)),
-                                                        ),
-                                                    ),
-                                                
-                                                ..._snake.asMap().entries.map((entry) {
-                                                    final index = entry.key;
-                                                    final part = entry.value;
-                                                    final isHead = index == 0;
-                                                    
-                                                    return Positioned(
-                                                        left: part.x * cellSize,
-                                                        top: part.y * cellSize,
-                                                        child: Container(
-                                                            width: cellSize,
-                                                            height: cellSize,
-                                                            margin: const EdgeInsets.all(1),
-                                                            decoration: BoxDecoration(
-                                                                color: isHead ? AppTheme.successGreen : Colors.greenAccent[400],
-                                                                borderRadius: BorderRadius.circular(isHead ? 6 : 4),
-                                                            ),
-                                                            child: isHead ? _buildHeadEyes() : null,
-                                                        ),
-                                                    );
-                                                }),
-                                            ],
-                                        );
-                                    },
-                                ),
-                            ),
-                        ),
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Center(
+                      child: GestureDetector(
+                          onPanEnd: (details) {
+                              final velocity = details.velocity.pixelsPerSecond;
+                              if (velocity.distance < 100) return; 
+
+                              if (velocity.dx.abs() > velocity.dy.abs()) {
+                                  if (velocity.dx > 0) _onChangeDirection(Direction.right);
+                                  else _onChangeDirection(Direction.left);
+                              } else {
+                                  if (velocity.dy > 0) _onChangeDirection(Direction.down);
+                                  else _onChangeDirection(Direction.up);
+                              }
+                          },
+                          child: AspectRatio(
+                              aspectRatio: cols / rows,
+                              child: Container(
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFF121212),
+                                      border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.4), width: 3),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.15), blurRadius: 30, spreadRadius: 5)
+                                      ]
+                                  ),
+                                  child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                          final cellSize = constraints.maxWidth / cols;
+                                          return Stack(
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                  CustomPaint(
+                                                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                                                    painter: GridPainter(rows, cols, Colors.white.withOpacity(0.04)),
+                                                  ),
+                                                  
+                                                  if (_food != null)
+                                                      Positioned(
+                                                          left: _food!.x * cellSize,
+                                                          top: _food!.y * cellSize,
+                                                          child: SizedBox(
+                                                              width: cellSize,
+                                                              height: cellSize,
+                                                              child: Center(
+                                                                child: Text("🍎", style: TextStyle(fontSize: cellSize * 1.0)),
+                                                              ),
+                                                          ),
+                                                      ),
+                                                  
+                                                  ..._snake.asMap().entries.map((entry) {
+                                                      final index = entry.key;
+                                                      final part = entry.value;
+                                                      final isHead = index == 0;
+                                                      
+                                                      return Positioned(
+                                                          left: part.x * cellSize,
+                                                          top: part.y * cellSize,
+                                                          child: Container(
+                                                              width: cellSize,
+                                                              height: cellSize,
+                                                              margin: const EdgeInsets.all(0.5),
+                                                              decoration: BoxDecoration(
+                                                                  color: isHead ? AppTheme.successGreen : Colors.greenAccent[700],
+                                                                  borderRadius: BorderRadius.circular(isHead ? 4 : 2),
+                                                              ),
+                                                              child: isHead ? _buildHeadEyes(cellSize) : null,
+                                                          ),
+                                                      );
+                                                  }),
+
+                                                  if (_showingPreStart)
+                                                    _buildPreStartOverlay(cellSize),
+                                              ],
+                                          );
+                                      },
+                                  ),
+                              ),
+                          ),
+                      ),
+                  ),
                 ),
             ),
+            
+            // CONTROLES D-PAD COMPACTOS
+            _buildDPad(),
+            const SizedBox(height: 10),
         ],
     );
   }
 
-  Widget _buildHeadEyes() {
+  Widget _buildDPad() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildDPadButton(Icons.keyboard_arrow_up, () => _onChangeDirection(Direction.up)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildDPadButton(Icons.keyboard_arrow_left, () => _onChangeDirection(Direction.left)),
+              const SizedBox(width: 80), 
+              _buildDPadButton(Icons.keyboard_arrow_right, () => _onChangeDirection(Direction.right)),
+            ],
+          ),
+          _buildDPadButton(Icons.keyboard_arrow_down, () => _onChangeDirection(Direction.down)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDPadButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTapDown: (_) => onTap(),
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Icon(icon, color: Colors.white54, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildPreStartOverlay(double cellSize) {
+    String text = _preStartCount > 0 ? "$_preStartCount" : "¡YA!";
+    Color textColor = _preStartCount > 0 ? AppTheme.accentGold : AppTheme.successGreen;
+    
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.black.withOpacity(0.4),
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey(text),
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.elasticOut,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: 0.5 + (value * 1.5),
+              child: Opacity(
+                opacity: value.clamp(0, 1),
+                child: child,
+              ),
+            );
+          },
+          child: Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 80,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                  color: textColor.withOpacity(0.5),
+                  blurRadius: 20,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeadEyes(double cellSize) {
      int quarterTurns = 0;
      switch(_direction) {
        case Direction.up: quarterTurns = 0; break;
@@ -438,13 +565,15 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
        case Direction.left: quarterTurns = 3; break;
      }
 
+     final eyeSize = cellSize * 0.2;
+
      return RotatedBox(
        quarterTurns: quarterTurns,
        child: Row(
          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
          children: [
-           Container(width: 4, height: 4, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
-           Container(width: 4, height: 4, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
+           Container(width: eyeSize, height: eyeSize, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
+           Container(width: eyeSize, height: eyeSize, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle)),
          ],
        ),
      );
