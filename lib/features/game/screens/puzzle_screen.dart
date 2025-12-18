@@ -5,6 +5,8 @@ import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/clue.dart';
 import '../widgets/race_track_widget.dart';
+import '../../../shared/widgets/sabotage_overlay.dart';
+
 
 // --- Imports de Minijuegos Existentes ---
 import '../widgets/minigames/sliding_puzzle_minigame.dart';
@@ -111,7 +113,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     // TAREA 4: Bloqueo de Acceso si no hay vidas
     final gameProvider = Provider.of<GameProvider>(context);
+    final playerProvider = Provider.of<PlayerProvider>(context);
     
+    // --- STATUS OVERLAYS (Handled Globally) ---
+
     if (gameProvider.lives <= 0) {
       // Retornar contenedor negro con aviso
       // Nota: El diálogo _showNoLivesDialog ya se muestra en initState/checkLives,
@@ -157,33 +162,50 @@ class _PuzzleScreenState extends State<PuzzleScreen> with WidgetsBindingObserver
       );
     }
 
+    Widget gameWidget;
     // Pasamos _finishLegally a TODOS los hijos para que avisen antes de cerrar o ganar
     switch (widget.clue.puzzleType) {
-
       case PuzzleType.slidingPuzzle:
-        return SlidingPuzzleWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = SlidingPuzzleWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.ticTacToe:
-        return TicTacToeWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = TicTacToeWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.hangman:
-        return HangmanWrapper(clue: widget.clue, onFinish: _finishLegally);
-      
-      // --- JUEGOS NUEVOS ---
+        gameWidget = HangmanWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.tetris:
-        return TetrisWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = TetrisWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.findDifference:
-        // El wrapper existente debe modificarse para aceptar onFinish o envolverse aquí
-        return FindDifferenceWrapper(clue: widget.clue, onFinish: _finishLegally); 
+        gameWidget = FindDifferenceWrapper(clue: widget.clue, onFinish: _finishLegally); 
+        break;
       case PuzzleType.flags:
-        return FlagsWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = FlagsWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.minesweeper:
-        return MinesweeperWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = MinesweeperWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.snake:
-        return SnakeWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = SnakeWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
       case PuzzleType.blockFill:
-        return BlockFillWrapper(clue: widget.clue, onFinish: _finishLegally);
+        gameWidget = BlockFillWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
     }
+
+    return gameWidget;
   }
+
 }
+
+// ... (Rest of file content: helper functions and wrappers) ...
+// NOTE: I am not replacing the whole file, just the beginning and ending part involving _buildMinigameScaffold
+// But replace_file_content does replace whole blocks. I need to be careful.
+// Wait, replace_file_content replaces a CONTIGUOUS BLOCK. 
+// I need to replace from imports to the end of _buildMinigameScaffold if I want to do it all in one go, but the file is large.
+// I will use multi_replace_file_content to be safer and precise.
+
 
 // --- FUNCIONES HELPER GLOBALES ---
 
@@ -951,74 +973,82 @@ class FindDifferenceWrapper extends StatelessWidget {
 // --- SCAFFOLD COMPARTIDO ACTUALIZADO (Soporta onFinish para Rendición Legal) ---
 
 Widget _buildMinigameScaffold(BuildContext context, Clue clue, VoidCallback onFinish, Widget child) {
-  return Scaffold(
-    body: Container(
-      decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // AppBar Personalizado
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+  final player = Provider.of<PlayerProvider>(context).currentPlayer;
+
+  return SabotageOverlay(
+    child: Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                    // OJO: Si presionan Back sin ganar ni rendirse, es un abandono (penalización)
-                    // El Navigator.pop activará el ciclo de vida o simplemente no llamará a _finishLegally
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentGold.withOpacity(0.2), 
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: AppTheme.accentGold),
-                    ),
+                  // AppBar Personalizado
+                  Padding(
+                    padding: const EdgeInsets.all(12),
                     child: Row(
                       children: [
-                        const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                          '+${clue.xpReward} XP',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentGold.withOpacity(0.2), 
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: AppTheme.accentGold),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.star, color: AppTheme.accentGold, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                '+${clue.xpReward} XP',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 20),
+                          tooltip: 'Rendirse',
+                          onPressed: () => showSkipDialog(context, onFinish),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // Botón de Rendirse Integrado en el Scaffold Compartido
-                  IconButton(
-                    icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 20),
-                    tooltip: 'Rendirse',
-                    onPressed: () => showSkipDialog(context, onFinish),
+                  
+                  // Mapa de Progreso
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Consumer<GameProvider>(
+                      builder: (context, game, _) {
+                        return RaceTrackWidget(
+                          leaderboard: game.leaderboard,
+                          currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
+                          totalClues: game.clues.length,
+                          onSurrender: () => showSkipDialog(context, onFinish),
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 10),
+                  
+                  Expanded(
+                    child: IgnorePointer(
+                      ignoring: player != null && player.isFrozen,
+                      child: child,
+                    ),
                   ),
                 ],
               ),
-            ),
-            
-            // Mapa de Progreso
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Consumer<GameProvider>(
-                builder: (context, game, _) {
-                  return RaceTrackWidget(
-                    leaderboard: game.leaderboard,
-                    currentPlayerId: Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.id ?? '',
-                    totalClues: game.clues.length,
-                    // Pasamos el onFinish al callback de rendición del widget RaceTrack si lo soporta
-                    // O usamos el botón del AppBar definido arriba
-                    onSurrender: () => showSkipDialog(context, onFinish),
-                  );
-                },
-              ),
-            ),
-            
-            const SizedBox(height: 10),
-            
-            Expanded(child: child),
-          ],
+            ],
+          ),
         ),
       ),
     ),

@@ -6,6 +6,7 @@ import '../../mall/models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/inventory_item_card.dart';
 import '../../mall/screens/mall_screen.dart';
+import '../../../shared/utils/game_ui_utils.dart';
 
 class InventoryScreen extends StatefulWidget {
   final String? eventId;
@@ -204,99 +205,108 @@ class _InventoryScreenState extends State<InventoryScreen> {
     // Lista de IDs considerados ofensivos/sabotaje
     // Lo ideal es mover esto a una propiedad `isOffensive` en tu modelo PowerItem
     final offensiveItems = ['freeze', 'black_screen', 'slow_motion', 'time_penalty'];
-    final bool requiresTarget = offensiveItems.contains(item.id) || item.type == PowerType.debuff;
+    final isOffensive = offensiveItems.contains(item.id);
 
-    if (requiresTarget) {
-      // --- MODO ATAQUE: SELECCIONAR RIVAL ---
-      
-      // 1. Obtener lista de candidatos (Rivales)
-      List<dynamic> candidates = [];
-      final eventId = widget.eventId ?? gameProvider.currentEventId;
-      
-      if (eventId != null) {
-        // Si estamos en un evento, SOLO mostrar participantes del ranking
-        // Esto asegura que se muestren en orden de ranking y solo los del evento
-        if (gameProvider.leaderboard.isEmpty && gameProvider.currentEventId == eventId) {
-           await gameProvider.fetchLeaderboard();
+    if (isOffensive) {
+      try {
+        // --- MODO ATAQUE: SELECCIONAR RIVAL ---
+        
+        // 1. Obtener lista de candidatos (Rivales)
+        List<dynamic> candidates = [];
+        final eventId = widget.eventId ?? gameProvider.currentEventId;
+        
+        if (eventId != null) {
+          // Si estamos en un evento, SOLO mostrar participantes del ranking
+          // Esto asegura que se muestren en orden de ranking y solo los del evento
+          if (gameProvider.leaderboard.isEmpty && gameProvider.currentEventId == eventId) {
+             await gameProvider.fetchLeaderboard();
+          }
+          candidates = gameProvider.leaderboard;
+        } else {
+          candidates = gameProvider.leaderboard;
         }
-        candidates = gameProvider.leaderboard;
-      }
 
-      // 2. Filtrar: Excluirme a mí mismo
-      final rivals = candidates.where((p) => p.id != myPlayerId).toList();
+        // 2. Filtrar: Excluirme a mí mismo
+        final rivals = candidates.where((p) => p.id != myPlayerId).toList();
 
-      if (!context.mounted) return;
+        if (rivals.isEmpty) {
+          showGameSnackBar(context, title: 'Sin Víctimas', message: 'No hay otros jugadores disponibles para sabotear.', isError: true);
+          return;
+        }
 
-      if (rivals.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No hay rivales disponibles para atacar')),
-        );
-        return;
-      }
-
-      // 3. Mostrar Diálogo
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
+        showModalBottomSheet(
+          context: context,
           backgroundColor: AppTheme.cardBg,
-          title: Text(
-            'Lanzar ${item.name}',
-            style: const TextStyle(color: Colors.white),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: Column(
+          builder: (modalContext) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Selecciona una víctima:',
-                  style: TextStyle(color: Colors.white70),
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: ListView.separated(
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'SELECCIONA TU VÍCTIMA',
+                    style: TextStyle(
+                      color: AppTheme.accentGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
                     itemCount: rivals.length,
-                    separatorBuilder: (_, __) => const Divider(color: Colors.white12),
-                    itemBuilder: (context, i) {
-                      final rival = rivals[i];
+                    itemBuilder: (context, index) {
+                      final rival = rivals[index];
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.dangerRed,
-                          child: Text(rival.name.isNotEmpty ? rival.name[0].toUpperCase() : 'R'),
+                          backgroundColor: AppTheme.primaryPurple,
+                          backgroundImage: (rival.avatarUrl.isNotEmpty && rival.avatarUrl.startsWith('http')) 
+                              ? NetworkImage(rival.avatarUrl) 
+                              : null,
+                          child: (rival.avatarUrl.isEmpty || !rival.avatarUrl.startsWith('http'))
+                              ? Text(rival.name.isNotEmpty ? rival.name[0] : '?')
+                              : null,
                         ),
-                        title: Text(
-                          rival.name,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        trailing: const Icon(Icons.gps_fixed, color: AppTheme.dangerRed),
+                        title: Text(rival.name, style: const TextStyle(color: Colors.white)),
+                        subtitle: Text('${rival.totalXP} XP', style: const TextStyle(color: Colors.white60)),
+                        trailing: const Icon(Icons.bolt, color: AppTheme.secondaryPink),
                         onTap: () {
-                          Navigator.pop(context); // Cerrar
-                          _executePower(context, item, rival.id, rival.name, isOffensive: true);
+                          Navigator.pop(modalContext);
+                          _executePower(item, rival.id, rival.name, isOffensive: true);
                         },
                       );
                     },
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        ),
-      );
-
+            );
+          },
+        );
+      } catch (e) {
+        debugPrint("Error cargando rivales: $e");
+        showGameSnackBar(context, title: 'Error', message: 'Error cargando rivales: $e', isError: true);
+      }
     } else {
-      // --- MODO DEFENSA/BUFF: SE APLICA A UNO MISMO ---
-      _executePower(context, item, myPlayerId, "ti mismo", isOffensive: false);
+      // --- MODO DEFENSA/BUFF: USAR EN MÍ MISMO ---
+      _executePower(item, myPlayerId, "Mí mismo", isOffensive: false);
     }
   }
 
   Future<void> _executePower(
-    BuildContext context, 
     PowerItem item, 
     String targetId, 
     String targetName,
@@ -378,6 +388,101 @@ class _InventoryScreenState extends State<InventoryScreen> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AttackSuccessDialog extends StatefulWidget {
+  final PowerItem item;
+  final String targetName;
+  const _AttackSuccessDialog({required this.item, required this.targetName});
+
+  @override
+  State<_AttackSuccessDialog> createState() => _AttackSuccessDialogState();
+}
+
+class _AttackSuccessDialogState extends State<_AttackSuccessDialog> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 1.5).chain(CurveTween(curve: Curves.elasticOut)), 
+        weight: 40
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.5, end: 1.2).chain(CurveTween(curve: Curves.easeInOut)), 
+        weight: 20
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.2, end: 5.0).chain(CurveTween(curve: Curves.fastOutSlowIn)), 
+        weight: 40
+      ),
+    ]).animate(_controller);
+
+    _opacityAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(_controller);
+
+    _controller.forward().then((_) {
+      if (mounted) Navigator.pop(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _opacityAnimation.value,
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(widget.item.icon, style: const TextStyle(fontSize: 80)),
+                  const SizedBox(height: 10),
+                  Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      '¡${widget.item.id == "extra_life" || widget.item.id == "shield" ? "USADO" : "LANZADO"}!',
+                      style: const TextStyle(
+                        color: AppTheme.accentGold, 
+                        fontSize: 20, 
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      widget.targetName.isEmpty ? '' : 'Objetivo: ${widget.targetName}',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

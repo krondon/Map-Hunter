@@ -23,7 +23,7 @@ class FlagsMinigame extends StatefulWidget {
 
 class _FlagsMinigameState extends State<FlagsMinigame> {
   int _score = 0;
-  final int _targetScore = 5; // Cantidad de banderas a adivinar para ganar
+  final int _targetScore = 10; // Más banderas para que no sea tan corto
   int _currentQuestionIndex = 0;
   bool _isGameOver = false;
 
@@ -31,13 +31,12 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
   
   // Timer State
   Timer? _timer;
-  int _secondsRemaining = 60; // 1 minuto
+  int _secondsRemaining = 45; // Menos tiempo para presionar un poco más
   
   // Estado Local
   List<String>? _currentOptions;
-  int _localAttempts = 3; // Intentos dentro del juego
+  int _localAttempts = 3; 
 
-  // Lista de países (Abreviada para el ejemplo, usa tu lista completa)
   final List<Map<String, String>> _allCountries = [
     {'code': 've', 'name': 'Venezuela'},
     {'code': 'es', 'name': 'España'},
@@ -50,7 +49,28 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     {'code': 'mx', 'name': 'México'},
     {'code': 'it', 'name': 'Italia'},
     {'code': 'ca', 'name': 'Canadá'},
-    // ... agrega el resto de tu lista aquí
+    {'code': 'gb', 'name': 'Reino Unido'},
+    {'code': 'cn', 'name': 'China'},
+    {'code': 'ru', 'name': 'Rusia'},
+    {'code': 'kr', 'name': 'Corea del Sur'},
+    {'code': 'au', 'name': 'Australia'},
+    {'code': 'co', 'name': 'Colombia'},
+    {'code': 'pe', 'name': 'Perú'},
+    {'code': 'cl', 'name': 'Chile'},
+    {'code': 'pt', 'name': 'Portugal'},
+    {'code': 'nl', 'name': 'Países Bajos'},
+    {'code': 'be', 'name': 'Bélgica'},
+    {'code': 'ch', 'name': 'Suiza'},
+    {'code': 'se', 'name': 'Suecia'},
+    {'code': 'no', 'name': 'Noruega'},
+    {'code': 'dk', 'name': 'Dinamarca'},
+    {'code': 'fi', 'name': 'Finlandia'},
+    {'code': 'gr', 'name': 'Grecia'},
+    {'code': 'tr', 'name': 'Turquía'},
+    {'code': 'eg', 'name': 'Egipto'},
+    {'code': 'za', 'name': 'Sudáfrica'},
+    {'code': 'in', 'name': 'India'},
+    {'code': 'th', 'name': 'Tailandia'},
   ];
 
   @override
@@ -83,14 +103,15 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     final random = Random();
     var questions = List<Map<String, String>>.from(_allCountries);
     questions.shuffle(random);
+    // Tomar suficientes para el target
     _shuffledQuestions = questions.take(_targetScore).toList();
     
     _score = 0;
     _currentQuestionIndex = 0;
     _isGameOver = false;
-    _secondsRemaining = 60; 
+    _secondsRemaining = 45; 
     _currentOptions = null; 
-    _localAttempts = 3; // Reset intentos locales
+    _localAttempts = 3; 
     _startTimer();
     setState(() {});
   }
@@ -101,7 +122,6 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     final correctAnswer = _shuffledQuestions[_currentQuestionIndex]['name'];
     
     if (selectedName == correctAnswer) {
-      // Respuesta Correcta
       _score++;
       _currentOptions = null;
       
@@ -113,7 +133,6 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
         });
       }
     } else {
-      // Respuesta Incorrecta (Solo local)
       setState(() {
         _localAttempts--;
       });
@@ -121,11 +140,16 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
       if (_localAttempts <= 0) {
         _loseGlobalLife("¡Demasiados errores!");
       } else {
+        // Al fallar, barajamos las opciones para que no sea solo adivinar por eliminación estática
+        setState(() {
+          _currentOptions = null;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Incorrecto. Te quedan $_localAttempts intentos."),
             backgroundColor: AppTheme.warningOrange,
-            duration: const Duration(milliseconds: 800),
+            duration: const Duration(milliseconds: 600),
           ),
         );
       }
@@ -223,7 +247,7 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
         .toList();
     
     options.shuffle(random);
-    var finalOptions = options.take(3).toList();
+    var finalOptions = options.take(2).toList();
     finalOptions.add(currentCountry['name']!);
     finalOptions.shuffle(random);
     

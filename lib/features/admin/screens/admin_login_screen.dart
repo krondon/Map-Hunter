@@ -96,13 +96,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             await supabase.auth.signOut();
             if (mounted) {
               setState(() => _isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      '⛔ Acceso denegado: No tienes permisos de administrador.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              _showErrorSnackBar('⛔ Acceso denegado: No tienes permisos de administrador.');
             }
             return;
           }
@@ -115,30 +109,55 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             );
           }
         }
-      } on AuthException catch (e) {
-        // Error de autenticación de Supabase
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error de acceso: ${e.message}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
       } catch (e) {
         // Otros errores
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error inesperado: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showErrorSnackBar(_handleAuthError(e));
         }
       }
     }
+  }
+
+  String _handleAuthError(dynamic e) {
+    String errorMsg = e.toString().toLowerCase();
+
+    if (errorMsg.contains('invalid login credentials') || 
+        errorMsg.contains('invalid credentials')) {
+      return 'Credenciales de administrador incorrectas.';
+    }
+    if (errorMsg.contains('network') || errorMsg.contains('connection')) {
+      return 'Error de red. Verifica tu conexión.';
+    }
+    if (errorMsg.contains('too many requests')) {
+      return 'Demasiados intentos. Intenta más tarde.';
+    }
+    
+    return e.toString().replaceAll('Exception: ', '').replaceAll('exception: ', '');
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.dangerRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override

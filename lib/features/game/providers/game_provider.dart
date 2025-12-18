@@ -145,9 +145,14 @@ Future<void> loseLife(String userId) async {
           .limit(50);
 
       _leaderboard = data.map((json) {
-        // TRUCO: Para no romper el modelo Player ni modificar otros archivos,
-        // inyectamos el conteo de pistas ('completed_clues') en el campo 'total_xp'.
-        // Así la UI mostrará el número de pistas usando el campo existente.
+        // CORRECCIÓN CRÍTICA: Asegurar que el ID del jugador esté presente para sabotajes
+        if (json['id'] == null && json['user_id'] != null) {
+          json['id'] = json['user_id'];
+        } else if (json['id'] == null && json['player_id'] != null) {
+          json['id'] = json['player_id'];
+        }
+
+        // TRUCO: Mapear pistas completadas a XP para la UI
         if (json['completed_clues'] != null) {
           json['total_xp'] = json['completed_clues'];
         }

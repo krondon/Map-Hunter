@@ -33,7 +33,7 @@ class PlayerProvider extends ChangeNotifier {
 
       if (response.status != 200) {
         final error = response.data['error'] ?? 'Error desconocido';
-        throw Exception(error);
+        throw error; // Lanzar el string directamente para procesarlo
       }
 
       final data = response.data;
@@ -45,11 +45,11 @@ class PlayerProvider extends ChangeNotifier {
           await _fetchProfile(data['user']['id']);
         }
       } else {
-         throw Exception('No se recibió sesión válida');
+         throw 'No se recibió sesión válida';
       }
     } catch (e) {
       debugPrint('Error logging in: $e');
-      rethrow;
+      throw _handleAuthError(e);
     }
   }
 
@@ -63,7 +63,7 @@ class PlayerProvider extends ChangeNotifier {
 
       if (response.status != 200) {
         final error = response.data['error'] ?? 'Error desconocido';
-        throw Exception(error);
+        throw error;
       }
 
       final data = response.data;
@@ -78,11 +78,40 @@ class PlayerProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error registering: $e');
-      rethrow;
+      throw _handleAuthError(e);
     }
   }
 
+  String _handleAuthError(dynamic e) {
+    String errorMsg = e.toString().toLowerCase();
+
+    if (errorMsg.contains('invalid login credentials') || 
+        errorMsg.contains('invalid credentials')) {
+      return 'Email o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
+    }
+    if (errorMsg.contains('user already registered') || 
+        errorMsg.contains('already exists')) {
+      return 'Este correo ya está registrado. Intenta iniciar sesión.';
+    }
+    if (errorMsg.contains('password should be at least 6 characters')) {
+      return 'La contraseña debe tener al menos 6 caracteres.';
+    }
+    if (errorMsg.contains('network') || errorMsg.contains('connection')) {
+      return 'Error de conexión. Revisa tu internet e intenta de nuevo.';
+    }
+    if (errorMsg.contains('email not confirmed')) {
+      return 'Debes confirmar tu correo electrónico antes de entrar.';
+    }
+    if (errorMsg.contains('too many requests')) {
+      return 'Demasiados intentos. Por favor espera un momento.';
+    }
+    
+    // Limpiar el prefijo 'Exception: ' si existe
+    return e.toString().replaceAll('Exception: ', '').replaceAll('exception: ', '');
+  }
+
   Future<void> logout() async {
+    _pollingTimer?.cancel();
     await _profileSubscription?.cancel();
     await _supabase.auth.signOut();
     _currentPlayer = null;
@@ -250,39 +279,101 @@ Future<void> fetchInventory(String userId, String eventId) async {
 
   Future<void> _fetchProfile(String userId) async {
     try {
-      _subscribeToProfile(userId);
-
-      final data = await _supabase.from('profiles').select().eq('id', userId).single();
-
-      _currentPlayer = Player.fromJson(data);
+      // 1. Obtener perfil básico
+      final profileData = await _supabase.from('profiles').select().eq('id', userId).single();
       
-      // IMPORTANTE: Una vez cargado el perfil, sincronizamos inventario y vidas reales
-      await syncRealInventory();
-      // Nota: Si tus vidas no están en la tabla 'profiles' sino solo en 'game_players',
-      // deberías sincronizarlas aquí también, similar a syncRealInventory.
-      
+      // 2. Obtener GamePlayer y Vidas
+      final gpData = await _supabase
+          .from('game_players')
+          .select('id, lives')
+          .eq('user_id', userId)
+          .order('joined_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      List<String> realInventory = [];
+      int actualLives = 3;
+
+      if (gpData != null) {
+        actualLives = gpData['lives'] ?? 3;
+        final String gpId = gpData['id'];
+
+        // 3. Obtener Inventario real de player_powers
+        final List<dynamic> powersData = await _supabase
+            .from('player_powers')
+            .select('quantity, powers!inner(slug)')
+            .eq('game_player_id', gpId)
+            .gt('quantity', 0);
+
+        for (var item in powersData) {
+          final powerDetails = item['powers'];
+          if (powerDetails != null && powerDetails['slug'] != null) {
+            final String slug = powerDetails['slug'];
+            final int qty = item['quantity'];
+            for (var i = 0; i < qty; i++) {
+              realInventory.add(slug);
+            }
+          }
+        }
+      }
+
+      // 4. Construir jugador de forma atómica
+      final newPlayer = Player.fromJson(profileData);
+      newPlayer.lives = actualLives;
+      newPlayer.inventory = realInventory;
+
+      _currentPlayer = newPlayer;
       notifyListeners();
+
+      // ASEGURAR que los listeners estén corriendo pero SOLAMENTE UNA VEZ
+      _startListeners(userId);
+      
     } catch (e) {
       debugPrint('Error fetching profile: $e');
     }
   }
 
+  Timer? _pollingTimer;
+
+  void _startListeners(String userId) {
+    if (_pollingTimer == null) _startPolling(userId);
+    if (_profileSubscription == null) _subscribeToProfile(userId);
+  }
+
+  void _startPolling(String userId) {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+       if (_currentPlayer != null) {
+         try {
+           await refreshProfile();
+         } catch (e) {
+           // Si falla por internet (No host), ignoramos y reintentamos en 2s
+           debugPrint("Polling silenciado por error de red: $e");
+         }
+       } else {
+         timer.cancel();
+         _pollingTimer = null;
+       }
+    });
+  }
+
   void _subscribeToProfile(String userId) {
-    _profileSubscription?.cancel();
+    if (_profileSubscription != null) return; // Ya suscrito
+
     _profileSubscription = _supabase
         .from('profiles')
         .stream(primaryKey: ['id'])
         .eq('id', userId)
         .listen((data) {
           if (data.isNotEmpty) {
-            _currentPlayer = Player.fromJson(data.first);
-            syncRealInventory(); 
-            notifyListeners();
+            _fetchProfile(userId);
           }
         }, onError: (e) {
           debugPrint('Profile stream error: $e');
+          _profileSubscription = null;
         });
   }
+
 
   // --- LOGICA DE PODERES E INVENTARIO (BACKEND INTEGRATION) ---
 Future<void> syncRealInventory() async {
@@ -436,6 +527,53 @@ Future<void> syncRealInventory() async {
     } catch (e) {
       debugPrint('Error deleting user: $e');
       rethrow;
+    }
+  }
+
+  // --- DEBUG ONLY ---
+  Future<void> debugAddPower(String powerSlug) async {
+    if (_currentPlayer == null) return;
+    try {
+      final gp = await _supabase.from('game_players').select('id').eq('user_id', _currentPlayer!.id).order('joined_at', ascending: false).limit(1).maybeSingle();
+      if (gp == null) return;
+      final String gpId = gp['id'];
+      final power = await _supabase.from('powers').select('id').eq('slug', powerSlug).single();
+      final String powerUuid = power['id'];
+      final existing = await _supabase.from('player_powers').select('id, quantity').eq('game_player_id', gpId).eq('power_id', powerUuid).maybeSingle();
+      if (existing != null) {
+        await _supabase.from('player_powers').update({'quantity': (existing['quantity'] ?? 0) + 1}).eq('id', existing['id']);
+      } else {
+        await _supabase.from('player_powers').insert({'game_player_id': gpId, 'power_id': powerUuid, 'quantity': 1});
+      }
+      await refreshProfile();
+      debugPrint("DEBUG: Poder $powerSlug añadido.");
+    } catch (e) {
+      debugPrint("Error en debugAddPower: $e");
+    }
+  }
+
+  Future<void> debugToggleStatus(String status) async {
+    if (_currentPlayer == null) return;
+    try {
+      final expiration = DateTime.now().toUtc().add(const Duration(seconds: 15));
+      final newStatus = _currentPlayer!.status.name == status ? 'active' : status;
+      
+      await _supabase.from('profiles').update({
+        'status': newStatus,
+        'frozen_until': newStatus == 'active' ? null : expiration.toIso8601String(),
+      }).eq('id', _currentPlayer!.id);
+      
+      await refreshProfile();
+      debugPrint("DEBUG: Status cambiado a $newStatus");
+    } catch (e) {
+      debugPrint("Error en debugToggleStatus: $e");
+    }
+  }
+
+  Future<void> debugAddAllPowers() async {
+    final slugs = ['freeze', 'black_screen', 'slow_motion', 'shield', 'hint', 'extra_life'];
+    for (var slug in slugs) {
+      await debugAddPower(slug);
     }
   }
 }

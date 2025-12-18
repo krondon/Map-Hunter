@@ -115,6 +115,34 @@ class _ShopScreenState extends State<ShopScreen> {
         backgroundColor: AppTheme.darkBg,
         title: const Text('La Tiendita'),
         actions: [
+          // Vidas
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.dangerRed, Color(0xFFFF5252)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.favorite, size: 16, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${player?.lives ?? 0}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Monedas
           Center(
             child: Container(
               margin: const EdgeInsets.only(right: 16),

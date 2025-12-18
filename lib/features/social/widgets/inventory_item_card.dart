@@ -36,37 +36,37 @@ class InventoryItemCard extends StatelessWidget {
             ),
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Icon
               Text(
                 item.icon,
-                style: const TextStyle(fontSize: 40),
+                style: const TextStyle(fontSize: 32), // Reduced icon size
               ),
               
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               
               // Name and Description container
-              Flexible(
+              Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       item.name,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12, // Reduced font size
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       item.description,
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 9, // Reduced font size
                         color: Colors.white60,
                       ),
                       textAlign: TextAlign.center,
@@ -77,22 +77,22 @@ class InventoryItemCard extends StatelessWidget {
                 ),
               ),
               
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               
               // Use button
               SizedBox(
                 width: double.infinity,
-                height: 36, // Fixed small height
+                height: 30, // Even smaller height
                 child: ElevatedButton(
                   onPressed: onUse,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.secondaryPink,
-                    padding: EdgeInsets.zero, // Remove internal padding
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text(
                     'Usar',
-                    style: TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 12),
                   ),
                 ),
               ),

@@ -8,12 +8,11 @@ import '../../game/providers/event_provider.dart';
 import '../../social/screens/inventory_screen.dart';
 import '../../social/screens/leaderboard_screen.dart';
 import '../../social/screens/profile_screen.dart';
+import '../../../shared/widgets/sabotage_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
-  // 1. Agregar esta variable final
   final String eventId; 
 
-  // 2. Requerirla en el constructor
   const HomeScreen({super.key, required this.eventId});
 
   @override
@@ -23,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   
-  // 3. Quitar la inicialización aquí, usar 'late'
   late List<Widget> _screens;
   
   // Debug logic
@@ -32,10 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // 4. Inicializar las pantallas dentro de initState para acceder a 'widget.eventId'
     _screens = [
       CluesScreen(
-        eventId: widget.eventId, // ¡AQUÍ PASAMOS EL ID DINÁMICO!
+        eventId: widget.eventId,
       ),
       InventoryScreen(eventId: widget.eventId),
       const LeaderboardScreen(),
@@ -48,26 +45,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final player = Provider.of<PlayerProvider>(context).currentPlayer;
     final eventProvider = Provider.of<EventProvider>(context);
 
-    // 1. Validar si el evento ha comenzado
-    // Buscamos el evento actual
-    // Nota: Deberíamos asegurar que los eventos estén cargados.
-    // Si no lo están, eventProvider.events podría estar vacío o no contener el nuestro.
-    // Asumimos que al entrar aquí ya tenemos datos (desde ScenariosScreen/Login)
     try {
       final event = eventProvider.events.firstWhere((e) => e.id == widget.eventId);
-      
-      // Chequear fecha
-      // Nota: Recuerda que la fecha en el modelo ahora viene de un parseo UTC si Provider lo maneja bien,
-      // la comparación se hace convirtiendo a local o usando isAfter.
-      // event.date es DateTime. 
       final now = DateTime.now();
       
-      // Si el evento es futuro (más de 5 segundos de margen)
       if (event.date.toLocal().isAfter(now) && !_forceGameStart) {
         return EventWaitingScreen(
           event: event,
           onTimerFinished: () {
-            // Cuando termine, reconstruimos para mostrar la app real
             setState(() {
                _forceGameStart = true;
             });
@@ -75,100 +60,62 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } catch (_) {
-      // Si no encontramos el evento, dejamos pasar (fallback) o mostramos loading
-      // Por ahora dejamos pasar para no bloquear erróneamente.
+      // Fallback
     }
     
-    return Scaffold(
-      body: Stack(
-        children: [
-          _screens[_currentIndex],
-          
-          // Frozen overlay
-          if (player != null && player.isFrozen)
-            Container(
-              color: Colors.blue.withOpacity(0.7),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.ac_unit,
-                      size: 100,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      '¡CONGELADO!',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Serás liberado pronto...',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) {
-              if (player == null || !player.isFrozen) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              }
-            },
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: AppTheme.cardBg,
-            selectedItemColor: AppTheme.secondaryPink,
-            unselectedItemColor: Colors.white54,
-            showUnselectedLabels: true,
-            elevation: 0,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map),
-                activeIcon: Icon(Icons.map, size: 28),
-                label: 'Pistas',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.inventory_2_outlined),
-                activeIcon: Icon(Icons.inventory_2, size: 28),
-                label: 'Inventario',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.leaderboard_outlined),
-                activeIcon: Icon(Icons.leaderboard, size: 28),
-                label: 'Ranking',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person, size: 28),
-                label: 'Perfil',
+    return SabotageOverlay(
+      child: Scaffold(
+        body: _screens[_currentIndex],
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index) {
+                if (player == null || (!player.isFrozen && !player.isBlinded)) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                }
+              },
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: AppTheme.cardBg,
+              selectedItemColor: AppTheme.secondaryPink,
+              unselectedItemColor: Colors.white54,
+              showUnselectedLabels: true,
+              elevation: 0,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.map),
+                  activeIcon: Icon(Icons.map, size: 28),
+                  label: 'Pistas',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  activeIcon: Icon(Icons.inventory_2, size: 28),
+                  label: 'Inventario',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.leaderboard_outlined),
+                  activeIcon: Icon(Icons.leaderboard, size: 28),
+                  label: 'Ranking',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline),
+                  activeIcon: Icon(Icons.person, size: 28),
+                  label: 'Perfil',
+                ),
+              ],
+            ),
           ),
         ),
       ),

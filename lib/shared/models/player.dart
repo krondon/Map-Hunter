@@ -12,6 +12,7 @@ class Player {
   List<String> inventory;
   PlayerStatus status;
   DateTime? frozenUntil;
+  List<String>? eventsCompleted;
   int lives;
   Map<String, dynamic> stats;
 
@@ -29,6 +30,7 @@ class Player {
     List<String>? inventory,
     this.status = PlayerStatus.active,
     this.frozenUntil,
+    this.eventsCompleted,
     this.lives = 3,
     Map<String, dynamic>? stats,
   })  : inventory = inventory ?? [],
@@ -60,6 +62,9 @@ class Player {
         'strength': json['stat_strength'] ?? 0,
         'intelligence': json['stat_intelligence'] ?? 0,
       },
+      eventsCompleted: json['events_completed'] != null 
+          ? List<String>.from(json['events_completed']) 
+          : [],
       inventory: json['inventory'] != null 
           ? List<String>.from(json['inventory']) 
           : [],
@@ -91,18 +96,15 @@ class Player {
 
   bool get isFrozen =>
       status == PlayerStatus.frozen &&
-      frozenUntil != null &&
-      DateTime.now().isBefore(frozenUntil!);
+      (frozenUntil == null || DateTime.now().toUtc().isBefore(frozenUntil!.toUtc()));
 
   bool get isBlinded =>
       status == PlayerStatus.blinded &&
-      frozenUntil != null &&
-      DateTime.now().isBefore(frozenUntil!);
+      (frozenUntil == null || DateTime.now().toUtc().isBefore(frozenUntil!.toUtc()));
 
   bool get isSlowed =>
       status == PlayerStatus.slowed &&
-      frozenUntil != null &&
-      DateTime.now().isBefore(frozenUntil!);
+      (frozenUntil == null || DateTime.now().toUtc().isBefore(frozenUntil!.toUtc()));
 
   void addExperience(int xp) {
     experience += xp;

@@ -154,7 +154,8 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   }
 
   void _onTileTap(int index) {
-    if (_isGameOver || board[index].isNotEmpty || !_isPlayerTurn) return;
+    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
+    if (_isGameOver || board[index].isNotEmpty || !_isPlayerTurn || (player != null && player.isFrozen)) return;
 
     setState(() {
       board[index] = 'X';

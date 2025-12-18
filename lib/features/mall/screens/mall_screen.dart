@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../auth/providers/player_provider.dart';
 import '../models/mall_store.dart';
 import '../../../core/theme/app_theme.dart';
 import 'store_detail_screen.dart';
@@ -111,17 +113,23 @@ class MallScreen extends StatelessWidget {
                            // Imagen de Tienda (Cover)
                            ClipRRect(
                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                             child: Image.network(
-                               store.imageUrl,
-                               height: 120,
-                               width: double.infinity,
-                               fit: BoxFit.cover,
-                               errorBuilder: (_,__,___) => Container(
-                                 height: 120, 
-                                 color: Colors.grey[800],
-                                 child: const Center(child: Icon(Icons.store, size: 50, color: Colors.white24))
-                               ),
-                             ),
+                             child: (store.imageUrl.isNotEmpty && store.imageUrl.startsWith('http'))
+                               ? Image.network(
+                                   store.imageUrl,
+                                   height: 120,
+                                   width: double.infinity,
+                                   fit: BoxFit.cover,
+                                   errorBuilder: (_,__,___) => Container(
+                                     height: 120, 
+                                     color: Colors.grey[800],
+                                     child: const Center(child: Icon(Icons.store, size: 50, color: Colors.white24))
+                                   ),
+                                 )
+                               : Container(
+                                   height: 120,
+                                   color: Colors.grey[800],
+                                   child: const Center(child: Icon(Icons.store, size: 50, color: Colors.white24)),
+                                 ),
                            ),
                            
                            Padding(

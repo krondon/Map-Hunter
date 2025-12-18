@@ -14,192 +14,244 @@ class ProfileScreen extends StatelessWidget {
     final player = playerProvider.currentPlayer;
     
     if (player == null) {
-      return const Center(child: Text('No player data'));
+      return const Center(child: Text('No player data', style: TextStyle(color: Colors.white)));
     }
     
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.darkGradient,
+    return Scaffold(
+      backgroundColor: AppTheme.darkBg,
+      appBar: AppBar(
+        title: const Text('ID DE JUGADOR', style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppTheme.dangerRed),
+            onPressed: () {
+              playerProvider.logout();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+          ),
+        ],
       ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Header buttons (Back & Logout)
-              Padding(
-                padding: const EdgeInsets.only(top: 10, left: 16, right: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white70),
-                      tooltip: 'Volver a Escenarios',
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white70),
-                      onPressed: () {
-                        playerProvider.logout();
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Profile header
-              Column(
-                children: [
-                  // Avatar with icon instead of photo
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppTheme.primaryGradient,
-                    ),
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.cardBg,
-                      ),
-                      child: Icon(
-                        _getAvatarIcon(player.profession),
-                        size: 60,
-                        color: AppTheme.accentGold,
-                      ),
-                    ),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.darkGradient,
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // 1. CARNET DE IDENTIDAD (GAMER CARD)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white10),
+                    boxShadow: [
+                      BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 5))
+                    ]
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // Name
-                  Text(
-                    player.name,
-                    style: Theme.of(context).textTheme.displaySmall,
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Profession badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      player.profession,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  child: Column(
+                    children: [
+                      // Avatar & Level Ring
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                           // Ring
+                           SizedBox(
+                             width: 110, height: 110,
+                             child: CircularProgressIndicator(
+                               value: player.experienceProgress,
+                               strokeWidth: 6,
+                               backgroundColor: Colors.white10,
+                               valueColor: const AlwaysStoppedAnimation(AppTheme.accentGold),
+                             ),
+                           ),
+                           // Avatar
+                           Container(
+                             width: 90, height: 90,
+                             decoration: BoxDecoration(
+                               shape: BoxShape.circle,
+                               gradient: AppTheme.primaryGradient,
+                               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)]
+                             ),
+                             child: Icon(_getAvatarIcon(player.profession), size: 50, color: Colors.white),
+                           ),
+                           // Level Badge
+                           Positioned(
+                             bottom: 0,
+                             child: Container(
+                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                               decoration: BoxDecoration(
+                                 color: AppTheme.accentGold,
+                                 borderRadius: BorderRadius.circular(12),
+                                 boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black45)]
+                               ),
+                               child: Text("LVL ${player.level}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                             ),
+                           )
+                        ],
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 30),
-              
-              // Level and XP
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Nivel ${player.level}',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        Text(
-                          '${player.experience} / ${player.experienceToNextLevel} XP',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: player.experienceProgress,
-                        minHeight: 12,
-                        backgroundColor: AppTheme.cardBg,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppTheme.secondaryPink,
-                        ),
+                      const SizedBox(height: 16),
+                      Text(player.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      Text(player.profession.toUpperCase(), style: const TextStyle(color: AppTheme.secondaryPink, fontSize: 14, letterSpacing: 2)),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Stats Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildStatCompact(Icons.monetization_on, "${player.coins}", "Monedas", AppTheme.accentGold),
+                          _buildContainerDivider(),
+                          _buildStatCompact(Icons.star, "${player.totalXP}", "XP Total", AppTheme.secondaryPink),
+                          _buildContainerDivider(),
+                          _buildStatCompact(Icons.emoji_events, "${player.eventsCompleted?.length ?? 0}", "Eventos", Colors.cyan),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              
-              const SizedBox(height: 30),
-              
-              // Stats grid
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.2,
-                  children: [
-                    StatCard(
-                      icon: Icons.monetization_on,
-                      title: 'Monedas',
-                      value: '${player.coins}',
-                      color: AppTheme.accentGold,
-                    ),
-                    StatCard(
-                      icon: Icons.star,
-                      title: 'XP Total',
-                      value: '${player.totalXP}',
-                      color: AppTheme.secondaryPink,
-                    ),
-                    StatCard(
-                      icon: Icons.flash_on,
-                      title: 'Velocidad',
-                      value: '${player.stats['speed']}',
-                      color: Colors.blue,
-                    ),
-                    StatCard(
-                      icon: Icons.fitness_center,
-                      title: 'Fuerza',
-                      value: '${player.stats['strength']}',
-                      color: Colors.red,
-                    ),
-                    StatCard(
-                      icon: Icons.psychology,
-                      title: 'Inteligencia',
-                      value: '${player.stats['intelligence']}',
-                      color: Colors.purple,
-                    ),
-                    StatCard(
-                      icon: Icons.inventory_2,
-                      title: 'Items',
-                      value: '${player.inventory.length}',
-                      color: AppTheme.successGreen,
-                    ),
-                  ],
+                
+                const SizedBox(height: 20),
+                
+                // 2. ESTADÍSTICAS DETALLADAS (Attributes)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("ATRIBUTOS", style: TextStyle(color: Colors.white70, letterSpacing: 1.5, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 16),
+                      _buildAttributeRow("Fuerza", player.stats['strength'] ?? 0, Colors.redAccent),
+                      _buildAttributeRow("Velocidad", player.stats['speed'] ?? 0, Colors.blueAccent),
+                      _buildAttributeRow("Inteligencia", player.stats['intelligence'] ?? 0, Colors.purpleAccent),
+                    ],
+                  ),
                 ),
-              ),
-              
-              const SizedBox(height: 20),
-            ],
+
+                const SizedBox(height: 20),
+
+                // 3. MOCHILA (Inventory Preview)
+                SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       const Padding(
+                         padding: EdgeInsets.only(left: 8.0, bottom: 10),
+                         child: Text("MOCHILA RÁPIDA", style: TextStyle(color: Colors.white70, letterSpacing: 1.5, fontSize: 12, fontWeight: FontWeight.bold)),
+                       ),
+                       Container(
+                         height: 80,
+                         decoration: BoxDecoration(
+                           color: Colors.white.withOpacity(0.05),
+                           borderRadius: BorderRadius.circular(16),
+                         ),
+                         child: player.inventory.isEmpty 
+                           ? const Center(child: Text("Mochila vacía", style: TextStyle(color: Colors.white38)))
+                           : ListView.builder(
+                               scrollDirection: Axis.horizontal,
+                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                               itemCount: player.inventory.length,
+                               itemBuilder: (context, index) {
+                                 // Simple icon mapping implies we use ID to guess icon
+                                 final itemId = player.inventory[index];
+                                 return Container(
+                                   width: 56,
+                                   margin: const EdgeInsets.only(right: 12),
+                                   decoration: BoxDecoration(
+                                     color: Colors.black26,
+                                     borderRadius: BorderRadius.circular(12),
+                                     border: Border.all(color: Colors.white10)
+                                   ),
+                                   child: Center(
+                                     child: Text(
+                                       _getItemIcon(itemId), 
+                                       style: const TextStyle(fontSize: 24),
+                                     ),
+                                   ),
+                                 );
+                               },
+                             ),
+                       ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+                const Text("ID: 8493-2023-GAME", style: TextStyle(color: Colors.white10, fontSize: 10, letterSpacing: 4)),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildStatCompact(IconData icon, String value, String label, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+      ],
+    );
+  }
+
+  Widget _buildContainerDivider() {
+    return Container(width: 1, height: 30, color: Colors.white10);
+  }
+
+  Widget _buildAttributeRow(String label, int value, Color color) {
+    // Normalize value roughly 0-100
+    double progress = (value / 100).clamp(0.0, 1.0);
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          SizedBox(width: 80, child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13))),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                 value: progress,
+                 backgroundColor: Colors.black45,
+                 valueColor: AlwaysStoppedAnimation(color),
+                 minHeight: 8,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text("$value", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  String _getItemIcon(String itemId) {
+    if (itemId.contains('freeze')) return '❄️';
+    if (itemId.contains('black_screen')) return '🕶️';
+    if (itemId.contains('life')) return '❤️';
+    if (itemId.contains('shield')) return '🛡️';
+    if (itemId.contains('slow')) return '🐢';
+    return '📦';
+  }
 }
+
 
 IconData _getAvatarIcon(String profession) {
   switch (profession.toLowerCase()) {
