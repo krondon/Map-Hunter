@@ -139,8 +139,8 @@ class Clue {
       minigameUrl: json['minigame_url'],
       xpReward: json['xp_reward'] ?? 0,
       coinReward: json['coin_reward'] ?? 0,
-      isCompleted: json['isCompleted'] ?? false,
-      isLocked: json['is_locked'] ?? true,
+      isCompleted: json['isCompleted'] ?? json['is_completed'] ?? false,
+      isLocked: json['isLocked'] ?? json['is_locked'] ?? true,
       riddleQuestion: json['riddle_question'],
       riddleAnswer: json['riddle_answer'],
       puzzleType: json['puzzle_type'] != null 

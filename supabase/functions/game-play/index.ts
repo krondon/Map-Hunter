@@ -41,24 +41,43 @@ if (path === 'get-clues') {
     .order('sequence_index', { ascending: true })
 
   if (cluesError) throw cluesError
-  if (!clues) return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  if (!clues || clues.length === 0) return new Response(JSON.stringify([]), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   // 2. Traer el progreso real del usuario para este evento
+  const clueIds = clues.map(c => c.id)
   const { data: progressData } = await supabaseClient
     .from('user_clue_progress')
     .select('clue_id, is_completed, is_locked')
     .eq('user_id', user.id)
+    .in('clue_id', clueIds)
 
-  const processedClues = clues.map(clue => {
-    const progress = progressData?.find(p => p.clue_id === clue.id)
+  // Process clues sequentially to enforce game logic (Mario Kart Style)
+  const processedClues = []
+  let previousClueCompleted = true // First clue is always unlocked
+
+  for (const clue of clues) {
+    // Fix: Ensure strict string comparison for BigInt IDs
+    const progress = progressData?.find(p => String(p.clue_id) === String(clue.id))
     
-    return {
-      ...clue,
-      // Si no hay fila en progressData, la pista está bloqueada por defecto
-      is_completed: progress?.is_completed ?? false,
-      is_locked: progress ? progress.is_locked : (clue.sequence_index === 0 ? false : true)
+    let isCompleted = progress?.is_completed ?? false
+    let isLocked = !previousClueCompleted
+
+    // Integrity Check: A clue cannot be completed if it is locked (i.e., if previous wasn't completed)
+    // This fixes cases where DB might have inconsistent state
+    if (isLocked) {
+      isCompleted = false
     }
-  })
+
+    processedClues.push({
+      ...clue,
+      is_completed: isCompleted,
+      isCompleted: isCompleted, // Frontend expects camelCase
+      is_locked: isLocked
+    })
+
+    // Update for next iteration
+    previousClueCompleted = isCompleted
+  }
 
   return new Response(JSON.stringify(processedClues), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
@@ -118,6 +137,7 @@ if (path === 'get-clues') {
     // --- COMPLETE CLUE ---
 if (path === 'complete-clue') {
   const { clueId, answer } = await req.json();
+  console.log(`[complete-clue] Processing clueId: ${clueId}`);
 
   // 1. Usar ADMIN para poder leer la pista aunque el usuario no tenga permiso aún
   const supabaseAdmin = createClient(
@@ -131,21 +151,35 @@ if (path === 'complete-clue') {
     .eq('id', clueId)
     .single();
 
-  if (clueError || !clue) throw new Error('Clue not found')
+  if (clueError || !clue) {
+    console.error('[complete-clue] Clue not found:', clueError);
+    throw new Error('Clue not found');
+  }
 
   if (clue.riddle_answer && answer && clue.riddle_answer.toLowerCase() !== answer.toLowerCase()) {
      return new Response(JSON.stringify({ error: 'Incorrect answer' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
   // 2. Marcar pista actual como completada
-  await supabaseAdmin
+  const { error: updateError } = await supabaseAdmin
     .from('user_clue_progress')
-    .update({ is_completed: true, is_locked: false, completed_at: new Date().toISOString() })
-    .eq('user_id', user.id)
-    .eq('clue_id', clueId)
+    .upsert({ 
+      user_id: user.id, 
+      clue_id: clueId, 
+      is_completed: true, 
+      is_locked: false, 
+      completed_at: new Date().toISOString() 
+    }, { onConflict: 'user_id, clue_id' })
+
+  if (updateError) {
+    console.error('[complete-clue] Error updating current clue:', updateError)
+    throw updateError
+  }
+
+  console.log(`[complete-clue] Current clue completed. Sequence Index: ${clue.sequence_index}`);
 
   // 3. DESBLOQUEAR SIGUIENTE PISTA (Usamos supabaseAdmin aquí es CLAVE)
-  const { data: nextClue } = await supabaseAdmin
+  const { data: nextClue, error: nextClueQueryError } = await supabaseAdmin
     .from('clues')
     .select('id, sequence_index')
     .eq('event_id', clue.event_id)
@@ -154,30 +188,39 @@ if (path === 'complete-clue') {
     .limit(1)
     .maybeSingle()
 
+  if (nextClueQueryError) {
+    console.error('[complete-clue] Error finding next clue:', nextClueQueryError);
+  }
+
   if (nextClue) {
-    // Intentamos actualizar si ya existe la fila, si no, la insertamos
-    const { data: existingProgress } = await supabaseAdmin
+    console.log(`[complete-clue] Found next clue ID: ${nextClue.id}, Sequence: ${nextClue.sequence_index}`);
+    
+    // Primero verificamos si ya existe progreso para la siguiente pista para no sobrescribir is_completed si ya lo estaba
+    const { data: existingNextProgress } = await supabaseAdmin
       .from('user_clue_progress')
-      .select('id')
+      .select('is_completed')
       .eq('user_id', user.id)
       .eq('clue_id', nextClue.id)
-      .maybeSingle()
+      .maybeSingle();
 
-    if (existingProgress) {
-      await supabaseAdmin
-        .from('user_clue_progress')
-        .update({ is_locked: false })
-        .eq('id', existingProgress.id)
+    const isNextCompleted = existingNextProgress?.is_completed ?? false;
+
+    const { error: nextClueError } = await supabaseAdmin
+      .from('user_clue_progress')
+      .upsert({ 
+        user_id: user.id, 
+        clue_id: nextClue.id, 
+        is_locked: false,
+        is_completed: isNextCompleted // Mantenemos el estado completado si ya lo estaba
+      }, { onConflict: 'user_id, clue_id' })
+      
+    if (nextClueError) {
+      console.error('[complete-clue] Error unlocking next clue:', nextClueError)
     } else {
-      await supabaseAdmin
-        .from('user_clue_progress')
-        .insert({ 
-          user_id: user.id, 
-          clue_id: nextClue.id, 
-          is_locked: false, 
-          is_completed: false 
-        })
+      console.log(`[complete-clue] Next clue unlocked successfully.`);
     }
+  } else {
+    console.log('[complete-clue] No next clue found (End of event?)');
   }
 
   // 4. Premios (Corregido: total_coins)
