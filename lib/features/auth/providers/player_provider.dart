@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/player.dart';
+import '../../game/providers/power_effect_provider.dart';
 
 class PlayerProvider extends ChangeNotifier {
   Player? _currentPlayer;
@@ -247,24 +248,33 @@ Future<void> fetchInventory(String userId, String eventId) async {
 
   // --- USO DE PODERES ---
 
-  Future<bool> usePower({required String powerId, required String targetUserId}) async {
+  Future<bool> usePower({
+    required String powerSlug,
+    required String targetGamePlayerId,
+    required PowerEffectProvider effectProvider,
+  }) async {
     if (_currentPlayer == null) return false;
+
+    final casterGamePlayerId = _currentPlayer!.gamePlayerId;
+    if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
+      debugPrint('usePower abortado: caster gamePlayerId nulo');
+      return false;
+    }
+
     try {
-      // Necesitamos el contexto del evento para saber qué inventario refrescar
-      // Aquí asumo que usas el game_player_id como en tu SQL use_power_mechanic
-      
       final response = await _supabase.rpc('use_power_mechanic', params: {
-        'p_caster_id': _currentPlayer!.id, // Ajustar según tu lógica de IDs en use_power_mechanic
-        'p_target_id': targetUserId,
-        'p_power_id': powerId,
+        'p_caster_id': casterGamePlayerId,
+        'p_target_id': targetGamePlayerId,
+        'p_power_slug': powerSlug,
       });
 
-      if (response['success'] == true) {
-        // En lugar de syncRealInventory genérico, aquí deberías refrescar 
-        // el inventario del evento actual si tienes el ID a mano.
-        return true;
+      final success = response is Map && response['success'] == true;
+
+      if (success) {
+        // Refrescamos inventario y mantenemos el listener activo
+        await syncRealInventory(effectProvider: effectProvider);
       }
-      return false;
+      return success;
     } catch (e) {
       debugPrint('Error usando poder: $e');
       return false;
@@ -293,10 +303,12 @@ Future<void> fetchInventory(String userId, String eventId) async {
 
       List<String> realInventory = [];
       int actualLives = 3;
+      String? gamePlayerId;
 
       if (gpData != null) {
         actualLives = gpData['lives'] ?? 3;
         final String gpId = gpData['id'];
+        gamePlayerId = gpId;
 
         // 3. Obtener Inventario real de player_powers
         final List<dynamic> powersData = await _supabase
@@ -321,6 +333,7 @@ Future<void> fetchInventory(String userId, String eventId) async {
       final newPlayer = Player.fromJson(profileData);
       newPlayer.lives = actualLives;
       newPlayer.inventory = realInventory;
+      newPlayer.gamePlayerId = gamePlayerId;
 
       _currentPlayer = newPlayer;
       notifyListeners();
@@ -376,7 +389,7 @@ Future<void> fetchInventory(String userId, String eventId) async {
 
 
   // --- LOGICA DE PODERES E INVENTARIO (BACKEND INTEGRATION) ---
-Future<void> syncRealInventory() async {
+Future<void> syncRealInventory({PowerEffectProvider? effectProvider}) async {
     if (_currentPlayer == null) return;
 
     try {
@@ -395,6 +408,8 @@ Future<void> syncRealInventory() async {
       if (gamePlayerRes == null) {
         debugPrint("Usuario no tiene game_player activo.");
         _currentPlayer!.inventory.clear();
+        _currentPlayer!.gamePlayerId = null;
+        effectProvider?.startListening(null);
         notifyListeners();
         return;
       }
@@ -404,6 +419,9 @@ Future<void> syncRealInventory() async {
       }
 
       final String gamePlayerId = gamePlayerRes['id'];
+      _currentPlayer!.gamePlayerId = gamePlayerId;
+      effectProvider?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
+      effectProvider?.startListening(gamePlayerId);
       debugPrint("GamePlayer encontrado: $gamePlayerId");
 
       // 2. Traer poderes con JOIN

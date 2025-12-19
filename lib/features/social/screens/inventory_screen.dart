@@ -7,6 +7,8 @@ import '../../../core/theme/app_theme.dart';
 import '../widgets/inventory_item_card.dart';
 import '../../mall/screens/mall_screen.dart';
 import '../../../shared/utils/game_ui_utils.dart';
+import '../../game/providers/power_effect_provider.dart';
+// PowerSwipeAction se mantiene disponible pero no se usa en este flujo simplificado
 
 class InventoryScreen extends StatefulWidget {
   final String? eventId;
@@ -201,6 +203,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
   /// Lógica centralizada para usar items (Ataque vs Defensa)
   Future<void> _handleItemUse(BuildContext context, PowerItem item, String myPlayerId) async {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final effectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
     // Lista de IDs considerados ofensivos/sabotaje
     // Lo ideal es mover esto a una propiedad `isOffensive` en tu modelo PowerItem
@@ -284,8 +289,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         subtitle: Text('${rival.totalXP} XP', style: const TextStyle(color: Colors.white60)),
                         trailing: const Icon(Icons.bolt, color: AppTheme.secondaryPink),
                         onTap: () {
+                          final targetGp = rival.gamePlayerId;
+                          if (targetGp == null || targetGp.isEmpty) {
+                            showGameSnackBar(context, title: 'Sin gamePlayerId', message: 'El rival no tiene gamePlayerId', isError: true);
+                            return;
+                          }
                           Navigator.pop(modalContext);
-                          _executePower(item, rival.id, rival.name, isOffensive: true);
+                          _executePower(item, targetGp, rival.name, isOffensive: true, effectProvider: effectProvider);
                         },
                       );
                     },
@@ -302,15 +312,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }
     } else {
       // --- MODO DEFENSA/BUFF: USAR EN MÍ MISMO ---
-      _executePower(item, myPlayerId, "Mí mismo", isOffensive: false);
+      if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
+        showGameSnackBar(context, title: 'Sin gamePlayerId', message: 'Aún no entras al evento activo', isError: true);
+        return;
+      }
+      _executePower(item, myGamePlayerId, "Mí mismo", isOffensive: false, effectProvider: effectProvider);
     }
   }
 
   Future<void> _executePower(
     PowerItem item, 
-    String targetId, 
+    String targetGamePlayerId, 
     String targetName,
-    {required bool isOffensive}
+    {required bool isOffensive, required PowerEffectProvider effectProvider}
   ) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
@@ -327,8 +341,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     try {
       // Ejecutar lógica en backend
       success = await playerProvider.usePower(
-        powerId: item.id,
-        targetUserId: targetId,
+        powerSlug: item.id,
+        targetGamePlayerId: targetGamePlayerId,
+        effectProvider: effectProvider,
       );
     } catch (e) {
       debugPrint('Error executing power: $e');

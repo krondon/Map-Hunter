@@ -6,13 +6,27 @@ class PowerEffectProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
   StreamSubscription? _subscription;
   Timer? _expiryTimer;
+  bool _shieldActive = false;
   
   // Guardamos el slug del poder activo (ej: 'black_screen', 'freeze')
   String? _activePowerSlug;
   String? get activePowerSlug => _activePowerSlug;
 
+  void setShielded(bool value) {
+    _shieldActive = value;
+    if (_shieldActive) {
+      _clearEffect();
+    }
+  }
+
   // Iniciar la escucha de ataques dirigidos a este jugador específico
-  void startListening(String myGamePlayerId) {
+  void startListening(String? myGamePlayerId) {
+    if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
+      _clearEffect();
+      _subscription?.cancel();
+      return;
+    }
+
     _subscription?.cancel();
     _expiryTimer?.cancel();
 
@@ -22,6 +36,8 @@ class PowerEffectProvider extends ChangeNotifier {
         .eq('target_id', myGamePlayerId)
         .listen((List<Map<String, dynamic>> data) {
           _processEffects(data);
+        }, onError: (e) {
+          debugPrint('PowerEffectProvider stream error: $e');
         });
   }
 
@@ -29,8 +45,12 @@ class PowerEffectProvider extends ChangeNotifier {
     _expiryTimer?.cancel(); // Limpiar temporizadores previos
 
     if (data.isEmpty) {
-      _activePowerSlug = null;
-      notifyListeners();
+      _clearEffect();
+      return;
+    }
+
+    if (_shieldActive) {
+      debugPrint('PowerEffectProvider: Ataque interceptado por escudo, ignorando.');
       return;
     }
 
@@ -58,6 +78,12 @@ class PowerEffectProvider extends ChangeNotifier {
       });
     }
 
+    notifyListeners();
+  }
+
+  void _clearEffect() {
+    _expiryTimer?.cancel();
+    _activePowerSlug = null;
     notifyListeners();
   }
 

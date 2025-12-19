@@ -9,6 +9,7 @@ import '../../social/screens/inventory_screen.dart';
 import '../../social/screens/leaderboard_screen.dart';
 import '../../social/screens/profile_screen.dart';
 import '../../../shared/widgets/sabotage_overlay.dart';
+import '../../game/providers/power_effect_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   final String eventId; 
@@ -30,6 +31,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final effectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+      playerProvider.syncRealInventory(effectProvider: effectProvider);
+    });
     _screens = [
       CluesScreen(
         eventId: widget.eventId,

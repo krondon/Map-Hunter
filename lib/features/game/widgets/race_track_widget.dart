@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/player.dart';
+import '../providers/power_effect_provider.dart';
+import '../../auth/providers/player_provider.dart';
+import 'power_gesture_wrapper.dart';
 
 class RaceTrackWidget extends StatelessWidget {
   final List<Player> leaderboard; // Esta lista DEBE venir de 'event_leaderboard' (donde totalXP = pistas completadas)
@@ -18,8 +22,62 @@ class RaceTrackWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final effectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+
     // Lógica principal: Seleccionar quién aparece en la carrera basado ESTRICTAMENTE en progreso del evento
     final activeRacers = _selectRacersToShow();
+
+    void handleSwipeAttack() async {
+      final me = playerProvider.currentPlayer;
+      if (me == null) return;
+
+      final offensiveSlugs = <String>{'freeze', 'black_screen', 'slow_motion'};
+      final String selectedPowerSlug = me.inventory.firstWhere(
+        (slug) => offensiveSlugs.contains(slug),
+        orElse: () => '',
+      );
+
+      if (selectedPowerSlug.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tienes poderes ofensivos disponibles')),
+        );
+        return;
+      }
+
+      if (leaderboard.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sin rivales para atacar')),
+        );
+        return;
+      }
+
+      final bool iAmLeader = leaderboard.isNotEmpty && leaderboard.first.id == currentPlayerId;
+      final Player? target = iAmLeader
+          ? (leaderboard.length > 1 ? leaderboard[1] : null)
+          : leaderboard.first;
+
+      final targetGamePlayerId = target?.gamePlayerId;
+
+      if (target == null || targetGamePlayerId == null || targetGamePlayerId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se encontró un objetivo válido')),
+        );
+        return;
+      }
+
+      final success = await playerProvider.usePower(
+        powerSlug: selectedPowerSlug,
+        targetGamePlayerId: targetGamePlayerId,
+        effectProvider: effectProvider,
+      );
+
+      if (!success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo lanzar el sabotaje')),
+        );
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 20),
@@ -36,7 +94,9 @@ class RaceTrackWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
+      child: PowerGestureWrapper(
+        onSwipeUp: handleSwipeAttack,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Cabecera
@@ -162,6 +222,7 @@ class RaceTrackWidget extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

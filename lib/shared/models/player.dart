@@ -4,6 +4,7 @@ class Player {
   final String email;
   final String avatarUrl;
   final String role; // 'admin' or 'user'
+  String? gamePlayerId; // ID de inscripción al evento (game_players.id)
   int level;
   int experience;
   int totalXP;
@@ -33,6 +34,7 @@ class Player {
     this.eventsCompleted,
     this.lives = 3,
     Map<String, dynamic>? stats,
+    this.gamePlayerId,
   })  : inventory = inventory ?? [],
         stats = stats ??
             {
@@ -62,12 +64,13 @@ class Player {
         'strength': json['stat_strength'] ?? 0,
         'intelligence': json['stat_intelligence'] ?? 0,
       },
-      eventsCompleted: json['events_completed'] != null 
-          ? List<String>.from(json['events_completed']) 
+        eventsCompleted: json['events_completed'] != null
+          ? List<String>.from(json['events_completed'])
           : [],
-      inventory: json['inventory'] != null 
-          ? List<String>.from(json['inventory']) 
+        inventory: json['inventory'] != null
+          ? List<String>.from(json['inventory'])
           : [],
+        gamePlayerId: json['player_id'] ?? json['game_player_id'],
     );
   }
 
