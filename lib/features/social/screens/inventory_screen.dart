@@ -209,7 +209,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     // Lista de IDs considerados ofensivos/sabotaje
     // Lo ideal es mover esto a una propiedad `isOffensive` en tu modelo PowerItem
-    final offensiveItems = ['freeze', 'black_screen', 'slow_motion', 'time_penalty'];
+    final offensiveItems = ['freeze', 'black_screen', 'life_steal'];
     final isOffensive = offensiveItems.contains(item.id);
 
     if (isOffensive) {

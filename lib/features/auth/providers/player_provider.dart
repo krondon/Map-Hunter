@@ -14,6 +14,8 @@ class PlayerProvider extends ChangeNotifier {
   // Estructura: { eventId: { powerId: quantity } }
   final Map<String, Map<String, int>> _eventInventories = {};
 
+  bool _isProcessing = false;
+
   Player? get currentPlayer => _currentPlayer;
   List<Player> get allPlayers => _allPlayers;
   bool get isLoggedIn => _currentPlayer != null;
@@ -257,25 +259,26 @@ Future<void> fetchInventory(String userId, String eventId) async {
     bool allowReturnForward = true,
   }) async {
     if (_currentPlayer == null) return false;
+    if (_isProcessing) return false;
+    _isProcessing = true;
 
     final casterGamePlayerId = _currentPlayer!.gamePlayerId;
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
       debugPrint('usePower abortado: caster gamePlayerId nulo');
+      _isProcessing = false;
       return false;
     }
 
     try {
       bool success = false;
 
-      if (powerSlug == 'cure_all') {
-        final response = await _supabase.rpc('clear_active_powers', params: {
-          'p_target_id': targetGamePlayerId,
-        });
-        success = response != null;
-        if (success) {
-          effectProvider.clearActiveEffect();
+      if (powerSlug == 'return') {
+        // Persistencia (Point C): descontar inmediatamente en player_powers.
+        final paid = await _decrementPowerBySlug('return', casterGamePlayerId);
+        if (!paid) {
+          debugPrint('usePower(return): sin cantidad disponible.');
+          return false;
         }
-      } else if (powerSlug == 'return') {
         // Armar devolución para el próximo ataque entrante
         success = true;
         effectProvider.armReturn();
@@ -295,13 +298,7 @@ Future<void> fetchInventory(String userId, String eventId) async {
 
       if (success) {
         // Hooks de front inmediato
-        if (powerSlug == 'time_penalty' && gameProvider != null) {
-          gameProvider.applyTimePenaltyToPlayer(targetGamePlayerId);
-        }
-        if (powerSlug == 'hint' && gameProvider != null && targetGamePlayerId == casterGamePlayerId) {
-          gameProvider.applyHintForCurrentClue();
-        }
-        if (powerSlug == 'shield' || powerSlug == 'shield_pro') {
+        if (powerSlug == 'shield') {
           effectProvider.setShielded(true, sourceSlug: powerSlug);
         }
 
@@ -310,6 +307,44 @@ Future<void> fetchInventory(String userId, String eventId) async {
       return success;
     } catch (e) {
       debugPrint('Error usando poder: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+    }
+  }
+
+  Future<bool> _decrementPowerBySlug(String powerSlug, String gamePlayerId) async {
+    try {
+      final powerRes = await _supabase
+          .from('powers')
+          .select('id')
+          .eq('slug', powerSlug)
+          .maybeSingle();
+
+      if (powerRes == null || powerRes['id'] == null) return false;
+      final String powerId = powerRes['id'];
+
+      final existing = await _supabase
+          .from('player_powers')
+          .select('id, quantity')
+          .eq('game_player_id', gamePlayerId)
+          .eq('power_id', powerId)
+          .maybeSingle();
+
+      if (existing == null) return false;
+      final int currentQty = (existing['quantity'] as num?)?.toInt() ?? 0;
+      if (currentQty <= 0) return false;
+
+      final updated = await _supabase
+          .from('player_powers')
+          .update({'quantity': currentQty - 1})
+          .eq('id', existing['id'])
+          .eq('quantity', currentQty)
+          .select();
+
+      return updated.isNotEmpty;
+    } catch (e) {
+      debugPrint('_decrementPowerBySlug error: $e');
       return false;
     }
   }
@@ -630,7 +665,7 @@ Future<void> syncRealInventory({PowerEffectProvider? effectProvider}) async {
   }
 
   Future<void> debugAddAllPowers() async {
-    final slugs = ['freeze', 'black_screen', 'slow_motion', 'shield', 'hint', 'extra_life'];
+    final slugs = ['freeze', 'black_screen', 'life_steal', 'return', 'shield', 'invisibility', 'extra_life'];
     for (var slug in slugs) {
       await debugAddPower(slug);
     }

@@ -185,15 +185,6 @@ class _CluesScreenState extends State<CluesScreen> {
             
             // Header
             const ProgressHeader(),
-
-            // Pista extra del poder Hint
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-              child: _HintBanner(
-                isVisible: gameProvider.hintActive && (gameProvider.activeHintText?.isNotEmpty ?? false),
-                text: gameProvider.activeHintText ?? '',
-              ),
-            ),
             
             // Mini Mapa de Carrera (Mario Kart Style)
             Padding(
@@ -435,70 +426,4 @@ class _CluesScreenState extends State<CluesScreen> {
     _handleClueAction(context, clue.id, clue.type.toString().split('.').last);
   }
 
-}
-
-class _HintBanner extends StatelessWidget {
-  final bool isVisible;
-  final String text;
-
-  const _HintBanner({required this.isVisible, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 250),
-      child: isVisible
-          ? AnimatedContainer(
-              key: const ValueKey('active_hint'),
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFE7A3), Color(0xFFFFF4D9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('💡', style: TextStyle(fontSize: 22)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pista extra',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.brown.shade800,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          text,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.brown.shade900,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : const SizedBox.shrink(),
-    );
-  }
 }

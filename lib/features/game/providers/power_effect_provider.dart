@@ -16,7 +16,12 @@ class PowerEffectProvider extends ChangeNotifier {
   
   // Guardamos el slug del poder activo (ej: 'black_screen', 'freeze')
   String? _activePowerSlug;
+  String? _activeEffectId;
+  String? _activeEffectCasterId;
+
   String? get activePowerSlug => _activePowerSlug;
+  String? get activeEffectId => _activeEffectId;
+  String? get activeEffectCasterId => _activeEffectCasterId;
   DefenseAction? get lastDefenseAction => _lastDefenseAction;
 
   void setShielded(bool value, {String? sourceSlug}) {
@@ -56,14 +61,14 @@ class PowerEffectProvider extends ChangeNotifier {
         .from('active_powers')
         .stream(primaryKey: ['id'])
         .eq('target_id', myGamePlayerId)
-        .listen((List<Map<String, dynamic>> data) {
-          _processEffects(data);
+        .listen((List<Map<String, dynamic>> data) async {
+          await _processEffects(data);
         }, onError: (e) {
           debugPrint('PowerEffectProvider stream error: $e');
         });
   }
 
-  void _processEffects(List<Map<String, dynamic>> data) {
+  Future<void> _processEffects(List<Map<String, dynamic>> data) async {
     _expiryTimer?.cancel(); // Limpiar temporizadores previos
 
     if (data.isEmpty) {
@@ -97,6 +102,58 @@ class PowerEffectProvider extends ChangeNotifier {
     // Tomamos el efecto más reciente
     final latestEffect = validEffects.last;
     final latestSlug = latestEffect['power_slug'];
+    _activeEffectId = latestEffect['id']?.toString();
+    _activeEffectCasterId = latestEffect['caster_id']?.toString();
+
+    // Devolución (return): si está armada y llega un ataque ofensivo,
+    // reflejamos el efecto al atacante y NO aplicamos el overlay al defensor.
+    if (_returnArmed) {
+      final casterId = latestEffect['caster_id']?.toString();
+      final slugToReturn = latestSlug?.toString();
+      final bool isOffensive = slugToReturn == 'black_screen' ||
+          slugToReturn == 'freeze' ||
+          slugToReturn == 'life_steal';
+
+      if (casterId != null && slugToReturn != null && isOffensive) {
+        _returnArmed = false;
+        _registerDefenseAction(DefenseAction.returned);
+
+        // 1) Borrar el efecto entrante para que no siga impactando al defensor.
+        final incomingId = latestEffect['id'];
+        if (incomingId != null) {
+          try {
+            await _supabase.from('active_powers').delete().eq('id', incomingId);
+          } catch (e) {
+            debugPrint('PowerEffectProvider: no se pudo borrar efecto entrante: $e');
+          }
+        }
+
+        // 2) Insertar efecto reflejado al atacante (sin consumir inventario extra).
+        try {
+          final expiresAt = (latestEffect['expires_at']?.toString()) ??
+              DateTime.now().toUtc().add(const Duration(seconds: 6)).toIso8601String();
+          final payload = <String, dynamic>{
+            'target_id': casterId,
+            'caster_id': _listeningForId,
+            'power_slug': slugToReturn,
+            'expires_at': expiresAt,
+          };
+          if (latestEffect['event_id'] != null) {
+            payload['event_id'] = latestEffect['event_id'];
+          }
+          await _supabase.from('active_powers').insert(payload);
+        } catch (e) {
+          debugPrint('PowerEffectProvider: error reflejando efecto: $e');
+        }
+
+        // Asegurar que el defensor no muestre overlay del ataque entrante.
+        _activePowerSlug = null;
+        _activeEffectId = null;
+        _activeEffectCasterId = null;
+        notifyListeners();
+        return;
+      }
+    }
 
     if (_shieldActive) {
       _activePowerSlug = null;
@@ -125,6 +182,8 @@ class PowerEffectProvider extends ChangeNotifier {
     
     _expiryTimer = Timer(durationRemaining, () {
       _activePowerSlug = null;
+      _activeEffectId = null;
+      _activeEffectCasterId = null;
       notifyListeners();
     });
 
@@ -134,6 +193,8 @@ class PowerEffectProvider extends ChangeNotifier {
   void _clearEffect() {
     _expiryTimer?.cancel();
     _activePowerSlug = null;
+    _activeEffectId = null;
+    _activeEffectCasterId = null;
     notifyListeners();
   }
 
@@ -159,7 +220,7 @@ class PowerEffectProvider extends ChangeNotifier {
 
   bool _isShieldSlug(String? slug) {
     if (slug == null) return false;
-    return slug == 'shield' || slug == 'shield_pro';
+    return slug == 'shield';
   }
 
   @override

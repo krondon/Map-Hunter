@@ -1,13 +1,55 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../features/game/providers/power_effect_provider.dart';
-import '../../../features/game/widgets/effects/blind_effect.dart';
-import '../../../features/game/widgets/effects/freeze_effect.dart';
-import '../../../features/game/widgets/effects/slow_motion_effect.dart';
+import '../../features/game/providers/game_provider.dart';
+import '../../features/game/providers/power_effect_provider.dart';
+import '../../features/game/widgets/effects/blind_effect.dart';
+import '../../features/game/widgets/effects/freeze_effect.dart';
+import '../../features/game/widgets/effects/invisibility_effect.dart';
+import '../../features/game/widgets/effects/life_steal_effect.dart';
+import '../models/player.dart';
 
-class SabotageOverlay extends StatelessWidget {
+class SabotageOverlay extends StatefulWidget {
   final Widget child;
   const SabotageOverlay({super.key, required this.child});
+
+  @override
+  State<SabotageOverlay> createState() => _SabotageOverlayState();
+}
+
+class _SabotageOverlayState extends State<SabotageOverlay> {
+  String? _lifeStealBannerText;
+  Timer? _lifeStealBannerTimer;
+  String? _lastLifeStealEffectId;
+
+  @override
+  void dispose() {
+    _lifeStealBannerTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showLifeStealBanner(String message, {Duration duration = const Duration(seconds: 3)}) {
+    _lifeStealBannerTimer?.cancel();
+    setState(() {
+      _lifeStealBannerText = message;
+    });
+    _lifeStealBannerTimer = Timer(duration, () {
+      if (!mounted) return;
+      setState(() {
+        _lifeStealBannerText = null;
+      });
+    });
+  }
+
+  String _resolvePlayerNameFromLeaderboard(String? casterGamePlayerId) {
+    if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) return 'Un rival';
+    final gameProvider = context.read<GameProvider>();
+    final match = gameProvider.leaderboard.whereType<Player>().firstWhere(
+          (p) => p.gamePlayerId == casterGamePlayerId || p.id == casterGamePlayerId,
+          orElse: () => Player(id: '', name: 'Un rival', email: '', avatarUrl: ''),
+        );
+    return match.name.isNotEmpty ? match.name : 'Un rival';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,14 +57,64 @@ class SabotageOverlay extends StatelessWidget {
     final activeSlug = powerProvider.activePowerSlug;
     final defenseAction = powerProvider.lastDefenseAction;
 
+    // Banner life_steal (Point B): sólo banner, no bloquea interacción.
+    if (activeSlug == 'life_steal') {
+      final effectId = powerProvider.activeEffectId;
+      if (effectId != null && effectId != _lastLifeStealEffectId) {
+        _lastLifeStealEffectId = effectId;
+        final attackerName = _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
+        });
+      }
+    }
+
     return Stack(
       children: [
-        child, // El juego base siempre debajo
+        widget.child, // El juego base siempre debajo
         
         // Capas de sabotaje (se activan según el slug recibido de la DB)
         if (activeSlug == 'black_screen') const BlindEffect(),
         if (activeSlug == 'freeze') const FreezeEffect(),
-        if (activeSlug == 'slow_motion') const SlowMotionEffect(),
+        if (activeSlug == 'life_steal') LifeStealEffect(casterName: _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId)),
+        if (activeSlug == 'invisibility') const InvisibilityEffect(),
+
+        if (_lifeStealBannerText != null)
+          Positioned(
+            top: 12,
+            left: 12,
+            right: 12,
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  key: ValueKey(_lifeStealBannerText),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade900.withOpacity(0.92),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _lifeStealBannerText!,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
 
         // Feedback rápido para el atacante cuando su acción fue bloqueada o devuelta.
         _DefenseFeedbackToast(action: defenseAction),

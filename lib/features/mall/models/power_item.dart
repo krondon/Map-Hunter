@@ -7,9 +7,8 @@ enum PowerType {
   blind, // Específico para pantalla negra
   freeze, // Específico para congelar
   shield, // Específico para escudo
-  timePenalty, // Específico para penalización
-  hint, // Específico para pista
-  speedBoost // Específico para velocidad
+  lifeSteal, // Específico para robar vida
+  stealth, // Específico para invisibilidad
 }
 
 class PowerItem {
@@ -36,7 +35,7 @@ class PowerItem {
   // ESTA ES LA LISTA MAESTRA QUE DEBE COINCIDIR CON LA BASE DE DATOS
   static List<PowerItem> getShopItems() {
     return [
-      // Catálogo oficial (9 poderes) alineado con Supabase
+      // Catálogo oficial (6 poderes) alineado con Supabase
       const PowerItem(
         id: 'black_screen',
         name: 'Pantalla Negra',
@@ -47,62 +46,13 @@ class PowerItem {
         color: Colors.black87,
         durationMinutes: 0,
       ),
-      const PowerItem(
-        id: 'slow_motion',
-        name: 'Cámara Lenta',
-        description: 'Reduce la velocidad del rival por 120s',
-        type: PowerType.debuff,
-        cost: 80,
-        icon: '🐢',
-        color: Colors.orange,
-        durationMinutes: 2,
-      ),
-      const PowerItem(
-        id: 'time_penalty',
-        name: 'Penalización',
-        description: 'Resta 3 minutos de progreso',
-        type: PowerType.timePenalty,
-        cost: 60,
-        icon: '⏱️',
-        color: Colors.redAccent,
-        durationMinutes: 0,
-      ),
-      const PowerItem(
-        id: 'hint',
-        name: 'Pista Extra',
-        description: 'Revela información clave',
-        type: PowerType.hint,
-        cost: 30,
-        icon: '💡',
-        color: Colors.amber,
-        durationMinutes: 0,
-      ),
-      const PowerItem(
-        id: 'shield_pro',
-        name: 'Escudo Pro',
-        description: 'Bloquea sabotajes por 600s',
-        type: PowerType.shield,
-        cost: 100,
-        icon: '🛡️',
-        color: Colors.deepPurple,
-        durationMinutes: 10,
-      ),
-      const PowerItem(
-        id: 'cure_all',
-        name: 'Cura Total',
-        description: 'Limpia todos los efectos activos',
-        type: PowerType.buff,
-        cost: 40,
-        icon: '💊',
-        color: Colors.teal,
-        durationMinutes: 0,
-      ),
+      
       const PowerItem(
         id: 'return',
         name: 'Devolución',
         description: 'Devuelve el ataque al origen',
         type: PowerType.utility,
-        cost: 60,
+        cost: 90,
         icon: '↩️',
         color: Colors.purple,
         durationMinutes: 0,
@@ -115,17 +65,37 @@ class PowerItem {
         cost: 50,
         icon: '❄️',
         color: Colors.cyan,
-        durationMinutes: 2,
+        durationMinutes: 1,
       ),
       const PowerItem(
         id: 'shield',
         name: 'Escudo',
         description: 'Bloquea sabotajes por 300s',
         type: PowerType.shield,
-        cost: 75,
+        cost: 150,
         icon: '🛡️',
         color: Colors.indigo,
-        durationMinutes: 5,
+        durationMinutes: 2,
+      ),
+      const PowerItem(
+        id: 'life_steal',
+        name: 'Robo de Vida',
+        description: 'Roba una vida a un rival',
+        type: PowerType.lifeSteal,
+        cost: 130,
+        icon: '🧛',
+        color: Colors.redAccent,
+        durationMinutes: 0,
+      ),
+      const PowerItem(
+        id: 'invisibility',
+        name: 'Invisibilidad',
+        description: 'Te vuelve invisible por 45s',
+        type: PowerType.stealth,
+        cost: 100,
+        icon: '👻',
+        color: Colors.grey,
+        durationMinutes: 0,
       ),
     ];
   }

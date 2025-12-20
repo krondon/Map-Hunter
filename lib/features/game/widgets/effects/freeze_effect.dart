@@ -5,8 +5,9 @@ class FreezeEffect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: true, // Bloquea todos los toques en la pantalla
+    // AbsorbPointer consume los eventos y evita que "pasen" al mapa/juego.
+    return AbsorbPointer(
+      absorbing: true,
       child: Container(
         // Color azul traslúcido tipo hielo
         color: Colors.blue.withOpacity(0.35),
