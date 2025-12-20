@@ -7,6 +7,7 @@ import '../../features/game/widgets/effects/blind_effect.dart';
 import '../../features/game/widgets/effects/freeze_effect.dart';
 import '../../features/game/widgets/effects/invisibility_effect.dart';
 import '../../features/game/widgets/effects/life_steal_effect.dart';
+import '../../features/game/widgets/effects/return_success_effect.dart';
 import '../models/player.dart';
 
 class SabotageOverlay extends StatefulWidget {
@@ -76,6 +77,8 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       }
     }
 
+    
+
     return Stack(
       children: [
         widget.child, // El juego base siempre debajo
@@ -90,6 +93,9 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         // Por ahora: invisibility NO debe hacer nada.
         // blur_screen reutiliza el efecto visual de invisibility para los rivales.
         if (activeSlug == 'blur_screen') const InvisibilityEffect(),
+
+        if (activeSlug == 'return' && powerProvider.activeEffectCasterId != powerProvider.listeningForId)
+        const ReturnSuccessEffect(),
 
         if (_lifeStealBannerText != null)
           Positioned(

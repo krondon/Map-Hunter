@@ -8,6 +8,7 @@ class PowerEffectProvider extends ChangeNotifier {
   Timer? _defenseFeedbackTimer;
   bool _shieldActive = false;
   String? _listeningForId;
+  String? get listeningForId => _listeningForId;
   bool _returnArmed = false;
   Future<bool> Function(String powerSlug, String targetGamePlayerId)?
       _returnHandler;
@@ -17,6 +18,8 @@ class PowerEffectProvider extends ChangeNotifier {
   DateTime? _lastDefenseActionAt;
 
   String? _lastLifeStealHandledEffectId;
+  String? _returnedByPlayerName;
+  String? get returnedByPlayerName => _returnedByPlayerName;
 
   final Map<String, String> _powerIdToSlugCache = {};
 
@@ -329,6 +332,16 @@ class PowerEffectProvider extends ChangeNotifier {
     if (slug == null) return false;
     return slug == 'shield';
   }
+
+// 3. AÑADE ESTE MÉTODO AL FINAL DE LA CLASE (antes del dispose)
+void notifyPowerReturned(String byPlayerName) {
+  _returnedByPlayerName = byPlayerName;
+  
+  // Esto activa el toast visual que ya tienes configurado
+  _registerDefenseAction(DefenseAction.returned); 
+  
+  notifyListeners();
+}
 
   @override
   void dispose() {
