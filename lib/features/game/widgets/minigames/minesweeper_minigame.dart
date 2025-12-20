@@ -23,9 +23,9 @@ class MinesweeperMinigame extends StatefulWidget {
 
 class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
   // Configuración Difficulty: Easy (4x4)
-  static const int rows = 4;
-  static const int cols = 4;
-  static const int totalMines = 3;
+  static const int rows = 6;
+  static const int cols = 6;
+  static const int totalMines = 7;
 
   late List<List<Cell>> _grid;
   bool _isFirstMove = true;
@@ -87,8 +87,8 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
       int r = random.nextInt(rows);
       int c = random.nextInt(cols);
 
-      // Evitar colocar mina en la primera celda pulsada o sus vecinas (para asegurar apertura)
-      if ((r - safeRow).abs() <= 1 && (c - safeCol).abs() <= 1) continue;
+      // Reducir el radio de seguridad para que abra menos bloques al iniciar (~5 bloques en lugar de 9)
+      if ((r - safeRow).abs() + (c - safeCol).abs() <= 1) continue;
       
       if (!_grid[r][c].isMine) {
         _grid[r][c].isMine = true;
@@ -384,7 +384,7 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
                   border: Border.all(color: Colors.grey[700]!, width: 4),
               ),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 280, maxHeight: 280),
+                constraints: const BoxConstraints(maxWidth: 320, maxHeight: 320),
                 child: AspectRatio(
                   aspectRatio: 1, // Square grid
                   child: GridView.builder(
@@ -427,16 +427,19 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
           // Revelado
           if (cell.isMine) {
              bgColor = cell.isExploded ? Colors.red : Colors.grey[400]!;
-             child = const Icon(Icons.dangerous, color: Colors.black, size: 28);
+             child = const Icon(Icons.dangerous, color: Colors.black, size: 24);
           } else {
-             bgColor = Colors.grey[300]!;
+             bgColor = Colors.grey[200]!;
              if (cell.adjacentMines > 0) {
                  child = Text(
                      '${cell.adjacentMines}',
                      style: TextStyle(
-                         fontWeight: FontWeight.bold,
-                         fontSize: 14,
+                         fontWeight: FontWeight.w900,
+                         fontSize: 20,
                          color: _getNumberColor(cell.adjacentMines),
+                         shadows: [
+                            Shadow(color: Colors.black.withOpacity(0.2), offset: const Offset(1, 1), blurRadius: 1)
+                         ]
                      ),
                  );
              }

@@ -20,6 +20,7 @@ import '../widgets/minigames/flags_minigame.dart';
 import '../widgets/minigames/minesweeper_minigame.dart';
 import '../widgets/minigames/snake_minigame.dart';
 import '../widgets/minigames/block_fill_minigame.dart';
+import '../widgets/minigame_countdown_overlay.dart';
 
 // --- Import del Servicio de Penalización ---
 import '../services/penalty_service.dart';
@@ -1122,9 +1123,44 @@ class FindDifferenceWrapper extends StatelessWidget {
 
 // --- SCAFFOLD COMPARTIDO ACTUALIZADO (Soporta onFinish para Rendición Legal) ---
 
+String _getMinigameInstruction(Clue clue) {
+  switch (clue.puzzleType) {
+    case PuzzleType.slidingPuzzle:
+      return "Ordena los números (1 al 8)";
+    case PuzzleType.ticTacToe:
+      return "Gana a la Vieja";
+    case PuzzleType.hangman:
+      return "Adivina la palabra";
+    case PuzzleType.tetris:
+      return "Completa las líneas";
+    case PuzzleType.findDifference:
+      return "Encuentra el icono extra y toca ese cuadro";
+    case PuzzleType.flags:
+      return "Adivina las banderas";
+    case PuzzleType.minesweeper:
+      return "Limpia las minas";
+    case PuzzleType.snake:
+      return "Maneja la culebrita";
+    case PuzzleType.blockFill:
+      return "Rellena los bloques";
+    default:
+      // Si es un tipo estándar, verificamos por el título o descripción
+      if (clue.riddleQuestion?.contains("código") ?? false) return "Descifra el código";
+      if (clue.minigameUrl != null && clue.minigameUrl!.isNotEmpty) return "Adivina la imagen";
+      return "¡Resuelve el desafío!";
+  }
+}
+
 Widget _buildMinigameScaffold(
     BuildContext context, Clue clue, VoidCallback onFinish, Widget child) {
   final player = Provider.of<PlayerProvider>(context).currentPlayer;
+
+  // Envolvemos el minijuego en el countdown
+  final instruction = _getMinigameInstruction(clue);
+  final wrappedChild = MinigameCountdownOverlay(
+    instruction: instruction,
+    child: child,
+  );
 
   return SabotageOverlay(
     child: Scaffold(
@@ -1204,7 +1240,7 @@ Widget _buildMinigameScaffold(
                       Expanded(
                         child: IgnorePointer(
                           ignoring: player != null && player.isFrozen,
-                          child: child,
+                          child: wrappedChild, // Usamos el hijo con countdown
                         ),
                       ),
                     ],

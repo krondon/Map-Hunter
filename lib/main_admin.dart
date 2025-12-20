@@ -16,28 +16,52 @@ import 'features/admin/screens/auth_save.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  String? envError;
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    envError = e.toString();
+    debugPrint("Warning: Could not load .env file: $e");
+  }
 
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-  );
+  try {
+    final url = dotenv.env['SUPABASE_URL'] ?? '';
+    final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+    
+    if (url.isEmpty || anonKey.isEmpty) {
+      throw Exception("Supabase URL or Anon Key is missing in .env file. Error: $envError");
+    }
+
+    await Supabase.initialize(
+      url: url,
+      anonKey: anonKey,
+    );
+  } catch (e) {
+    debugPrint("Error initializing Supabase: $e");
+    runApp(MaterialApp(
+      theme: AppTheme.darkTheme,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              "Error al inicializar la app:\n$e",
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red, fontSize: 18),
+            ),
+          ),
+        ),
+      ),
+    ));
+    return;
+  }
   
-  // Configuración de orientación para móvil (útil también para admin en móvil)
+  // Configuración de orientación para móvil
   if (!kIsWeb) {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Color(0xFF0A0E27),
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-    );
   }
   
   runApp(const TreasureHuntAdminApp());

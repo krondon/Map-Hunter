@@ -46,7 +46,8 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   late AudioPlayer _audioPlayer;
   bool _isMusicPlaying = false;
   // Usando un link de Archive.org que es muy persistente
-  static const String _tetrisMusicUrl = "https://archive.org/download/TetrisThemeA/Tetris%20Theme%20A.mp3";
+  // Usando un link más directo y robusto de GitHub para evitar problemas de carga
+  static const String _tetrisMusicUrl = "https://raw.githubusercontent.com/frodoben85/flutter_tetris/master/assets/audio/tetris.mp3";
   
   // Próxima pieza
   int? _nextPieceIndex;
@@ -85,6 +86,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   }
 
   Future<void> _playMusic() async {
+    if (_isMusicPlaying) return;
     try {
       debugPrint("DEBUG: Intentando reproducir música de Tetris...");
       await _audioPlayer.play(UrlSource(_tetrisMusicUrl));
@@ -94,6 +96,13 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       debugPrint("DEBUG: Música iniciada correctamente.");
     } catch (e) {
       debugPrint("ERROR en _playMusic: $e");
+      // Intento con fallback si falla el principal
+      try {
+        await _audioPlayer.play(UrlSource("https://ia800504.us.archive.org/33/items/TetrisThemeA/Tetris%20Theme%20A.mp3"));
+        if (mounted) setState(() => _isMusicPlaying = true);
+      } catch (e2) {
+        debugPrint("ERROR en fallback music: $e2");
+      }
     }
   }
 
@@ -158,6 +167,11 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   }
 
   bool _isValidPosition(List<Point<int>> piece, Point<int> position) {
+    // Si la música no ha empezado, intentamos iniciarla en la primera interacción
+    if (!_isMusicPlaying) {
+      _playMusic();
+    }
+    
     for (var point in piece) {
       final x = position.x + point.x;
       final y = position.y + point.y;

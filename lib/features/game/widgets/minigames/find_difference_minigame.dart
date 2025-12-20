@@ -4,28 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../providers/game_provider.dart';
-
-// --- WRAPPER ---
-class FindDifferenceWrapper extends StatelessWidget {
-  final Clue clue;
-  final VoidCallback onFinish;
-  const FindDifferenceWrapper({super.key, required this.clue, required this.onFinish});
-
-  @override
-  Widget build(BuildContext context) {
-    return FindDifferenceMinigame(
-      clue: clue,
-      onSuccess: () {
-        Provider.of<GameProvider>(context, listen: false).completeCurrentClue("WIN", clueId: clue.id);
-        onFinish(); // Notificar salida legal
-      },
-    );
-  }
-}
-
-// --- MINIGAME LOGIC ---
+import '../../../../core/theme/app_theme.dart';
 
 class FindDifferenceMinigame extends StatefulWidget {
   final Clue clue;
@@ -42,29 +22,25 @@ class FindDifferenceMinigame extends StatefulWidget {
 }
 
 class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
-  // Configuración del juego
-  final int _numberOfDistractors = 40; // Cantidad de iconos de fondo
   final Random _random = Random();
   
-  // Estado del nivel
-  late IconData _targetIcon;
-  late Color _targetColor;
-  late Offset _targetPosition;
-  late bool _targetInTopImage; // Si true, el objetivo está arriba. Si false, abajo.
-  
-  // Distractores (comunes a ambas imágenes)
+  // Game Logic
   late List<_DistractorItem> _distractors;
+  late IconData _targetIcon;
+  late Offset _targetPosition;
+  late bool _targetInTopImage;
   
-  // Timer & Intentos Locales
+  // State
   Timer? _timer;
-  int _secondsRemaining = 60;
+  int _secondsRemaining = 40;
   bool _isGameOver = false;
-  int _localAttempts = 3; // Intentos dentro del nivel antes de perder vida real
+  int _localAttempts = 3;
 
   @override
   void initState() {
     super.initState();
-    _startNewLevel();
+    _generateGame();
+    _startTimer();
   }
 
   @override
@@ -73,152 +49,82 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
     super.dispose();
   }
 
-  void _startNewLevel() {
-    setState(() {
-      _secondsRemaining = 60;
-      _isGameOver = false;
-      _localAttempts = 3; // Reiniciar intentos locales
-      
-      // 1. Definir objetivo
-      _targetIcon = _getRandomIcon();
-      _targetColor = AppTheme.accentGold; 
-      _targetInTopImage = _random.nextBool(); // Aleatorio en cuál aparece
+  void _generateGame() {
+    final icons = [
+      Icons.star_outline, Icons.ac_unit, Icons.wb_sunny_outlined, Icons.pets_outlined,
+      Icons.favorite_outline, Icons.flash_on_outlined, Icons.filter_vintage_outlined,
+      Icons.camera_outlined, Icons.brush_outlined, Icons.anchor_outlined, 
+      Icons.eco_outlined, Icons.lightbulb_outline, Icons.extension_outlined,
+    ];
 
-      // 2. Generar posiciones
-      // Generamos distractores fijos para ambas imágenes
-      _distractors = List.generate(_numberOfDistractors, (index) {
-        return _DistractorItem(
-          icon: _getRandomIcon(),
-          color: Colors.white.withOpacity(0.3 + _random.nextDouble() * 0.4),
-          position: Offset(_random.nextDouble(), _random.nextDouble()),
-          size: 20 + _random.nextDouble() * 20,
-          rotation: _random.nextDouble() * 2 * pi,
-        );
-      });
-
-      // Posición del objetivo (asegurar que no esté muy cerca de bordes)
-      _targetPosition = Offset(
-        0.1 + _random.nextDouble() * 0.8,
-        0.1 + _random.nextDouble() * 0.8,
+    // Pick 30 random distractors to populate the field
+    icons.shuffle();
+    _distractors = List.generate(30, (index) {
+      return _DistractorItem(
+        icon: icons[index % icons.length],
+        position: Offset(0.05 + _random.nextDouble() * 0.9, 0.05 + _random.nextDouble() * 0.9),
+        rotation: _random.nextDouble() * pi * 2,
+        size: 15.0 + _random.nextDouble() * 10,
       );
-      
-      _startTimer();
     });
+
+    // Pick a random target icon that looks like the distractors
+    _targetIcon = icons[_random.nextInt(icons.length)];
+    _targetPosition = Offset(0.1 + _random.nextDouble() * 0.8, 0.1 + _random.nextDouble() * 0.8);
+    _targetInTopImage = _random.nextBool();
+    
+    setState(() {});
   }
 
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-        } else {
-          _handleGameOver("¡Se acabó el tiempo!", timeOut: true);
-        }
-      });
+      if (_secondsRemaining > 0) {
+        setState(() => _secondsRemaining--);
+      } else {
+        _handleFailure("Tiempo agotado");
+      }
     });
   }
 
-  void _handleTap(bool isTopImage, TapUpDetails details, BoxConstraints constraints) {
+  void _handleTap(bool isTop) {
     if (_isGameOver) return;
 
-    // Verificar si tocó en la imagen correcta (donde está el objetivo)
-    if (isTopImage != _targetInTopImage) {
-        _handleMistake();
-        return;
-    }
-
-    // Convertir coordenadas relativas
-    final double dx = details.localPosition.dx / constraints.maxWidth;
-    final double dy = details.localPosition.dy / constraints.maxHeight;
-    final Offset tapPos = Offset(dx, dy);
-    
-    // Distancia simple
-    final double distance = (tapPos - _targetPosition).distance;
-    
-    // Umbral de acierto (ajustar según dificultad)
-    if (distance < 0.1) { // ~10% de la pantalla
-      _handleWin();
+    if (isTop == _targetInTopImage) {
+      _winGame();
     } else {
-      _handleMistake();
+      setState(() {
+        _localAttempts--;
+      });
+      if (_localAttempts <= 0) {
+        _handleFailure("Demasiados errores");
+      }
     }
   }
 
-  void _handleWin() {
+  void _winGame() {
     _timer?.cancel();
+    _isGameOver = true;
     widget.onSuccess();
   }
 
-  void _handleMistake() {
-    setState(() {
-      _localAttempts--;
-    });
-
-    if (_localAttempts <= 0) {
-      // Agotó intentos locales -> Pierde vida GLOBAL
-      _loseGlobalLife("¡Agotaste tus intentos!");
-    } else {
-      // Solo feedback visual local
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("¡Ups! Ese no es. Te quedan $_localAttempts intentos."),
-          backgroundColor: AppTheme.warningOrange,
-          duration: const Duration(milliseconds: 800),
-        ),
-      );
-    }
-  }
-
-  // Lógica centralizada para perder vida real en Supabase
-  void _loseGlobalLife(String reason, {bool timeOut = false}) {
+  void _handleFailure(String reason) {
     _timer?.cancel();
-    setState(() => _isGameOver = true);
-
+    _isGameOver = true;
+    
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     
     if (playerProvider.currentPlayer != null) {
-       gameProvider.loseLife(playerProvider.currentPlayer!.id).then((_) {
-          if (!mounted) return;
-          
-          if (gameProvider.lives <= 0) {
-             _handleGameOver("¡Te has quedado sin vidas globales!");
-          } else {
-             _showTryAgainDialog(reason); 
-          }
-       });
+      gameProvider.loseLife(playerProvider.currentPlayer!.id).then((_) {
+        if (!mounted) return;
+        if (gameProvider.lives <= 0) {
+          _showGameOverDialog();
+        } else {
+          _showTryAgainDialog(reason);
+        }
+      });
     }
-  }
-
-  void _handleGameOver(String reason, {bool timeOut = false}) {
-    _timer?.cancel();
-    setState(() => _isGameOver = true);
-    
-    // Si fue por tiempo, también debe restar vida global
-    if (timeOut) {
-       _loseGlobalLife(reason);
-       return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text("GAME OVER", style: TextStyle(color: AppTheme.dangerRed)),
-        content: Text(reason, style: const TextStyle(color: Colors.white)),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-               Navigator.pop(context); // Dialog
-               Navigator.pop(context); // Screen
-            },
-            child: const Text("Salir"),
-          )
-        ],
-      ),
-    );
   }
 
   void _showTryAgainDialog(String reason) {
@@ -226,206 +132,160 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text("¡Fallaste!", style: TextStyle(color: AppTheme.dangerRed)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(reason, style: const TextStyle(color: Colors.white)),
-            const SizedBox(height: 10),
-            const Text("Has perdido 1 vida ❤️", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text("INTENTO FALLIDO", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Text(reason, style: const TextStyle(color: Colors.white70)),
         actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentGold),
-            onPressed: () {
-              Navigator.pop(context); 
-              _startNewLevel();
-            },
-            child: const Text("Reintentar", style: TextStyle(color: Colors.black)),
-          ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Dialog
-              Navigator.pop(context); // Screen
+              Navigator.pop(context);
+              setState(() {
+                _secondsRemaining = 40;
+                _localAttempts = 3;
+                _isGameOver = false;
+                _generateGame();
+                _startTimer();
+              });
             },
-            child: const Text("Salir"),
+            child: const Text("REINTENTAR", style: TextStyle(color: AppTheme.accentGold)),
           ),
         ],
       ),
     );
   }
 
-  IconData _getRandomIcon() {
-    final icons = [
-      Icons.star, Icons.ac_unit, Icons.access_alarm, Icons.directions_bike,
-      Icons.flight, Icons.music_note, Icons.wb_sunny, Icons.pets,
-      Icons.language, Icons.cake, Icons.emoji_events, Icons.extension,
-      Icons.face, Icons.favorite, Icons.fingerprint, Icons.fire_extinguisher,
-      Icons.flash_on, Icons.filter_vintage, Icons.camera_alt, Icons.brush,
-    ];
-    return icons[_random.nextInt(icons.length)];
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black,
+        title: const Text("GAME OVER", style: TextStyle(color: Colors.red)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+            child: const Text("SALIR", style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final minutes = (_secondsRemaining / 60).floor().toString().padLeft(2, '0');
-    final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
-
-    return Column(
-      children: [
-        // --- HEADER INFORMATIVO ---
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black45,
-            border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
-          ),
-          child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        children: [
+          // Header Minimalista
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Objetivo
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   const Text("BUSCA:", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                   const SizedBox(width: 8),
-                   Container(
-                     padding: const EdgeInsets.all(4),
-                     decoration: BoxDecoration(
-                       color: AppTheme.accentGold.withOpacity(0.2),
-                       shape: BoxShape.circle,
-                       border: Border.all(color: AppTheme.accentGold)
-                     ),
-                     child: Icon(_targetIcon, color: AppTheme.accentGold, size: 24),
-                   ),
+                  const Text("ANOMALÍA DETECTADA", style: TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold)),
+                  Text("Encuentra el icono que sobra y toca ese cuadro", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11)),
                 ],
               ),
-              
-              // Tiempo central
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white24)
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white10),
                 ),
                 child: Text(
-                  "$minutes:$seconds",
-                  style: TextStyle(
-                    color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace'
-                  ),
+                  "00:$_secondsRemaining",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                 ),
               ),
+            ],
+          ),
+          
+          const SizedBox(height: 30),
 
-              // Intentos Locales (Visual)
-              Row(
-                children: List.generate(3, (index) => Icon(
-                  index < _localAttempts ? Icons.favorite : Icons.favorite_border,
-                  color: _localAttempts <= 1 ? AppTheme.dangerRed : AppTheme.secondaryPink,
-                  size: 18,
-                )),
+          // Paneles compactos
+          Expanded(
+            child: Column(
+              children: [
+                _buildCompactPanel(isTop: true),
+                const SizedBox(height: 16),
+                _buildCompactPanel(isTop: false),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+          
+          // Intentos sutiles
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (index) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: index < _localAttempts ? AppTheme.accentGold : Colors.white10,
+              ),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactPanel({required bool isTop}) {
+    bool hasTarget = isTop == _targetInTopImage;
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _handleTap(isTop),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Stack(
+            children: [
+              // Distractors
+              ..._distractors.map((d) => Positioned(
+                left: d.position.dx * (MediaQuery.of(context).size.width - 80),
+                top: d.position.dy * (MediaQuery.of(context).size.height * 0.2),
+                child: Opacity(
+                  opacity: 0.3,
+                  child: Transform.rotate(
+                    angle: d.rotation,
+                    child: Icon(d.icon, color: Colors.white, size: d.size),
+                  ),
+                ),
+              )),
+              
+              // Target (Now visually identical to distractors)
+              if (hasTarget)
+                Positioned(
+                  left: _targetPosition.dx * (MediaQuery.of(context).size.width - 80),
+                  top: _targetPosition.dy * (MediaQuery.of(context).size.height * 0.2),
+                  child: Opacity(
+                    opacity: 0.3,
+                    child: Icon(_targetIcon, color: Colors.white, size: 22),
+                  ),
+                ),
+                
+              // Label sutil
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Text(
+                  isTop ? "A" : "B",
+                  style: const TextStyle(color: Colors.white10, fontWeight: FontWeight.bold, fontSize: 10),
+                ),
               ),
             ],
           ),
         ),
-
-        // --- ÁREA DE JUEGO (SPLIT SCREEN) ---
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Column(
-                children: [
-                  // IMAGEN 1 (ARRIBA)
-                  Expanded(
-                    child: _buildGamePanel(
-                      context: context, 
-                      isTop: true, 
-                      showTarget: _targetInTopImage
-                    ),
-                  ),
-                  
-                  // SEPARADOR VISUAL
-                  Container(
-                    height: 4,
-                    width: double.infinity,
-                    color: AppTheme.accentGold,
-                    alignment: Alignment.center,
-                    child: const Text("VS", style: TextStyle(color: Colors.black, fontSize: 3, fontWeight: FontWeight.bold)), // Decorativo
-                  ),
-
-                  // IMAGEN 2 (ABAJO)
-                  Expanded(
-                    child: _buildGamePanel(
-                      context: context, 
-                      isTop: false, 
-                      showTarget: !_targetInTopImage
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGamePanel({required BuildContext context, required bool isTop, required bool showTarget}) {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF1E1E1E), 
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return GestureDetector(
-            onTapUp: (details) => _handleTap(isTop, details, constraints),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                 Positioned.fill(child: Container(color: const Color(0xFF1E1E1E))),
-
-                 // 1. Distractores (Idénticos en ambos paneles)
-                 ..._distractors.map((d) => Positioned(
-                   left: d.position.dx * constraints.maxWidth,
-                   top: d.position.dy * constraints.maxHeight,
-                   child: Transform.rotate(
-                     angle: d.rotation,
-                     child: Icon(
-                       d.icon,
-                       color: d.color,
-                       size: d.size,
-                     ),
-                   ),
-                 )),
-
-                 // 2. Objetivo (Solo si showTarget == true)
-                 if (showTarget)
-                   Positioned(
-                     left: _targetPosition.dx * constraints.maxWidth,
-                     top: _targetPosition.dy * constraints.maxHeight,
-                     child: Icon(
-                        _targetIcon,
-                        color: _targetColor,
-                        size: 32,
-                      ),
-                   ),
-                   
-                 // Indicador visual de qué panel es
-                 Positioned(
-                   top: 8,
-                   left: 8,
-                   child: Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                     color: Colors.black26,
-                     child: Text(isTop ? "IMG A" : "IMG B", style: const TextStyle(color: Colors.white24, fontSize: 10)),
-                   ),
-                 ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
@@ -433,16 +293,14 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
 
 class _DistractorItem {
   final IconData icon;
-  final Color color;
   final Offset position;
-  final double size;
   final double rotation;
+  final double size;
 
   _DistractorItem({
     required this.icon,
-    required this.color,
     required this.position,
-    required this.size,
     required this.rotation,
+    required this.size,
   });
 }
