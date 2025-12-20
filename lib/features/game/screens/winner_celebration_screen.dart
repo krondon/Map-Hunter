@@ -5,7 +5,6 @@ import 'dart:math';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../shared/models/player.dart';
 
 class WinnerCelebrationScreen extends StatefulWidget {
   final String eventId;
@@ -20,7 +19,8 @@ class WinnerCelebrationScreen extends StatefulWidget {
   });
 
   @override
-  State<WinnerCelebrationScreen> createState() => _WinnerCelebrationScreenState();
+  State<WinnerCelebrationScreen> createState() =>
+      _WinnerCelebrationScreenState();
 }
 
 class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
@@ -31,36 +31,39 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   void initState() {
     super.initState();
     _currentPosition = widget.playerPosition; // Initialize
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 3));
+
     // Start confetti for top 3 finishers (positive ranks only)
     if (_currentPosition >= 1 && _currentPosition <= 3) {
       _confettiController.play();
     }
-    
+
     // Load final leaderboard and update position if needed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
-      
+
       // Add listener to self-correct position
       gameProvider.addListener(_updatePositionFromLeaderboard);
-      
+
       gameProvider.fetchLeaderboard();
       // Try immediate update if data exists
       _updatePositionFromLeaderboard();
     });
   }
-  
+
   void _updatePositionFromLeaderboard() {
     if (!mounted) return;
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final currentPlayerId = playerProvider.currentPlayer?.id ?? '';
-    
+
     if (gameProvider.leaderboard.isNotEmpty) {
-      final index = gameProvider.leaderboard.indexWhere((p) => p.id == currentPlayerId);
-      final newPos = index >= 0 ? index + 1 : gameProvider.leaderboard.length + 1;
-      
+      final index =
+          gameProvider.leaderboard.indexWhere((p) => p.id == currentPlayerId);
+      final newPos =
+          index >= 0 ? index + 1 : gameProvider.leaderboard.length + 1;
+
       // Update if position changed or was 0 (unknown)
       if (newPos != _currentPosition && newPos > 0) {
         setState(() {
@@ -70,7 +73,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
         if (newPos >= 1 && newPos <= 3) {
           _confettiController.play();
         } else {
-             _confettiController.stop();
+          _confettiController.stop();
         }
       }
     }
@@ -80,9 +83,10 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   void dispose() {
     // Remove listener safely
     try {
-        Provider.of<GameProvider>(context, listen: false).removeListener(_updatePositionFromLeaderboard);
-    } catch(_) {}
-    
+      Provider.of<GameProvider>(context, listen: false)
+          .removeListener(_updatePositionFromLeaderboard);
+    } catch (_) {}
+
     _confettiController.dispose();
     super.dispose();
   }
@@ -247,7 +251,10 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                           style: TextStyle(color: Colors.white70),
                         )
                       else
-                        ...gameProvider.leaderboard.asMap().entries.map((entry) {
+                        ...gameProvider.leaderboard
+                            .asMap()
+                            .entries
+                            .map((entry) {
                           final index = entry.key;
                           final player = entry.value;
                           final position = index + 1;
@@ -262,7 +269,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                   : AppTheme.cardBg,
                               borderRadius: BorderRadius.circular(12),
                               border: isCurrentPlayer
-                                  ? Border.all(color: AppTheme.accentGold, width: 2)
+                                  ? Border.all(
+                                      color: AppTheme.accentGold, width: 2)
                                   : null,
                             ),
                             child: Row(
@@ -279,11 +287,14 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      position <= 3 ? _getMedalEmojiForRank(position) : '$position',
+                                      position <= 3
+                                          ? _getMedalEmojiForRank(position)
+                                          : '$position',
                                       style: TextStyle(
                                         fontSize: position <= 3 ? 20 : 16,
                                         fontWeight: FontWeight.bold,
-                                        color: position <= 3 ? null : Colors.white,
+                                        color:
+                                            position <= 3 ? null : Colors.white,
                                       ),
                                     ),
                                   ),
@@ -299,8 +310,11 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                       : null,
                                   child: player.avatarUrl.isEmpty
                                       ? Text(
-                                          player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                          player.name.isNotEmpty
+                                              ? player.name[0].toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold),
                                         )
                                       : null,
                                 ),
@@ -310,14 +324,17 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                 // Player name
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         player.name,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: isCurrentPlayer ? AppTheme.accentGold : Colors.white,
+                                          color: isCurrentPlayer
+                                              ? AppTheme.accentGold
+                                              : Colors.white,
                                         ),
                                       ),
                                       Text(
@@ -363,7 +380,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                         child: ElevatedButton.icon(
                           onPressed: () {
                             // Navigate to home and clear stack
-                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            Navigator.of(context)
+                                .popUntil((route) => route.isFirst);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.accentGold,

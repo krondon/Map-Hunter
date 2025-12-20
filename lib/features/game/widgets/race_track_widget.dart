@@ -8,9 +8,10 @@ import '../../auth/providers/player_provider.dart';
 import 'power_gesture_wrapper.dart';
 
 class RaceTrackWidget extends StatelessWidget {
-  final List<Player> leaderboard; // Esta lista DEBE venir de 'event_leaderboard' (donde totalXP = pistas completadas)
-  final String currentPlayerId;   // ID para identificarte
-  final int totalClues;           // Meta del evento (Total de pistas)
+  final List<Player>
+      leaderboard; // Esta lista DEBE venir de 'event_leaderboard' (donde totalXP = pistas completadas)
+  final String currentPlayerId; // ID para identificarte
+  final int totalClues; // Meta del evento (Total de pistas)
   final VoidCallback? onSurrender;
 
   const RaceTrackWidget({
@@ -30,6 +31,11 @@ class RaceTrackWidget extends StatelessWidget {
     // Lógica principal: Seleccionar quién aparece en la carrera basado ESTRICTAMENTE en progreso del evento
     final activeRacers = _selectRacersToShow();
 
+    // Mantener la lógica de progreso intacta. Si en el futuro se quiere
+    // representar efectos (p.ej. freeze) visualmente, este multiplicador
+    // puede ajustarse sin tocar el cálculo base de progreso del evento.
+    const double speedMultiplier = 1.0;
+
     void handleSwipeAttack() async {
       final me = playerProvider.currentPlayer;
       if (me == null) return;
@@ -42,7 +48,8 @@ class RaceTrackWidget extends StatelessWidget {
 
       if (selectedPowerSlug.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No tienes poderes ofensivos disponibles')),
+          const SnackBar(
+              content: Text('No tienes poderes ofensivos disponibles')),
         );
         return;
       }
@@ -54,14 +61,17 @@ class RaceTrackWidget extends StatelessWidget {
         return;
       }
 
-      final bool iAmLeader = leaderboard.isNotEmpty && leaderboard.first.id == currentPlayerId;
+      final bool iAmLeader =
+          leaderboard.isNotEmpty && leaderboard.first.id == currentPlayerId;
       final Player? target = iAmLeader
           ? (leaderboard.length > 1 ? leaderboard[1] : null)
           : leaderboard.first;
 
       final targetGamePlayerId = target?.gamePlayerId;
 
-      if (target == null || targetGamePlayerId == null || targetGamePlayerId.isEmpty) {
+      if (target == null ||
+          targetGamePlayerId == null ||
+          targetGamePlayerId.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se encontró un objetivo válido')),
         );
@@ -106,136 +116,152 @@ class RaceTrackWidget extends StatelessWidget {
       child: PowerGestureWrapper(
         onSwipeUp: handleSwipeAttack,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Cabecera
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                   Text(
-                    '🏁 CARRERA EN VIVO',
-                    style: TextStyle(
-                      color: AppTheme.accentGold,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  const _LiveIndicator(),
-                ],
-              ),
-              if (onSurrender != null)
-                GestureDetector(
-                  onTap: onSurrender,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.dangerRed.withOpacity(0.1),
-                      border: Border.all(color: AppTheme.dangerRed.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'RENDIRSE',
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cabecera
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '🏁 CARRERA EN VIVO',
                       style: TextStyle(
-                        color: AppTheme.dangerRed,
-                        fontSize: 10,
+                        color: AppTheme.accentGold,
                         fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
                     ),
-                  ),
+                    SizedBox(width: 8),
+                    const _LiveIndicator(),
+                  ],
                 ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          
-          // --- PISTA DE CARRERAS ---
-          SizedBox(
-            height: 90, 
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final double trackWidth = constraints.maxWidth;
-                
-                return Stack(
-                  alignment: Alignment.centerLeft,
-                  clipBehavior: Clip.none, 
-                  children: [
-                    // 1. Línea de carrera base
-                    Center(
-                      child: Container(
-                        height: 8,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[800],
-                          borderRadius: BorderRadius.circular(4),
-                          gradient: LinearGradient(
-                            colors: [Colors.grey[800]!, Colors.grey[700]!],
-                          ),
+                if (onSurrender != null)
+                  GestureDetector(
+                    onTap: onSurrender,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.dangerRed.withOpacity(0.1),
+                        border: Border.all(
+                            color: AppTheme.dangerRed.withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'RENDIRSE',
+                        style: TextStyle(
+                          color: AppTheme.dangerRed,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    
-                    // Marcas de distancia (start, 50%, finish)
-                    const Positioned(left: 0, top: 50, child: Text("START", style: TextStyle(fontSize: 8, color: Colors.white30))),
-                    const Positioned(right: 0, top: 50, child: Text("META", style: TextStyle(fontSize: 8, color: Colors.white30))),
-
-                    // Bandera de Meta
-                    const Positioned(
-                      right: -8,
-                      top: 10,
-                      child: Icon(Icons.flag_circle, color: AppTheme.accentGold, size: 36),
-                    ),
-
-                    // 2. Renderizar corredores seleccionados
-                    // ORDENAMIENTO (Z-Index): Primero renderizar a los otros, y al final a MÍ (isMe=true)
-                    // para que mi avatar quede siempre encima.
-                    ...activeRacers.where((r) => !r.isMe).map((racer) => _buildRacer(context, racer, trackWidth, speedMultiplier)),
-                    
-                    ...activeRacers.where((r) => r.isMe).map((racer) => _buildRacer(context, racer, trackWidth, speedMultiplier)),
-
-                  ],
-                );
-              },
+                  ),
+              ],
             ),
-          ),
-          
-          // Leyenda inferior dinámica
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              _getMotivationText(activeRacers, totalClues),
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
-                fontSize: 10,
-                fontStyle: FontStyle.italic,
+            const SizedBox(height: 24),
+
+            // --- PISTA DE CARRERAS ---
+            SizedBox(
+              height: 90,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double trackWidth = constraints.maxWidth;
+
+                  return Stack(
+                    alignment: Alignment.centerLeft,
+                    clipBehavior: Clip.none,
+                    children: [
+                      // 1. Línea de carrera base
+                      Center(
+                        child: Container(
+                          height: 8,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(4),
+                            gradient: LinearGradient(
+                              colors: [Colors.grey[800]!, Colors.grey[700]!],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Marcas de distancia (start, 50%, finish)
+                      const Positioned(
+                          left: 0,
+                          top: 50,
+                          child: Text("START",
+                              style: TextStyle(
+                                  fontSize: 8, color: Colors.white30))),
+                      const Positioned(
+                          right: 0,
+                          top: 50,
+                          child: Text("META",
+                              style: TextStyle(
+                                  fontSize: 8, color: Colors.white30))),
+
+                      // Bandera de Meta
+                      const Positioned(
+                        right: -8,
+                        top: 10,
+                        child: Icon(Icons.flag_circle,
+                            color: AppTheme.accentGold, size: 36),
+                      ),
+
+                      // 2. Renderizar corredores seleccionados
+                      // ORDENAMIENTO (Z-Index): Primero renderizar a los otros, y al final a MÍ (isMe=true)
+                      // para que mi avatar quede siempre encima.
+                      ...activeRacers.where((r) => !r.isMe).map((racer) =>
+                          _buildRacer(
+                              context, racer, trackWidth, speedMultiplier)),
+
+                      ...activeRacers.where((r) => r.isMe).map((racer) =>
+                          _buildRacer(
+                              context, racer, trackWidth, speedMultiplier)),
+                    ],
+                  );
+                },
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-        ],
-      ),
+
+            // Leyenda inferior dinámica
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                _getMotivationText(activeRacers, totalClues),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // Helper para construir el widget del corredor limpiamente
-  Widget _buildRacer(BuildContext context, _RacerDisplayInfo racer, double trackWidth, double speedMultiplier) {
-      final int pistasCompletadas = racer.player.totalXP;
-      final double progress = totalClues > 0 
-          ? (pistasCompletadas / totalClues).clamp(0.0, 1.0) 
-          : 0.0;
+  Widget _buildRacer(BuildContext context, _RacerDisplayInfo racer,
+      double trackWidth, double speedMultiplier) {
+    final int pistasCompletadas = racer.player.totalXP;
+    final double progress =
+        totalClues > 0 ? (pistasCompletadas / totalClues).clamp(0.0, 1.0) : 0.0;
 
-      return _buildRacerAvatar(
-        context: context,
-        player: racer.player,
-        progress: (progress * speedMultiplier).clamp(0.0, 1.0),
-        trackWidth: trackWidth,
-        offsetY: racer.laneOffset,
-        isMe: racer.isMe,
-        isLeader: racer.isLeader,
-        pistas: pistasCompletadas,
-      );
+    return _buildRacerAvatar(
+      context: context,
+      player: racer.player,
+      progress: (progress * speedMultiplier).clamp(0.0, 1.0),
+      trackWidth: trackWidth,
+      offsetY: racer.laneOffset,
+      isMe: racer.isMe,
+      isLeader: racer.isLeader,
+      pistas: pistasCompletadas,
+    );
   }
 
   // --- LÓGICA DE SELECCIÓN (Corregida para Datos de Evento) ---
@@ -247,9 +273,9 @@ class RaceTrackWidget extends StatelessWidget {
     // IMPORTANTE: No usamos el perfil global del usuario, porque ese tendría XP global.
     // Queremos el objeto que vino de la DB con el conteo de pistas del evento.
     final myIndex = leaderboard.indexWhere((p) => p.id == currentPlayerId);
-    
+
     Player meInEvent;
-    
+
     if (myIndex != -1) {
       // El usuario ya ha completado al menos 1 pista y está en el ranking
       meInEvent = leaderboard[myIndex];
@@ -273,22 +299,20 @@ class RaceTrackWidget extends StatelessWidget {
     if (leaderboard.isNotEmpty) {
       final leader = leaderboard.first;
       result.add(_RacerDisplayInfo(
-        player: leader, 
-        laneOffset: -35, // Carril superior
-        isLeader: true, 
-        isMe: leader.id == currentPlayerId
-      ));
+          player: leader,
+          laneOffset: -35, // Carril superior
+          isLeader: true,
+          isMe: leader.id == currentPlayerId));
       addedIds.add(leader.id);
     }
 
     // 3. Agregar al usuario actual (si no fue agregado como líder)
     if (!addedIds.contains(meInEvent.id)) {
       result.add(_RacerDisplayInfo(
-        player: meInEvent, 
-        laneOffset: 0, // Carril central
-        isLeader: false, 
-        isMe: true
-      ));
+          player: meInEvent,
+          laneOffset: 0, // Carril central
+          isLeader: false,
+          isMe: true));
       addedIds.add(meInEvent.id);
     }
 
@@ -299,25 +323,20 @@ class RaceTrackWidget extends StatelessWidget {
         final ahead = leaderboard[myIndex - 1];
         if (!addedIds.contains(ahead.id)) {
           result.add(_RacerDisplayInfo(
-            player: ahead, 
-            laneOffset: 35, // Carril inferior
-            isLeader: false, 
-            isMe: false
-          ));
+              player: ahead,
+              laneOffset: 35, // Carril inferior
+              isLeader: false,
+              isMe: false));
           addedIds.add(ahead.id);
         }
       } else if (leaderboard.length > 2) {
-         // Si yo soy el segundo, mostrar al tercero para tener contexto atrás
-         final behind = leaderboard[myIndex + 1];
-         if (!addedIds.contains(behind.id)) {
-           result.add(_RacerDisplayInfo(
-             player: behind, 
-             laneOffset: 25, 
-             isLeader: false, 
-             isMe: false
-           ));
-           addedIds.add(behind.id);
-         }
+        // Si yo soy el segundo, mostrar al tercero para tener contexto atrás
+        final behind = leaderboard[myIndex + 1];
+        if (!addedIds.contains(behind.id)) {
+          result.add(_RacerDisplayInfo(
+              player: behind, laneOffset: 25, isLeader: false, isMe: false));
+          addedIds.add(behind.id);
+        }
       }
     } else {
       // Si tengo 0 pistas (no estoy en el ranking), mostrar al último del ranking visible
@@ -325,12 +344,11 @@ class RaceTrackWidget extends StatelessWidget {
       if (leaderboard.isNotEmpty) {
         final lastVisible = leaderboard.last;
         if (!addedIds.contains(lastVisible.id)) {
-           result.add(_RacerDisplayInfo(
-            player: lastVisible, 
-            laneOffset: 30, 
-            isLeader: false, 
-            isMe: false
-          ));
+          result.add(_RacerDisplayInfo(
+              player: lastVisible,
+              laneOffset: 30,
+              isLeader: false,
+              isMe: false));
         }
       }
     }
@@ -342,12 +360,13 @@ class RaceTrackWidget extends StatelessWidget {
     // Buscamos al usuario en la lista procesada
     final me = racers.firstWhere((r) => r.isMe, orElse: () => racers.first);
     final pistas = me.player.totalXP;
-    
-    if (pistas == 0) return "¡La carrera comienza! Completa tu primera pista 🏃💨";
+
+    if (pistas == 0)
+      return "¡La carrera comienza! Completa tu primera pista 🏃💨";
     if (pistas >= total) return "¡FELICIDADES! Has llegado a la meta 🎉";
-    
+
     if (me.isLeader) return "¡Vas en PRIMER LUGAR! Mantén el ritmo 🏆";
-    
+
     return "Llevas $pistas de $total pistas. ¡Sigue así! 🚀";
   }
 
@@ -363,13 +382,15 @@ class RaceTrackWidget extends StatelessWidget {
   }) {
     // [VISUAL UPDATE] Tamaños más pequeños para evitar superposición
     final double avatarSize = isMe ? 36 : 28; // Antes 40 / 32
-    
+
     // Ajuste para que el centro del avatar esté en el punto exacto, sin salirse del ancho
-    final double maxScroll = trackWidth - avatarSize; 
-    
+    final double maxScroll = trackWidth - avatarSize;
+
     return Positioned(
       left: maxScroll * progress,
-      top: 45 + offsetY - (avatarSize/2), // Centrado verticalmente respecto a la pista
+      top: 45 +
+          offsetY -
+          (avatarSize / 2), // Centrado verticalmente respecto a la pista
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -377,7 +398,8 @@ class RaceTrackWidget extends StatelessWidget {
           if (isMe)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
-              child: Icon(Icons.arrow_drop_down, color: AppTheme.accentGold, size: 18),
+              child: Icon(Icons.arrow_drop_down,
+                  color: AppTheme.accentGold, size: 18),
             ),
 
           // Avatar
@@ -387,12 +409,16 @@ class RaceTrackWidget extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: isMe ? AppTheme.accentGold : (isLeader ? Colors.amber : Colors.white24),
+                color: isMe
+                    ? AppTheme.accentGold
+                    : (isLeader ? Colors.amber : Colors.white24),
                 width: isMe ? 2 : 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isMe ? AppTheme.accentGold.withOpacity(0.3) : Colors.black26,
+                  color: isMe
+                      ? AppTheme.accentGold.withOpacity(0.3)
+                      : Colors.black26,
                   blurRadius: isMe ? 8 : 4,
                   spreadRadius: 1,
                 )
@@ -400,12 +426,16 @@ class RaceTrackWidget extends StatelessWidget {
             ),
             child: CircleAvatar(
               backgroundColor: isMe ? AppTheme.primaryPurple : Colors.grey[800],
-              backgroundImage: (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http')) 
-                  ? NetworkImage(player.avatarUrl) 
+              backgroundImage: (player.avatarUrl.isNotEmpty &&
+                      player.avatarUrl.startsWith('http'))
+                  ? NetworkImage(player.avatarUrl)
                   : null,
-              child: (player.avatarUrl.isEmpty || !player.avatarUrl.startsWith('http'))
+              child: (player.avatarUrl.isEmpty ||
+                      !player.avatarUrl.startsWith('http'))
                   ? Text(
-                      player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                      player.name.isNotEmpty
+                          ? player.name[0].toUpperCase()
+                          : '?',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: isMe ? 14 : 10,
@@ -415,10 +445,10 @@ class RaceTrackWidget extends StatelessWidget {
                   : null,
             ),
           ),
-          
+
           // Etiqueta de Nombre y Pistas
           const SizedBox(height: 3),
-          
+
           // [VISUAL UPDATE] Etiqueta flotante con mejor legibilidad
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -431,17 +461,19 @@ class RaceTrackWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isMe ? 'TÚ' : (isLeader ? 'TOP 1' : _getShortName(player.name)),
+                  isMe
+                      ? 'TÚ'
+                      : (isLeader ? 'TOP 1' : _getShortName(player.name)),
                   style: TextStyle(
                     color: isMe ? Colors.black : Colors.white,
                     fontSize: 9, // Letra pequeña pero legible
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if(isMe || isLeader) ...[
-                   const SizedBox(width: 3),
-                   Text(
-                   '$pistas', 
+                if (isMe || isLeader) ...[
+                  const SizedBox(width: 3),
+                  Text(
+                    '$pistas',
                     style: TextStyle(
                       color: isMe ? Colors.black87 : Colors.white70,
                       fontSize: 9,
@@ -461,9 +493,9 @@ class RaceTrackWidget extends StatelessWidget {
     if (fullName.isEmpty) return 'J';
     final parts = fullName.split(' ');
     if (parts.isNotEmpty) {
-        String name = parts[0];
-        if (name.length > 5) name = name.substring(0, 5); // Max 5 chars
-        return name;
+      String name = parts[0];
+      if (name.length > 5) name = name.substring(0, 5); // Max 5 chars
+      return name;
     }
     return fullName.substring(0, 3);
   }
@@ -471,7 +503,7 @@ class RaceTrackWidget extends StatelessWidget {
 
 class _RacerDisplayInfo {
   final Player player;
-  final double laneOffset; 
+  final double laneOffset;
   final bool isLeader;
   final bool isMe;
 
@@ -490,7 +522,8 @@ class _LiveIndicator extends StatefulWidget {
   State<_LiveIndicator> createState() => _LiveIndicatorState();
 }
 
-class _LiveIndicatorState extends State<_LiveIndicator> with SingleTickerProviderStateMixin {
+class _LiveIndicatorState extends State<_LiveIndicator>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -515,12 +548,11 @@ class _LiveIndicatorState extends State<_LiveIndicator> with SingleTickerProvide
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: [
-             BoxShadow(color: Colors.red.withOpacity(0.5), blurRadius: 6)
-          ]
-        ),
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: [
+              BoxShadow(color: Colors.red.withOpacity(0.5), blurRadius: 6)
+            ]),
         child: const Text(
           'LIVE',
           style: TextStyle(
@@ -548,7 +580,8 @@ class _AttackSentDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.accentGold, width: 2),
           boxShadow: [
-            BoxShadow(color: AppTheme.accentGold.withOpacity(0.4), blurRadius: 12),
+            BoxShadow(
+                color: AppTheme.accentGold.withOpacity(0.4), blurRadius: 12),
           ],
         ),
         child: const Text(
