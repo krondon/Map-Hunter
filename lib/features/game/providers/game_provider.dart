@@ -167,7 +167,8 @@ Future<void> loseLife(String userId) async {
 
   void _checkVictoryInPayload(Map<String, dynamic> record) {
     if (totalClues > 0) {
-      final int completed = record['completed_clues'] ?? 0;
+      // En la tabla física la columna es 'completed_clues_count'
+      final int completed = record['completed_clues_count'] ?? record['completed_clues'] ?? 0;
       if (completed >= totalClues) {
         _setRaceCompleted(true, 'Realtime Subscription');
       }
@@ -178,16 +179,11 @@ Future<void> loseLife(String userId) async {
   Future<void> fetchLeaderboard() async {
     await _fetchLeaderboardInternal(silent: false);
   }
-
-  Future<void> _fetchLeaderboardInternal({bool silent = false}) async {
-    // Necesitamos un evento activo para filtrar
+Future<void> _fetchLeaderboardInternal({bool silent = false}) async {
     if (_currentEventId == null) return;
 
-    // IMPORTANTE: Resetear estado antes de validar la nueva data
-    _isRaceCompleted = false;
-
     try {
-      // Consultamos directamente la VISTA SQL creada
+      // ✅ RESTAURADO: Consultamos la VISTA para mantener el orden del podio original
       final List<dynamic> data = await _supabase
           .from('event_leaderboard')
           .select()
@@ -197,32 +193,38 @@ Future<void> loseLife(String userId) async {
           .limit(50);
 
       _leaderboard = data.map((json) {
+        // Normalización de IDs
         if (json['id'] == null && json['user_id'] != null) {
           json['id'] = json['user_id'];
         } else if (json['id'] == null && json['player_id'] != null) {
           json['id'] = json['player_id'];
         }
 
-        if (json['completed_clues'] != null) {
-          json['total_xp'] = json['completed_clues'];
-          
-          // --- DETECTAR FIN DE CARRERA ---
-          // Solo si hay pistas en el evento y alguien las completó todas
-          if (totalClues > 0 && json['completed_clues'] >= totalClues) {
-            _setRaceCompleted(true, 'Leaderboard Polling');
-          }
-        }
+        // Busca este bloque dentro de _fetchLeaderboardInternal
+if (json['completed_clues'] != null) {
+  json['total_xp'] = json['completed_clues'];
+  
+  // DEPuración: Mira qué valores está recibiendo la app
+  debugPrint('DEBUG: Jugador ${json['name']} tiene ${json['completed_clues']} / Total: $totalClues');
+
+  if (totalClues > 0 && json['completed_clues'] >= totalClues) {
+    // Esto nos dirá exactamente por qué se dispara
+    debugPrint('!!! CARRERA FINALIZADA POR: ${json['name']} !!!');
+    _setRaceCompleted(true, 'Leaderboard Polling');
+  }
+}
+        
+        // ✅ INVISIBILIDAD: Al usar la Vista, el modelo Player leerá el 'status'
         return Player.fromJson(json);
       }).toList();
       
       notifyListeners();
     } catch (e) {
       debugPrint('Error fetching leaderboard: $e');
-      // Intentamos fallback a la Edge Function si la vista falla o no existe
       if (!silent) _fetchLeaderboardFallback();
     }
   }
-
+  
   // Fallback a la lógica antigua por si acaso
   Future<void> _fetchLeaderboardFallback() async {
      try {

@@ -255,101 +255,111 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- LÓGICA DE USO DE PODERES ACTUALIZADA ---
-  
-Future<bool> usePower({
-  required String powerSlug,
-  required String targetGamePlayerId,
-  required PowerEffectProvider effectProvider,
-  GameProvider? gameProvider,
-  bool allowReturnForward = true,
-}) async {
-  if (_currentPlayer == null) return false;
-  if (_isProcessing) return false;
-  _isProcessing = true;
 
-  final casterGamePlayerId = _currentPlayer!.gamePlayerId;
-  if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
-    _isProcessing = false;
-    return false;
+// --- LÓGICA DE USO DE PODERES ---
+
+  Future<bool> usePower({
+    required String powerSlug,
+    required String targetGamePlayerId,
+    required PowerEffectProvider effectProvider,
+    GameProvider? gameProvider,
+    bool allowReturnForward = true,
+  }) async {
+    if (_currentPlayer == null) return false;
+    if (_isProcessing) return false;
+    _isProcessing = true;
+
+    final casterGamePlayerId = _currentPlayer!.gamePlayerId;
+    if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
+      _isProcessing = false;
+      return false;
+    }
+
+    try {
+      bool success = false;
+      dynamic response;
+
+      // 1. INVISIBILIDAD: Corregido para que el servidor lo procese
+      // Verifica que usePower siga enviando el RPC así (esto es correcto):
+      if (powerSlug == 'invisibility') {
+        response = await _supabase.rpc('use_power_mechanic', params: {
+          'p_caster_id': casterGamePlayerId,
+          'p_target_id': casterGamePlayerId, 
+          'p_power_slug': 'invisibility',
+        });
+        success = _coerceRpcSuccess(response);
+      }
+      else if (powerSlug == 'life_steal') {
+        response = await _supabase.rpc('use_power_mechanic', params: {
+          'p_caster_id': casterGamePlayerId,
+          'p_target_id': targetGamePlayerId,
+          'p_power_slug': 'life_steal',
+        });
+        success = _coerceRpcSuccess(response);
+      }
+      else if (powerSlug == 'blur_screen') {
+        final paid = await _decrementPowerBySlug('blur_screen', casterGamePlayerId);
+        if (!paid) {
+          _isProcessing = false;
+          return false;
+        }
+        if (gameProvider != null) {
+          await _broadcastBlurScreenToEventRivals(
+            gameProvider: gameProvider,
+            casterGamePlayerId: casterGamePlayerId,
+          );
+        }
+        success = true;
+      } 
+      else if (powerSlug == 'return') {
+         response = await _supabase.rpc('use_power_mechanic', params: {
+           'p_caster_id': casterGamePlayerId,
+           'p_target_id': casterGamePlayerId,
+           'p_power_slug': 'return',
+         });
+         success = _coerceRpcSuccess(response);
+      } 
+      else {
+        response = await _supabase.rpc('use_power_mechanic', params: {
+          'p_caster_id': casterGamePlayerId,
+          'p_target_id': targetGamePlayerId,
+          'p_power_slug': powerSlug,
+        });
+        success = _coerceRpcSuccess(response);
+      }
+
+      // --- PASO 2: MANEJO DE ERRORES DEL SERVIDOR ---
+      if (response is Map && response['success'] == false) {
+        if (response['error'] == 'target_invisible') {
+          throw '¡El objetivo es invisible!';
+        }
+        _isProcessing = false;
+        return false;
+      }
+
+      // Notificación de devolución
+      if (success && response is Map && response['returned'] == true) {
+        final String name = response['returned_by_name'] ?? 'Un rival';
+        effectProvider.notifyPowerReturned(name);
+        await refreshProfile(); 
+      }
+
+      if (success) {
+        if (powerSlug == 'shield') {
+          effectProvider.setShielded(true, sourceSlug: powerSlug);
+        }
+        await syncRealInventory(effectProvider: effectProvider);
+      }
+      return success;
+    } catch (e) {
+      debugPrint('Error usando poder: $e');
+      rethrow; // Lanzamos el error para que la UI lo atrape
+    } finally {
+      _isProcessing = false;
+    }
   }
 
-  try {
-    bool success = false;
-    dynamic response; // Para capturar la respuesta JSON del servidor
 
-    // 1. Lógica original: INVISIBILIDAD
-    if (powerSlug == 'invisibility') {
-      success = true;
-      // ... mantiene tu lógica local
-    } 
-    // 2. ADICIÓN: ROBO DE VIDA (Redirigido al motor unificado para permitir Devolución)
-    else if (powerSlug == 'life_steal') {
-      response = await _supabase.rpc('use_power_mechanic', params: {
-        'p_caster_id': casterGamePlayerId,
-        'p_target_id': targetGamePlayerId,
-        'p_power_slug': 'life_steal',
-      });
-      success = _coerceRpcSuccess(response);
-    }
-    // 3. Lógica original: PANTALLA BORROSA
-    else if (powerSlug == 'blur_screen') {
-      final paid = await _decrementPowerBySlug('blur_screen', casterGamePlayerId);
-      if (!paid) return false;
-      if (gameProvider != null) {
-        await _broadcastBlurScreenToEventRivals(
-          gameProvider: gameProvider,
-          casterGamePlayerId: casterGamePlayerId,
-        );
-      }
-      success = true;
-    } 
-    // 4. ADICIÓN: DEVOLUCIÓN (Ahora registra el buff en la BD para que el servidor lo vea)
-    else if (powerSlug == 'return') {
-       response = await _supabase.rpc('use_power_mechanic', params: {
-         'p_caster_id': casterGamePlayerId,
-         'p_target_id': casterGamePlayerId, // Se apunta a sí mismo para activar su escudo
-         'p_power_slug': 'return',
-       });
-       success = _coerceRpcSuccess(response);
-       // Ya no armamos el return localmente, el servidor lo gestiona
-    } 
-    // 5. OTROS PODERES (CONGELAR, PANTALLA NEGRA, ETC.)
-    else {
-      response = await _supabase.rpc('use_power_mechanic', params: {
-        'p_caster_id': casterGamePlayerId,
-        'p_target_id': targetGamePlayerId,
-        'p_power_slug': powerSlug,
-      });
-      success = _coerceRpcSuccess(response);
-    }
-
-    // --- LÓGICA DE NOTIFICACIÓN DE DEVOLUCIÓN ---
-    if (success && response is Map && response['returned'] == true) {
-      final String name = response['returned_by_name'] ?? 'Un rival';
-      
-      // Avisamos al atacante: "Tu poder fue devuelto por [Nombre]"
-      effectProvider.notifyPowerReturned(name);
-      
-      // Forzamos refresco porque el atacante ahora es la víctima (perdió vida o recibió efecto)
-      await refreshProfile(); 
-    }
-
-    if (success) {
-      if (powerSlug == 'shield') {
-        effectProvider.setShielded(true, sourceSlug: powerSlug);
-      }
-      await syncRealInventory(effectProvider: effectProvider);
-    }
-    return success;
-  } catch (e) {
-    debugPrint('Error usando poder: $e');
-    return false;
-  } finally {
-    _isProcessing = false;
-  }
-}
- 
 bool _coerceRpcSuccess(dynamic response) {
     if (response == null) {
       // Muchas funciones SQL retornan void/null cuando salen bien.
@@ -803,10 +813,9 @@ bool _coerceRpcSuccess(dynamic response) {
       final newStatus =
           _currentPlayer!.status.name == status ? 'active' : status;
 
+      // ✅ CORRECCIÓN: Eliminamos 'frozen_until' porque no existe en tu tabla 'profiles'
       await _supabase.from('profiles').update({
         'status': newStatus,
-        'frozen_until':
-            newStatus == 'active' ? null : expiration.toIso8601String(),
       }).eq('id', _currentPlayer!.id);
 
       await refreshProfile();

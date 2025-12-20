@@ -5,11 +5,13 @@ import '../../features/game/providers/game_provider.dart';
 import '../../features/game/providers/power_effect_provider.dart';
 import '../../features/game/widgets/effects/blind_effect.dart';
 import '../../features/game/widgets/effects/freeze_effect.dart';
-import '../../features/game/widgets/effects/invisibility_effect.dart';
+import '../../features/game/widgets/effects/blur_effect.dart';
 import '../../features/game/widgets/effects/life_steal_effect.dart';
 import '../../features/game/widgets/effects/return_success_effect.dart';
 import '../../features/game/widgets/effects/return_rejection_effect.dart';
+import '../../features/game/widgets/effects/invisibility_effect.dart';
 import '../models/player.dart';
+import '../../features/auth/providers/player_provider.dart';
 
 class SabotageOverlay extends StatefulWidget {
   final Widget child;
@@ -63,6 +65,9 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     final powerProvider = Provider.of<PowerEffectProvider>(context);
     final activeSlug = powerProvider.activePowerSlug;
     final defenseAction = powerProvider.lastDefenseAction;
+    final playerProvider = Provider.of<PlayerProvider>(context);
+    // Detectamos si el usuario actual es invisible según el PlayerProvider
+  final isPlayerInvisible = playerProvider.currentPlayer?.isInvisible ?? false;
 
     // Banner life_steal (Point B): sólo banner, no bloquea interacción.
     if (activeSlug == 'life_steal') {
@@ -95,7 +100,12 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                   powerProvider.activeEffectCasterId)),
         // Por ahora: invisibility NO debe hacer nada.
         // blur_screen reutiliza el efecto visual de invisibility para los rivales.
-        if (activeSlug == 'blur_screen') const InvisibilityEffect(),
+        // --- ATAQUES RECIBIDOS ---
+      if (activeSlug == 'blur_screen') const BlurScreenEffect(), // El efecto que marea
+      
+      // --- ESTADOS BENEFICIOSOS (BUFFS) ---
+     if (isPlayerInvisible) 
+      InvisibilityEffect(expiresAt: powerProvider.activePowerExpiresAt), // El aura púrpura de sigilo
 
         if (activeSlug == 'return' && powerProvider.activeEffectCasterId != powerProvider.listeningForId)
         const ReturnSuccessEffect(),

@@ -27,6 +27,10 @@ class PowerEffectProvider extends ChangeNotifier {
   String? _activePowerSlug;
   String? _activeEffectId;
   String? _activeEffectCasterId;
+  DateTime? _activePowerExpiresAt; // Nueva variable
+
+
+  DateTime? get activePowerExpiresAt => _activePowerExpiresAt; // Nuevo getter
 
   String? get activePowerSlug => _activePowerSlug;
   String? get activeEffectId => _activeEffectId;
@@ -202,10 +206,12 @@ class PowerEffectProvider extends ChangeNotifier {
             payload['event_id'] = latestEffect['event_id'];
           }
           await supabase.from('active_powers').insert(payload);
+          _activePowerExpiresAt = DateTime.parse(expiresAt); 
         } catch (e) {
           debugPrint('PowerEffectProvider: error reflejando efecto: $e');
         }
 
+        // Guardamos la fecha exacta para la UI
         // Asegurar que el defensor no muestre overlay del ataque entrante.
         _activePowerSlug = null;
         _activeEffectId = null;
@@ -304,6 +310,7 @@ class PowerEffectProvider extends ChangeNotifier {
     _activePowerSlug = null;
     _activeEffectId = null;
     _activeEffectCasterId = null;
+    _activePowerExpiresAt = null;
     notifyListeners();
   }
 
