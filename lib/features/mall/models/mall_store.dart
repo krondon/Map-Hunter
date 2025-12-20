@@ -97,11 +97,11 @@ class MallStore {
             cost: 150,
             icon: '🛡️',
           ),
-          PowerItem(
+          const PowerItem(
             id: 'return',
             name: 'Devolución',
             description: 'Devuelve el ataque al origen',
-            type: PowerType.utility,
+            type: PowerType.buff, // CAMBIADO: De utility a buff
             cost: 90,
             icon: '↩️',
           ),
