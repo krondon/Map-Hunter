@@ -87,8 +87,9 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
           LifeStealEffect(
               casterName: _resolvePlayerNameFromLeaderboard(
                   powerProvider.activeEffectCasterId)),
-        if (activeSlug == 'invisibility' || activeSlug == 'blur_screen')
-          const InvisibilityEffect(),
+        // Por ahora: invisibility NO debe hacer nada.
+        // blur_screen reutiliza el efecto visual de invisibility para los rivales.
+        if (activeSlug == 'blur_screen') const InvisibilityEffect(),
 
         if (_lifeStealBannerText != null)
           Positioned(

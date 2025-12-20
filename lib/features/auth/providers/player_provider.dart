@@ -278,7 +278,29 @@ class PlayerProvider extends ChangeNotifier {
     try {
       bool success = false;
 
-      if (powerSlug == 'return') {
+      // Por ahora: invisibility NO hace nada (ni RPC, ni consumo, ni efectos).
+      if (powerSlug == 'invisibility') {
+        success = true;
+      } else if (powerSlug == 'blur_screen') {
+        // blur_screen: ataque global a todos los rivales del evento (excluyéndote).
+        // Consumimos 1 unidad y escribimos directamente en active_powers.
+        final paid =
+            await _decrementPowerBySlug('blur_screen', casterGamePlayerId);
+        if (!paid) {
+          debugPrint('usePower(blur_screen): sin cantidad disponible.');
+          return false;
+        }
+        if (gameProvider == null) {
+          debugPrint(
+              'usePower(blur_screen): gameProvider requerido para obtener rivales.');
+          return false;
+        }
+        await _broadcastBlurScreenToEventRivals(
+          gameProvider: gameProvider,
+          casterGamePlayerId: casterGamePlayerId,
+        );
+        success = true;
+      } else if (powerSlug == 'return') {
         // Persistencia (Point C): descontar inmediatamente en player_powers.
         final paid = await _decrementPowerBySlug('return', casterGamePlayerId);
         if (!paid) {
@@ -294,7 +316,18 @@ class PlayerProvider extends ChangeNotifier {
           'p_target_id': targetGamePlayerId,
           'p_power_slug': powerSlug,
         });
-        success = response is Map && response['success'] == true;
+        success = _coerceRpcSuccess(response);
+
+        // life_steal: con RLS, el atacante NO puede actualizar las vidas del rival.
+        // Estrategia sin tocar backend:
+        // - el rival se descuenta a sí mismo al recibir el efecto (ver SabotageOverlay)
+        // - el atacante solo se incrementa a sí mismo aquí (tope 3)
+        if (success && powerSlug == 'life_steal') {
+          await _applyLifeStealCasterGain(
+            casterGamePlayerId: casterGamePlayerId,
+            targetGamePlayerId: targetGamePlayerId,
+          );
+        }
       }
 
       // Evitar rebotes infinitos de devoluciones
@@ -308,17 +341,6 @@ class PlayerProvider extends ChangeNotifier {
           effectProvider.setShielded(true, sourceSlug: powerSlug);
         }
 
-        // Broadcast solicitado: cuando se envía blur_screen a un rival,
-        // disparar la misma animación de invisibilidad en TODOS los rivales del evento.
-        // Implementación: insertamos registros adicionales en `active_powers` para cada rival.
-        if (powerSlug == 'blur_screen' && gameProvider != null) {
-          await _broadcastBlurScreenToEventRivals(
-            gameProvider: gameProvider,
-            casterGamePlayerId: casterGamePlayerId,
-            excludeTargetGamePlayerId: targetGamePlayerId,
-          );
-        }
-
         await syncRealInventory(effectProvider: effectProvider);
       }
       return success;
@@ -327,6 +349,90 @@ class PlayerProvider extends ChangeNotifier {
       return false;
     } finally {
       _isProcessing = false;
+    }
+  }
+
+  bool _coerceRpcSuccess(dynamic response) {
+    if (response == null) {
+      // Muchas funciones SQL retornan void/null cuando salen bien.
+      return true;
+    }
+    if (response is bool) return response;
+    if (response is num) return response != 0;
+    if (response is String) {
+      final v = response.toLowerCase().trim();
+      return v == 'true' || v == 't' || v == '1' || v == 'ok' || v == 'success';
+    }
+    if (response is Map) {
+      final v = response['success'];
+      if (v is bool) return v;
+      if (v is num) return v != 0;
+      if (v is String) {
+        final s = v.toLowerCase().trim();
+        return s == 'true' || s == 't' || s == '1';
+      }
+      // Si no hay flag, pero el RPC devolvió un objeto, lo consideramos éxito.
+      return true;
+    }
+    if (response is List) {
+      if (response.isEmpty) return true;
+      final first = response.first;
+      if (first is Map && first.containsKey('success')) {
+        return _coerceRpcSuccess(first);
+      }
+      return true;
+    }
+
+    // Fallback: si no fue excepción, tratamos como éxito.
+    return true;
+  }
+
+  Future<void> _applyLifeStealCasterGain({
+    required String casterGamePlayerId,
+    required String targetGamePlayerId,
+  }) async {
+    // Con RLS, sólo podemos actualizar nuestro propio game_player.
+    // Para evitar “crear vida” cuando el rival está en 0, leemos sus vidas (SELECT sí está permitido por policy).
+    const int maxAttempts = 3;
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        final casterRes = await _supabase
+            .from('game_players')
+            .select('id, lives')
+            .eq('id', casterGamePlayerId)
+            .maybeSingle();
+        final targetRes = await _supabase
+            .from('game_players')
+            .select('id, lives')
+            .eq('id', targetGamePlayerId)
+            .maybeSingle();
+
+        if (casterRes == null || targetRes == null) return;
+
+        final int casterLives = (casterRes['lives'] as num?)?.toInt() ?? 0;
+        final int targetLives = (targetRes['lives'] as num?)?.toInt() ?? 0;
+
+        // Si el rival no tiene vida, no hay nada que robar.
+        if (targetLives <= 0) return;
+
+        // Si ya estamos en 3, sólo se descuenta al rival (lo hará el rival al recibir el efecto).
+        if (casterLives >= 3) return;
+
+        final int newCasterLives = (casterLives + 1).clamp(0, 3);
+
+        final casterUpdated = await _supabase
+            .from('game_players')
+            .update({'lives': newCasterLives})
+            .eq('id', casterGamePlayerId)
+            .eq('lives', casterLives)
+            .select();
+
+        if (casterUpdated.isNotEmpty) return;
+      } catch (e) {
+        debugPrint('_applyLifeStealCasterGain error: $e');
+        return;
+      }
     }
   }
 
@@ -484,7 +590,7 @@ class PlayerProvider extends ChangeNotifier {
       // Ordenamos por joined_at descendente para asegurar que es el juego actual
       final gamePlayerRes = await _supabase
           .from('game_players')
-          .select('id, lives')
+          .select('id, lives, event_id')
           .eq('user_id', _currentPlayer!.id)
           .order('joined_at', ascending: false) // <--- CRÍTICO
           .limit(1)
@@ -504,6 +610,7 @@ class PlayerProvider extends ChangeNotifier {
       }
 
       final String gamePlayerId = gamePlayerRes['id'];
+      final String? eventId = gamePlayerRes['event_id']?.toString();
       _currentPlayer!.gamePlayerId = gamePlayerId;
       effectProvider
           ?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
@@ -514,6 +621,9 @@ class PlayerProvider extends ChangeNotifier {
           effectProvider: effectProvider,
           allowReturnForward: false,
         );
+      });
+      effectProvider?.configureLifeStealVictimHandler((effectId, casterId) {
+        return loseLife(eventId: eventId);
       });
       effectProvider?.startListening(gamePlayerId);
       debugPrint("GamePlayer encontrado: $gamePlayerId");
@@ -558,7 +668,7 @@ class PlayerProvider extends ChangeNotifier {
 
   // --- MINIGAME LIFE MANAGEMENT (OPTIMIZED RPC) ---
 
-  Future<void> loseLife() async {
+  Future<void> loseLife({String? eventId}) async {
     if (_currentPlayer == null) return;
 
     // Evitamos llamada si ya está en 0 localmente para ahorrar red,
@@ -566,10 +676,16 @@ class PlayerProvider extends ChangeNotifier {
     if (_currentPlayer!.lives <= 0) return;
 
     try {
-      // Llamada RPC atómica: la base de datos resta y nos devuelve el valor final
-      final int newLives = await _supabase.rpc('lose_life', params: {
+      // Llamada RPC atómica: la base de datos resta y nos devuelve el valor final.
+      // Importante: en el contexto del juego por evento, necesitamos p_event_id.
+      final params = <String, dynamic>{
         'p_user_id': _currentPlayer!.id,
-      });
+      };
+      if (eventId != null && eventId.isNotEmpty) {
+        params['p_event_id'] = eventId;
+      }
+
+      final int newLives = await _supabase.rpc('lose_life', params: params);
 
       // Actualizamos estado local inmediatamente con la respuesta real del servidor
       _currentPlayer!.lives = newLives;
@@ -721,10 +837,19 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _broadcastBlurScreenToEventRivals({
     required GameProvider gameProvider,
     required String casterGamePlayerId,
-    required String excludeTargetGamePlayerId,
   }) async {
     try {
       final eventId = gameProvider.currentEventId;
+
+      // Asegurar que haya datos de rivales (mejor esfuerzo)
+      if (eventId != null && gameProvider.leaderboard.isEmpty) {
+        try {
+          await gameProvider.fetchLeaderboard();
+        } catch (_) {
+          // Ignorar: si falla, simplemente no habrá targets.
+        }
+      }
+
       final now = DateTime.now().toUtc();
       // Según tu DB: blur_screen duration = 10
       final expiresAt = now.add(const Duration(seconds: 10)).toIso8601String();
@@ -733,7 +858,6 @@ class PlayerProvider extends ChangeNotifier {
           .where((p) => p.gamePlayerId != null && p.gamePlayerId!.isNotEmpty)
           .map((p) => p.gamePlayerId!)
           .where((gpId) => gpId != casterGamePlayerId)
-          .where((gpId) => gpId != excludeTargetGamePlayerId)
           .toSet()
           .toList();
 

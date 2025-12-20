@@ -11,8 +11,14 @@ class PowerEffectProvider extends ChangeNotifier {
   bool _returnArmed = false;
   Future<bool> Function(String powerSlug, String targetGamePlayerId)?
       _returnHandler;
+  Future<void> Function(String effectId, String? casterGamePlayerId)?
+      _lifeStealVictimHandler;
   DefenseAction? _lastDefenseAction;
   DateTime? _lastDefenseActionAt;
+
+  String? _lastLifeStealHandledEffectId;
+
+  final Map<String, String> _powerIdToSlugCache = {};
 
   // Guardamos el slug del poder activo (ej: 'black_screen', 'freeze')
   String? _activePowerSlug;
@@ -52,6 +58,12 @@ class PowerEffectProvider extends ChangeNotifier {
       Future<bool> Function(String powerSlug, String targetGamePlayerId)
           handler) {
     _returnHandler = handler;
+  }
+
+  void configureLifeStealVictimHandler(
+      Future<void> Function(String effectId, String? casterGamePlayerId)
+          handler) {
+    _lifeStealVictimHandler = handler;
   }
 
   // Iniciar la escucha de ataques dirigidos a este jugador específico
@@ -121,9 +133,27 @@ class PowerEffectProvider extends ChangeNotifier {
       return;
     }
 
-    // Tomamos el efecto más reciente
+    // Tomamos el efecto más reciente (orden estable por created_at/expires_at)
+    validEffects.sort((a, b) {
+      DateTime parseDt(dynamic value) {
+        if (value == null) return DateTime.fromMillisecondsSinceEpoch(0);
+        try {
+          return DateTime.parse(value.toString());
+        } catch (_) {
+          return DateTime.fromMillisecondsSinceEpoch(0);
+        }
+      }
+
+      final aCreated = parseDt(a['created_at']);
+      final bCreated = parseDt(b['created_at']);
+      if (aCreated != bCreated) return aCreated.compareTo(bCreated);
+      final aExpires = parseDt(a['expires_at']);
+      final bExpires = parseDt(b['expires_at']);
+      return aExpires.compareTo(bExpires);
+    });
+
     final latestEffect = validEffects.last;
-    final latestSlug = latestEffect['power_slug'];
+    final latestSlug = await _resolveEffectSlug(latestEffect);
     _activeEffectId = latestEffect['id']?.toString();
     _activeEffectCasterId = latestEffect['caster_id']?.toString();
 
@@ -192,6 +222,25 @@ class PowerEffectProvider extends ChangeNotifier {
 
     _activePowerSlug = latestSlug;
 
+    // Aplicación real de life_steal para la víctima (RLS-safe):
+    // el propio cliente víctima se descuenta a sí mismo vía PlayerProvider/RPC.
+    final effectId = _activeEffectId;
+    if (latestSlug == 'life_steal' &&
+        effectId != null &&
+        effectId.isNotEmpty &&
+        effectId != _lastLifeStealHandledEffectId &&
+        _lifeStealVictimHandler != null) {
+      _lastLifeStealHandledEffectId = effectId;
+      // Fire-and-forget para no bloquear la UI del overlay.
+      () async {
+        try {
+          await _lifeStealVictimHandler!(effectId, _activeEffectCasterId);
+        } catch (e) {
+          debugPrint('PowerEffectProvider: life_steal handler error: $e');
+        }
+      }();
+    }
+
     // Manejo de devolución reactiva
     if (_returnArmed && _returnHandler != null) {
       final casterId = latestEffect['caster_id'];
@@ -216,6 +265,35 @@ class PowerEffectProvider extends ChangeNotifier {
     });
 
     notifyListeners();
+  }
+
+  Future<String?> _resolveEffectSlug(Map<String, dynamic> effect) async {
+    final explicit = effect['power_slug'] ?? effect['slug'];
+    if (explicit != null) return explicit.toString();
+
+    final powerId = effect['power_id'];
+    if (powerId == null) return null;
+    final powerIdStr = powerId.toString();
+    final cached = _powerIdToSlugCache[powerIdStr];
+    if (cached != null) return cached;
+
+    final supabase = _supabaseClient;
+    if (supabase == null) return null;
+
+    try {
+      final res = await supabase
+          .from('powers')
+          .select('slug')
+          .eq('id', powerIdStr)
+          .maybeSingle();
+      final slug = res?['slug']?.toString();
+      if (slug != null && slug.isNotEmpty) {
+        _powerIdToSlugCache[powerIdStr] = slug;
+      }
+      return slug;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _clearEffect() {

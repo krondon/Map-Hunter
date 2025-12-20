@@ -224,35 +224,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     // Requisito: blur_screen NO debe pedir seleccionar rival.
     // Se envía a todos los rivales del evento (excluyéndote a ti mismo).
-    // Internamente elegimos un target válido para el RPC y el provider hace broadcast al resto.
+    // Internamente, el provider envía el ataque global y no requiere target real.
     if (item.id == 'blur_screen') {
       try {
-        final eventId = widget.eventId ?? gameProvider.currentEventId;
-        if (eventId != null) {
-          if (gameProvider.leaderboard.isEmpty &&
-              gameProvider.currentEventId == eventId) {
-            await gameProvider.fetchLeaderboard();
-          }
-        }
-
-        final rivals =
-            gameProvider.leaderboard.where((p) => p.id != myPlayerId).toList();
-
-        dynamic target;
-        for (final p in rivals) {
-          final gpId = p.gamePlayerId;
-          if (gpId != null && gpId.isNotEmpty) {
-            target = p;
-            break;
-          }
-        }
-
-        if (target == null) {
+        if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
           showGameSnackBar(
             context,
-            title: 'Sin Rivales',
-            message:
-                'No hay rivales disponibles para aplicar Pantalla Borrosa.',
+            title: 'Sin gamePlayerId',
+            message: 'Aún no entras al evento activo',
             isError: true,
           );
           return;
@@ -260,7 +239,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
         await _executePower(
           item,
-          target.gamePlayerId!,
+          myGamePlayerId,
           'todos los rivales',
           isOffensive: true,
           effectProvider: effectProvider,
