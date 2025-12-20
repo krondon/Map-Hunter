@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../shared/models/player.dart';
 import '../../game/providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../mall/models/power_item.dart';
@@ -278,7 +279,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
         }
 
         // 2. Filtrar: Excluirme a mí mismo
-        final rivals = candidates.where((p) => p.id != myPlayerId).toList();
+        final rivals = candidates.where((p) {
+        final String pId = (p is Player) ? p.id : (p['id'] ?? '');
+        
+        // USAR EL GETTER DEL MODELO: p.isInvisible leerá el status 'invisible' de la vista
+        final bool isTargetInvisible = (p is Player) ? p.isInvisible : (p['status'] == 'invisible');
+        final bool isMe = pId == myPlayerId;
+        
+        // Solo se muestran si NO son el usuario actual y NO están invisibles
+        return !isMe && !isTargetInvisible;
+      }).toList();
 
         if (rivals.isEmpty) {
           showGameSnackBar(context,

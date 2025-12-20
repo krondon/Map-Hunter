@@ -54,15 +54,15 @@ class MallStore {
             cost: 100,
             type: PowerType.blind,
           ),
-          PowerItem(
-            id: 'blur_screen',
-            name: 'Pantalla Borrosa',
-            description:
-                'Aplica un efecto borroso sobre la pantalla del objetivo.',
-            icon: '🌫️',
-            cost: 110,
-            type: PowerType.debuff,
-          ),
+          // PowerItem(
+          //   id: 'blur_screen',
+          //   name: 'Pantalla Borrosa',
+          //   description:
+          //       'Aplica un efecto borroso sobre la pantalla del objetivo.',
+          //   icon: '🌫️',
+          //   cost: 110,
+          //   type: PowerType.debuff,
+          // ),
           PowerItem(
             id: 'freeze',
             name: 'Congelar',
@@ -89,19 +89,19 @@ class MallStore {
             "https://pbs.twimg.com/profile_images/1118182255763005440/1VjXyQj-_400x400.png",
         qrCodeData: "store:farmatodo",
         products: [
-          PowerItem(
-            id: 'shield',
-            name: 'Escudo',
-            description: 'Bloquea sabotajes por 300s',
-            type: PowerType.shield,
-            cost: 150,
-            icon: '🛡️',
-          ),
-          PowerItem(
+          // PowerItem(
+          //   id: 'shield',
+          //   name: 'Escudo',
+          //   description: 'Bloquea sabotajes por 300s',
+          //   type: PowerType.shield,
+          //   cost: 150,
+          //   icon: '🛡️',
+          // ),
+          const PowerItem(
             id: 'return',
             name: 'Devolución',
             description: 'Devuelve el ataque al origen',
-            type: PowerType.utility,
+            type: PowerType.buff, // CAMBIADO: De utility a buff
             cost: 90,
             icon: '↩️',
           ),

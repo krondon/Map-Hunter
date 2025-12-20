@@ -255,7 +255,8 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- USO DE PODERES ---
+
+// --- LÓGICA DE USO DE PODERES ---
 
   Future<bool> usePower({
     required String powerSlug,
@@ -270,89 +271,96 @@ class PlayerProvider extends ChangeNotifier {
 
     final casterGamePlayerId = _currentPlayer!.gamePlayerId;
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
-      debugPrint('usePower abortado: caster gamePlayerId nulo');
       _isProcessing = false;
       return false;
     }
 
     try {
       bool success = false;
+      dynamic response;
 
-      // Por ahora: invisibility NO hace nada (ni RPC, ni consumo, ni efectos).
+      // 1. INVISIBILIDAD: Corregido para que el servidor lo procese
+      // Verifica que usePower siga enviando el RPC así (esto es correcto):
       if (powerSlug == 'invisibility') {
-        success = true;
-      } else if (powerSlug == 'blur_screen') {
-        // blur_screen: ataque global a todos los rivales del evento (excluyéndote).
-        // Consumimos 1 unidad y escribimos directamente en active_powers.
-        final paid =
-            await _decrementPowerBySlug('blur_screen', casterGamePlayerId);
+        response = await _supabase.rpc('use_power_mechanic', params: {
+          'p_caster_id': casterGamePlayerId,
+          'p_target_id': casterGamePlayerId, 
+          'p_power_slug': 'invisibility',
+        });
+        success = _coerceRpcSuccess(response);
+      }
+      else if (powerSlug == 'life_steal') {
+        response = await _supabase.rpc('use_power_mechanic', params: {
+          'p_caster_id': casterGamePlayerId,
+          'p_target_id': targetGamePlayerId,
+          'p_power_slug': 'life_steal',
+        });
+        success = _coerceRpcSuccess(response);
+      }
+      else if (powerSlug == 'blur_screen') {
+        final paid = await _decrementPowerBySlug('blur_screen', casterGamePlayerId);
         if (!paid) {
-          debugPrint('usePower(blur_screen): sin cantidad disponible.');
+          _isProcessing = false;
           return false;
         }
-        if (gameProvider == null) {
-          debugPrint(
-              'usePower(blur_screen): gameProvider requerido para obtener rivales.');
-          return false;
+        if (gameProvider != null) {
+          await _broadcastBlurScreenToEventRivals(
+            gameProvider: gameProvider,
+            casterGamePlayerId: casterGamePlayerId,
+          );
         }
-        await _broadcastBlurScreenToEventRivals(
-          gameProvider: gameProvider,
-          casterGamePlayerId: casterGamePlayerId,
-        );
         success = true;
-      } else if (powerSlug == 'return') {
-        // Persistencia (Point C): descontar inmediatamente en player_powers.
-        final paid = await _decrementPowerBySlug('return', casterGamePlayerId);
-        if (!paid) {
-          debugPrint('usePower(return): sin cantidad disponible.');
-          return false;
-        }
-        // Armar devolución para el próximo ataque entrante
-        success = true;
-        effectProvider.armReturn();
-      } else {
-        final response = await _supabase.rpc('use_power_mechanic', params: {
+      } 
+      else if (powerSlug == 'return') {
+         response = await _supabase.rpc('use_power_mechanic', params: {
+           'p_caster_id': casterGamePlayerId,
+           'p_target_id': casterGamePlayerId,
+           'p_power_slug': 'return',
+         });
+         success = _coerceRpcSuccess(response);
+      } 
+      else {
+        response = await _supabase.rpc('use_power_mechanic', params: {
           'p_caster_id': casterGamePlayerId,
           'p_target_id': targetGamePlayerId,
           'p_power_slug': powerSlug,
         });
         success = _coerceRpcSuccess(response);
-
-        // life_steal: con RLS, el atacante NO puede actualizar las vidas del rival.
-        // Estrategia sin tocar backend:
-        // - el rival se descuenta a sí mismo al recibir el efecto (ver SabotageOverlay)
-        // - el atacante solo se incrementa a sí mismo aquí (tope 3)
-        if (success && powerSlug == 'life_steal') {
-          await _applyLifeStealCasterGain(
-            casterGamePlayerId: casterGamePlayerId,
-            targetGamePlayerId: targetGamePlayerId,
-          );
-        }
       }
 
-      // Evitar rebotes infinitos de devoluciones
-      if (!allowReturnForward && powerSlug == 'return') {
-        success = true;
+      // --- PASO 2: MANEJO DE ERRORES DEL SERVIDOR ---
+      if (response is Map && response['success'] == false) {
+        if (response['error'] == 'target_invisible') {
+          throw '¡El objetivo es invisible!';
+        }
+        _isProcessing = false;
+        return false;
+      }
+
+      // Notificación de devolución
+      if (success && response is Map && response['returned'] == true) {
+        final String name = response['returned_by_name'] ?? 'Un rival';
+        effectProvider.notifyPowerReturned(name);
+        await refreshProfile(); 
       }
 
       if (success) {
-        // Hooks de front inmediato
         if (powerSlug == 'shield') {
           effectProvider.setShielded(true, sourceSlug: powerSlug);
         }
-
         await syncRealInventory(effectProvider: effectProvider);
       }
       return success;
     } catch (e) {
       debugPrint('Error usando poder: $e');
-      return false;
+      rethrow; // Lanzamos el error para que la UI lo atrape
     } finally {
       _isProcessing = false;
     }
   }
 
-  bool _coerceRpcSuccess(dynamic response) {
+
+bool _coerceRpcSuccess(dynamic response) {
     if (response == null) {
       // Muchas funciones SQL retornan void/null cuando salen bien.
       return true;
@@ -622,9 +630,9 @@ class PlayerProvider extends ChangeNotifier {
           allowReturnForward: false,
         );
       });
-      effectProvider?.configureLifeStealVictimHandler((effectId, casterId) {
-        return loseLife(eventId: eventId);
-      });
+      // effectProvider?.configureLifeStealVictimHandler((effectId, casterId) {
+      //   return loseLife(eventId: eventId);
+      // });
       effectProvider?.startListening(gamePlayerId);
       debugPrint("GamePlayer encontrado: $gamePlayerId");
 
@@ -805,10 +813,9 @@ class PlayerProvider extends ChangeNotifier {
       final newStatus =
           _currentPlayer!.status.name == status ? 'active' : status;
 
+      // ✅ CORRECCIÓN: Eliminamos 'frozen_until' porque no existe en tu tabla 'profiles'
       await _supabase.from('profiles').update({
         'status': newStatus,
-        'frozen_until':
-            newStatus == 'active' ? null : expiration.toIso8601String(),
       }).eq('id', _currentPlayer!.id);
 
       await refreshProfile();

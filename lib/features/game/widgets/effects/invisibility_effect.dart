@@ -1,64 +1,52 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
-class InvisibilityEffect extends StatefulWidget {
+class InvisibilityEffect extends StatelessWidget {
   const InvisibilityEffect({super.key});
 
   @override
-  State<InvisibilityEffect> createState() => _InvisibilityEffectState();
-}
-
-class _InvisibilityEffectState extends State<InvisibilityEffect>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    )..repeat(reverse: true);
-
-    _opacity = Tween<double>(begin: 0.05, end: 0.18)
-        .chain(CurveTween(curve: Curves.easeInOut))
-        .animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final overlay = Color.alphaBlend(
+      Colors.black.withOpacity(0.22),
+      primary.withOpacity(0.16),
+    );
+
     return IgnorePointer(
-      ignoring: true,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final double blur = 3 + (_controller.value * 3);
-          return BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.transparent,
-                    Colors.white.withOpacity(_opacity.value),
-                  ],
-                  radius: 1.2,
+      child: Stack(
+        children: [
+          Container(color: overlay),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-                border: Border.all(
-                  color: Colors.white.withOpacity(_opacity.value),
-                  width: 1.2,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Modo invisible',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Colors.white.withOpacity(0.75),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.6,
+                          ) ??
+                      TextStyle(
+                        color: Colors.white.withOpacity(0.75),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                      ),
                 ),
               ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

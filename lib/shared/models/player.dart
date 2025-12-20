@@ -88,6 +88,8 @@ class Player {
         return PlayerStatus.banned;
       case 'pending':
         return PlayerStatus.pending;
+        case 'invisible': // <--- Agregamos este caso
+        return PlayerStatus.invisible;
       default:
         return PlayerStatus.active;
     }
@@ -96,6 +98,8 @@ class Player {
   int get experienceToNextLevel => (level * 100);
 
   double get experienceProgress => experience / experienceToNextLevel;
+
+  bool get isInvisible => status == PlayerStatus.invisible;
 
   bool get isFrozen =>
       status == PlayerStatus.frozen &&
@@ -152,4 +156,5 @@ enum PlayerStatus {
   banned,
   pending,
   slowed,
+  invisible, // <--- Agregamos este
 }

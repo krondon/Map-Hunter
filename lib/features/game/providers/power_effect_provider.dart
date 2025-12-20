@@ -8,6 +8,7 @@ class PowerEffectProvider extends ChangeNotifier {
   Timer? _defenseFeedbackTimer;
   bool _shieldActive = false;
   String? _listeningForId;
+  String? get listeningForId => _listeningForId;
   bool _returnArmed = false;
   Future<bool> Function(String powerSlug, String targetGamePlayerId)?
       _returnHandler;
@@ -17,6 +18,8 @@ class PowerEffectProvider extends ChangeNotifier {
   DateTime? _lastDefenseActionAt;
 
   String? _lastLifeStealHandledEffectId;
+  String? _returnedByPlayerName;
+  String? get returnedByPlayerName => _returnedByPlayerName;
 
   final Map<String, String> _powerIdToSlugCache = {};
 
@@ -24,6 +27,10 @@ class PowerEffectProvider extends ChangeNotifier {
   String? _activePowerSlug;
   String? _activeEffectId;
   String? _activeEffectCasterId;
+  DateTime? _activePowerExpiresAt; // Nueva variable
+
+
+  DateTime? get activePowerExpiresAt => _activePowerExpiresAt; // Nuevo getter
 
   String? get activePowerSlug => _activePowerSlug;
   String? get activeEffectId => _activeEffectId;
@@ -199,10 +206,12 @@ class PowerEffectProvider extends ChangeNotifier {
             payload['event_id'] = latestEffect['event_id'];
           }
           await supabase.from('active_powers').insert(payload);
+          _activePowerExpiresAt = DateTime.parse(expiresAt); 
         } catch (e) {
           debugPrint('PowerEffectProvider: error reflejando efecto: $e');
         }
 
+        // Guardamos la fecha exacta para la UI
         // Asegurar que el defensor no muestre overlay del ataque entrante.
         _activePowerSlug = null;
         _activeEffectId = null;
@@ -224,22 +233,22 @@ class PowerEffectProvider extends ChangeNotifier {
 
     // Aplicación real de life_steal para la víctima (RLS-safe):
     // el propio cliente víctima se descuenta a sí mismo vía PlayerProvider/RPC.
-    final effectId = _activeEffectId;
-    if (latestSlug == 'life_steal' &&
-        effectId != null &&
-        effectId.isNotEmpty &&
-        effectId != _lastLifeStealHandledEffectId &&
-        _lifeStealVictimHandler != null) {
-      _lastLifeStealHandledEffectId = effectId;
-      // Fire-and-forget para no bloquear la UI del overlay.
-      () async {
-        try {
-          await _lifeStealVictimHandler!(effectId, _activeEffectCasterId);
-        } catch (e) {
-          debugPrint('PowerEffectProvider: life_steal handler error: $e');
-        }
-      }();
-    }
+    // final effectId = _activeEffectId;
+    // if (latestSlug == 'life_steal' &&
+    //     effectId != null &&
+    //     effectId.isNotEmpty &&
+    //     effectId != _lastLifeStealHandledEffectId &&
+    //     _lifeStealVictimHandler != null) {
+    //   _lastLifeStealHandledEffectId = effectId;
+    //   // Fire-and-forget para no bloquear la UI del overlay.
+    //   () async {
+    //     try {
+    //       await _lifeStealVictimHandler!(effectId, _activeEffectCasterId);
+    //     } catch (e) {
+    //       debugPrint('PowerEffectProvider: life_steal handler error: $e');
+    //     }
+    //   }();
+    // }
 
     // Manejo de devolución reactiva
     if (_returnArmed && _returnHandler != null) {
@@ -301,6 +310,7 @@ class PowerEffectProvider extends ChangeNotifier {
     _activePowerSlug = null;
     _activeEffectId = null;
     _activeEffectCasterId = null;
+    _activePowerExpiresAt = null;
     notifyListeners();
   }
 
@@ -329,6 +339,16 @@ class PowerEffectProvider extends ChangeNotifier {
     if (slug == null) return false;
     return slug == 'shield';
   }
+
+// 3. AÑADE ESTE MÉTODO AL FINAL DE LA CLASE (antes del dispose)
+void notifyPowerReturned(String byPlayerName) {
+  _returnedByPlayerName = byPlayerName;
+  
+  // Esto activa el toast visual que ya tienes configurado
+  _registerDefenseAction(DefenseAction.returned); 
+  
+  notifyListeners();
+}
 
   @override
   void dispose() {
