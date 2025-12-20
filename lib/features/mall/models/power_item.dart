@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 enum PowerType {
-  buff,   // Beneficio propio (Escudo, Vida)
+  buff, // Beneficio propio (Escudo, Vida)
   debuff, // Ataque al rival (Congelar, Pantalla negra)
   utility, // Utilidad (Pista, Radar)
   blind, // Específico para pantalla negra
@@ -46,7 +46,18 @@ class PowerItem {
         color: Colors.black87,
         durationMinutes: 0,
       ),
-      
+
+      const PowerItem(
+        id: 'blur_screen',
+        name: 'Pantalla Borrosa',
+        description: 'Aplica un efecto borroso sobre la pantalla del objetivo.',
+        type: PowerType.debuff,
+        cost: 110,
+        icon: '🌫️',
+        color: Colors.blueGrey,
+        durationMinutes: 0,
+      ),
+
       const PowerItem(
         id: 'return',
         name: 'Devolución',

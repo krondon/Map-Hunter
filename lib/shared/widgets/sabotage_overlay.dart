@@ -28,7 +28,8 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     super.dispose();
   }
 
-  void _showLifeStealBanner(String message, {Duration duration = const Duration(seconds: 3)}) {
+  void _showLifeStealBanner(String message,
+      {Duration duration = const Duration(seconds: 3)}) {
     _lifeStealBannerTimer?.cancel();
     setState(() {
       _lifeStealBannerText = message;
@@ -42,11 +43,15 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   }
 
   String _resolvePlayerNameFromLeaderboard(String? casterGamePlayerId) {
-    if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) return 'Un rival';
+    if (casterGamePlayerId == null || casterGamePlayerId.isEmpty)
+      return 'Un rival';
     final gameProvider = context.read<GameProvider>();
     final match = gameProvider.leaderboard.whereType<Player>().firstWhere(
-          (p) => p.gamePlayerId == casterGamePlayerId || p.id == casterGamePlayerId,
-          orElse: () => Player(id: '', name: 'Un rival', email: '', avatarUrl: ''),
+          (p) =>
+              p.gamePlayerId == casterGamePlayerId ||
+              p.id == casterGamePlayerId,
+          orElse: () =>
+              Player(id: '', name: 'Un rival', email: '', avatarUrl: ''),
         );
     return match.name.isNotEmpty ? match.name : 'Un rival';
   }
@@ -62,7 +67,8 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       final effectId = powerProvider.activeEffectId;
       if (effectId != null && effectId != _lastLifeStealEffectId) {
         _lastLifeStealEffectId = effectId;
-        final attackerName = _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+        final attackerName = _resolvePlayerNameFromLeaderboard(
+            powerProvider.activeEffectCasterId);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
@@ -73,12 +79,16 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     return Stack(
       children: [
         widget.child, // El juego base siempre debajo
-        
+
         // Capas de sabotaje (se activan según el slug recibido de la DB)
         if (activeSlug == 'black_screen') const BlindEffect(),
         if (activeSlug == 'freeze') const FreezeEffect(),
-        if (activeSlug == 'life_steal') LifeStealEffect(casterName: _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId)),
-        if (activeSlug == 'invisibility') const InvisibilityEffect(),
+        if (activeSlug == 'life_steal')
+          LifeStealEffect(
+              casterName: _resolvePlayerNameFromLeaderboard(
+                  powerProvider.activeEffectCasterId)),
+        if (activeSlug == 'invisibility' || activeSlug == 'blur_screen')
+          const InvisibilityEffect(),
 
         if (_lifeStealBannerText != null)
           Positioned(
@@ -91,20 +101,24 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                 duration: const Duration(milliseconds: 200),
                 child: Container(
                   key: ValueKey(_lifeStealBannerText),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.red.shade900.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                    border:
+                        Border.all(color: Colors.redAccent.withOpacity(0.6)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                      const Icon(Icons.warning_amber_rounded,
+                          color: Colors.white),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _lifeStealBannerText!,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),

@@ -39,7 +39,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final player = playerProvider.currentPlayer;
-    
+
     final eventId = widget.eventId ?? gameProvider.currentEventId;
 
     if (player != null && eventId != null) {
@@ -51,7 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
     final player = playerProvider.currentPlayer;
-    
+
     if (player == null) {
       return const Center(child: Text('No player data'));
     }
@@ -62,7 +62,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       inventoryCounts[itemId] = (inventoryCounts[itemId] ?? 0) + 1;
     }
     final uniqueItems = inventoryCounts.keys.toList();
-    
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -147,14 +147,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ],
                 ),
               ),
-              
+
               // Inventory items grid
               Expanded(
                 child: player.inventory.isEmpty
                     ? _buildEmptyState(context)
                     : GridView.builder(
                         padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
@@ -164,7 +165,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         itemBuilder: (context, index) {
                           final itemId = uniqueItems[index];
                           final count = inventoryCounts[itemId] ?? 1;
-                          
+
                           // Buscamos la definición del item para pintarlo (Nombre, Icono)
                           // Si no existe en la lista estática, creamos un placeholder.
                           final itemDef = PowerItem.getShopItems().firstWhere(
@@ -178,11 +179,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               icon: '⚡',
                             ),
                           );
-                        
+
                           return InventoryItemCard(
                             item: itemDef,
                             count: count,
-                            onUse: () => _handleItemUse(context, itemDef, player.id),
+                            onUse: () =>
+                                _handleItemUse(context, itemDef, player.id),
                           );
                         },
                       ),
@@ -192,7 +194,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen())),
+        onPressed: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const MallScreen())),
         label: const Text('Ir al Mall'),
         icon: const Icon(Icons.store),
         backgroundColor: AppTheme.accentGold,
@@ -201,30 +204,94 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   /// Lógica centralizada para usar items (Ataque vs Defensa)
-  Future<void> _handleItemUse(BuildContext context, PowerItem item, String myPlayerId) async {
+  Future<void> _handleItemUse(
+      BuildContext context, PowerItem item, String myPlayerId) async {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    final effectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+    final effectProvider =
+        Provider.of<PowerEffectProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
     // Lista de IDs considerados ofensivos/sabotaje
     // Lo ideal es mover esto a una propiedad `isOffensive` en tu modelo PowerItem
-    final offensiveItems = ['freeze', 'black_screen', 'life_steal'];
+    final offensiveItems = [
+      'freeze',
+      'black_screen',
+      'life_steal',
+      'blur_screen'
+    ];
     final isOffensive = offensiveItems.contains(item.id);
+
+    // Requisito: blur_screen NO debe pedir seleccionar rival.
+    // Se envía a todos los rivales del evento (excluyéndote a ti mismo).
+    // Internamente elegimos un target válido para el RPC y el provider hace broadcast al resto.
+    if (item.id == 'blur_screen') {
+      try {
+        final eventId = widget.eventId ?? gameProvider.currentEventId;
+        if (eventId != null) {
+          if (gameProvider.leaderboard.isEmpty &&
+              gameProvider.currentEventId == eventId) {
+            await gameProvider.fetchLeaderboard();
+          }
+        }
+
+        final rivals =
+            gameProvider.leaderboard.where((p) => p.id != myPlayerId).toList();
+
+        dynamic target;
+        for (final p in rivals) {
+          final gpId = p.gamePlayerId;
+          if (gpId != null && gpId.isNotEmpty) {
+            target = p;
+            break;
+          }
+        }
+
+        if (target == null) {
+          showGameSnackBar(
+            context,
+            title: 'Sin Rivales',
+            message:
+                'No hay rivales disponibles para aplicar Pantalla Borrosa.',
+            isError: true,
+          );
+          return;
+        }
+
+        await _executePower(
+          item,
+          target.gamePlayerId!,
+          'todos los rivales',
+          isOffensive: true,
+          effectProvider: effectProvider,
+          gameProvider: gameProvider,
+        );
+      } catch (e) {
+        debugPrint('Error enviando blur_screen a todos: $e');
+        showGameSnackBar(
+          context,
+          title: 'Error',
+          message: 'Error enviando Pantalla Borrosa: $e',
+          isError: true,
+        );
+      }
+      return;
+    }
 
     if (isOffensive) {
       try {
         // --- MODO ATAQUE: SELECCIONAR RIVAL ---
-        
+
         // 1. Obtener lista de candidatos (Rivales)
         List<dynamic> candidates = [];
         final eventId = widget.eventId ?? gameProvider.currentEventId;
-        
+
         if (eventId != null) {
           // Si estamos en un evento, SOLO mostrar participantes del ranking
           // Esto asegura que se muestren en orden de ranking y solo los del evento
-          if (gameProvider.leaderboard.isEmpty && gameProvider.currentEventId == eventId) {
-             await gameProvider.fetchLeaderboard();
+          if (gameProvider.leaderboard.isEmpty &&
+              gameProvider.currentEventId == eventId) {
+            await gameProvider.fetchLeaderboard();
           }
           candidates = gameProvider.leaderboard;
         } else {
@@ -235,7 +302,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         final rivals = candidates.where((p) => p.id != myPlayerId).toList();
 
         if (rivals.isEmpty) {
-          showGameSnackBar(context, title: 'Sin Víctimas', message: 'No hay otros jugadores disponibles para sabotear.', isError: true);
+          showGameSnackBar(context,
+              title: 'Sin Víctimas',
+              message: 'No hay otros jugadores disponibles para sabotear.',
+              isError: true);
           return;
         }
 
@@ -278,24 +348,36 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       return ListTile(
                         leading: CircleAvatar(
                           backgroundColor: AppTheme.primaryPurple,
-                          backgroundImage: (rival.avatarUrl.isNotEmpty && rival.avatarUrl.startsWith('http')) 
-                              ? NetworkImage(rival.avatarUrl) 
+                          backgroundImage: (rival.avatarUrl.isNotEmpty &&
+                                  rival.avatarUrl.startsWith('http'))
+                              ? NetworkImage(rival.avatarUrl)
                               : null,
-                          child: (rival.avatarUrl.isEmpty || !rival.avatarUrl.startsWith('http'))
-                              ? Text(rival.name.isNotEmpty ? rival.name[0] : '?')
+                          child: (rival.avatarUrl.isEmpty ||
+                                  !rival.avatarUrl.startsWith('http'))
+                              ? Text(
+                                  rival.name.isNotEmpty ? rival.name[0] : '?')
                               : null,
                         ),
-                        title: Text(rival.name, style: const TextStyle(color: Colors.white)),
-                        subtitle: Text('${rival.totalXP} XP', style: const TextStyle(color: Colors.white60)),
-                        trailing: const Icon(Icons.bolt, color: AppTheme.secondaryPink),
+                        title: Text(rival.name,
+                            style: const TextStyle(color: Colors.white)),
+                        subtitle: Text('${rival.totalXP} XP',
+                            style: const TextStyle(color: Colors.white60)),
+                        trailing: const Icon(Icons.bolt,
+                            color: AppTheme.secondaryPink),
                         onTap: () {
                           final targetGp = rival.gamePlayerId;
                           if (targetGp == null || targetGp.isEmpty) {
-                            showGameSnackBar(context, title: 'Sin gamePlayerId', message: 'El rival no tiene gamePlayerId', isError: true);
+                            showGameSnackBar(context,
+                                title: 'Sin gamePlayerId',
+                                message: 'El rival no tiene gamePlayerId',
+                                isError: true);
                             return;
                           }
                           Navigator.pop(modalContext);
-                          _executePower(item, targetGp, rival.name, isOffensive: true, effectProvider: effectProvider, gameProvider: gameProvider);
+                          _executePower(item, targetGp, rival.name,
+                              isOffensive: true,
+                              effectProvider: effectProvider,
+                              gameProvider: gameProvider);
                         },
                       );
                     },
@@ -308,24 +390,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       } catch (e) {
         debugPrint("Error cargando rivales: $e");
-        showGameSnackBar(context, title: 'Error', message: 'Error cargando rivales: $e', isError: true);
+        showGameSnackBar(context,
+            title: 'Error',
+            message: 'Error cargando rivales: $e',
+            isError: true);
       }
     } else {
       // --- MODO DEFENSA/BUFF: USAR EN MÍ MISMO ---
       if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
-        showGameSnackBar(context, title: 'Sin gamePlayerId', message: 'Aún no entras al evento activo', isError: true);
+        showGameSnackBar(context,
+            title: 'Sin gamePlayerId',
+            message: 'Aún no entras al evento activo',
+            isError: true);
         return;
       }
-      _executePower(item, myGamePlayerId, "Mí mismo", isOffensive: false, effectProvider: effectProvider, gameProvider: gameProvider);
+      _executePower(item, myGamePlayerId, "Mí mismo",
+          isOffensive: false,
+          effectProvider: effectProvider,
+          gameProvider: gameProvider);
     }
   }
 
   Future<void> _executePower(
-    PowerItem item, 
-    String targetGamePlayerId, 
-    String targetName,
-    {required bool isOffensive, required PowerEffectProvider effectProvider, required GameProvider gameProvider}
-  ) async {
+      PowerItem item, String targetGamePlayerId, String targetName,
+      {required bool isOffensive,
+      required PowerEffectProvider effectProvider,
+      required GameProvider gameProvider}) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
     // Feedback visual de carga
@@ -333,8 +423,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppTheme.accentGold)
-      ),
+          child: CircularProgressIndicator(color: AppTheme.accentGold)),
     );
 
     bool success = false;
@@ -352,7 +441,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     } finally {
       // Asegurar que cerramos el loading pase lo que pase
       if (context.mounted) {
-        Navigator.pop(context); 
+        Navigator.pop(context);
       }
     }
 
@@ -368,11 +457,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            isOffensive 
-              ? '¡Ataque enviado correctamente a $targetName!' 
-              : '¡${item.name} activado correctamente!'
-          ),
+          content: Text(isOffensive
+              ? '¡Ataque enviado correctamente a $targetName!'
+              : '¡${item.name} activado correctamente!'),
           backgroundColor: AppTheme.successGreen,
           behavior: SnackBarBehavior.floating,
         ),
@@ -380,7 +467,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Error: No se pudo usar el objeto (¿Sin munición o error de conexión?)'),
+          content: Text(
+              'Error: No se pudo usar el objeto (¿Sin munición o error de conexión?)'),
           backgroundColor: AppTheme.dangerRed,
         ),
       );
@@ -401,8 +489,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Text(
             'Inventario vacío',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: Colors.white54,
-            ),
+                  color: Colors.white54,
+                ),
           ),
           const SizedBox(height: 10),
           Text(
@@ -425,7 +513,8 @@ class _AttackSuccessDialog extends StatefulWidget {
   State<_AttackSuccessDialog> createState() => _AttackSuccessDialogState();
 }
 
-class _AttackSuccessDialogState extends State<_AttackSuccessDialog> with SingleTickerProviderStateMixin {
+class _AttackSuccessDialogState extends State<_AttackSuccessDialog>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -433,20 +522,21 @@ class _AttackSuccessDialogState extends State<_AttackSuccessDialog> with SingleT
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500));
     _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.5).chain(CurveTween(curve: Curves.elasticOut)), 
-        weight: 40
-      ),
+          tween: Tween(begin: 0.0, end: 1.5)
+              .chain(CurveTween(curve: Curves.elasticOut)),
+          weight: 40),
       TweenSequenceItem(
-        tween: Tween(begin: 1.5, end: 1.2).chain(CurveTween(curve: Curves.easeInOut)), 
-        weight: 20
-      ),
+          tween: Tween(begin: 1.5, end: 1.2)
+              .chain(CurveTween(curve: Curves.easeInOut)),
+          weight: 20),
       TweenSequenceItem(
-        tween: Tween(begin: 1.2, end: 5.0).chain(CurveTween(curve: Curves.fastOutSlowIn)), 
-        weight: 40
-      ),
+          tween: Tween(begin: 1.2, end: 5.0)
+              .chain(CurveTween(curve: Curves.fastOutSlowIn)),
+          weight: 40),
     ]).animate(_controller);
 
     _opacityAnimation = TweenSequence<double>([
@@ -479,15 +569,18 @@ class _AttackSuccessDialogState extends State<_AttackSuccessDialog> with SingleT
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(widget.item?.icon ?? '⚡', style: const TextStyle(fontSize: 80)),
+                  Text(widget.item?.icon ?? '⚡',
+                      style: const TextStyle(fontSize: 80)),
                   const SizedBox(height: 10),
                   Material(
                     color: Colors.transparent,
                     child: Text(
-                      widget.item == null ? '¡ATAQUE ENVIADO!' : '¡${widget.item!.id == "extra_life" || widget.item!.id == "shield" ? "USADO" : "LANZADO"}!',
+                      widget.item == null
+                          ? '¡ATAQUE ENVIADO!'
+                          : '¡${widget.item!.id == "extra_life" || widget.item!.id == "shield" ? "USADO" : "LANZADO"}!',
                       style: const TextStyle(
-                        color: AppTheme.accentGold, 
-                        fontSize: 20, 
+                        color: AppTheme.accentGold,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
                       ),
@@ -497,7 +590,9 @@ class _AttackSuccessDialogState extends State<_AttackSuccessDialog> with SingleT
                   Material(
                     color: Colors.transparent,
                     child: Text(
-                      widget.targetName.isEmpty ? '' : 'Objetivo: ${widget.targetName}',
+                      widget.targetName.isEmpty
+                          ? ''
+                          : 'Objetivo: ${widget.targetName}',
                       style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                   ),

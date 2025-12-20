@@ -3,17 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PowerEffectProvider extends ChangeNotifier {
-  final _supabase = Supabase.instance.client;
   StreamSubscription? _subscription;
   Timer? _expiryTimer;
   Timer? _defenseFeedbackTimer;
   bool _shieldActive = false;
   String? _listeningForId;
   bool _returnArmed = false;
-  Future<bool> Function(String powerSlug, String targetGamePlayerId)? _returnHandler;
+  Future<bool> Function(String powerSlug, String targetGamePlayerId)?
+      _returnHandler;
   DefenseAction? _lastDefenseAction;
   DateTime? _lastDefenseActionAt;
-  
+
   // Guardamos el slug del poder activo (ej: 'black_screen', 'freeze')
   String? _activePowerSlug;
   String? _activeEffectId;
@@ -23,6 +23,14 @@ class PowerEffectProvider extends ChangeNotifier {
   String? get activeEffectId => _activeEffectId;
   String? get activeEffectCasterId => _activeEffectCasterId;
   DefenseAction? get lastDefenseAction => _lastDefenseAction;
+
+  SupabaseClient? get _supabaseClient {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   void setShielded(bool value, {String? sourceSlug}) {
     final shouldEnable = value || _isShieldSlug(sourceSlug);
@@ -41,12 +49,20 @@ class PowerEffectProvider extends ChangeNotifier {
   }
 
   void configureReturnHandler(
-      Future<bool> Function(String powerSlug, String targetGamePlayerId) handler) {
+      Future<bool> Function(String powerSlug, String targetGamePlayerId)
+          handler) {
     _returnHandler = handler;
   }
 
   // Iniciar la escucha de ataques dirigidos a este jugador específico
   void startListening(String? myGamePlayerId) {
+    final supabase = _supabaseClient;
+    if (supabase == null) {
+      _clearEffect();
+      _subscription?.cancel();
+      return;
+    }
+
     if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
       _clearEffect();
       _subscription?.cancel();
@@ -57,7 +73,7 @@ class PowerEffectProvider extends ChangeNotifier {
     _expiryTimer?.cancel();
     _listeningForId = myGamePlayerId;
 
-    _subscription = _supabase
+    _subscription = supabase
         .from('active_powers')
         .stream(primaryKey: ['id'])
         .eq('target_id', myGamePlayerId)
@@ -70,6 +86,12 @@ class PowerEffectProvider extends ChangeNotifier {
 
   Future<void> _processEffects(List<Map<String, dynamic>> data) async {
     _expiryTimer?.cancel(); // Limpiar temporizadores previos
+
+    final supabase = _supabaseClient;
+    if (supabase == null) {
+      _clearEffect();
+      return;
+    }
 
     if (data.isEmpty) {
       _clearEffect();
@@ -112,7 +134,8 @@ class PowerEffectProvider extends ChangeNotifier {
       final slugToReturn = latestSlug?.toString();
       final bool isOffensive = slugToReturn == 'black_screen' ||
           slugToReturn == 'freeze' ||
-          slugToReturn == 'life_steal';
+          slugToReturn == 'life_steal' ||
+          slugToReturn == 'blur_screen';
 
       if (casterId != null && slugToReturn != null && isOffensive) {
         _returnArmed = false;
@@ -122,16 +145,20 @@ class PowerEffectProvider extends ChangeNotifier {
         final incomingId = latestEffect['id'];
         if (incomingId != null) {
           try {
-            await _supabase.from('active_powers').delete().eq('id', incomingId);
+            await supabase.from('active_powers').delete().eq('id', incomingId);
           } catch (e) {
-            debugPrint('PowerEffectProvider: no se pudo borrar efecto entrante: $e');
+            debugPrint(
+                'PowerEffectProvider: no se pudo borrar efecto entrante: $e');
           }
         }
 
         // 2) Insertar efecto reflejado al atacante (sin consumir inventario extra).
         try {
           final expiresAt = (latestEffect['expires_at']?.toString()) ??
-              DateTime.now().toUtc().add(const Duration(seconds: 6)).toIso8601String();
+              DateTime.now()
+                  .toUtc()
+                  .add(const Duration(seconds: 6))
+                  .toIso8601String();
           final payload = <String, dynamic>{
             'target_id': casterId,
             'caster_id': _listeningForId,
@@ -141,7 +168,7 @@ class PowerEffectProvider extends ChangeNotifier {
           if (latestEffect['event_id'] != null) {
             payload['event_id'] = latestEffect['event_id'];
           }
-          await _supabase.from('active_powers').insert(payload);
+          await supabase.from('active_powers').insert(payload);
         } catch (e) {
           debugPrint('PowerEffectProvider: error reflejando efecto: $e');
         }
@@ -158,7 +185,8 @@ class PowerEffectProvider extends ChangeNotifier {
     if (_shieldActive) {
       _activePowerSlug = null;
       _registerDefenseAction(DefenseAction.shieldBlocked);
-      debugPrint('PowerEffectProvider: Ataque interceptado por escudo, ignorando.');
+      debugPrint(
+          'PowerEffectProvider: Ataque interceptado por escudo, ignorando.');
       return;
     }
 
@@ -175,11 +203,11 @@ class PowerEffectProvider extends ChangeNotifier {
         debugPrint('PowerEffectProvider: Devolución activada contra $casterId');
       }
     }
-    
+
     // Programamos la limpieza automática para el momento exacto de la expiración
     final expiresAt = DateTime.parse(latestEffect['expires_at']);
     final durationRemaining = expiresAt.difference(now);
-    
+
     _expiryTimer = Timer(durationRemaining, () {
       _activePowerSlug = null;
       _activeEffectId = null;
@@ -210,7 +238,8 @@ class PowerEffectProvider extends ChangeNotifier {
 
     _defenseFeedbackTimer = Timer(const Duration(seconds: 2), () {
       // Evitamos borrar si se registró un nuevo evento dentro de la ventana.
-      final elapsed = DateTime.now().difference(_lastDefenseActionAt ?? DateTime.now());
+      final elapsed =
+          DateTime.now().difference(_lastDefenseActionAt ?? DateTime.now());
       if (elapsed.inSeconds >= 2) {
         _lastDefenseAction = null;
         notifyListeners();
