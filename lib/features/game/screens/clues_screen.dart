@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart'; // IMPORT AGREGADO
 import '../../../core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ import 'puzzle_screen.dart';
 import '../../game/models/clue.dart'; // Import para usar tipo Clue
 import 'clue_finder_screen.dart'; // Import nuevo
 import 'winner_celebration_screen.dart'; // Import for celebration screen
+import 'story_intro_screen.dart'; // Import for story introduction
 
 class CluesScreen extends StatefulWidget {
   // 1. Recibimos el ID del evento obligatorio
@@ -32,24 +34,47 @@ class _CluesScreenState extends State<CluesScreen> {
   @override
   void initState() {
     super.initState();
-    // 2. Llamamos al provider apenas carga la pantalla usando el ID recibido
+    // Check if user has seen the story introduction
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenStory = prefs.getBool('has_seen_asthoria_story_${widget.eventId}') ?? false;
       
-      // 1. PRIMERO cargar pistas y configurar el ID del evento (esto limpia el estado anterior)
-      await gameProvider.fetchClues(eventId: widget.eventId);
-      
-      // 2. LUEGO comprobar si la carrera ya terminó en el servidor
-      await gameProvider.checkRaceStatus();
-      
-      // 3. Si ya terminó, redirigir
-      if (gameProvider.isRaceCompleted && mounted) {
-        _navigateToWinnerScreen();
-        return;
+      if (!hasSeenStory && mounted) {
+        // Show story introduction
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => StoryIntroScreen(
+              onComplete: () {
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        );
+        
+        // Mark as seen
+        await prefs.setBool('has_seen_asthoria_story_${widget.eventId}', true);
       }
       
-      // 4. FINALMENTE iniciar el polling de ranking
-      gameProvider.startLeaderboardUpdates();
+      // Continue with normal initialization
+      if (mounted) {
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
+        
+        // 1. PRIMERO cargar pistas y configurar el ID del evento (esto limpia el estado anterior)
+        await gameProvider.fetchClues(eventId: widget.eventId);
+        
+        // 2. LUEGO comprobar si la carrera ya terminó en el servidor
+        await gameProvider.checkRaceStatus();
+        
+        // 3. Si ya terminó, redirigir
+        if (gameProvider.isRaceCompleted && mounted) {
+          _navigateToWinnerScreen();
+          return;
+        }
+        
+        // 4. FINALMENTE iniciar el polling de ranking
+        gameProvider.startLeaderboardUpdates();
+      }
     });
   }
 
