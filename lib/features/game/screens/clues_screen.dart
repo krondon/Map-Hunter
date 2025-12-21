@@ -59,9 +59,16 @@ class _CluesScreenState extends State<CluesScreen> {
       // Continue with normal initialization
       if (mounted) {
         final gameProvider = Provider.of<GameProvider>(context, listen: false);
+        final playerProvider = Provider.of<PlayerProvider>(context, listen: false); // Necesitamos esto
         
-        // 1. PRIMERO cargar pistas y configurar el ID del evento (esto limpia el estado anterior)
-        await gameProvider.fetchClues(eventId: widget.eventId);
+        // Obtenemos el ID real del usuario
+        final userId = playerProvider.currentPlayer?.id;
+
+        // 1. PASAR EL userId ES VITAL para que se carguen las 2 vidas reales
+        await gameProvider.fetchClues(
+          eventId: widget.eventId, 
+          userId: userId, // ✅ Agregado
+        );
         
         // 2. LUEGO comprobar si la carrera ya terminó en el servidor
         await gameProvider.checkRaceStatus();

@@ -27,6 +27,36 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   String? _lastLifeStealEffectId;
 
   @override
+  void initState() {
+    super.initState();
+    
+    // Usamos PostFrameCallback para asegurar que los Providers estén disponibles
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final powerProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+
+      // Configuramos el handler que se dispara cuando detectamos un robo de vida
+      powerProvider.configureLifeStealVictimHandler((effectId, casterId) async {
+        final myId = playerProvider.currentPlayer?.id;
+        if (myId == null) return;
+
+        // Esperamos 600ms para que el número de vida baje justo cuando 
+        // el corazón de la animación central empieza a romperse
+        await Future.delayed(const Duration(milliseconds: 600));
+
+        // Esta llamada activa la resta optimista en GameProvider (_lives--)
+        // lo que obliga al ProgressHeader a redibujarse con el nuevo valor.
+        gameProvider.loseLife(myId);
+        
+        debugPrint("Sincronización visual: Vida restada por ataque de $casterId");
+      });
+    });
+  }
+
+  @override
   void dispose() {
     _lifeStealBannerTimer?.cancel();
     super.dispose();
@@ -70,19 +100,19 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   final isPlayerInvisible = playerProvider.currentPlayer?.isInvisible ?? false;
 
     // Banner life_steal (Point B): sólo banner, no bloquea interacción.
-    if (activeSlug == 'life_steal') {
-      final effectId = powerProvider.activeEffectId;
-      if (effectId != null && effectId != _lastLifeStealEffectId) {
-        _lastLifeStealEffectId = effectId;
-        final attackerName = _resolvePlayerNameFromLeaderboard(
-            powerProvider.activeEffectCasterId);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
-        });
-      }
-    }
+    final effectId = powerProvider.activeEffectId;
+final isNewLifeSteal = activeSlug == 'life_steal' && effectId != _lastLifeStealEffectId;
 
+    if (isNewLifeSteal) {
+      _lastLifeStealEffectId = effectId;
+      final attackerName = _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+      
+      // Opcional: El banner superior que ya tenías como backup
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
+      });
+    }
     
 
     return Stack(
@@ -95,10 +125,11 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         if (defenseAction == DefenseAction.returned)
       ReturnRejectionEffect(returnedBy: powerProvider.returnedByPlayerName),
         if (activeSlug == 'life_steal')
-          LifeStealEffect(
-              casterName: _resolvePlayerNameFromLeaderboard(
-                  powerProvider.activeEffectCasterId)),
-        // Por ahora: invisibility NO debe hacer nada.
+      LifeStealEffect(
+        key: ValueKey(effectId), // Key vital para que Flutter reinicie la animación al cambiar de ID
+        casterName: _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId),
+      ),
+
         // blur_screen reutiliza el efecto visual de invisibility para los rivales.
         // --- ATAQUES RECIBIDOS ---
       if (activeSlug == 'blur_screen') const BlurScreenEffect(), // El efecto que marea

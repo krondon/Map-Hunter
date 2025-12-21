@@ -247,11 +247,16 @@ if (json['completed_clues'] != null) {
   // --- FIN GESTIÓN RANKING ---
   
   Future<void> fetchClues({String? eventId, bool silent = false, String? userId}) async {
-    // Si el evento es nuevo, reseteamos ABSOLUTAMENTE TODO
-    if (eventId != null && eventId != _currentEventId) {
-      debugPrint('--- SWITCHING EVENT to $eventId ---');
-      _currentEventId = eventId;
-      _lives = 3; 
+  if (eventId != null && eventId != _currentEventId) {
+    _currentEventId = eventId;
+    
+    // Si tenemos el userId, cargamos las vidas ANTES de marcar isLoading como false
+    if (userId != null) {
+      await fetchLives(userId); 
+    } else {
+      // Si no hay ID de usuario (caso raro), no asumas 3 todavía
+      _lives = 0; 
+    }
       _isRaceCompleted = false; 
       _clues = []; 
       _leaderboard = [];
@@ -299,28 +304,30 @@ if (json['completed_clues'] != null) {
     }
   }
   Future<void> startGame(String eventId) async {
-    _isLoading = true;
-    notifyListeners();
+  _isLoading = true;
+  notifyListeners();
+  
+  try {
+    final response = await _supabase.functions.invoke('game-play/start-game', 
+      body: {'eventId': eventId},
+      method: HttpMethod.post
+    );
     
-    try {
-      final response = await _supabase.functions.invoke('game-play/start-game', 
-        body: {'eventId': eventId},
-        method: HttpMethod.post
-      );
+    if (response.status == 200) {
+      // 1. Cargamos pistas y VIDAS primero (fetchClues ya llama a fetchLives)
+      // Asegúrate de pasar el userId si lo tienes disponible en el contexto donde llamas startGame
+      await fetchClues(eventId: eventId); 
       
-      if (response.status == 200) {
-        _isGameActive = true;
-        await fetchClues(eventId: eventId);
-      } else {
-        debugPrint('Error starting game: ${response.status} ${response.data}');
-      }
-    } catch (e) {
-      debugPrint('Error starting game: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      // 2. SOLO DESPUÉS de cargar los datos reales, activamos el juego
+      _isGameActive = true; 
     }
+  } catch (e) {
+    debugPrint('Error starting game: $e');
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
   
   void unlockClue(String clueId) {
     final index = _clues.indexWhere((c) => c.id == clueId);

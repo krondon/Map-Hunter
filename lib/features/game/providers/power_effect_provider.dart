@@ -234,23 +234,16 @@ class PowerEffectProvider extends ChangeNotifier {
     // Aplicación real de life_steal para la víctima (RLS-safe):
     // el propio cliente víctima se descuenta a sí mismo vía PlayerProvider/RPC.
     // final effectId = _activeEffectId;
-    // if (latestSlug == 'life_steal' &&
-    //     effectId != null &&
-    //     effectId.isNotEmpty &&
-    //     effectId != _lastLifeStealHandledEffectId &&
-    //     _lifeStealVictimHandler != null) {
-    //   _lastLifeStealHandledEffectId = effectId;
-    //   // Fire-and-forget para no bloquear la UI del overlay.
-    //   () async {
-    //     try {
-    //       await _lifeStealVictimHandler!(effectId, _activeEffectCasterId);
-    //     } catch (e) {
-    //       debugPrint('PowerEffectProvider: life_steal handler error: $e');
-    //     }
-    //   }();
-    // }
-
-    // Manejo de devolución reactiva
+      if (latestSlug == 'life_steal' &&
+      _activeEffectId != _lastLifeStealHandledEffectId &&
+      _lifeStealVictimHandler != null) {
+    
+    _lastLifeStealHandledEffectId = _activeEffectId;
+    
+    // Llamamos al handler que restará la vida localmente
+    _lifeStealVictimHandler!(_activeEffectId!, _activeEffectCasterId);
+  }
+      // Manejo de devolución reactiva
     if (_returnArmed && _returnHandler != null) {
       final casterId = latestEffect['caster_id'];
       final slugToReturn = latestSlug;
@@ -272,6 +265,10 @@ class PowerEffectProvider extends ChangeNotifier {
       _activeEffectCasterId = null;
       notifyListeners();
     });
+
+    debugPrint('¿Llegó Life Steal?: ${latestSlug == 'life_steal'}');
+    debugPrint('ID del Atacante: $_activeEffectCasterId');
+    debugPrint('Expira en: ${expiresAt.difference(now).inSeconds} segundos');
 
     notifyListeners();
   }

@@ -9,18 +9,21 @@ class ProgressHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<GameProvider, PlayerProvider>(
-      builder: (context, gameProvider, playerProvider, child) {
-        final player = playerProvider.currentPlayer;
-        
-        if (player == null) return const SizedBox.shrink();
+  return Consumer2<GameProvider, PlayerProvider>(
+    builder: (context, gameProvider, playerProvider, child) {
+      final player = playerProvider.currentPlayer;
+      if (player == null) return const SizedBox.shrink();
 
-        // MODIFICACIÓN: Lógica de prioridad para vidas.
-        // Si hay un evento activo en GameProvider, usamos sus vidas.
-        // Si no (por ejemplo, al cargar), usamos player.lives que ya viene sincronizado por PlayerProvider.
-        final int displayLives = (gameProvider.currentEventId != null) 
-            ? gameProvider.lives 
-            : player.lives;
+      // MEJORA: Solo usamos las vidas del GameProvider si el juego está 
+      // plenamente activo Y no estamos en un estado de carga.
+      final bool useGameProviderLives = gameProvider.isGameActive && 
+                                  !gameProvider.isLoading && 
+                                  gameProvider.currentEventId != null &&
+                                  gameProvider.lives > 0; // ✅ Seguridad extra
+
+      final int displayLives = useGameProviderLives 
+          ? gameProvider.lives 
+          : player.lives;
         
         return Container(
           margin: const EdgeInsets.all(16),
