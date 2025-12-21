@@ -5,6 +5,7 @@ import '../../../shared/models/player.dart';
 import '../providers/power_effect_provider.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
+import '../../mall/models/power_item.dart';
 import 'power_gesture_wrapper.dart';
 
 class RaceTrackWidget extends StatelessWidget {
@@ -27,6 +28,7 @@ class RaceTrackWidget extends StatelessWidget {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final effectProvider = Provider.of<PowerEffectProvider>(context);
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final String? myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
     // Lógica principal: Seleccionar quién aparece en la carrera basado ESTRICTAMENTE en progreso del evento
     final activeRacers = _selectRacersToShow();
@@ -261,6 +263,12 @@ class RaceTrackWidget extends StatelessWidget {
       isMe: racer.isMe,
       isLeader: racer.isLeader,
       pistas: pistasCompletadas,
+      myGamePlayerId: Provider.of<PlayerProvider>(context, listen: false)
+          .currentPlayer
+          ?.gamePlayerId,
+      effectProvider: Provider.of<PowerEffectProvider>(context, listen: false),
+      gameProvider: Provider.of<GameProvider>(context, listen: false),
+      playerProvider: Provider.of<PlayerProvider>(context, listen: false),
     );
   }
 
@@ -379,6 +387,10 @@ class RaceTrackWidget extends StatelessWidget {
     required bool isMe,
     required bool isLeader,
     required int pistas,
+    required String? myGamePlayerId,
+    required PlayerProvider playerProvider,
+    required PowerEffectProvider effectProvider,
+    required GameProvider gameProvider,
   }) {
     // [VISUAL UPDATE] Tamaños más pequeños para evitar superposición
     final double avatarSize = isMe ? 36 : 28; // Antes 40 / 32
@@ -424,25 +436,157 @@ class RaceTrackWidget extends StatelessWidget {
                 )
               ],
             ),
-            child: CircleAvatar(
-              backgroundColor: isMe ? AppTheme.primaryPurple : Colors.grey[800],
-              backgroundImage: (player.avatarUrl.isNotEmpty &&
-                      player.avatarUrl.startsWith('http'))
-                  ? NetworkImage(player.avatarUrl)
-                  : null,
-              child: (player.avatarUrl.isEmpty ||
-                      !player.avatarUrl.startsWith('http'))
-                  ? Text(
-                      player.name.isNotEmpty
-                          ? player.name[0].toUpperCase()
-                          : '?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isMe ? 14 : 10,
-                        fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTapDown: (TapDownDetails details) async {
+                final String? targetGamePlayerId = player.gamePlayerId;
+
+                // No abrir menú si es mi avatar (por flag o por gamePlayerId).
+                if (isMe) return;
+                if (myGamePlayerId != null &&
+                    myGamePlayerId.isNotEmpty &&
+                    targetGamePlayerId == myGamePlayerId) {
+                  return;
+                }
+
+                if (targetGamePlayerId == null || targetGamePlayerId.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('No se encontró un objetivo válido')),
+                  );
+                  return;
+                }
+
+                final me = playerProvider.currentPlayer;
+                if (me == null) return;
+
+                // Basado en InventoryScreen: poderes ofensivos/sabotaje.
+                const offensiveSlugs = <String>{
+                  'freeze',
+                  'black_screen',
+                  'life_steal',
+                  'blur_screen',
+                };
+
+                final availableOffensive = me.inventory
+                    .where(offensiveSlugs.contains)
+                    .toSet()
+                    .toList();
+
+                if (availableOffensive.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content:
+                            Text('No tienes poderes ofensivos disponibles')),
+                  );
+                  return;
+                }
+
+                final items = PowerItem.getShopItems();
+                PowerItem? findItem(String slug) {
+                  try {
+                    return items.firstWhere((i) => i.id == slug);
+                  } catch (_) {
+                    return null;
+                  }
+                }
+
+                final overlayBox =
+                    Overlay.of(context).context.findRenderObject() as RenderBox;
+                final tapPosition = details.globalPosition;
+                final menuPosition = RelativeRect.fromLTRB(
+                  tapPosition.dx,
+                  tapPosition.dy,
+                  overlayBox.size.width - tapPosition.dx,
+                  overlayBox.size.height - tapPosition.dy,
+                );
+
+                final selectedPowerSlug = await showMenu<String>(
+                  context: context,
+                  position: menuPosition,
+                  color: AppTheme.cardBg,
+                  items: availableOffensive.map((slug) {
+                    final def = findItem(slug);
+                    final icon = def?.icon ?? '⚡';
+                    final name = def?.name ?? slug;
+
+                    return PopupMenuItem<String>(
+                      value: slug,
+                      height: 36,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(icon, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    )
-                  : null,
+                    );
+                  }).toList(),
+                );
+
+                if (selectedPowerSlug == null) return;
+
+                try {
+                  final success = await playerProvider.usePower(
+                    powerSlug: selectedPowerSlug,
+                    targetGamePlayerId: targetGamePlayerId,
+                    effectProvider: effectProvider,
+                    gameProvider: gameProvider,
+                  );
+
+                  if (!context.mounted) return;
+
+                  if (!success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('No se pudo lanzar el sabotaje')),
+                    );
+                  } else {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: true,
+                      builder: (_) => const _AttackSentDialog(),
+                    );
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString())),
+                  );
+                }
+              },
+              child: CircleAvatar(
+                backgroundColor:
+                    isMe ? AppTheme.primaryPurple : Colors.grey[800],
+                backgroundImage: (player.avatarUrl.isNotEmpty &&
+                        player.avatarUrl.startsWith('http'))
+                    ? NetworkImage(player.avatarUrl)
+                    : null,
+                child: (player.avatarUrl.isEmpty ||
+                        !player.avatarUrl.startsWith('http'))
+                    ? Text(
+                        player.name.isNotEmpty
+                            ? player.name[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isMe ? 14 : 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
             ),
           ),
 
