@@ -869,8 +869,10 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
       gameProvider.completeLocalClue(clue.id);
       success = true;
     } else {
+      debugPrint('--- COMPLETING CLUE: ${clue.id} (XP: ${clue.xpReward}, Coins: ${clue.coinReward}) ---');
       success =
           await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "WIN");
+      debugPrint('--- CLUE COMPLETION RESULT: $success ---');
     }
   } catch (e) {
     debugPrint("Error completando pista: $e");
@@ -883,7 +885,9 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
 
   if (success) {
     if (playerProvider.currentPlayer != null) {
+      debugPrint('--- REFRESHING PROFILE START ---');
       await playerProvider.refreshProfile();
+      debugPrint('--- REFRESHING PROFILE END. New Coins: ${playerProvider.currentPlayer?.coins} ---');
     }
 
     // Check if race was completed or if player completed all clues
