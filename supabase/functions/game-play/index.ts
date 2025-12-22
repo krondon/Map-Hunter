@@ -192,14 +192,14 @@ serve(async (req) => {
           .eq('user_id', user.id)
           .eq('event_id', clue.event_id)
           .maybeSingle();
-          
+
         if (gamePlayer) {
-            await supabaseAdmin
-              .from('game_players')
-              .update({ 
-                completed_clues_count: (gamePlayer.completed_clues_count || 0) + 1 
-              })
-              .eq('id', gamePlayer.id);
+          await supabaseAdmin
+            .from('game_players')
+            .update({
+              completed_clues_count: (gamePlayer.completed_clues_count || 0) + 1
+            })
+            .eq('id', gamePlayer.id);
         }
       } else {
         console.log('[complete-clue] Clue already completed, skipping stats update.');
@@ -312,7 +312,8 @@ serve(async (req) => {
         const currentTotalXp = Number(profile.total_xp) || Number(profile.experience) || 0
         const rewardXp = Number(clue.xp_reward) || 0
         const newTotalXp = currentTotalXp + rewardXp
-        const newCoins = (Number(profile.coins) || 0) + (Number(clue.coin_reward) || 0)
+        const currentCoins = Math.max(Number(profile.coins) || 0, Number(profile.total_coins) || 0)
+        const newCoins = currentCoins + (Number(clue.coin_reward) || 0)
 
         // Calculamos nivel y residuo (newPartialXp)
         let calculatedLevel = 1
@@ -341,9 +342,9 @@ serve(async (req) => {
           else newProfession = 'Legend'
         }
 
-        console.log(`[complete-clue] New Total XP: ${newTotalXp}, Partial: ${newPartialXp}, Level: ${calculatedLevel}`)
+        console.log(`[complete-clue] New Coins: ${newCoins}, New Total XP: ${newTotalXp}`)
 
-        // Actualizamos la DB con ambos campos
+        // Actualizamos la DB con ambos campos para mantener consistencia
         const { error: rewardError } = await supabaseAdmin
           .from('profiles')
           .update({
@@ -351,6 +352,7 @@ serve(async (req) => {
             total_xp: newTotalXp,    // Estadísticas
             level: calculatedLevel,
             coins: newCoins,
+            total_coins: newCoins,   // <--- SYNC BOTH COLUMNS
             profession: newProfession
           })
           .eq('id', user.id)
