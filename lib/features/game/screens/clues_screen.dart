@@ -441,18 +441,6 @@ class _CluesScreenState extends State<CluesScreen> {
             const SizedBox(height: 10),
             const Divider(color: Colors.white24),
             const SizedBox(height: 10),
-            // Opción 2: Simular (Dev)
-            SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _unlockAndProceed(clue); // Bypass directo
-                },
-                icon: const Icon(Icons.developer_mode, color: Colors.white54),
-                label: const Text("SIMULAR (DEV)", style: TextStyle(color: Colors.white54)),
-              ),
-            ),
           ],
         ),
       ),

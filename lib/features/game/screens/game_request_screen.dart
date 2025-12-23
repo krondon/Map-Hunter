@@ -629,29 +629,6 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                               ),
 
                               const SizedBox(height: 20),
-
-                              // Debug Button: Simular Aprobación
-                              if (_gameRequest!.isPending)
-                                TextButton.icon(
-                                  onPressed: () {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => HomeScreen(
-                                          eventId: widget.eventId!,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.bug_report,
-                                      color: Colors.white30, size: 16),
-                                  label: const Text(
-                                    "Simular Aprobación (Debug)",
-                                    style: TextStyle(
-                                        color: Colors.white30, fontSize: 12),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
                             ],
 
                             // Action Buttons

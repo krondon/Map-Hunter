@@ -303,12 +303,6 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                           "${currentDistance.toInt()}m del objetivo",
                           style: const TextStyle(color: Colors.white54),
                         ),
-                         // Debug Trigger
-                      if (!showInput)
-                        TextButton(
-                          onPressed: () => setState(() => _forceProximity = true),
-                          child: const Text("Simular Estar Cerca (Debug)", style: TextStyle(color: Colors.white24)),
-                        )
                     ],
                  ),
 
@@ -346,10 +340,6 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                               ),
                             ),
                             const SizedBox(height: 10),
-                             TextButton(
-                                onPressed: () => _handleScannedCode(widget.clue.id), // Force Success
-                                child: const Text("Simular Escaneo (Debug)", style: TextStyle(color: Colors.white30)),
-                              )
                           ],
                         )
                       : const SizedBox.shrink(),

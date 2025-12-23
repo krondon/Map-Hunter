@@ -402,23 +402,6 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                 "${_distanceToTarget.toInt()}m del objetivo",
                                 style: const TextStyle(color: Colors.white54),
                               ),
-                              
-                              // Botón de depuración para simular cercanía
-                              Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: TextButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _distanceToTarget = 5.0;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.bug_report, color: Colors.white30, size: 16),
-                                  label: const Text(
-                                    "Simular Estar Cerca (Debug)",
-                                    style: TextStyle(color: Colors.white30, fontSize: 12),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
 
@@ -506,35 +489,6 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                     const SizedBox(height: 30),
                                     const Divider(color: Colors.white24),
                                     const SizedBox(height: 10),
-
-                                    // --- BOTÓN DE SIMULACIÓN DIRECTA (DEV) ---
-                                    // Solicitud del usuario: Eliminar input manual y poner botón que pase directamente
-                                    Column(
-                                      children: [
-                                        const Text(
-                                          "Modo Desarrollador",
-                                          style: TextStyle(color: Colors.white54, fontSize: 12),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        TextButton.icon(
-                                          onPressed: () {
-                                            // Simular automáticamente el código correcto
-                                            _codeController.text = widget.scenario.secretCode;
-                                            _verifyCode();
-                                          },
-                                          icon: const Icon(Icons.developer_mode, color: AppTheme.accentGold),
-                                          label: const Text(
-                                            "SIMULAR ACCESO (SALTAR QR)",
-                                            style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold),
-                                          ),
-                                          style: TextButton.styleFrom(
-                                            backgroundColor: AppTheme.accentGold.withOpacity(0.1),
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
                                     // Hidden TextField for logic compatibility (optional, better to use variable)
                                     // kept invisible or removed. We will use _codeController programmatically.
                                     SizedBox(

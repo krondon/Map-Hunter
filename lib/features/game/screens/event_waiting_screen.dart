@@ -188,21 +188,6 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                         ),
                       ),
                       // Debug Button
-                      if (true) // TODO: Change to kDebugMode later if needed
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: TextButton.icon(
-                            onPressed: () {
-                              _timer?.cancel();
-                              widget.onTimerFinished();
-                            },
-                            icon: const Icon(Icons.bug_report, color: Colors.white24),
-                            label: const Text(
-                              "Simular Inicio (Debug)",
-                              style: TextStyle(color: Colors.white24),
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
