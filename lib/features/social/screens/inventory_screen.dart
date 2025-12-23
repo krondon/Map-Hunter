@@ -21,6 +21,8 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -66,131 +68,143 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final uniqueItems = inventoryCounts.keys.toList();
 
     return Scaffold(
-      body: AnimatedCyberBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Inventario',
-                            style: Theme.of(context).textTheme.displayMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
+      body: Stack(
+        children: [
+          AnimatedCyberBackground(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: AppTheme.goldGradient,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.monetization_on,
-                                      size: 16,
-                                      color: Colors.white,
+                              Text(
+                                'Inventario',
+                                style: Theme.of(context).textTheme.displayMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${player.coins}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
+                                    decoration: BoxDecoration(
+                                      gradient: AppTheme.goldGradient,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                  ],
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.monetization_on,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${player.coins}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardBg,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.inventory_2,
+                                color: AppTheme.secondaryPink,
+                                size: 28,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${player.inventory.length}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.inventory_2,
-                            color: AppTheme.secondaryPink,
-                            size: 28,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${player.inventory.length}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Inventory items grid
-              Expanded(
-                child: player.inventory.isEmpty
-                    ? _buildEmptyState(context)
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.85,
                         ),
-                        itemCount: uniqueItems.length,
-                        itemBuilder: (context, index) {
-                          final itemId = uniqueItems[index];
-                          final count = inventoryCounts[itemId] ?? 1;
+                      ],
+                    ),
+                  ),
 
-                          // Buscamos la definición del item para pintarlo (Nombre, Icono)
-                          // Si no existe en la lista estática, creamos un placeholder.
-                          final itemDef = PowerItem.getShopItems().firstWhere(
-                            (item) => item.id == itemId,
-                            orElse: () => PowerItem(
-                              id: itemId,
-                              name: 'Poder Misterioso',
-                              description: 'Poder desconocido',
-                              type: PowerType.buff,
-                              cost: 0,
-                              icon: '⚡',
+                  // Inventory items grid
+                  Expanded(
+                    child: player.inventory.isEmpty
+                        ? _buildEmptyState(context)
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.85,
                             ),
-                          );
+                            itemCount: uniqueItems.length,
+                            itemBuilder: (context, index) {
+                              final itemId = uniqueItems[index];
+                              final count = inventoryCounts[itemId] ?? 1;
 
-                          return InventoryItemCard(
-                            item: itemDef,
-                            count: count,
-                            onUse: () =>
-                                _handleItemUse(context, itemDef, player.id),
-                          );
-                        },
-                      ),
+                              // Buscamos la definición del item para pintarlo (Nombre, Icono)
+                              // Si no existe en la lista estática, creamos un placeholder.
+                              final itemDef = PowerItem.getShopItems().firstWhere(
+                                (item) => item.id == itemId,
+                                orElse: () => PowerItem(
+                                  id: itemId,
+                                  name: 'Poder Misterioso',
+                                  description: 'Poder desconocido',
+                                  type: PowerType.buff,
+                                  cost: 0,
+                                  icon: '⚡',
+                                ),
+                              );
+
+                              return InventoryItemCard(
+                                item: itemDef,
+                                count: count,
+                                onUse: () =>
+                                    _handleItemUse(context, itemDef, player.id),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          
+          if (_isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(color: AppTheme.accentGold),
+              ),
+            ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(
@@ -405,18 +419,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
       required GameProvider gameProvider}) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
-    // Feedback visual de carga
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-          child: CircularProgressIndicator(color: AppTheme.accentGold)),
-    );
+    setState(() => _isLoading = true);
 
-    bool success = false;
+    PowerUseResult result = PowerUseResult.error;
     try {
       // Ejecutar lógica en backend
-      success = await playerProvider.usePower(
+      result = await playerProvider.usePower(
         powerSlug: item.id,
         targetGamePlayerId: targetGamePlayerId,
         effectProvider: effectProvider,
@@ -424,17 +432,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
       );
     } catch (e) {
       debugPrint('Error executing power: $e');
-      success = false;
+      result = PowerUseResult.error;
     } finally {
-      // Asegurar que cerramos el loading pase lo que pase
-      if (context.mounted) {
-        Navigator.pop(context);
-      }
+        if (mounted) {
+            setState(() => _isLoading = false);
+        }
     }
 
     if (!context.mounted) return;
 
-    if (success) {
+    if (result == PowerUseResult.success) {
       if (isOffensive) {
         showDialog(
           context: context,
@@ -451,6 +458,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } else if (result == PowerUseResult.reflected) {
+      // Si fue reflejado, NO mostramos mensaje de éxito ni error.
+      // El "Toast" de retorno (ReturnSuccessEffect) ya se encargará de informar al usuario.
+      debugPrint("Feedback de ataque suprimido por reflejo (Return).");
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

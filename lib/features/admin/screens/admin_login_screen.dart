@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/screens/splash_screen.dart';
 import 'dashboard-screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
@@ -344,6 +345,25 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                       ),
                                     ),
                             ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Opción para entrar como Jugador
+                      TextButton.icon(
+                        onPressed: () {
+                           Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (_) => const SplashScreen()),
+                            );
+                        },
+                        icon: const Icon(Icons.videogame_asset_outlined, color: AppTheme.accentGold),
+                        label: const Text(
+                          'Entrar como Jugador',
+                          style: TextStyle(
+                            color: AppTheme.accentGold, 
+                            fontWeight: FontWeight.bold
                           ),
                         ),
                       ),

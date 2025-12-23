@@ -4,12 +4,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PowerEffectProvider extends ChangeNotifier {
   StreamSubscription? _subscription;
+  StreamSubscription? _casterSubscription; // Nueva suscripción para detectar reflejos salientes
   Timer? _expiryTimer;
   Timer? _defenseFeedbackTimer;
   bool _shieldActive = false;
   String? _listeningForId;
   String? get listeningForId => _listeningForId;
+  
+  bool _isManualCasting = false; // Flag para distinguir casting manual vs automático (reflejo)
   bool _returnArmed = false;
+
   Future<bool> Function(String powerSlug, String targetGamePlayerId)?
       _returnHandler;
   Future<void> Function(String effectId, String? casterGamePlayerId)?
@@ -20,6 +24,14 @@ class PowerEffectProvider extends ChangeNotifier {
   String? _lastLifeStealHandledEffectId;
   String? _returnedByPlayerName;
   String? get returnedByPlayerName => _returnedByPlayerName;
+
+
+
+  String? _returnedAgainstCasterId;
+  String? get returnedAgainstCasterId => _returnedAgainstCasterId;
+
+  String? _returnedPowerSlug;
+  String? get returnedPowerSlug => _returnedPowerSlug;
 
   final Map<String, String> _powerIdToSlugCache = {};
   final Map<String, Duration> _powerSlugToDurationCache = {};
@@ -43,6 +55,12 @@ class PowerEffectProvider extends ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  bool get isReturnArmed => _returnArmed;
+
+  void setManualCasting(bool value) {
+    _isManualCasting = value;
   }
 
   void setShielded(bool value, {String? sourceSlug}) {
@@ -79,19 +97,23 @@ class PowerEffectProvider extends ChangeNotifier {
     if (supabase == null) {
       _clearEffect();
       _subscription?.cancel();
+      _casterSubscription?.cancel();
       return;
     }
 
     if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
       _clearEffect();
       _subscription?.cancel();
+      _casterSubscription?.cancel();
       return;
     }
 
     _subscription?.cancel();
+    _casterSubscription?.cancel();
     _expiryTimer?.cancel();
     _listeningForId = myGamePlayerId;
 
+    // 1. Escuchar ataques ENTRANTES (Target = YO)
     _subscription = supabase
         .from('active_powers')
         .stream(primaryKey: ['id'])
@@ -101,6 +123,73 @@ class PowerEffectProvider extends ChangeNotifier {
         }, onError: (e) {
           debugPrint('PowerEffectProvider stream error: $e');
         });
+
+    // 2. Escuchar ataques SALIENTES (Caster = YO) para detectar reflejos
+    _casterSubscription = supabase
+        .from('active_powers')
+        .stream(primaryKey: ['id'])
+        .eq('caster_id', myGamePlayerId)
+        .listen((List<Map<String, dynamic>> data) async {
+          await _processOutgoingEffects(data);
+        }, onError: (e) {
+          debugPrint('PowerEffectProvider outgoing stream error: $e');
+        });
+  }
+
+  Future<void> _processOutgoingEffects(List<Map<String, dynamic>> data) async {
+    // DIAGNÓSTICO PROFUNDO
+    debugPrint("DEBUG OUTGOING: _isManualCasting? $_isManualCasting");
+    debugPrint("DEBUG OUTGOING: data length? ${data.length}");
+
+    // Si estamos lanzando manualmente, ignoramos esto (es un ataque normal)
+    if (_isManualCasting) {
+       debugPrint("DEBUG OUTGOING: Ignorando porque es manual");
+       return;
+    }
+    if (data.isEmpty) return;
+
+    // Buscamos si hay algún efecto ofensivo reciente que hayamos "lanzado" automáticamente
+    final now = DateTime.now().toUtc();
+    for (final effect in data) {
+      final createdAtStr = effect['created_at'];
+      final createdAt = DateTime.parse(createdAtStr);
+      final ageSeconds = now.difference(createdAt).inSeconds;
+      
+      debugPrint("DEBUG OUTGOING CHECK: ID ${effect['id']} - Age: ${ageSeconds}s");
+      
+      // Ampliamos un poco el rango por temas de sync (5s -> 10s)
+      if (ageSeconds > 10) {
+         debugPrint("DEBUG OUTGOING: Muy viejo");
+         continue;
+      }
+
+      final slug = await _resolveEffectSlug(effect);
+      debugPrint("DEBUG OUTGOING: Slug resuelto: $slug");
+
+      final bool isOffensive = slug == 'black_screen' ||
+            slug == 'freeze' ||
+            slug == 'life_steal' ||
+            slug == 'blur_screen';
+      
+      debugPrint("DEBUG OUTGOING: ¿Es ofensivo? $isOffensive");
+        
+      if (isOffensive) {
+         // ¡BINGO! Hemos lanzado un ataque ofensivo PERO no estábamos en modo manual.
+         // Esto significa que fue un REFLEJO automático del backend.
+         final originalAttackerId = effect['target_id']?.toString();
+         
+         debugPrint("REFLEJO DETECTADO: Devolvimos $slug a $originalAttackerId");
+         
+         // IMPORTANTE: Quitamos la condición _activePowerSlug == null por si acaso
+         if (originalAttackerId != null) {
+            // Mostramos el feedback de defensa
+            debugPrint("!!! ACTIVANDO FEEDBACK DE DEFENSA !!!");
+            _returnedAgainstCasterId = originalAttackerId;
+            _returnedPowerSlug = slug;
+            _registerDefenseAction(DefenseAction.returned);
+         }
+      }
+    }
   }
 
   Future<void> _processEffects(List<Map<String, dynamic>> data) async {
@@ -140,6 +229,12 @@ class PowerEffectProvider extends ChangeNotifier {
       return;
     }
 
+    debugPrint('DEBUG: validEffects count: ${validEffects.length}');
+    for (var e in validEffects) {
+       final s = await _resolveEffectSlug(e);
+       debugPrint('DEBUG: Found effect slug: $s, ID: ${e['id']}');
+    }
+
     // Tomamos el efecto más reciente (orden estable por created_at/expires_at)
     validEffects.sort((a, b) {
       DateTime parseDt(dynamic value) {
@@ -159,66 +254,97 @@ class PowerEffectProvider extends ChangeNotifier {
       return aExpires.compareTo(bExpires);
     });
 
-    final latestEffect = validEffects.last;
-    final latestSlug = await _resolveEffectSlug(latestEffect);
-    _activeEffectId = latestEffect['id']?.toString();
-    _activeEffectCasterId = latestEffect['caster_id']?.toString();
+    // Nueva lógica: Detectar si tenemos "return" activo buscando en los efectos válidos
+    final activeReturnEffect = await () async {
+      for (final eff in validEffects) {
+        final s = await _resolveEffectSlug(eff);
+        if (s == 'return') return eff;
+      }
+      return null;
+    }();
 
-    // Devolución (return): si está armada y llega un ataque ofensivo,
-    // reflejamos el efecto al atacante y NO aplicamos el overlay al defensor.
-    if (_returnArmed) {
-      final casterId = latestEffect['caster_id']?.toString();
-      final slugToReturn = latestSlug?.toString();
-      final bool isOffensive = slugToReturn == 'black_screen' ||
-          slugToReturn == 'freeze' ||
-          slugToReturn == 'life_steal' ||
-          slugToReturn == 'blur_screen';
+    final hasReturnActive = activeReturnEffect != null || _returnArmed;
 
-      if (casterId != null && slugToReturn != null && isOffensive) {
+    // Buscamos si hay ALGÚN efecto ofensivo que debamos devolver (no necesariamente el último)
+    Map<String, dynamic>? offensiveEffectToReturn;
+    String? offensiveSlug;
+
+    if (hasReturnActive) {
+      for (final eff in validEffects) {
+        final slug = await _resolveEffectSlug(eff);
+        final casterId = eff['caster_id']?.toString();
+        
+        final bool isOffensive = slug == 'black_screen' ||
+            slug == 'freeze' ||
+            slug == 'life_steal' ||
+            slug == 'blur_screen';
+        
+        final bool isSelf = casterId == _listeningForId;
+
+        if (isOffensive && !isSelf && casterId != null) {
+          offensiveEffectToReturn = eff;
+          offensiveSlug = slug;
+          break; // Encontramos uno, lo devolvemos
+        }
+      }
+    }
+
+    // SI ENCONTRAMOS UN ATAQUE PARA DEVOLVER -> EJECUTAMOS LA DEFENSA
+    if (offensiveEffectToReturn != null && offensiveSlug != null) {
+        final casterId = offensiveEffectToReturn['caster_id']?.toString();
+        
+        // Guardamos quién nos atacó para mostrar el feedback visual
+        if (casterId != null) {
+           _returnedAgainstCasterId = casterId;
+           _returnedPowerSlug = offensiveSlug;
+        }
+        
         _returnArmed = false;
         _registerDefenseAction(DefenseAction.returned);
 
-        // 1) Borrar el efecto entrante para que no siga impactando al defensor.
-        final incomingId = latestEffect['id'];
+        // 1) Borrar el efecto entrante
+        final incomingId = offensiveEffectToReturn['id'];
         if (incomingId != null) {
           try {
             await supabase.from('active_powers').delete().eq('id', incomingId);
           } catch (e) {
-            debugPrint(
-                'PowerEffectProvider: no se pudo borrar efecto entrante: $e');
+            debugPrint('PowerEffectProvider: error borrando efecto: $e');
           }
         }
 
-        // 2) Insertar efecto reflejado al atacante (sin consumir inventario extra).
+        // 2) Insertar efecto reflejado
         try {
           final nowUtc = DateTime.now().toUtc();
-          final duration =
-              await _getPowerDurationFromDb(powerSlug: slugToReturn);
+          final duration = await _getPowerDurationFromDb(powerSlug: offensiveSlug!);
           final expiresAt = nowUtc.add(duration).toIso8601String();
           final payload = <String, dynamic>{
             'target_id': casterId,
             'caster_id': _listeningForId,
-            'power_slug': slugToReturn,
+            'power_slug': offensiveSlug,
             'expires_at': expiresAt,
           };
-          if (latestEffect['event_id'] != null) {
-            payload['event_id'] = latestEffect['event_id'];
+          if (offensiveEffectToReturn['event_id'] != null) {
+            payload['event_id'] = offensiveEffectToReturn['event_id'];
           }
           await supabase.from('active_powers').insert(payload);
-          _activePowerExpiresAt = DateTime.parse(expiresAt);
+          // Nota: No actualizamos _activePowerExpiresAt aquí porque es un evento "saliente"
         } catch (e) {
           debugPrint('PowerEffectProvider: error reflejando efecto: $e');
         }
 
-        // Guardamos la fecha exacta para la UI
-        // Asegurar que el defensor no muestre overlay del ataque entrante.
+        // Limpiamos UI para que el ataque no se vea
         _activePowerSlug = null;
         _activeEffectId = null;
         _activeEffectCasterId = null;
         notifyListeners();
         return;
-      }
     }
+
+    // SI NO HAY DEVOLUCIÓN, SEGUIMOS CON LA LÓGICA NORMAL (MOSTRAR EL ÚLTIMO EFECTO)
+    final latestEffect = validEffects.last;
+    final latestSlug = await _resolveEffectSlug(latestEffect);
+    _activeEffectId = latestEffect['id']?.toString();
+    _activeEffectCasterId = latestEffect['caster_id']?.toString();
 
     if (_shieldActive) {
       _activePowerSlug = null;
@@ -336,6 +462,7 @@ class PowerEffectProvider extends ChangeNotifier {
     _activeEffectId = null;
     _activeEffectCasterId = null;
     _activePowerExpiresAt = null;
+    // No limpiamos _returnedAgainstCasterId aquí para que persista el feedback visual
     notifyListeners();
   }
 
@@ -349,12 +476,20 @@ class PowerEffectProvider extends ChangeNotifier {
     _lastDefenseActionAt = DateTime.now();
     notifyListeners();
 
-    _defenseFeedbackTimer = Timer(const Duration(seconds: 2), () {
+    // Duración diferenciada: Returned es un evento más importante => 4s
+    final duration = action == DefenseAction.returned 
+        ? const Duration(seconds: 4) 
+        : const Duration(seconds: 2);
+
+    _defenseFeedbackTimer = Timer(duration, () {
       // Evitamos borrar si se registró un nuevo evento dentro de la ventana.
       final elapsed =
           DateTime.now().difference(_lastDefenseActionAt ?? DateTime.now());
-      if (elapsed.inSeconds >= 2) {
+      if (elapsed.inMilliseconds >= duration.inMilliseconds) {
         _lastDefenseAction = null;
+        _returnedAgainstCasterId = null; // Limpiamos el ID del atacante al terminar el feedback
+        _returnedByPlayerName = null; // IMPORTANTE: Limpiar también el nombre del que nos reflejó
+        _returnedPowerSlug = null;
         notifyListeners();
       }
     });
@@ -378,6 +513,7 @@ class PowerEffectProvider extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    _casterSubscription?.cancel();
     _expiryTimer?.cancel();
     _defenseFeedbackTimer?.cancel();
     super.dispose();

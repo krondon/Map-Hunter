@@ -13,6 +13,7 @@ dependencies:
   
   supabase_flutter: ^2.5.0
   audioplayers: ^6.1.0
+  confetti: ^0.7.0
   
   # UI & Icons
   cupertino_icons: ^1.0.2
@@ -37,7 +38,6 @@ dependencies:
   # PDF & Printing
   pdf: ^3.10.4
   printing: ^5.11.0
-  confetti: 0.8.0
 
 dev_dependencies:
   flutter_test:
