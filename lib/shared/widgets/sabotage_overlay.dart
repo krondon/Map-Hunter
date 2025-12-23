@@ -14,6 +14,8 @@ import '../../features/game/widgets/effects/steal_failed_effect.dart';
 import '../models/player.dart';
 import '../../features/auth/providers/player_provider.dart';
 
+import '../utils/global_keys.dart'; // Importar para navegación
+
 class SabotageOverlay extends StatefulWidget {
   final Widget child;
   const SabotageOverlay({super.key, required this.child});
@@ -26,6 +28,9 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   String? _lifeStealBannerText;
   Timer? _lifeStealBannerTimer;
   String? _lastLifeStealEffectId;
+  
+  // Control de bloqueo de navegación
+  bool _isBlockingActive = false;
 
   @override
   void initState() {
@@ -57,13 +62,53 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         debugPrint(
             "Sincronización visual: Vida restada por ataque de $casterId");
       });
+      
+      // Listener para manejar cambios de bloqueo de navegación
+      powerProvider.addListener(_handlePowerChanges);
     });
   }
 
   @override
   void dispose() {
     _lifeStealBannerTimer?.cancel();
+    // Importante: remover listener
+    // Como no guardamos la referencia al provider en una variable variable final,
+    // intentar obtenerlo en dispose puede fallar si el contexto ya no es válido.
+    // Lo ideal sería usar una referencia, pero en este patrón simple:
+    // context.read<PowerEffectProvider>().removeListener(_handlePowerChanges);
+    // (A veces lanza error si el widget se desmonta, así que lo envolvemos)
+    try {
+      if (mounted) {
+        Provider.of<PowerEffectProvider>(context, listen: false)
+            .removeListener(_handlePowerChanges);
+      }
+    } catch (_) {}
     super.dispose();
+  }
+  
+  void _handlePowerChanges() {
+    if (!mounted) return;
+    final powerProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+    final activeSlug = powerProvider.activePowerSlug;
+    
+    // Lista de efectos que deben congelar la navegación
+    final shouldBlock = activeSlug == 'freeze' || activeSlug == 'black_screen';
+
+    if (shouldBlock && !_isBlockingActive) {
+      _isBlockingActive = true;
+      debugPrint("⛔ BLOQUEANDO NAVEGACIÓN por sabotaje ($activeSlug) ⛔");
+      rootNavigatorKey.currentState?.push(_BlockingPageRoute()).then((_) {
+        // Cuando la ruta se cierre (pop), actualizamos el estado
+        // Esto maneja el caso donde el usuario pudiera cerrarlo (aunque no debería poder)
+        if (mounted) {
+           _isBlockingActive = false;
+        }
+      });
+    } else if (!shouldBlock && _isBlockingActive) {
+      debugPrint("✅ DESBLOQUEANDO NAVEGACIÓN ✅");
+      rootNavigatorKey.currentState?.pop(); // Cierra _BlockingPageRoute
+      _isBlockingActive = false;
+    }
   }
 
   void _showLifeStealBanner(String message,
@@ -79,7 +124,8 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       });
     });
   }
-
+  
+  // ... resto de métodos ...
   String _resolvePlayerNameFromLeaderboard(String? casterGamePlayerId) {
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty)
       return 'Un rival';
@@ -128,30 +174,34 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         // Capas de sabotaje (se activan según el slug recibido de la DB)
         if (activeSlug == 'black_screen') const BlindEffect(),
         if (activeSlug == 'freeze') const FreezeEffect(),
-        if (defenseAction == DefenseAction.returned)
-          ReturnRejectionEffect(returnedBy: powerProvider.returnedByPlayerName),
+        if (defenseAction == DefenseAction.returned) ...[
+          if (powerProvider.returnedByPlayerName != null)
+             ReturnRejectionEffect(
+              returnedBy: powerProvider.returnedByPlayerName!,
+            ),
+          
+          if (powerProvider.returnedAgainstCasterId != null)
+            ReturnSuccessEffect(
+              attackerName: _resolvePlayerNameFromLeaderboard(
+                  powerProvider.returnedAgainstCasterId),
+              powerSlug: powerProvider.returnedPowerSlug,
+            ),
+        ],
+        
         if (activeSlug == 'life_steal')
           LifeStealEffect(
-            key: ValueKey(
-                effectId), // Key vital para que Flutter reinicie la animación al cambiar de ID
+            key: ValueKey(effectId),
             casterName: _resolvePlayerNameFromLeaderboard(
                 powerProvider.activeEffectCasterId),
           ),
 
         // blur_screen reutiliza el efecto visual de invisibility para los rivales.
-        // --- ATAQUES RECIBIDOS ---
         if (activeSlug == 'blur_screen')
-          const BlurScreenEffect(), // El efecto que marea
+          const BlurScreenEffect(), 
 
         // --- ESTADOS BENEFICIOSOS (BUFFS) ---
         if (isPlayerInvisible || activeSlug == 'invisibility')
           const InvisibilityEffect(),
-
-        if (activeSlug == 'return' &&
-            powerProvider.activeEffectCasterId != powerProvider.listeningForId)
-          ReturnSuccessEffect(
-            returnedBy: powerProvider.returnedByPlayerName ?? 'Un rival',
-          ),
 
         if (defenseAction == DefenseAction.shieldBlocked)
           _DefenseFeedbackToast(action: defenseAction),
@@ -205,6 +255,40 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
 
         // Feedback rápido para el atacante cuando su acción fue bloqueada o falló.
       ],
+    );
+  }
+}
+
+// Clase de ruta bloqueante transparente
+class _BlockingPageRoute extends ModalRoute<void> {
+  @override
+  Color? get barrierColor => Colors.transparent; // No añade color extra, los efectos ya cubren
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  bool get opaque => false;
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Widget buildPage(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation) {
+    // PopScope (o WillPopScope legado) atrapa el botón back
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        // Si queremos, podemos mostrar un toast aquí diciendo "Estás congelado"
+      },
+      child: const SizedBox.expand(), // Bloquea touches si no está cubierto
     );
   }
 }

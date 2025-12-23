@@ -5,6 +5,8 @@ import '../../../shared/models/player.dart';
 import '../../game/providers/power_effect_provider.dart';
 import '../../game/providers/game_provider.dart';
 
+enum PowerUseResult { success, reflected, error }
+
 class PlayerProvider extends ChangeNotifier {
   Player? _currentPlayer;
   List<Player> _allPlayers = [];
@@ -257,24 +259,30 @@ class PlayerProvider extends ChangeNotifier {
 
 // --- LÓGICA DE USO DE PODERES ---
 
-  Future<bool> usePower({
+
+
+  Future<PowerUseResult> usePower({
     required String powerSlug,
     required String targetGamePlayerId,
     required PowerEffectProvider effectProvider,
     GameProvider? gameProvider,
     bool allowReturnForward = true,
   }) async {
-    if (_currentPlayer == null) return false;
-    if (_isProcessing) return false;
+    if (_currentPlayer == null) return PowerUseResult.error;
+    if (_isProcessing) return PowerUseResult.error;
     _isProcessing = true;
 
     final casterGamePlayerId = _currentPlayer!.gamePlayerId;
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
       _isProcessing = false;
-      return false;
+      return PowerUseResult.error;
     }
 
     try {
+      
+      // Indicamos que estamos lanzando manualmente (para evitar auto-detectarlo como reflejo)
+      effectProvider.setManualCasting(true);
+
       bool success = false;
       dynamic response;
 
@@ -299,7 +307,7 @@ class PlayerProvider extends ChangeNotifier {
             await _decrementPowerBySlug('blur_screen', casterGamePlayerId);
         if (!paid) {
           _isProcessing = false;
-          return false;
+          return PowerUseResult.error;
         }
         if (gameProvider != null) {
           await _broadcastBlurScreenToEventRivals(
@@ -330,14 +338,28 @@ class PlayerProvider extends ChangeNotifier {
           throw '¡El objetivo es invisible!';
         }
         _isProcessing = false;
-        return false;
+        return PowerUseResult.error;
       }
 
       // Notificación de devolución
-      if (success && response is Map && response['returned'] == true) {
+      // Corrección: Solo mostramos esto si NO somos nosotros los que lanzamos 'return'.
+      // Si lanzamos 'return', el feedback correcto es el Toast de éxito, no el modal de rechazo.
+      if (powerSlug != 'return' && success && response is Map && response['returned'] == true) {
         final String name = response['returned_by_name'] ?? 'Un rival';
-        effectProvider.notifyPowerReturned(name);
+        
+        // CORRECCIÓN PING-PONG:
+        // Si yo tengo "Devolución" armado (_returnArmed), NO muestro el modal de "Espejo Activado" (Fallé).
+        // ¿Por qué? Porque mi "Devolución" está a punto de activarse y mostrar el Toast de "Rebote Exitoso".
+        // Si muestro ambos, confundo al usuario.
+        if (!effectProvider.isReturnArmed) {
+           effectProvider.notifyPowerReturned(name);
+        } else {
+           debugPrint("Ping-Pong detectado: Suprimiendo 'Espejo Activado' en favor de 'Rebote Exitoso'.");
+        }
+        
         await refreshProfile();
+        // AQUI ESTA LA MAGIA: Retornamos 'reflected' para que la UI sepa
+        return PowerUseResult.reflected; 
       }
 
       // Life steal fallido: objetivo sin vidas (igual se consume el ítem en servidor)
@@ -353,12 +375,15 @@ class PlayerProvider extends ChangeNotifier {
           effectProvider.setShielded(true, sourceSlug: powerSlug);
         }
         await syncRealInventory(effectProvider: effectProvider);
+        return PowerUseResult.success;
       }
-      return success;
+      return PowerUseResult.error;
     } catch (e) {
       debugPrint('Error usando poder: $e');
       rethrow; // Lanzamos el error para que la UI lo atrape
     } finally {
+      // Terminamos el casting manual
+      effectProvider.setManualCasting(false);
       _isProcessing = false;
     }
   }
@@ -575,13 +600,14 @@ class PlayerProvider extends ChangeNotifier {
       _currentPlayer!.gamePlayerId = gamePlayerId;
       effectProvider
           ?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
-      effectProvider?.configureReturnHandler((slug, casterId) {
-        return usePower(
+      effectProvider?.configureReturnHandler((slug, casterId) async {
+        final result = await usePower(
           powerSlug: slug,
           targetGamePlayerId: casterId,
           effectProvider: effectProvider,
           allowReturnForward: false,
         );
+        return result != PowerUseResult.error;
       });
       // effectProvider?.configureLifeStealVictimHandler((effectId, casterId) {
       //   return loseLife(eventId: eventId);

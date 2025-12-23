@@ -12,11 +12,11 @@ import 'features/auth/providers/player_provider.dart';
 import 'features/game/providers/game_request_provider.dart';
 import 'core/theme/app_theme.dart';
 
-// 2. Imports nuevos para el Administrador
 import 'features/game/providers/event_provider.dart'; 
 import 'features/game/providers/power_effect_provider.dart';
 import 'features/admin/screens/admin_login_screen.dart'; 
 import 'shared/widgets/sabotage_overlay.dart';
+import 'shared/utils/global_keys.dart'; // Importar llaves globales
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,6 +68,7 @@ class TreasureHuntApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Treasure Hunt RPG',
+        navigatorKey: rootNavigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         builder: (context, child) {

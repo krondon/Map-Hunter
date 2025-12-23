@@ -48,60 +48,87 @@ class _ReturnRejectionEffectState extends State<ReturnRejectionEffect> with Sing
           decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.9),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.redAccent, width: 2),
+            border: Border.all(color: Colors.cyanAccent, width: 3), // Cyan para efecto espejo
             boxShadow: [
-              BoxShadow(color: Colors.redAccent.withOpacity(0.4), blurRadius: 30, spreadRadius: 5),
-              BoxShadow(color: Colors.purpleAccent.withOpacity(0.2), blurRadius: 15, offset: const Offset(-5, -5)),
+              BoxShadow(
+                  color: Colors.cyanAccent.withOpacity(0.5),
+                  blurRadius: 30,
+                  spreadRadius: 5),
+              BoxShadow(
+                  color: Colors.purpleAccent.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 0)),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.gpp_bad_rounded, color: Colors.redAccent, size: 85),
+              // Icono de Espejo / Reflejo
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                   const Icon(Icons.shield, color: Colors.cyanAccent, size: 90),
+                   Icon(Icons.u_turn_left, color: Colors.black.withOpacity(0.8), size: 50),
+                ],
+              ),
               const SizedBox(height: 20),
               const Text(
-                "¡ATAQUE RECHAZADO!",
+                "¡ESPEJO ACTIVADO!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
+                  color: Colors.cyanAccent,
+                  fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+                  letterSpacing: 1.5,
+                  shadows: [
+                    Shadow(color: Colors.blue, blurRadius: 10, offset: Offset(0,0))
+                  ]
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 16),
                 child: Divider(color: Colors.white24, indent: 40, endIndent: 40),
               ),
-              Text(
-                "Tu poder ha sido devuelto por:",
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+              const Text(
+                "Tu hechizo rebotó contra:",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Colors.white70, fontSize: 16),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 widget.returnedBy?.toUpperCase() ?? "UN RIVAL",
+                textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.purpleAccent,
-                  fontSize: 22,
+                  color: Colors.white,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  shadows: [Shadow(color: Colors.purpleAccent, blurRadius: 10)],
+                  shadows: [
+                    Shadow(color: Colors.purpleAccent, blurRadius: 15)
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.red.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.5))
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: const [
-                    Icon(Icons.bolt, color: Colors.amber, size: 18),
+                    Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
                     SizedBox(width: 8),
-                    Text(
-                      "HAS RECIBIDO TU PROPIO EFECTO",
-                      style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold),
+                    Flexible(
+                      child: Text(
+                        "¡AHORA SUFRES TU PROPIO EFECTO!",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),

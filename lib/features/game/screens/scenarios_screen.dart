@@ -370,7 +370,14 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                         ? const Center(
                             child: Text("No hay competencias disponibles",
                                 style: TextStyle(color: Colors.white)))
-                        : PageView.builder(
+                        : ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context).copyWith(
+                            dragDevices: {
+                              PointerDeviceKind.touch,
+                              PointerDeviceKind.mouse,
+                            },
+                          ),
+                          child: PageView.builder(
                             controller: _pageController,
                             onPageChanged: (index) {
                               setState(() {
@@ -621,6 +628,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
                               );
                             },
                           ),
+                        ),
               ),
               const SizedBox(height: 30),
             ],

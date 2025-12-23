@@ -80,14 +80,14 @@ class RaceTrackWidget extends StatelessWidget {
         return;
       }
 
-      final success = await playerProvider.usePower(
+      final result = await playerProvider.usePower(
         powerSlug: selectedPowerSlug,
         targetGamePlayerId: targetGamePlayerId,
         effectProvider: effectProvider,
         gameProvider: gameProvider,
       );
 
-      if (!success && context.mounted) {
+      if (result == PowerUseResult.error && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se pudo lanzar el sabotaje')),
         );
@@ -540,7 +540,7 @@ class RaceTrackWidget extends StatelessWidget {
                 if (selectedPowerSlug == null) return;
 
                 try {
-                  final success = await playerProvider.usePower(
+                  final result = await playerProvider.usePower(
                     powerSlug: selectedPowerSlug,
                     targetGamePlayerId: targetGamePlayerId,
                     effectProvider: effectProvider,
@@ -549,7 +549,7 @@ class RaceTrackWidget extends StatelessWidget {
 
                   if (!context.mounted) return;
 
-                  if (!success) {
+                  if (result == PowerUseResult.error) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text('No se pudo lanzar el sabotaje')),
