@@ -1,5 +1,6 @@
 import 'dart:async'; // Importar Timer
 import 'dart:ui'; // Para FontFeature
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -721,6 +722,45 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                       letterSpacing: 1.2,
                                     ),
                                   ),
+                                ),
+                              ),
+
+                            // === BOTÓN DE DESARROLLADOR ===
+                            if (kDebugMode && _gameRequest != null && !_gameRequest!.isApproved)
+                              Container(
+                                margin: const EdgeInsets.only(top: 16),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      "🔧 MODO DESARROLLADOR",
+                                      style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.orange,
+                                          foregroundColor: Colors.black,
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                        ),
+                                        onPressed: () {
+                                          // Simular aprobación navegando directamente al HomeScreen
+                                          Navigator.of(context).pushReplacement(
+                                            MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.check_circle, size: 18),
+                                        label: const Text("DEV: Simular Aprobación", style: TextStyle(fontSize: 13)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
 

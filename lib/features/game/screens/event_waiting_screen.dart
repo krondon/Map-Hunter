@@ -1,6 +1,7 @@
 
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../game/models/event.dart';
@@ -187,7 +188,41 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                           ],
                         ),
                       ),
-                      // Debug Button
+                      // === BOTÓN DE DESARROLLADOR ===
+                      if (kDebugMode)
+                        Container(
+                          margin: const EdgeInsets.only(top: 30),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                "🔧 MODO DESARROLLADOR",
+                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onPressed: () {
+                                    widget.onTimerFinished(); // Simula fin del timer
+                                  },
+                                  icon: const Icon(Icons.skip_next, size: 18),
+                                  label: const Text("DEV: Saltar Espera", style: TextStyle(fontSize: 13)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),

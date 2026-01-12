@@ -233,49 +233,27 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<bool> _purchaseLifeManual(String eventId, int cost) async {
     try {
-      // 1. Validar monedas localmente
+      // Validar monedas localmente primero (feedback rápido)
       if ((_currentPlayer?.coins ?? 0) < cost) {
         return false;
       }
 
-      // 2. Obtener game_player_id y vidas actuales
-      final gpResponse = await _supabase
-          .from('game_players')
-          .select('id, lives')
-          .eq('user_id', _currentPlayer!.id)
-          .eq('event_id', eventId)
-          .single();
-
-      final String gamePlayerId = gpResponse['id'];
-      final int currentLives = gpResponse['lives'];
-
-      // 3. Realizar actualizaciones
-      // A. Restar monedas en profiles
-      await _supabase
-          .from('profiles')
-          .update({'total_coins': _currentPlayer!.coins - cost}).eq(
-              'id', _currentPlayer!.id);
-
-      // B. Sumar vida en game_players
-      await _supabase
-          .from('game_players')
-          .update({'lives': currentLives + 1}).eq('id', gamePlayerId);
-
-      // C. Registrar transacción
-      await _supabase.from('transactions').insert({
-        'game_player_id': gamePlayerId,
-        'transaction_type': 'purchase',
-        'coins_change': -cost,
-        'description': 'Compra de Vida Extra',
+      // Usar función RPC segura que bypassa RLS
+      // Esta función hace todo atómicamente: resta monedas, suma vida, registra transacción
+      final int newLives = await _supabase.rpc('buy_extra_life', params: {
+        'p_user_id': _currentPlayer!.id,
+        'p_event_id': eventId,
+        'p_cost': cost,
       });
 
-      // 4. Actualizar estado local
+      // Actualizar estado local con respuesta del servidor
       _currentPlayer!.coins -= cost;
+      _currentPlayer!.lives = newLives;
       notifyListeners();
 
       return true;
     } catch (e) {
-      debugPrint("Error comprando vida manualmente: $e");
+      debugPrint("Error comprando vida: $e");
       return false;
     }
   }
