@@ -980,22 +980,30 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     ),
   );
 
-  if (!context.mounted) return;
+  // Verificar contexto después de animación
+  if (!context.mounted) {
+    debugPrint('WARN: Context not mounted after TimeStampAnimation');
+    return;
+  }
 
+  // 2. Determinar si hay siguiente pista
   final clues = gameProvider.clues;
   final currentIdx = clues.indexWhere((c) => c.id == clue.id);
   Clue? nextClue;
   if (currentIdx != -1 && currentIdx + 1 < clues.length) {
     nextClue = clues[currentIdx + 1];
   }
-  final showNextStep = nextClue != null && nextClue.isLocked;
+  // Mostrar "siguiente misión" si hay más pistas después de esta
+  final showNextStep = nextClue != null;
 
-  showDialog(
+  // 3. Mostrar el panel de celebración - siempre se muestra después del sello
+  await showDialog(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => SuccessCelebrationDialog(
       clue: clue,
       showNextStep: showNextStep,
+      totalClues: clues.length,
       onMapReturn: () {
         Navigator.of(dialogContext).pop();
         Future.delayed(const Duration(milliseconds: 100), () {
