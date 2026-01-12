@@ -198,12 +198,19 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Productos Disponibles",
+                          const Expanded(
+                            child: Text(
+                              "Productos Disponibles",
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
-                                  fontWeight: FontWeight.bold)),
+                                  fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Row(
+                            mainAxisSize: MainAxisSize.min, // Optimize size
                             children: [
                               // Monedas
                               Container(

@@ -39,11 +39,18 @@ class ErrorHandler {
         return 'La contraseña es muy corta.';
     }
 
+    // Errores de Baneo
+    if (message.contains('suspendida') || 
+        message.contains('banned') || 
+        message.contains('bloqueada')) {
+      return 'Tu cuenta ha sido suspendida permanentemente.';
+    }
+
     // Mensaje por defecto (limpiamos un poco el mensaje técnico si es posible)
     if (message.contains('exception:')) {
       return message.split('exception:').last.trim();
     }
 
-    return 'Ocurrió un error inesperado. Intenta de nuevo.';
+    return 'Ocurrió un error inesperado ($message).';
   }
 }

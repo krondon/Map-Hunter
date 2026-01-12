@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'power_item.dart';
 
 class MallStore {
   final String id;
+  final String? eventId;
   final String name;
   final String description;
   final String imageUrl;
@@ -10,6 +12,7 @@ class MallStore {
 
   MallStore({
     required this.id,
+    this.eventId,
     required this.name,
     required this.description,
     required this.imageUrl,
@@ -17,104 +20,76 @@ class MallStore {
     required this.products,
   });
 
-  // Datos simulados del Centro Comercial Millenium
-  static List<MallStore> getMilleniumStores() {
-    return [
-      MallStore(
-        id: 'mcdonals',
-        name: "McDonald's",
-        description: "Recarga energías con la mejor comida rápida.",
-        imageUrl:
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/1200px-McDonald%27s_Golden_Arches.svg.png",
-        qrCodeData: "store:mcdonals",
-        products: [
-          PowerItem(
-            id: 'extra_life',
-            name: 'Vida Extra',
-            description: 'Recupera una vida perdida para seguir en el juego.',
-            icon: '❤️',
-            cost: 50,
-            type: PowerType.buff,
-          ),
-        ],
-      ),
-      MallStore(
-        id: 'el_dorado',
-        name: "Cinex (El Dorado)",
-        description: "Entretenimiento y sabotajes de película.",
-        imageUrl:
-            "https://pbs.twimg.com/profile_images/1359879781682335746/Nq1aQd_z_400x400.jpg",
-        qrCodeData: "store:cinex",
-        products: [
-          PowerItem(
-            id: 'black_screen',
-            name: 'Pantalla Negra',
-            description: 'Ciega al rival por 5s',
-            icon: '🎬',
-            cost: 100,
-            type: PowerType.blind,
-          ),
-          // PowerItem(
-          //   id: 'blur_screen',
-          //   name: 'Pantalla Borrosa',
-          //   description:
-          //       'Aplica un efecto borroso sobre la pantalla del objetivo.',
-          //   icon: '🌫️',
-          //   cost: 110,
-          //   type: PowerType.debuff,
-          // ),
-          PowerItem(
-            id: 'freeze',
-            name: 'Congelar',
-            description: 'Congela al rival por 120s',
-            type: PowerType.freeze,
-            cost: 50,
-            icon: '❄️',
-          ),
-          PowerItem(
-            id: 'life_steal',
-            name: 'Robo de Vida',
-            description: 'Roba una vida a un rival',
-            type: PowerType.lifeSteal,
-            cost: 130,
-            icon: '🧛',
-          ),
-        ],
-      ),
-      MallStore(
-        id: 'farmatodo',
-        name: "Farmatodo",
-        description: "Cura y protección para tus aventuras.",
-        imageUrl:
-            "https://pbs.twimg.com/profile_images/1118182255763005440/1VjXyQj-_400x400.png",
-        qrCodeData: "store:farmatodo",
-        products: [
-          // PowerItem(
-          //   id: 'shield',
-          //   name: 'Escudo',
-          //   description: 'Bloquea sabotajes por 300s',
-          //   type: PowerType.shield,
-          //   cost: 150,
-          //   icon: '🛡️',
-          // ),
-          const PowerItem(
-            id: 'return',
-            name: 'Devolución',
-            description: 'Devuelve el ataque al origen',
-            type: PowerType.buff, // CAMBIADO: De utility a buff
-            cost: 90,
-            icon: '↩️',
-          ),
-          PowerItem(
-            id: 'invisibility',
-            name: 'Invisibilidad',
-            description: 'Te vuelve invisible por 45s',
-            type: PowerType.stealth,
-            cost: 100,
-            icon: '👻',
-          ),
-        ],
-      ),
-    ];
+  Map<String, dynamic> toMap() {
+    return {
+      'event_id': eventId,
+      'name': name,
+      'description': description,
+      'image_url': imageUrl,
+      'qr_code_data': qrCodeData,
+      // Guardamos objeto con ID y Costo personalizado
+      'products': products.map((x) => {
+        'id': x.id,
+        'cost': x.cost
+      }).toList(), 
+    };
+  }
+
+  factory MallStore.fromMap(Map<String, dynamic> map) {
+    List<PowerItem> parsedProducts = [];
+    if (map['products'] != null) {
+      final List<dynamic> productsRaw = map['products'] is String 
+          ? json.decode(map['products']) 
+          : map['products'];
+          
+      final allItems = PowerItem.getShopItems();
+      
+      parsedProducts = productsRaw.map((data) {
+        // Soporte Legacy: Si es solo un String (ID), usamos costo por defecto
+        if (data is String) {
+          return allItems.firstWhere((item) => item.id == data,
+              orElse: () => PowerItem(
+                    id: data,
+                    name: 'Desconocido',
+                    description: '',
+                    type: PowerType.utility,
+                    cost: 0,
+                    icon: '❓',
+                  ));
+        } 
+        // Nuevo Formato: Map con 'id' y 'cost'
+        else if (data is Map) {
+          final id = data['id'];
+          final customCost = data['cost'];
+          
+          final baseItem = allItems.firstWhere((item) => item.id == id,
+               orElse: () => PowerItem(
+                    id: id.toString(),
+                    name: 'Desconocido',
+                    description: '',
+                    type: PowerType.utility,
+                    cost: 0,
+                    icon: '❓',
+                  ));
+          
+          // Entregamos item con costo modificado si existe
+          return (customCost != null) 
+              ? baseItem.copyWith(cost: customCost) 
+              : baseItem;
+        }
+        
+        return allItems.first; // Fallback extremo
+      }).toList();
+    }
+
+    return MallStore(
+      id: map['id'] ?? '',
+      eventId: map['event_id'],
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      imageUrl: map['image_url'] ?? '',
+      qrCodeData: map['qr_code_data'] ?? '',
+      products: parsedProducts,
+    );
   }
 }

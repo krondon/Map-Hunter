@@ -16,16 +16,18 @@ import 'package:uuid/uuid.dart';
 import 'dart:math';
 import '../../game/models/clue.dart';
 import '../widgets/qr_display_dialog.dart';
+import '../widgets/store_edit_dialog.dart';
+import '../../mall/providers/store_provider.dart';
+import '../../mall/models/mall_store.dart';
 
 class EventCreationScreen extends StatefulWidget {
-  // 1. Agregamos el callback aquí
   final VoidCallback? onEventCreated;
-  final GameEvent? event; // Agregamos el campo event
+  final GameEvent? event;
 
   const EventCreationScreen({
     super.key, 
     this.onEventCreated,
-    this.event, // Agregamos al constructor
+    this.event,
   });
 
   @override
@@ -53,6 +55,28 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   bool _isLoading = false;
   bool _isFormValid = false;
   late String _eventId; // ID del evento (existente o nuevo generado)
+
+  // Stores
+  List<Map<String, dynamic>> _pendingStores = [];
+
+  void _addPendingStore() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StoreEditDialog(eventId: _eventId),
+    );
+
+    if (result != null) {
+      setState(() {
+        _pendingStores.add(result);
+      });
+    }
+  }
+
+  void _removePendingStore(int index) {
+    setState(() {
+      _pendingStores.removeAt(index);
+    });
+  }
 
   @override
   void initState() {
@@ -489,6 +513,46 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           // USAMOS EL PROVIDER DIRECTAMENTE (Más seguro para lat/long)
           await provider.createCluesBatch(createdEventId, _clueForms);
         }
+        
+        // --- GUARDADO DE TIENDAS ---
+        if (createdEventId != null && _pendingStores.isNotEmpty) {
+           final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+           debugPrint('Guardando ${_pendingStores.length} tiendas pendientes...');
+           
+           int succesfulStores = 0;
+           for (var storeData in _pendingStores) {
+             try {
+                final store = storeData['store'] as MallStore;
+                // CORRETION: We now use XFile for image handling in stores
+                final imageFile = storeData['imageFile'] as XFile?;
+                
+                final storeToCreate = MallStore(
+                  id: store.id,
+                  eventId: createdEventId!, 
+                  name: store.name,
+                  description: store.description,
+                  imageUrl: store.imageUrl,
+                  qrCodeData: store.qrCodeData,
+                  products: store.products,
+                );
+                await storeProvider.createStore(storeToCreate, imageFile);
+                succesfulStores++;
+             } catch (e) {
+               debugPrint("Error creating store for event: $e");
+               if (mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('⚠️ Error al crear tienda "${storeData['store'].name}": $e'), backgroundColor: Colors.orange),
+                  );
+               }
+             }
+           }
+           
+           if (mounted && succesfulStores < _pendingStores.length) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('⚠️ Se crearon $succesfulStores de ${_pendingStores.length} tiendas.'), backgroundColor: Colors.orange),
+              );
+           }
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -543,6 +607,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
       _selectedImage = null;
       _isLoading = false;
       _eventId = const Uuid().v4(); // Reset with new ID for next creation
+      _pendingStores = [];
     });
   }
 
@@ -1546,6 +1611,78 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 30),
+
+                        // Seccion Tiendas Aliadas
+                        const Text("Tiendas Aliadas",
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.accentGold)),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Agrega tiendas que participarán en el evento (opcional).",
+                          style: TextStyle(color: Colors.white54, fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        if (_pendingStores.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child:  Center(
+                              child: Column(
+                                children: const [
+                                  Icon(Icons.store_mall_directory_outlined, size: 40, color: Colors.white24),
+                                  SizedBox(height: 10),
+                                  Text("No hay tiendas agregadas", style: TextStyle(color: Colors.white54)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _pendingStores.length,
+                          itemBuilder: (context, index) {
+                            final storeData = _pendingStores[index];
+                            final store = storeData['store'] as MallStore;
+                            return Card(
+                              color: AppTheme.cardBg,
+                              margin: const EdgeInsets.only(bottom: 10),
+                              child: ListTile(
+                                leading: const Icon(Icons.store, color: AppTheme.accentGold),
+                                title: Text(store.name, style: const TextStyle(color: Colors.white)),
+                                subtitle: Text("${store.products.length} productos", style: const TextStyle(color: Colors.white70)),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _removePendingStore(index),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        
+                        const SizedBox(height: 15),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _addPendingStore,
+                            icon: const Icon(Icons.add),
+                            label: const Text("Agregar Tienda"),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.accentGold,
+                              side: const BorderSide(color: AppTheme.accentGold),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                            ),
+                          ),
+                        ),
+
                         const SizedBox(height: 30),
 
                         // Botón de Acción Final

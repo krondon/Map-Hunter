@@ -2,14 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 import '../../game/models/event.dart';
 import '../../game/models/clue.dart';
 import '../../game/providers/event_provider.dart';
 import '../../game/providers/game_request_provider.dart';
 import '../../game/models/game_request.dart';
-import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:geolocator/geolocator.dart'; 
 import '../../../core/theme/app_theme.dart';
 import '../widgets/qr_display_dialog.dart';
+import '../../auth/providers/player_provider.dart'; 
+import '../../../shared/models/player.dart'; 
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as latlng;
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http; 
+import '../../mall/providers/store_provider.dart';
+import '../widgets/store_edit_dialog.dart';
+import '../../mall/models/mall_store.dart'; 
 
 class CompetitionDetailScreen extends StatefulWidget {
   final GameEvent event;
@@ -41,6 +52,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   late String _title;
   late String _description;
   late String _locationName;
+  late TextEditingController _locationController;
 
   void _showQRDialog(String data, String title, String label, {String? hint}) {
     showDialog(
@@ -57,11 +69,31 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   
   XFile? _selectedImage;
   bool _isLoading = false;
+  List<Map<String, dynamic>> _leaderboardData = []; 
+
+  Future<void> _fetchLeaderboard() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('event_leaderboard')
+          .select()
+          .eq('event_id', widget.event.id)
+          .order('completed_clues', ascending: false)
+          .order('last_completion_time', ascending: true);
+      
+      if (mounted) {
+        setState(() {
+            _leaderboardData = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading leaderboard: $e");
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); 
+    _tabController = TabController(length: 4, vsync: this); 
     
     _tabController.addListener(() {
       setState(() {}); // Rebuild to show/hide FAB
@@ -71,6 +103,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     _title = widget.event.title;
     _description = widget.event.description;
     _locationName = widget.event.locationName;
+    _locationController = TextEditingController(text: _locationName);
     _latitude = widget.event.latitude;
     _longitude = widget.event.longitude;
     _clue = widget.event.clue;
@@ -81,13 +114,300 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     // Load requests for this event
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<GameRequestProvider>(context, listen: false).fetchAllRequests();
+      // Cargar lista de jugadores para verificar estados de baneo
+      Provider.of<PlayerProvider>(context, listen: false).fetchAllPlayers();
+      _fetchLeaderboard(); // Cargar ranking
+      // Cargar tiendas
+      Provider.of<StoreProvider>(context, listen: false).fetchStores(widget.event.id);
     });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _locationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectLocationOnMap() async {
+    // Obtener ubicación actual para centrar el mapa
+    Position? position;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Servicios de ubicación deshabilitados.');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.whileInUse || 
+          permission == LocationPermission.always) {
+         position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 5),
+         );
+      }
+    } catch (e) {
+      debugPrint("Error obteniendo ubicación: $e");
+    }
+    
+    // Si ya tenemos una ubicación guardada, usarla como inicial
+    final latlng.LatLng initial = (_latitude != 0 && _longitude != 0) // Check if valid (assuming 0 is invalid/default)
+        ? latlng.LatLng(_latitude, _longitude)
+        : (position != null
+            ? latlng.LatLng(position.latitude, position.longitude)
+            : const latlng.LatLng(10.4806, -66.9036)); 
+
+    latlng.LatLng? picked;
+    String? address;
+    latlng.LatLng temp = initial;
+    final MapController mapController = MapController();
+    final TextEditingController searchController = TextEditingController();
+    Timer? debounce;
+    List<dynamic> suggestions = [];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            Future<void> searchLocation() async {
+              final query = searchController.text;
+              if (query.isEmpty) {
+                setStateDialog(() => suggestions = []);
+                return;
+              }
+
+              final apiKey = 'pk.45e576837f12504a63c6d1893820f1cf';
+              final url = Uri.parse(
+                  'https://us1.locationiq.com/v1/search.php?key=$apiKey&q=$query&format=json&limit=5&countrycodes=ve');
+
+              try {
+                final response = await http.get(url);
+                if (response.statusCode == 200) {
+                  final data = json.decode(response.body);
+                  if (data is List) {
+                    setStateDialog(() {
+                      suggestions = data;
+                    });
+                  }
+                }
+              } catch (e) {
+                debugPrint('Error searching: $e');
+              }
+            }
+
+            void selectSuggestion(dynamic suggestion) {
+              final lat = double.parse(suggestion['lat']);
+              final lon = double.parse(suggestion['lon']);
+              final display = suggestion['display_name'];
+              final newPos = latlng.LatLng(lat, lon);
+
+              setStateDialog(() {
+                temp = newPos;
+                suggestions = [];
+                searchController.text = display;
+              });
+              mapController.move(newPos, 15);
+              FocusScope.of(context).unfocus();
+            }
+
+            return AlertDialog(
+              backgroundColor: AppTheme.cardBg,
+              contentPadding: const EdgeInsets.all(15),
+              content: SizedBox(
+                width: 350,
+                height: 450,
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: TextField(
+                        controller: searchController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Buscar dirección...',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 15, vertical: 12),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.search, color: Colors.white),
+                            onPressed: searchLocation,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          if (debounce?.isActive ?? false) debounce!.cancel();
+                          debounce =
+                              Timer(const Duration(milliseconds: 400), () {
+                            searchLocation();
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            FlutterMap(
+                              mapController: mapController,
+                              options: MapOptions(
+                                center: initial,
+                                zoom: 14,
+                                cameraConstraint: CameraConstraint.contain(
+                                  bounds: LatLngBounds(
+                                    const latlng.LatLng(0.5, -73.5), 
+                                    const latlng.LatLng(12.5, -59.5), 
+                                  ),
+                                ),
+                                minZoom: 5,
+                                onTap: (tapPos, latLng) {
+                                  setStateDialog(() {
+                                    temp = latLng;
+                                    suggestions = [];
+                                  });
+                                },
+                              ),
+                              children: [
+                                TileLayer(
+                                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                                    subdomains: const ['a', 'b', 'c'],
+                                  ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      width: 40,
+                                      height: 40,
+                                      point: temp,
+                                      child: const Icon(Icons.location_on,
+                                          color: Colors.red, size: 40),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            if (suggestions.isNotEmpty)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: 200,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E1E1E),
+                                    borderRadius: const BorderRadius.vertical(
+                                        bottom: Radius.circular(8)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.5),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ListView.separated(
+                                    padding: EdgeInsets.zero,
+                                    itemCount: suggestions.length,
+                                    separatorBuilder: (_, __) => const Divider(
+                                        height: 1, color: Colors.white10),
+                                    itemBuilder: (context, index) {
+                                      final item = suggestions[index];
+                                      return ListTile(
+                                        dense: true,
+                                        title: Text(
+                                          item['display_name'] ?? '',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        onTap: () => selectSuggestion(item),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            Positioned(
+                              bottom: 10,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (temp.latitude < 0.5 ||
+                                        temp.latitude > 12.5 ||
+                                        temp.longitude < -73.5 ||
+                                        temp.longitude > -59.5) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              '⚠️ Por favor selecciona una ubicación dentro de Venezuela'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    picked = temp;
+                                    Navigator.of(context).pop();
+                                  },
+                                  child:
+                                      const Text('Seleccionar esta ubicación'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (picked != null) {
+      final apiKey = 'pk.45e576837f12504a63c6d1893820f1cf'; 
+      final url = Uri.parse(
+          'https://us1.locationiq.com/v1/reverse.php?key=$apiKey&lat=${picked!.latitude}&lon=${picked!.longitude}&format=json');
+      try {
+        final response = await http.get(url);
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (mounted) {
+             address = data['display_name'] ?? 'Ubicación seleccionada';
+          }
+        } else {
+          address = 'Ubicación seleccionada';
+        }
+      } catch (_) {
+        address = 'Ubicación seleccionada';
+      }
+      
+      if (mounted) {
+        setState(() {
+          _latitude = picked!.latitude;
+          _longitude = picked!.longitude;
+          if (address != null) {
+            _locationName = address!;
+            _locationController.text = _locationName;
+          }
+        });
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -210,6 +530,7 @@ Future<bool> _showConfirmDialog() async {
             onPressed: () {
               setState(() {});
               Provider.of<GameRequestProvider>(context, listen: false).fetchAllRequests();
+              _fetchLeaderboard(); // Recargar ranking
             },
           ),
         ],
@@ -220,6 +541,7 @@ Future<bool> _showConfirmDialog() async {
             Tab(text: "Detalles"),
             Tab(text: "Participantes"),
             Tab(text: "Pistas de Juego"),
+            Tab(text: "Tiendas"),
           ],
         ),
       ),
@@ -231,17 +553,29 @@ Future<bool> _showConfirmDialog() async {
             _buildDetailsTab(),
             _buildParticipantsTab(),
             _buildCluesTab(),
+            _buildStoresTab(),
           ],
         ),
       ),
-      floatingActionButton: _tabController.index == 2 
-        ? FloatingActionButton(
-            backgroundColor: AppTheme.primaryPurple,
-            onPressed: () => _showAddClueDialog(),
-            child: const Icon(Icons.add, color: Colors.white),
-          )
-        : null,
+      floatingActionButton: _getFAB(),
     );
+  }
+
+  Widget? _getFAB() {
+    if (_tabController.index == 2) {
+      return FloatingActionButton(
+        backgroundColor: AppTheme.primaryPurple,
+        onPressed: () => _showAddClueDialog(),
+        child: const Icon(Icons.add, color: Colors.white),
+      );
+    } else if (_tabController.index == 3) {
+      return FloatingActionButton(
+        backgroundColor: AppTheme.accentGold,
+        onPressed: () => _showAddStoreDialog(),
+        child: const Icon(Icons.store, color: Colors.white),
+      );
+    }
+    return null;
   }
 
   Widget _buildDetailsTab() {
@@ -377,11 +711,33 @@ Future<bool> _showConfirmDialog() async {
               onSaved: (v) => _clue = v!,
             ),
             const SizedBox(height: 16),
-             TextFormField(
-              initialValue: _locationName,
-              style: const TextStyle(color: Colors.white),
-              decoration: inputDecoration.copyWith(labelText: 'Nombre de Ubicación'),
-              onSaved: (v) => _locationName = v!,
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _locationController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: inputDecoration.copyWith(labelText: 'Nombre de Ubicación'),
+                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                    onSaved: (v) => _locationName = v!,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryPurple.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.map, color: AppTheme.primaryPurple),
+                    tooltip: "Seleccionar en Mapa",
+                    onPressed: _selectLocationOnMap,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             
@@ -485,6 +841,9 @@ Future<bool> _showConfirmDialog() async {
   Widget _buildParticipantsTab() {
     return Consumer<GameRequestProvider>(
       builder: (context, provider, _) {
+        // Obtenemos el proveedor de jugadores para verificar estados
+        final playerProvider = Provider.of<PlayerProvider>(context);
+        
         // Filter requests for THIS event
         final allRequests = provider.requests.where((r) => r.eventId == widget.event.id).toList();
         
@@ -494,6 +853,43 @@ Future<bool> _showConfirmDialog() async {
         if (allRequests.isEmpty) {
           return const Center(child: Text("No hay participantes ni solicitudes.", style: TextStyle(color: Colors.white54)));
         }
+
+        // --- SORT LOGIC FIX ---
+        // 0. Identify banned players
+        final bannedIds = playerProvider.allPlayers
+           .where((p) => p.status == PlayerStatus.banned)
+           .map((p) => p.id)
+           .toSet();
+
+        // 1. Build a 'virtual' leaderboard excluding banned players for ranking calculation
+        final activeLeaderboard = _leaderboardData.where((entry) {
+           final userId = entry['user_id'];
+           return !bannedIds.contains(userId);
+        }).toList();
+
+        // 2. Convert to List explicitly to avoid map type issues
+        final sortedApproved = approved.toList();
+        
+        // 3. Sort: Non-banned first (ordered by rank), then undefined/banned at bottom
+        sortedApproved.sort((a, b) {
+           final isBannedA = bannedIds.contains(a.playerId);
+           final isBannedB = bannedIds.contains(b.playerId);
+           
+           // Banned users go to bottom
+           if (isBannedA && !isBannedB) return 1;
+           if (!isBannedA && isBannedB) return -1;
+           if (isBannedA && isBannedB) return 0; // Keep relative order among banned
+
+           // Both active: compare using rank in activeLeaderboard
+           final indexA = activeLeaderboard.indexWhere((l) => l['user_id'] == a.playerId);
+           final indexB = activeLeaderboard.indexWhere((l) => l['user_id'] == b.playerId);
+           
+           // If not in leaderboard, put at bottom of active users
+           final rankA = indexA == -1 ? 9999 : indexA;
+           final rankB = indexB == -1 ? 9999 : indexB;
+           
+           return rankA.compareTo(rankB);
+        });
 
         return ListView(
           padding: const EdgeInsets.all(20),
@@ -505,12 +901,31 @@ Future<bool> _showConfirmDialog() async {
               const SizedBox(height: 20),
             ],
             
-            const Text("Participantes Inscritos", style: TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("Participantes Inscritos (Ranking)", style: TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             if (approved.isEmpty)
               const Text("Nadie inscrito aún.", style: TextStyle(color: Colors.white30))
             else
-              ...approved.map((req) => _RequestTile(request: req, isReadOnly: true)),
+              // 4. Map safely to Widgets
+              ...sortedApproved.map((req) {
+                 final isBanned = bannedIds.contains(req.playerId);
+                 
+                 // Get rank from activeLeaderboard ONLY if not banned
+                 final index = !isBanned 
+                     ? activeLeaderboard.indexWhere((l) => l['user_id'] == req.playerId)
+                     : -1;
+                     
+                 // Progress comes from raw data (still useful to see even if banned)
+                 final rawIndex = _leaderboardData.indexWhere((l) => l['user_id'] == req.playerId);
+                 final progress = rawIndex != -1 ? _leaderboardData[rawIndex]['completed_clues'] as int : 0;
+                 
+                 return _RequestTile(
+                   request: req, 
+                   isReadOnly: true,
+                   rank: index != -1 ? index + 1 : null, // Pass null rank if banned or unranked
+                   progress: progress,
+                 );
+              }).toList(),
           ],
         );
       },
@@ -1106,6 +1521,153 @@ void _showRestartConfirmDialog() {
       ),
     );
   }
+  Widget _buildStoresTab() {
+    return Consumer<StoreProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final stores = provider.stores;
+
+        if (stores.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.store_mall_directory, size: 80, color: Colors.white24),
+                const SizedBox(height: 16),
+                const Text("No hay tiendas registradas", style: TextStyle(color: Colors.white54)),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddStoreDialog(),
+                  icon: const Icon(Icons.add),
+                  label: const Text("Agregar Tienda"),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentGold),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: stores.length,
+          itemBuilder: (context, index) {
+            final store = stores[index];
+            return Card(
+              color: AppTheme.cardBg,
+              margin: const EdgeInsets.only(bottom: 16),
+              child: ListTile(
+                leading: Container(
+                    width: 60, 
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(8),
+                      image: (store.imageUrl.isNotEmpty && store.imageUrl.startsWith('http')) 
+                        ? DecorationImage(image: NetworkImage(store.imageUrl), fit: BoxFit.cover)
+                        : null,
+                    ),
+                    child: (store.imageUrl.isEmpty || !store.imageUrl.startsWith('http'))
+                      ? const Icon(Icons.store, color: Colors.white54)
+                      : null,
+                  ),
+                title: Text(store.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                subtitle: Text(
+                  "${store.description}\nProductos: ${store.products.length}",
+                  style: const TextStyle(color: Colors.white70),
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+                ),
+                isThreeLine: true,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                        icon: const Icon(Icons.qr_code, color: Colors.white),
+                        tooltip: "Ver QR",
+                        onPressed: () => _showQRDialog(
+                              store.qrCodeData,
+                              "QR de Tienda",
+                              store.name,
+                              hint: "Escanear para entrar",
+                            )),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: AppTheme.accentGold),
+                      onPressed: () => _showAddStoreDialog(store: store),
+                    ),
+                    IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _confirmDeleteStore(store),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddStoreDialog({MallStore? store}) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StoreEditDialog(store: store, eventId: widget.event.id),
+    );
+
+    if (result != null && mounted) {
+      final newStore = result['store'] as MallStore;
+      final imageFile = result['imageFile'];
+      
+      final provider = Provider.of<StoreProvider>(context, listen: false);
+      try {
+        if (store == null) {
+          await provider.createStore(newStore, imageFile);
+          if (mounted) _showSnackBar('Tienda creada exitosamente', Colors.green);
+        } else {
+          await provider.updateStore(newStore, imageFile);
+          if (mounted) _showSnackBar('Tienda actualizada exitosamente', Colors.green);
+        }
+      } catch (e) {
+        if (mounted) _showSnackBar('Error: $e', Colors.red);
+      }
+    }
+  }
+
+  void _confirmDeleteStore(MallStore store) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text("Confirmar Eliminación", style: TextStyle(color: Colors.white)),
+        content: Text("¿Estás seguro de eliminar a ${store.name}?", style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await Provider.of<StoreProvider>(context, listen: false).deleteStore(store.id, widget.event.id);
+                if (mounted) _showSnackBar('Tienda eliminada', Colors.green);
+              } catch (e) {
+                if (mounted) _showSnackBar('Error: $e', Colors.red);
+              }
+            },
+            child: const Text("Eliminar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
 }
 
 
@@ -1114,22 +1676,110 @@ void _showRestartConfirmDialog() {
 class _RequestTile extends StatelessWidget {
   final GameRequest request;
   final bool isReadOnly;
+  final int? rank;
+  final int? progress;
 
-  const _RequestTile({required this.request, this.isReadOnly = false});
+  const _RequestTile({
+    required this.request, 
+    this.isReadOnly = false,
+    this.rank,
+    this.progress,
+  });
+
+  void _toggleBan(BuildContext context, PlayerProvider provider, String userId, bool isBanned) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: Text(isBanned ? "Desbanear Usuario" : "Banear Usuario", style: const TextStyle(color: Colors.white)),
+        content: Text(
+          isBanned 
+            ? "¿Permitir el acceso nuevamente a este usuario?" 
+            : "¿Estás seguro? El usuario será expulsado de la app inmediatamente.",
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: isBanned ? Colors.green : Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await provider.toggleBanUser(userId, !isBanned);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(isBanned ? "Usuario desbaneado" : "Usuario baneado")),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
+              }
+            },
+            child: Text(isBanned ? "DESBANEAR" : "BANEAR", style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppTheme.cardBg,
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        title: Text(request.playerName ?? 'Desconocido', style: const TextStyle(color: Colors.white)),
-        subtitle: Text(request.playerEmail ?? 'No email', style: const TextStyle(color: Colors.white54)),
-        trailing: isReadOnly
-            ? const Icon(Icons.check_circle, color: Colors.green)
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+    return Consumer<PlayerProvider>(
+      builder: (context, playerProvider, _) {
+        // Buscamos el estado REAL del usuario en la lista de profiles
+        final userStatus = playerProvider.allPlayers
+            .firstWhere((p) => p.id == request.playerId,
+                 orElse: () => Player(id: '', email: '', name: '', role: '', status: PlayerStatus.active))
+            .status;
+            
+        final isBanned = userStatus == PlayerStatus.banned;
+
+        return Card(
+          color: isBanned ? Colors.red.withOpacity(0.1) : AppTheme.cardBg, // Feedback visual en toda la tarjeta
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            leading: (isReadOnly && rank != null) 
+              ? CircleAvatar(
+                  backgroundColor: _getRankColor(rank!),
+                  foregroundColor: Colors.white,
+                  child: Text("#$rank", style: const TextStyle(fontWeight: FontWeight.bold)),
+                )
+              : null,
+            title: Text(
+              request.playerName ?? 'Desconocido', 
+              style: TextStyle(
+                color: isBanned ? Colors.redAccent : Colors.white,
+                decoration: isBanned ? TextDecoration.lineThrough : null,
+                fontWeight: FontWeight.bold,
+              )
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(request.playerEmail ?? 'No email', style: const TextStyle(color: Colors.white54)),
+                if (isReadOnly && progress != null)
+                   Text("Pistas completadas: $progress", style: const TextStyle(color: AppTheme.accentGold, fontSize: 12)),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isReadOnly) ...[
+                   // Si está inscrito, mostramos check, pero si está baneado mostramos alerta visual
+                   Icon(Icons.check_circle, color: isBanned ? Colors.grey : Colors.green),
+                   const SizedBox(width: 8),
+                   IconButton(
+                     icon: Icon(isBanned ? Icons.lock_open : Icons.block),
+                     color: isBanned ? Colors.greenAccent : Colors.red,
+                     tooltip: isBanned ? "Desbanear Usuario" : "Banear Usuario",
+                     onPressed: () => _toggleBan(context, playerProvider, request.playerId, isBanned),
+                   ),
+                ] else ...[
                    IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
                     onPressed: () => Provider.of<GameRequestProvider>(context, listen: false).rejectRequest(request.id),
@@ -1139,8 +1789,20 @@ class _RequestTile extends StatelessWidget {
                     onPressed: () => Provider.of<GameRequestProvider>(context, listen: false).approveRequest(request.id),
                   ),
                 ],
-              ),
-      ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
+
+  Color _getRankColor(int rank) {
+    if (rank == 1) return const Color(0xFFFFD700); // Gold
+    if (rank == 2) return const Color(0xFFC0C0C0); // Silver
+    if (rank == 3) return const Color(0xFFCD7F32); // Bronze
+    return AppTheme.primaryPurple;
+  }
+
+
 }

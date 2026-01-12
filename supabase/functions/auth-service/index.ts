@@ -25,7 +25,7 @@ serve(async (req) => {
     // --- LOGIN ---
     if (path === 'login') {
       const { email, password } = await req.json()
-      
+
       if (!email || !password) {
         throw new Error('Email and password are required')
       }
@@ -36,6 +36,29 @@ serve(async (req) => {
       })
 
       if (error) throw error
+
+      // Check if user is banned
+      if (data?.user?.id) {
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('status')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Error checking profile status:', profileError)
+          // Optional: throw error or proceed? Better to proceed if check fails strictly, but for security maybe proceed?
+          // Let's assume if we can't check, we let them in (fail open) OR fail closed. 
+          // Given it's a game, fail open might be safer for UX if DB is glitchy, but for bans, usually fail closed?
+          // Actually, if simply select fails, it's weird. Let's just log.
+        }
+
+        if (profile && profile.status === 'banned') {
+          // Sign out explicitly so the session isn't valid despite just being created
+          await supabaseClient.auth.signOut()
+          throw new Error('Tu cuenta ha sido suspendida permanentemente.')
+        }
+      }
 
       return new Response(
         JSON.stringify(data),

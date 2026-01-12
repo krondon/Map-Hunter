@@ -17,10 +17,19 @@ class PlayerProvider extends ChangeNotifier {
   final Map<String, Map<String, int>> _eventInventories = {};
 
   bool _isProcessing = false;
+  bool _isLoggingOut = false;
 
   Player? get currentPlayer => _currentPlayer;
   List<Player> get allPlayers => _allPlayers;
   bool get isLoggedIn => _currentPlayer != null;
+
+  String? _banMessage;
+  String? get banMessage => _banMessage;
+  
+  void clearBanMessage() {
+    _banMessage = null;
+    notifyListeners();
+  }
 
   // --- NUEVO: Obtener cantidad de un poder específico en un evento ---
   int getPowerCount(String itemId, String eventId) {
@@ -111,6 +120,9 @@ class PlayerProvider extends ChangeNotifier {
     if (errorMsg.contains('too many requests')) {
       return 'Demasiados intentos. Por favor espera un momento.';
     }
+    if (errorMsg.contains('suspendida') || errorMsg.contains('banned')) {
+      return 'Tu cuenta ha sido suspendida permanentemente.';
+    }
 
     // Limpiar el prefijo 'Exception: ' si existe
     return e
@@ -119,12 +131,23 @@ class PlayerProvider extends ChangeNotifier {
         .replaceAll('exception: ', '');
   }
 
-  Future<void> logout() async {
+  Future<void> logout({bool clearBanMessage = true}) async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
+
     _pollingTimer?.cancel();
     await _profileSubscription?.cancel();
+    _profileSubscription = null; // Asegurar referencia nula
+
     await _supabase.auth.signOut();
     _currentPlayer = null;
+    
+    if (clearBanMessage) {
+      _banMessage = null;
+    }
+    
     notifyListeners();
+    _isLoggingOut = false;
   }
 
   // --- PROFILE MANAGEMENT ---
@@ -515,6 +538,15 @@ class PlayerProvider extends ChangeNotifier {
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;
 
+      // --- CAMBIO: Verificar baneo ANTES de notificar un estado "válido" ---
+      if (newPlayer.status == PlayerStatus.banned) {
+         debugPrint("Usuario BANEADO detectado en tiempo real. Cerrando sesión...");
+         _banMessage = 'Has sido baneado por un administrador.';
+         // No actualizamos _currentPlayer para evitar "flicker" de isLoggedIn=true si ya estaba fallando
+         await logout(clearBanMessage: false);
+         return; 
+      }
+
       _currentPlayer = newPlayer;
       notifyListeners();
 
@@ -528,25 +560,46 @@ class PlayerProvider extends ChangeNotifier {
   Timer? _pollingTimer;
 
   void _startListeners(String userId) {
-    if (_pollingTimer == null) _startPolling(userId);
+    // Siempre reiniciamos el timer para asegurar que esté activo
+    _startPolling(userId);
+    
+    // El stream solo lo iniciamos si no existe
     if (_profileSubscription == null) _subscribeToProfile(userId);
   }
 
   void _startPolling(String userId) {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      if (_currentPlayer != null) {
+    // Aumentamos el tiempo a 10 segundos para reducir el LAG y carga de red.
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (_currentPlayer != null && _currentPlayer!.id == userId) {
         try {
-          await refreshProfile();
+          // OPTIMIZACION: Solo verificamos el estatus, no todo el perfil ni inventario
+          await _checkPlayerStatus(userId);
         } catch (e) {
-          // Si falla por internet (No host), ignoramos y reintentamos en 2s
-          debugPrint("Polling silenciado por error de red: $e");
+           // debugPrint("Polling error: $e");
         }
       } else {
         timer.cancel();
         _pollingTimer = null;
       }
     });
+  }
+
+  Future<void> _checkPlayerStatus(String userId) async {
+    // Consulta ultraligera solo para ver si sigue activo
+    final response = await _supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', userId)
+        .maybeSingle();
+
+    if (response != null) {
+      final String statusStr = response['status'] ?? 'active';
+      // Si detectamos cambio a 'banned', ejecutamos la lógica completa
+      if (statusStr == 'banned' && _currentPlayer?.status != PlayerStatus.banned) {
+         debugPrint("Polling detectó BAN. Forzando actualización...");
+         await refreshProfile(); // Esto disparará el logout en _fetchProfile
+      }
+    }
   }
 
   void _subscribeToProfile(String userId) {
@@ -558,6 +611,8 @@ class PlayerProvider extends ChangeNotifier {
         .eq('id', userId)
         .listen((data) {
           if (data.isNotEmpty) {
+            debugPrint("Stream Profile Update: ${data.first['status']}");
+            // Si el status cambió a banned, se detectará en _fetchProfile
             _fetchProfile(userId);
           }
         }, onError: (e) {

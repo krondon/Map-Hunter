@@ -32,6 +32,28 @@ class PowerItem {
     this.durationMinutes = 0,
   });
 
+  PowerItem copyWith({
+    String? id,
+    String? name,
+    String? description,
+    PowerType? type,
+    int? cost,
+    String? icon,
+    Color? color,
+    int? durationMinutes,
+  }) {
+    return PowerItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      type: type ?? this.type,
+      cost: cost ?? this.cost,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+    );
+  }
+
   // ESTA ES LA LISTA MAESTRA QUE DEBE COINCIDIR CON LA BASE DE DATOS
   static List<PowerItem> getShopItems() {
     return [
@@ -55,6 +77,17 @@ class PowerItem {
         cost: 110,
         icon: '🌫️',
         color: Colors.blueGrey,
+        durationMinutes: 0,
+      ),
+
+      const PowerItem(
+        id: 'extra_life',
+        name: 'Vida',
+        description: 'Recupera una vida perdida',
+        type: PowerType.buff,
+        cost: 50,
+        icon: '❤️',
+        color: Colors.red,
         durationMinutes: 0,
       ),
 

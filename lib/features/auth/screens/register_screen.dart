@@ -76,9 +76,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 Icon(Icons.check_circle_outline, color: Colors.white),
                 SizedBox(width: 12),
-                Text(
-                  'Cuenta creada exitosamente. ¡Inicia sesión!',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                Expanded(
+                  child: Text(
+                    'Cuenta creada exitosamente. ¡Inicia sesión!',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                 ),
               ],
             ),

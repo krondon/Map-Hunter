@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Importar Supabase
 // Imports existentes
 import 'features/auth/screens/splash_screen.dart';
 import 'features/game/providers/game_provider.dart';
+import 'features/game/services/penalty_service.dart';
 import 'features/auth/providers/player_provider.dart';
 import 'features/game/providers/game_request_provider.dart';
 import 'core/theme/app_theme.dart';
@@ -17,6 +18,8 @@ import 'features/game/providers/power_effect_provider.dart';
 import 'features/admin/screens/admin_login_screen.dart'; 
 import 'shared/widgets/sabotage_overlay.dart';
 import 'shared/utils/global_keys.dart'; // Importar llaves globales
+import 'features/auth/widgets/auth_monitor.dart'; // Importar AuthMonitor
+import 'features/mall/providers/store_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,12 +61,12 @@ class TreasureHuntApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => GameProvider()),
         ChangeNotifierProvider(create: (_) => PlayerProvider()),
-        ChangeNotifierProvider(create: (_) => GameRequestProvider()),
-        
-        // 4. Agregamos el Provider de Eventos para que funcione en la Web
         ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => GameRequestProvider()),
+        ChangeNotifierProvider(create: (_) => GameProvider()),
+        Provider(create: (_) => PenaltyService()),
+        ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => PowerEffectProvider()),
       ],
       child: MaterialApp(
@@ -72,7 +75,9 @@ class TreasureHuntApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         builder: (context, child) {
-          return SabotageOverlay(child: child ?? const SizedBox());
+          return AuthMonitor(
+            child: SabotageOverlay(child: child ?? const SizedBox()),
+          );
         },
         
         // 5. LÓGICA PRINCIPAL:

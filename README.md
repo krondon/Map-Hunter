@@ -1,264 +1,99 @@
-# 🎮 Treasure Hunt RPG
+# 🎮 Treasure Hunt RPG (Juego QR)
 
-**Real Life RPG - Búsqueda del Tesoro**
+**Real Life RPG - Búsqueda del Tesoro Interactiva**
 
-Un juego de rol en la vida real que combina la búsqueda física de pistas con elementos de videojuego RPG, integración de espectadores remotos y patrocinios.
-
----
-
-## 📱 Características
-
-### ✅ Implementadas (Diseño)
-- **Sistema de Autenticación** - Login y registro con validación
-- **Gestión de Pistas** - Sistema de desafíos con múltiples tipos:
-  - 📷 Escaneo de QR
-  - 📍 Búsqueda por Geolocalización (indicador Frío/Tibio/Caliente)
-  - 🎮 Minijuegos
-  - 🏪 Interacción con NPCs (La Tiendita)
-- **Sistema de Inventario** - Gestión de poderes adquiridos
-- **La Tiendita (NPC)** - Compra de poderes especiales:
-  - ❄️ Freeze - Congela jugadores
-  - 🛡️ Escudo - Protección contra sabotajes
-  - ⏱️ Penalización de Tiempo
-  - 💡 Pista Extra
-  - ⚡ Velocidad
-- **Sistema de Progresión RPG**:
-  - Experiencia (XP) y Niveles
-  - Profesiones: Speedrunner, Warrior, Strategist, Balanced
-  - Stats: Velocidad, Fuerza, Inteligencia
-- **Ranking en Tiempo Real** - Tabla de clasificación con podio
-- **Perfil de Jugador** - Estadísticas y progreso
-
-### 🎨 Diseño Visual
-- **Tema Oscuro Premium** con gradientes vibrantes
-- **Paleta de Colores**:
-  - Púrpura Primario (#6C5CE7)
-  - Rosa Secundario (#FF6B9D)
-  - Oro Acento (#FFD700)
-- **Animaciones Suaves** y transiciones
-- **Tipografía Moderna** (Google Fonts: Outfit, Inter)
-- **Micro-interacciones** en botones y cards
+Juego de rol en la vida real ("Real World RPG") que combina búsqueda de pistas físicas mediante QR, minijuegos móviles y sabotajes entre jugadores en tiempo real, gestionado por un panel de administración centralizado.
 
 ---
 
-## 🏗️ Estructura del Proyecto
+## 🚀 Estado Actual (v2.0)
+
+**¡Backend & Admin Activos!**
+El proyecto ha evolucionado para incluir una integración completa con **Supabase** y un panel de administración robusto.
+
+### ✅ Nuevas Funcionalidades Clave
+1.  **Tiendas Configurables (Admin Panel)**
+    *   Creación de tiendas personalizadas para cada evento.
+    *   **Precios Dinámicos:** El admin define el costo específico de cada poder/vida por tienda.
+    *   **Control de Stock:** Selección de qué items vende cada tienda (Ej: Tienda solo de Vidas, Tienda de Sabotajes).
+    *   **Persistencia Visual:** La app móvil refleja automáticamente los precios y productos configurados.
+
+2.  **Sistema de Entrada QR Real**
+    *   **Validación de Acceso:** Para entrar a una tienda en la app, el jugador debe escanear un QR físico real.
+    *   **Scanner Integrado:** Botón "Escanear con Cámara" implementado nativamente (MobileScanner v6+).
+    *   **Seguridad:** Validación contra códigos generados por el Admin (`store:nombre_tienda`).
+
+3.  **Sistema Anti-Lag & Baneos (Optimizado)**
+    *   **Stream en Tiempo Real:** Detección instantánea de baneos/bloqueos vía WebSockets.
+    *   **Polling Inteligente:** Verificación ultraligera cada 10 segundos como respaldo (bajo consumo de datos).
+    *   **Expulsión Inmediata:** Si un jugador es baneado, la app cierra sesión y redirige al login desde cualquier pantalla.
+
+4.  **Gestión de Imágenes**
+    *   Bucket de almacenamiento: `events-images`.
+    *   Soporte para subida de logos de tiendas y banners de eventos.
+
+---
+
+## 📱 Características para Jugadores
+
+*   **Login/Registro** validado con Supabase Auth.
+*   **Inventario Real:** Sincronizado con base de datos.
+*   **Ranking en Vivo:** Tabla de posiciones global y por evento.
+*   **Sabotajes:**
+    *   ❄️ **Pantalla Congelada**: Ciegas al rival por 15s.
+    *   🛡️ **Escudo**: Protección temporal.
+    *   ↩️ **Devolución**: Rebota ataques enemigos.
+    *   👻 **Invisibilidad**: Desaparece del radar (Planned).
+*   **Geolocalización:** Indicadores Frío/Caliente para encontrar pistas.
+
+---
+
+## 🛠️ Panel de Administrador
+
+Herramienta poderosa para los organizadores del evento (`features/admin`):
+*   **Crear Competencias:** Configurar nombre, descripción y fechas.
+*   **Gestión de Usuarios:** Banear/Desbanear jugadores al instante.
+*   **Editor de Tiendas:** Interfaz visual para subir logo, nombre, descripción y configurar inventario y precios.
+*   **Generador de QR:** Exportar QRs de pistas y tiendas para imprimir.
+
+---
+
+## 🏗️ Estructura Técnica
 
 ```
 lib/
-├── main.dart                    # Punto de entrada
-├── theme/
-│   └── app_theme.dart          # Tema y colores
-├── models/
-│   ├── player.dart             # Modelo de jugador
-│   ├── clue.dart               # Modelo de pista
-│   └── power_item.dart         # Modelo de poderes
-├── providers/
-│   ├── player_provider.dart    # Estado del jugador
-│   └── game_provider.dart      # Estado del juego
-├── screens/
-│   ├── splash_screen.dart      # Pantalla de inicio
-│   ├── login_screen.dart       # Login
-│   ├── register_screen.dart    # Registro
-│   ├── home_screen.dart        # Navegación principal
-│   ├── clues_screen.dart       # Lista de pistas
-│   ├── inventory_screen.dart   # Inventario
-│   ├── leaderboard_screen.dart # Ranking
-│   ├── profile_screen.dart     # Perfil
-│   ├── qr_scanner_screen.dart  # Escáner QR
-│   ├── geolocation_screen.dart # Geolocalización
-│   └── shop_screen.dart        # Tiendita
-└── widgets/
-    ├── progress_header.dart    # Barra de progreso
-    ├── clue_card.dart          # Card de pista
-    ├── leaderboard_card.dart   # Card de ranking
-    ├── stat_card.dart          # Card de estadística
-    ├── inventory_item_card.dart # Card de item
-    └── shop_item_card.dart     # Card de tienda
+├── core/                   # Utilidades y configuración
+├── features/
+│   ├── admin/              # PANEL ADMIN (Nuevo)
+│   │   ├── screens/        # Gestión de eventos, usuarios, tiendas
+│   │   └── widgets/        # Diálogos de edición
+│   ├── auth/               # Autenticación y PlayerProvider
+│   ├── game/               # Lógica del juego (QR, Pistas)
+│   └── mall/               # TIENDAS (Módulos de compra)
+│       ├── models/         # MallStore, PowerItem
+│       ├── providers/      # StoreProvider (Lógica de negocio)
+│       └── screens/        # StoreDetail, MallScreen
+├── services/               # Supabase Services
+└── main.dart               # Entry Point
 ```
 
----
-
-## 🚀 Instalación
-
-### Prerrequisitos
-1. **Flutter SDK** (>=3.0.0)
-   - Descargar: https://flutter.dev/docs/get-started/install
-2. **Android Studio** o **VS Code**
-3. **Git**
-
-### Pasos
-
-1. **Instalar Flutter** (si no lo tienes):
-   ```bash
-   # Verificar instalación
-   flutter doctor
-   ```
-
-2. **Obtener dependencias**:
-   ```bash
-   cd C:\Users\natac\Desktop\juego
-   flutter pub get
-   ```
-
-3. **Ejecutar en emulador o dispositivo**:
-   ```bash
-   flutter run
-   ```
-
-4. **Compilar para Android**:
-   ```bash
-   flutter build apk --release
-   ```
+### Tecnologías
+*   **Flutter 3.x**
+*   **Supabase** (PostgreSQL, Auth, Storage, Edge Functions)
+*   **Provider** (State Management)
+*   **Mobile Scanner** (QR Camera)
+*   **Geolocator**
 
 ---
 
-## 📦 Dependencias
+## 📝 Notas para el Equipo
 
-- **flutter** - Framework principal
-- **google_fonts** - Tipografía premium
-- **provider** - Gestión de estado
-- **qr_code_scanner** - Escaneo de códigos QR
-- **qr_flutter** - Generación de códigos QR
-- **geolocator** - Geolocalización
-- **google_maps_flutter** - Mapas
-- **webview_flutter** - Minijuegos en WebView
-- **shared_preferences** - Almacenamiento local
-- **intl** - Internacionalización
+> **Importante:**
+> Al crear o editar tiendas en el Admin, asegúrense de seleccionar productos. Si no seleccionan ninguno, la tienda aparecerá vacía para el usuario.
+>
+> **Testing:**
+> Para probar la entrada a tiendas sin imprimir el QR, pueden usar el botón "Simular (Pruebas)" oculto debajo del botón de la cámara, o escanear el QR desde la pantalla del Admin.
 
 ---
 
-## 🎯 Flujo del Juego
-
-### 1️⃣ Registro/Login
-El jugador se registra o inicia sesión en la app.
-
-### 2️⃣ Pistas
-Recibe pistas secuenciales (debe completar la anterior para desbloquear la siguiente).
-
-### 3️⃣ Tipos de Desafíos
-
-**📷 QR Scan**: Escanear un código QR escondido en una ubicación física.
-
-**📍 Geolocalización**: Dirigirse a coordenadas específicas con indicador de proximidad:
-- ❄️ Frío (>300m)
-- 🌡️ Tibio (100-300m)
-- 🔥 Caliente (50-100m)
-- 🎯 Muy Cerca (<50m)
-
-**🏪 NPC Tiendita**: Comprar poderes con las monedas ganadas.
-
-**🎮 Minijuegos**: Resolver desafíos mentales o de habilidad.
-
-### 4️⃣ Recompensas
-- **XP** para subir de nivel
-- **Monedas** para comprar poderes
-- **Stats** (Velocidad, Fuerza, Inteligencia)
-
-### 5️⃣ Poderes y Sabotajes
-- Comprar poderes en La Tiendita
-- Usar contra otros jugadores
-- Estados: Congelado, Con Escudo, etc.
-
-### 6️⃣ Clasificación
-Ver el ranking en tiempo real y competir por el primer lugar.
-
----
-
-## 🔮 Características Futuras (No implementadas)
-
-### Backend
-- [ ] Integración con **Supabase** o **PlayFab**
-- [ ] Sincronización en tiempo real
-- [ ] Sistema de autenticación real
-- [ ] Base de datos de jugadores y pistas
-
-### Funcionalidades
-- [ ] **App de Administrador** - Validación de jugadores, gestión de eventos
-- [ ] **Web para Espectadores** - Visualización en vivo, apuestas
-- [ ] **Monetización** - Sistema de pagos para pay-to-win/lose
-- [ ] **Notificaciones Push** - Alertas de sabotajes y eventos
-- [ ] **Chat en Vivo** - Comunicación entre jugadores
-- [ ] **Modo Equipo** - Competencias por equipos según profesión
-- [ ] **Patrocinios** - Integración de puntos de venta físicos
-- [ ] **Minijuegos Reales** - Desarrollo de minijuegos interactivos
-
-### Mejoras Técnicas
-- [ ] Cámara QR real (actualmente simulado)
-- [ ] GPS real con mapas interactivos
-- [ ] Persistencia de datos local
-- [ ] Optimización de rendimiento
-- [ ] Tests unitarios y de integración
-
----
-
-## 🎨 Capturas de Pantalla
-
-*(Ejecuta la app para ver el diseño en acción)*
-
-- **Splash Screen** - Animación de entrada
-- **Login/Register** - Diseño premium con gradientes
-- **Home** - Navegación con 4 pestañas
-- **Pistas** - Cards con estados bloqueado/activo/completado
-- **Inventario** - Grid de poderes
-- **Ranking** - Podio top 3 + lista
-- **Perfil** - Stats RPG del jugador
-- **QR Scanner** - Simulación de escaneo
-- **Geolocalización** - Indicador de proximidad animado
-- **Tiendita** - Shop de poderes
-
----
-
-## 👨‍💻 Tecnologías
-
-- **Frontend**: Flutter (Dart)
-- **State Management**: Provider
-- **UI/UX**: Material Design + Custom Theme
-- **Fonts**: Google Fonts (Outfit, Inter)
-
----
-
-## 📝 Notas de Desarrollo
-
-### Datos Mock
-Actualmente la app usa **datos simulados** para demostración:
-- Jugadores ficticios en el ranking
-- Pistas predefinidas
-- Login sin validación real
-- Funciones simuladas (QR, GPS)
-
-### Próximos Pasos
-1. **Instalar Flutter** en tu sistema
-2. **Ejecutar** `flutter pub get`
-3. **Testear** la app en un emulador
-4. **Decidir backend** (Supabase recomendado)
-5. **Implementar** integración backend
-6. **Desarrollar** app de administrador
-7. **Crear** web para espectadores
-
----
-
-## 🤝 Contribución
-
-Este es un proyecto base. Para extenderlo:
-
-1. Clona el repositorio
-2. Crea una rama para tu feature
-3. Implementa mejoras
-4. Haz commit de los cambios
-5. Abre un Pull Request
-
----
-
-## 📄 Licencia
-
-Proyecto personal - Todos los derechos reservados
-
----
-
-## 📧 Contacto
-
-Para preguntas o colaboraciones, contacta al desarrollador.
-
----
-
-**¡Que comience la aventura! 🏆🎮📍**
+**¡Que comience la aventura! 🏆🎮**
