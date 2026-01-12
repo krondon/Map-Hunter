@@ -332,21 +332,26 @@ class EventProvider with ChangeNotifier {
   }
 
   Future<void> restartCompetition(String eventId) async {
-  try {
-    // Llamamos a la función RPC de Supabase
-    await _supabase.rpc('reset_competition_final_v4', params: {
-      'p_event_id': eventId,
-    });
+    try {
+      // Llamamos a la Edge Function de administración para un reinicio nuclear
+      final response = await _supabase.functions.invoke(
+        'admin-actions/reset-event',
+        body: {'eventId': eventId},
+        method: HttpMethod.post,
+      );
 
-    // Opcional: Si tienes estados locales que limpiar en otros providers, 
-    // podrías disparar un refresco aquí.
-    await fetchEvents(); 
-    notifyListeners();
-  } catch (e) {
-    print('Error al reiniciar competencia: $e');
-    rethrow;
+      if (response.status != 200) {
+        throw Exception('Error en Edge Function del servidor: ${response.data}');
+      }
+
+      // 2. Refrescar eventos locales
+      await fetchEvents(); 
+      notifyListeners();
+    } catch (e) {
+      print('Error al reiniciar competencia: $e');
+      rethrow;
+    }
   }
-}
 
   Future<void> deleteClue(String clueId) async {
     try {

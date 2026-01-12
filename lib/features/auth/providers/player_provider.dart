@@ -586,20 +586,38 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> _checkPlayerStatus(String userId) async {
-    // Consulta ultraligera solo para ver si sigue activo
-    final response = await _supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', userId)
-        .maybeSingle();
+    try {
+      // 1. Verificar estatus del perfil
+      final response = await _supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', userId)
+          .maybeSingle();
 
-    if (response != null) {
-      final String statusStr = response['status'] ?? 'active';
-      // Si detectamos cambio a 'banned', ejecutamos la lógica completa
-      if (statusStr == 'banned' && _currentPlayer?.status != PlayerStatus.banned) {
-         debugPrint("Polling detectó BAN. Forzando actualización...");
-         await refreshProfile(); // Esto disparará el logout en _fetchProfile
+      if (response != null) {
+        final String statusStr = response['status'] ?? 'active';
+        if (statusStr == 'banned' && _currentPlayer?.status != PlayerStatus.banned) {
+           debugPrint("Polling detectó BAN. Forzando actualización...");
+           await refreshProfile();
+           return;
+        }
       }
+
+      // 2. DETECTAR REINICIO (Pérdida de inscripción al evento)
+      if (_currentPlayer?.gamePlayerId != null) {
+        final gpRes = await _supabase
+            .from('game_players')
+            .select('id')
+            .eq('id', _currentPlayer!.gamePlayerId!)
+            .maybeSingle();
+        
+        if (gpRes == null) {
+          debugPrint("Polling detectó REINICIO (Inscripción desaparecida).");
+          await refreshProfile();
+        }
+      }
+    } catch (e) {
+      // debugPrint("Error checking player status: $e");
     }
   }
 

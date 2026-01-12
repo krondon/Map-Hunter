@@ -21,6 +21,7 @@ import 'shared/widgets/sabotage_overlay.dart';
 import 'shared/widgets/connectivity_monitor.dart';
 import 'shared/utils/global_keys.dart'; // Importar llaves globales
 import 'features/auth/widgets/auth_monitor.dart'; // Importar AuthMonitor
+import 'shared/widgets/game_session_monitor.dart'; // Nuevo
 import 'features/mall/providers/store_provider.dart';
 
 Future<void> main() async {
@@ -80,7 +81,9 @@ class TreasureHuntApp extends StatelessWidget {
         builder: (context, child) {
           return AuthMonitor(
             child: ConnectivityMonitor(
-              child: SabotageOverlay(child: child ?? const SizedBox()),
+              child: GameSessionMonitor( // Monitoreo de reinicio
+                child: SabotageOverlay(child: child ?? const SizedBox()),
+              ),
             ),
           );
         },

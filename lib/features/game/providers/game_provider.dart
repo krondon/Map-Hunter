@@ -54,6 +54,24 @@ class GameProvider extends ChangeNotifier {
     // Constructor
   }
 
+  /// Limpia COMPLETAMENTE el estado del juego (usado en reinicios de evento)
+  void resetState() {
+    _clues = [];
+    _leaderboard = [];
+    _currentClueIndex = 0;
+    _isGameActive = false;
+    _isLoading = false;
+    _currentEventId = null;
+    _errorMessage = null;
+    _lives = 3;
+    _isRaceCompleted = false;
+    _hintActive = false;
+    _activeHintText = null;
+    
+    stopLeaderboardUpdates();
+    notifyListeners();
+  }
+
   // --- GESTIÓN DE VIDAS ---
 
   Future<void> fetchLives(String userId) async {

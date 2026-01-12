@@ -506,8 +506,12 @@ Future<bool> _showConfirmDialog() async {
           await Provider.of<EventProvider>(context, listen: false)
               .restartCompetition(widget.event.id);
           
-          // 2. Limpiar las solicitudes locales
-          Provider.of<GameRequestProvider>(context, listen: false).clearLocalRequests();
+          // 2. Refrescar todos los datos locales para sincronizar con el borrado nuclear
+          if (mounted) {
+            Provider.of<GameRequestProvider>(context, listen: false).fetchAllRequests();
+            Provider.of<PlayerProvider>(context, listen: false).fetchAllPlayers();
+            _fetchLeaderboard(); // Esto ahora debería venir vacío
+          }
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1278,8 +1282,12 @@ void _showRestartConfirmDialog() {
             await Provider.of<EventProvider>(context, listen: false)
                 .restartCompetition(widget.event.id);
             
-            // 2. Limpiar visualmente la lista de solicitudes/participantes
-            Provider.of<GameRequestProvider>(context, listen: false).clearLocalRequests();
+            // 2. Refrescar todos los datos locales para sincronizar
+            if (mounted) {
+              Provider.of<GameRequestProvider>(context, listen: false).fetchAllRequests();
+              Provider.of<PlayerProvider>(context, listen: false).fetchAllPlayers();
+              _fetchLeaderboard();
+            }
 
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
