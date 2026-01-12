@@ -144,8 +144,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
           permission == LocationPermission.always) {
          // Mostrar toast o feedback visual si es necesario
          position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-            timeLimit: const Duration(seconds: 5), // Timeout corto para no bloquear
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: const Duration(seconds: 15), // Mayor tiempo para mejor precisión
          );
       }
     } catch (e) {

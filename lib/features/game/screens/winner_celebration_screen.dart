@@ -5,6 +5,7 @@ import 'dart:math';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import 'scenarios_screen.dart';
 
 class WinnerCelebrationScreen extends StatefulWidget {
   final String eventId;
@@ -379,9 +380,11 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            // Navigate to home and clear stack
-                            Navigator.of(context)
-                                .popUntil((route) => route.isFirst);
+                            // Navigate to ScenariosScreen and clear stack
+                             Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const ScenariosScreen()),
+                              (route) => false,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.accentGold,

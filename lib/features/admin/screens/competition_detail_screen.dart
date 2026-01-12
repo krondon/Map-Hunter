@@ -146,8 +146,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
       if (permission == LocationPermission.whileInUse || 
           permission == LocationPermission.always) {
          position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-            timeLimit: const Duration(seconds: 5),
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: const Duration(seconds: 15),
          );
       }
     } catch (e) {

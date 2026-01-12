@@ -271,104 +271,111 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     final currentCountry = _shuffledQuestions[_currentQuestionIndex];
     final currentOptions = _generateOptions();
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // HEADER: TIMER & INTENTOS LOCALES
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isLowTime ? AppTheme.dangerRed.withOpacity(0.2) : Colors.black45,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isLowTime ? AppTheme.dangerRed : AppTheme.accentGold),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.timer, color: isLowTime ? AppTheme.dangerRed : AppTheme.accentGold, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                "$minutes:$seconds",
-                style: TextStyle(
-                  color: isLowTime ? AppTheme.dangerRed : Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 20),
-
-        const Text(
-          "¿DE QUÉ PAÍS ES ESTA BANDERA?",
-          style: TextStyle(color: AppTheme.primaryPurple, fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 5),
-        Row(
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              "Aciertos: $_score / $_targetScore",
-              style: const TextStyle(color: Colors.white70),
+            // HEADER: TIMER & INTENTOS LOCALES
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isLowTime ? AppTheme.dangerRed.withOpacity(0.2) : Colors.black45,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: isLowTime ? AppTheme.dangerRed : AppTheme.accentGold),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.timer, color: isLowTime ? AppTheme.dangerRed : AppTheme.accentGold, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    "$minutes:$seconds",
+                    style: TextStyle(
+                      color: isLowTime ? AppTheme.dangerRed : Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 20),
-            // Intentos Locales (Visual)
+            
+            const SizedBox(height: 20),
+
+            const Text(
+              "¿DE QUÉ PAÍS ES ESTA BANDERA?",
+              style: TextStyle(color: AppTheme.primaryPurple, fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 5),
             Row(
-              children: List.generate(3, (index) {
-                return Icon(
-                  index < _localAttempts ? Icons.favorite : Icons.favorite_border,
-                  color: AppTheme.secondaryPink,
-                  size: 20,
-                );
-              }),
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Aciertos: $_score / $_targetScore",
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(width: 20),
+                // Intentos Locales (Visual)
+                Row(
+                  children: List.generate(3, (index) {
+                    return Icon(
+                      index < _localAttempts ? Icons.favorite : Icons.favorite_border,
+                      color: AppTheme.secondaryPink,
+                      size: 20,
+                    );
+                  }),
+                ),
+              ],
             ),
+            const SizedBox(height: 20),
+
+            // Bandera
+            Container(
+              height: 150,
+              width: 250,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))
+                ],
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: NetworkImage("https://flagcdn.com/w640/${currentCountry['code']}.png"),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Opciones
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: currentOptions.map((option) {
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryPurple,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () => _handleOptionSelected(option),
+                  child: Text(
+                    option,
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                );
+              }).toList(),
+            ),
+            // Espacio extra para evitar que el overlay del footer tape las opciones
+            const SizedBox(height: 100),
           ],
         ),
-        const SizedBox(height: 20),
-
-        // Bandera
-        Container(
-          height: 150,
-          width: 250,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))
-            ],
-            image: DecorationImage(
-              fit: BoxFit.cover,
-              image: NetworkImage("https://flagcdn.com/w640/${currentCountry['code']}.png"),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 40),
-
-        // Opciones
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          alignment: WrapAlignment.center,
-          children: currentOptions.map((option) {
-            return ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryPurple,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () => _handleOptionSelected(option),
-              child: Text(
-                option,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+      ),
     );
   }
 }

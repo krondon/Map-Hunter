@@ -139,8 +139,8 @@ Future<void> loseLife(String userId) async {
     // 2. Limpiar timer anterior si existe
     stopLeaderboardUpdates();
     
-    // 3. Configurar nuevo timer
-    _leaderboardTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+    // 3. Configurar nuevo timer (Más rápido para la carrera en vivo)
+    _leaderboardTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_currentEventId != null) {
         // fetchLeaderboard silent=true para no mostrar loading spinners
         _fetchLeaderboardInternal(silent: true);
@@ -164,7 +164,8 @@ Future<void> loseLife(String userId) async {
     _raceStatusChannel?.unsubscribe();
     
     _raceStatusChannel = _supabase
-        .channel('public:game_players:$_currentEventId')
+        .channel('public:race:$_currentEventId')
+        // 1. Escuchar cambios en jugadores (Progreso individual)
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -175,9 +176,26 @@ Future<void> loseLife(String userId) async {
             value: _currentEventId,
           ),
           callback: (payload) {
-            // Cuando hay un cambio en cualquier jugador del evento
-            debugPrint('Realtime Update: Cambio detectado en la carrera');
+            debugPrint('Realtime: Cambio en game_players');
             _checkVictoryInPayload(payload.newRecord);
+          },
+        )
+        // 2. Escuchar cambios en el evento (Finalización Global)
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: _currentEventId,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            debugPrint('Realtime: Cambio en events -> Estado: ${newRecord['status']}');
+            if (newRecord['status'] == 'completed') {
+               _setRaceCompleted(true, 'Realtime Event Status');
+            }
           },
         )
         .subscribe();

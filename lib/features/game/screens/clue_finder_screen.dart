@@ -163,11 +163,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     else if (widget.clue.qrCode != null && widget.clue.qrCode!.isNotEmpty) {
       if (scannedCode == widget.clue.qrCode) isValid = true;
     }
-    // 3. Permissive fallback for testing: if scanned code starts with 'CLUE:'
-    else if (scannedCode.startsWith("CLUE:")) {
-        isValid = true;
-    }
-
+    
     if (isValid) {
       // Direct navigation as requested
       Navigator.pop(context, true); 
@@ -175,8 +171,9 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
       _shakeController.forward(from: 0.0);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Código incorrecto para esta misión."),
+          content: Text("QR Incorrecto. Ese no es el código de esta misión, intenta de nuevo."),
           backgroundColor: AppTheme.dangerRed,
+          duration: Duration(seconds: 2),
         ),
       );
     }

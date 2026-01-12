@@ -66,6 +66,9 @@ class _CluesScreenState extends State<CluesScreen> {
         final gameProvider = Provider.of<GameProvider>(context, listen: false);
         final playerProvider = Provider.of<PlayerProvider>(context, listen: false); // Necesitamos esto
         
+        // ADDED: Listener para interrupción inmediata si el juego termina mientras estamos aquí
+        gameProvider.addListener(_onGameProviderChange);
+        
         // Obtenemos el ID real del usuario
         final userId = playerProvider.currentPlayer?.id;
 
@@ -92,13 +95,27 @@ class _CluesScreenState extends State<CluesScreen> {
 
   @override
   void dispose() {
-    // Importante: Detener actualizaciones al salir
+    // Importante: Eliminar listener y detener actualizaciones al salir
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    gameProvider.removeListener(_onGameProviderChange); // Clean up listener
     gameProvider.stopLeaderboardUpdates();
     super.dispose();
   }
+
+  void _onGameProviderChange() {
+    if (!mounted) return;
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    
+    // Si la carrera se completó, forzamos navegación inmediata
+    if (gameProvider.isRaceCompleted) {
+      debugPrint("⛔ RACE COMPLETED DETECTED IN REALTIME - NAVIGATING AWAY");
+      // Importante: Removemos el listener antes de navegar para evitar llamadas dobles
+      gameProvider.removeListener(_onGameProviderChange);
+      _navigateToWinnerScreen(clearStack: true);
+    }
+  }
   
-  void _navigateToWinnerScreen() async {
+  void _navigateToWinnerScreen({bool clearStack = false}) async {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     
@@ -107,15 +124,21 @@ class _CluesScreenState extends State<CluesScreen> {
     final completedClues = gameProvider.completedClues;
     
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => WinnerCelebrationScreen(
-            eventId: widget.eventId,
-            playerPosition: position,
-            totalCluesCompleted: completedClues,
-          ),
+      final route = MaterialPageRoute(
+        builder: (_) => WinnerCelebrationScreen(
+          eventId: widget.eventId,
+          playerPosition: position,
+          totalCluesCompleted: completedClues,
         ),
       );
+
+      if (clearStack) {
+         // Si es interrupción forzada, borramos TODO el historial hasta llegar aquí y reemplazamos
+         Navigator.of(context).pushAndRemoveUntil(route, (route) => false);
+      } else {
+         // Comportamiento original (solo reemplazar esta vista)
+         Navigator.of(context).pushReplacement(route);
+      }
     }
   }
   

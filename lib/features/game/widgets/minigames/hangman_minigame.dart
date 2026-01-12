@@ -337,34 +337,38 @@ void _loseLife(String reason) {
                 
                 const SizedBox(height: 20),
                 
-                // Palabra Oculta
+                // Palabra Oculta (Ultra-Compact Word-Aware)
                 Wrap(
                   alignment: WrapAlignment.center,
-                  spacing: 8,
+                  spacing: 10,
                   runSpacing: 8,
-                  children: _word.split('').map((char) {
-                    if (char == ' ') return const SizedBox(width: 20);
-                    
-                    final isGuessed = _guessedLetters.contains(char);
-                    return Container(
-                      width: 35,
-                      height: 45,
-                      decoration: BoxDecoration(
-                        border: Border(bottom: BorderSide(
-                          color: isGuessed ? AppTheme.accentGold : Colors.white54,
-                          width: 3,
-                        )),
-                      ),
-                      child: Center(
-                        child: Text(
-                          isGuessed ? char : '',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                  children: _word.split(' ').map((word) {
+                    return Wrap(
+                      spacing: 2, // Tiny spacing
+                      runSpacing: 4,
+                      children: word.split('').map((char) {
+                        final isGuessed = _guessedLetters.contains(char);
+                        return Container(
+                          width: 24, // Ultra narrow (was 28)
+                          height: 34, // Slightly shorter
+                          decoration: BoxDecoration(
+                            border: Border(bottom: BorderSide(
+                              color: isGuessed ? AppTheme.accentGold : Colors.white54,
+                              width: 2,
+                            )),
                           ),
-                        ),
-                      ),
+                          child: Center(
+                            child: Text(
+                              isGuessed ? char : '',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18, // Reduced font
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     );
                   }).toList(),
                 ),
