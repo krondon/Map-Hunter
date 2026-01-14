@@ -466,203 +466,277 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             opacity: _fadeAnimation,
             child: SlideTransition(
               position: _slideAnimation,
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Game Icon
-                            Container(
-                              padding: const EdgeInsets.all(30),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: AppTheme.primaryGradient,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        AppTheme.primaryPurple.withOpacity(0.5),
-                                    blurRadius: 40,
-                                    spreadRadius: 10,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.sports_esports,
-                                size: 80,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-
-                            // Welcome Message
-                            Text(
-                              '¡Bienvenido ${player?.name ?? "Jugador"}!',
-                              style: Theme.of(context).textTheme.displayLarge,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-
-                            // --- COUNTDOWN WIDGET ---
-                            if (_timeUntilStart != null)
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                margin: const EdgeInsets.only(bottom: 20),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(color: AppTheme.accentGold),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Text("LA COMPETENCIA INICIA EN:", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      "${_timeUntilStart!.inDays}d ${_timeUntilStart!.inHours % 24}h ${_timeUntilStart!.inMinutes % 60}m ${_timeUntilStart!.inSeconds % 60}s",
-                                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, fontFeatures: [FontFeature.tabularFigures()]),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Game Icon
+                                if (_gameRequest == null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: AppTheme.primaryGradient,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.primaryPurple
+                                              .withOpacity(0.5),
+                                          blurRadius: 30,
+                                          spreadRadius: 5,
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              )
-                            else if (_eventStarted)
-                               Container(
-                                padding: const EdgeInsets.all(20),
-                                margin: const EdgeInsets.only(bottom: 20),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(color: Colors.greenAccent),
-                                ),
-                                child: const Column(
-                                  children: [
-                                    Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 40),
-                                    SizedBox(height: 10),
-                                    Text("¡COMPETENCIA EN CURSO!", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 18)),
-                                    SizedBox(height: 5),
-                                    Text("¡Corre a buscar las pistas!", style: TextStyle(color: Colors.white70)),
-                                  ],
-                                ),
-                              ),
-
-                            // Info Card
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              margin: const EdgeInsets.symmetric(vertical: 20),
-                              decoration: BoxDecoration(
-                                color: AppTheme.cardBg.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: AppTheme.primaryPurple
-                                      .withOpacity(0.3),
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: AppTheme.secondaryPink,
-                                    size: 50,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    '¿Te gustaría participar en este juego?',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Manda una solicitud para poder unirte. El administrador revisará tu solicitud antes de iniciar el juego.',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Request Status
-                            if (_gameRequest != null) ...[
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: _gameRequest!.statusColor
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: _gameRequest!.statusColor,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      _gameRequest!.isApproved
-                                          ? Icons.check_circle
-                                          : _gameRequest!.isRejected
-                                              ? Icons.cancel
-                                              : Icons.hourglass_empty,
-                                      color: _gameRequest!.statusColor,
+                                    child: const Icon(
+                                      Icons.sports_esports,
+                                      size: 50,
+                                      color: Colors.white,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Estado: ${_gameRequest!.statusText}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+
+                                // Welcome Message
+                                Text(
+                                  '¡Bienvenido ${player?.name ?? "Jugador"}!',
+                                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                              ),
+                                const SizedBox(height: 32),
 
-                              const SizedBox(height: 20),
-                            ],
+                                // --- COUNTDOWN WIDGET ---
+                                if (_timeUntilStart != null)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    margin: const EdgeInsets.only(bottom: 24),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(
+                                          color: AppTheme.accentGold),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const Text("LA COMPETENCIA INICIA EN:",
+                                            style: TextStyle(
+                                                color: AppTheme.accentGold,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.5)),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "${_timeUntilStart!.inDays}d ${_timeUntilStart!.inHours % 24}h ${_timeUntilStart!.inMinutes % 60}m ${_timeUntilStart!.inSeconds % 60}s",
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              fontFeatures: [
+                                                FontFeature.tabularFigures()
+                                              ]),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else if (_eventStarted)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    margin: const EdgeInsets.only(bottom: 24),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(
+                                          color: Colors.greenAccent),
+                                    ),
+                                    child: const Column(
+                                      children: [
+                                        Icon(Icons.play_circle_fill,
+                                            color: Colors.greenAccent, size: 36),
+                                        SizedBox(height: 8),
+                                        Text("¡COMPETENCIA EN CURSO!",
+                                            style: TextStyle(
+                                                color: Colors.greenAccent,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 1.5,
+                                                fontSize: 16)),
+                                        SizedBox(height: 4),
+                                        Text("¡Corre a buscar las pistas!",
+                                            style: TextStyle(
+                                                color: Colors.white70)),
+                                      ],
+                                    ),
+                                  ),
 
-                            // Action Buttons
-                            if (_gameRequest == null)
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: Container(
+                                // Info Card
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
                                   decoration: BoxDecoration(
-                                    gradient: AppTheme.primaryGradient,
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: AppTheme.cardBg.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: AppTheme.primaryPurple
+                                          .withOpacity(0.3),
+                                      width: 2,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppTheme.primaryPurple
-                                            .withOpacity(0.4),
+                                        color: Colors.black.withOpacity(0.2),
                                         blurRadius: 20,
                                         offset: const Offset(0, 10),
                                       ),
                                     ],
                                   ),
+                                  child: Column(
+                                    children: [
+                                      const Icon(
+                                        Icons.info_outline,
+                                        color: AppTheme.secondaryPink,
+                                        size: 30,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '¿Te gustaría participar en este juego?',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Manda una solicitud para poder unirte. El administrador revisará tu solicitud antes de iniciar el juego.',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Request Status
+                                if (_gameRequest != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: _gameRequest!.statusColor
+                                          .withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _gameRequest!.statusColor,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _gameRequest!.isApproved
+                                              ? Icons.check_circle
+                                              : _gameRequest!.isRejected
+                                                  ? Icons.cancel
+                                                  : Icons.hourglass_empty,
+                                          color: _gameRequest!.statusColor,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Estado: ${_gameRequest!.statusText}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Fixed Bottom Section
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                          // Optional: Add a subtle gradient or solid color if needed for contrast
+                          // but since the main background is already dark, transparent might work
+                          // provided there's enough space.
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min, // Wrap content
+                            children: [
+                              // Action Buttons
+                              if (_gameRequest == null)
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: AppTheme.primaryGradient,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.primaryPurple
+                                              .withOpacity(0.4),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        await _handleRequestJoin();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'ENVIAR SOLICITUD',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else if (_gameRequest!.isApproved)
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
                                   child: ElevatedButton(
-                                    onPressed: () async {
-                                      await _handleRequestJoin();
+                                    onPressed: () {
+                                      // Navigate to the actual game
+                                      Navigator.of(context).pushReplacement(
+                                        MaterialPageRoute(
+                                            builder: (_) => HomeScreen(
+                                                eventId: widget.eventId!)),
+                                      );
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
+                                      backgroundColor: Colors.green,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
                                     child: const Text(
-                                      'ENVIAR SOLICITUD',
+                                      'IR AL EVENTO',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -670,125 +744,110 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                       ),
                                     ),
                                   ),
-                                ),
-                              )
-                            else if (_gameRequest!.isApproved)
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    // Navigate to the actual game
-                                    Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
-                                  );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'IR AL EVENTO',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: OutlinedButton(
-                                  onPressed: _checkRequestStatus,
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color: _gameRequest!.statusColor,
-                                      width: 2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'VER ESTADO DE SOLICITUD',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                            // === BOTÓN DE DESARROLLADOR ===
-                            if (kDebugMode && _gameRequest != null && !_gameRequest!.isApproved)
-                              Container(
-                                margin: const EdgeInsets.only(top: 16),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      "🔧 MODO DESARROLLADOR",
-                                      style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.orange,
-                                          foregroundColor: Colors.black,
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                        ),
-                                        onPressed: () {
-                                          // Simular aprobación navegando directamente al HomeScreen
-                                          Navigator.of(context).pushReplacement(
-                                            MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.check_circle, size: 18),
-                                        label: const Text("DEV: Simular Aprobación", style: TextStyle(fontSize: 13)),
+                                )
+                              else
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: OutlinedButton(
+                                    onPressed: _checkRequestStatus,
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: _gameRequest!.statusColor,
+                                        width: 2,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                  ],
+                                    child: const Text(
+                                      'VER ESTADO DE SOLICITUD',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // === BOTÓN DE DESARROLLADOR ===
+                              if (kDebugMode &&
+                                  _gameRequest != null &&
+                                  !_gameRequest!.isApproved)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 12),
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: Colors.orange.withOpacity(0.5)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        "🔧 MODO DESARROLLADOR",
+                                        style: TextStyle(
+                                            color: Colors.orange,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.orange,
+                                            foregroundColor: Colors.black,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 12),
+                                          ),
+                                          onPressed: () {
+                                            // Simular aprobación navegando directamente al HomeScreen
+                                            Navigator.of(context).pushReplacement(
+                                              MaterialPageRoute(
+                                                  builder: (_) => HomeScreen(
+                                                      eventId: widget.eventId!)),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.check_circle,
+                                              size: 18),
+                                          label: const Text(
+                                              "DEV: Simular Aprobación",
+                                              style: TextStyle(fontSize: 13)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              const SizedBox(height: 16),
+
+                              // Logout Button
+                              TextButton(
+                                onPressed: () {
+                                  playerProvider.logout();
+                                  Navigator.of(context)
+                                      .popUntil((route) => route.isFirst);
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                        builder: (_) => const LoginScreen()),
+                                  );
+                                },
+                                child: const Text(
+                                  'Cerrar Sesión',
+                                  style: TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-
-                            const SizedBox(height: 16),
-
-                            // Logout Button
-                            TextButton(
-                              onPressed: () {
-                                playerProvider.logout();
-                                Navigator.of(context)
-                                    .popUntil((route) => route.isFirst);
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                      builder: (_) => const LoginScreen()),
-                                );
-                              },
-                              child: const Text(
-                                'Cerrar Sesión',
-                                style: TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                ),
-              ),
+                      ],
+                    ),
             ),
           ),
         ),
