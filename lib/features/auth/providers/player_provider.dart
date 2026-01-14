@@ -5,13 +5,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/models/player.dart';
 import '../../game/providers/power_effect_provider.dart';
 import '../../game/providers/game_provider.dart';
+import '../services/auth_service.dart';
+import '../../admin/services/admin_service.dart';
 
 enum PowerUseResult { success, reflected, error }
 
 class PlayerProvider extends ChangeNotifier {
   Player? _currentPlayer;
   List<Player> _allPlayers = [];
-  final _supabase = Supabase.instance.client;
+  final SupabaseClient _supabase;
+  
+  // Services (DIP)
+  final AuthService _authService;
+  final AdminService _adminService;
 
   // Mapa para guardar el inventario filtrado por evento
   // Estructura: { eventId: { powerId: quantity } }
@@ -26,6 +32,24 @@ class PlayerProvider extends ChangeNotifier {
 
   String? _banMessage;
   String? get banMessage => _banMessage;
+
+  /// Constructor con inyección de dependencias.
+  /// 
+  /// Para uso normal (producción):
+  /// ```dart
+  /// PlayerProvider(
+  ///   supabaseClient: Supabase.instance.client,
+  ///   authService: AuthService(supabaseClient: Supabase.instance.client),
+  ///   adminService: AdminService(supabaseClient: Supabase.instance.client),
+  /// )
+  /// ```
+  PlayerProvider({
+    required SupabaseClient supabaseClient,
+    required AuthService authService,
+    required AdminService adminService,
+  })  : _supabase = supabaseClient,
+        _authService = authService,
+        _adminService = adminService;
   
   void clearBanMessage() {
     _banMessage = null;
@@ -39,97 +63,26 @@ class PlayerProvider extends ChangeNotifier {
 
   // --- AUTHENTICATION ---
 
+  // --- AUTHENTICATION (delegado a AuthService) ---
+
   Future<void> login(String email, String password) async {
     try {
-      final response = await _supabase.functions.invoke(
-        'auth-service/login',
-        body: {'email': email, 'password': password},
-        method: HttpMethod.post,
-      );
-
-      if (response.status != 200) {
-        final error = response.data['error'] ?? 'Error desconocido';
-        throw error; // Lanzar el string directamente para procesarlo
-      }
-
-      final data = response.data;
-
-      if (data['session'] != null) {
-        await _supabase.auth.setSession(data['session']['refresh_token']);
-
-        if (data['user'] != null) {
-          await _fetchProfile(data['user']['id']);
-        }
-      } else {
-        throw 'No se recibió sesión válida';
-      }
+      final userId = await _authService.login(email, password);
+      await _fetchProfile(userId);
     } catch (e) {
       debugPrint('Error logging in: $e');
-      throw _handleAuthError(e);
+      rethrow;
     }
   }
 
   Future<void> register(String name, String email, String password) async {
     try {
-      final response = await _supabase.functions.invoke(
-        'auth-service/register',
-        body: {'email': email, 'password': password, 'name': name},
-        method: HttpMethod.post,
-      );
-
-      if (response.status != 200) {
-        final error = response.data['error'] ?? 'Error desconocido';
-        throw error;
-      }
-
-      final data = response.data;
-
-      if (data['session'] != null) {
-        await _supabase.auth.setSession(data['session']['refresh_token']);
-
-        if (data['user'] != null) {
-          await Future.delayed(const Duration(seconds: 1));
-          await _fetchProfile(data['user']['id']);
-        }
-      }
+      final userId = await _authService.register(name, email, password);
+      await _fetchProfile(userId);
     } catch (e) {
       debugPrint('Error registering: $e');
-      throw _handleAuthError(e);
+      rethrow;
     }
-  }
-
-  String _handleAuthError(dynamic e) {
-    String errorMsg = e.toString().toLowerCase();
-
-    if (errorMsg.contains('invalid login credentials') ||
-        errorMsg.contains('invalid credentials')) {
-      return 'Email o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
-    }
-    if (errorMsg.contains('user already registered') ||
-        errorMsg.contains('already exists')) {
-      return 'Este correo ya está registrado. Intenta iniciar sesión.';
-    }
-    if (errorMsg.contains('password should be at least 6 characters')) {
-      return 'La contraseña debe tener al menos 6 caracteres.';
-    }
-    if (errorMsg.contains('network') || errorMsg.contains('connection')) {
-      return 'Error de conexión. Revisa tu internet e intenta de nuevo.';
-    }
-    if (errorMsg.contains('email not confirmed')) {
-      return 'Debes confirmar tu correo electrónico antes de entrar.';
-    }
-    if (errorMsg.contains('too many requests')) {
-      return 'Demasiados intentos. Por favor espera un momento.';
-    }
-    if (errorMsg.contains('suspendida') || errorMsg.contains('banned')) {
-      return 'Tu cuenta ha sido suspendida permanentemente.';
-    }
-
-    // Limpiar el prefijo 'Exception: ' si existe
-    return e
-        .toString()
-        .replaceAll('Exception: ', '')
-        .replaceAll('exception: ', '');
   }
 
   Future<void> logout({bool clearBanMessage = true}) async {
@@ -138,9 +91,9 @@ class PlayerProvider extends ChangeNotifier {
 
     _pollingTimer?.cancel();
     await _profileSubscription?.cancel();
-    _profileSubscription = null; // Asegurar referencia nula
+    _profileSubscription = null;
 
-    await _supabase.auth.signOut();
+    await _authService.logout();
     _currentPlayer = null;
     
     if (clearBanMessage) {
@@ -772,17 +725,11 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- SOCIAL & ADMIN ---
+  // --- SOCIAL & ADMIN (delegado a AdminService) ---
 
   Future<void> fetchAllPlayers() async {
     try {
-      final data = await _supabase
-          .from('profiles')
-          .select()
-          .order('name', ascending: true);
-
-      _allPlayers =
-          (data as List).map((json) => Player.fromJson(json)).toList();
+      _allPlayers = await _adminService.fetchAllPlayers();
       notifyListeners();
     } catch (e) {
       debugPrint('Error fetching all players: $e');
@@ -791,8 +738,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> toggleBanUser(String userId, bool ban) async {
     try {
-      await _supabase.rpc('toggle_ban',
-          params: {'user_id': userId, 'new_status': ban ? 'banned' : 'active'});
+      await _adminService.toggleBanUser(userId, ban);
 
       final index = _allPlayers.indexWhere((p) => p.id == userId);
       if (index != -1) {
@@ -808,7 +754,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> deleteUser(String userId) async {
     try {
-      await _supabase.rpc('delete_user', params: {'user_id': userId});
+      await _adminService.deleteUser(userId);
       _allPlayers.removeWhere((p) => p.id == userId);
       notifyListeners();
     } catch (e) {

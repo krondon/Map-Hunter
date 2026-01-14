@@ -10,6 +10,8 @@ import 'features/auth/screens/splash_screen.dart';
 import 'features/game/providers/game_provider.dart';
 import 'features/game/services/penalty_service.dart';
 import 'features/auth/providers/player_provider.dart';
+import 'features/auth/services/auth_service.dart';
+import 'features/admin/services/admin_service.dart';
 import 'features/game/providers/game_request_provider.dart';
 import 'core/theme/app_theme.dart';
 
@@ -64,7 +66,14 @@ class TreasureHuntApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PlayerProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final supabase = Supabase.instance.client;
+          return PlayerProvider(
+            supabaseClient: supabase,
+            authService: AuthService(supabaseClient: supabase),
+            adminService: AdminService(supabaseClient: supabase),
+          );
+        }),
         ChangeNotifierProvider(create: (_) => EventProvider()),
         ChangeNotifierProvider(create: (_) => GameRequestProvider()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
