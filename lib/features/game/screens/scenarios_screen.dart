@@ -130,10 +130,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
     }
 
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final requestProvider =
-        Provider.of<GameRequestProvider>(context, listen: false);
+    final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
     if (playerProvider.currentPlayer == null) return;
+
+    // IMPORTANTE: Usar userId para consultas de BD, no player.id (que puede ser gamePlayerId)
+    final String userId = playerProvider.currentPlayer!.userId;
 
     // Show loading
     showDialog(
@@ -142,15 +145,17 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    final isParticipant = await requestProvider.isPlayerParticipant(
-        playerProvider.currentPlayer!.id, scenario.id);
+    // === GATEKEEPER: Verificar estado del usuario para ESTE evento específico ===
+    final isGamePlayer = await requestProvider.isPlayerParticipant(userId, scenario.id);
 
     if (!mounted) return;
     Navigator.pop(context); // Dismiss loading
 
-    if (isParticipant) {
+    if (isGamePlayer) {
+      // Usuario ya es game_player para este evento - ir al juego
+      debugPrint('ScenariosScreen: User is game_player for event ${scenario.id}');
+      
       // --- INICIO LEAVER BUSTER CHECK ---
-      // 1. Verificar si está baneado antes de entrar al mapa
       final banEnd = await _penaltyService.attemptStartGame();
       
       if (!mounted) return;
@@ -172,54 +177,70 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
             ],
           ),
         );
-        return; // DETENER NAVEGACIÓN
+        return;
       } else {
-        // 2. Si no está baneado, marcamos finish legally INMEDIATAMENTE
-        // porque el mapa (HomeScreen) es zona segura.
         await _penaltyService.markGameFinishedLegally();
       }
       // --- FIN LEAVER BUSTER CHECK ---
 
       // Fetch clues for the selected event before navigating
-      await Provider.of<GameProvider>(context, listen: false)
-          .fetchClues(eventId: scenario.id);
+      await gameProvider.fetchClues(eventId: scenario.id);
 
       if (!mounted) return;
 
       Navigator.push(context,
           MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
     } else {
-
-
-      // Check if there is already a request
-      final request = await requestProvider.getRequestForPlayer(
-          playerProvider.currentPlayer!.id, scenario.id);
+      // Usuario NO es game_player - verificar si tiene solicitud
+      final request = await requestProvider.getRequestForPlayer(userId, scenario.id);
 
       if (!mounted) return;
 
       if (request != null) {
-        // [MEJORA] Si ya está aprobado, entrar directo al juego
         if (request.isApproved) {
-            // Inicializar juego (registrar en game_players si hace falta)
-            await Provider.of<GameProvider>(context, listen: false)
-                .startGame(scenario.id);
-            
+          // Solicitud aprobada - inicializar juego y entrar (readyToInitialize)
+          debugPrint('ScenariosScreen: Request approved, initializing game...');
+          
+          // Show loading for initialization
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(child: CircularProgressIndicator()),
+          );
+
+          // Llamar RPC para inicializar
+          final success = await gameProvider.initializeGameForApprovedUser(userId, scenario.id);
+          
+          if (!mounted) return;
+          Navigator.pop(context); // Dismiss loading
+
+          if (success) {
+            // Fetch clues and navigate
+            await gameProvider.fetchClues(eventId: scenario.id);
             if (!mounted) return;
-            
             Navigator.push(context,
-              MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+                MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+          } else {
+            // Fallo en inicialización - mostrar error
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Error al inicializar el juego. Intenta de nuevo.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         } else {
-            // Todavía pendiente o rechazado
-            Navigator.of(context).push(
+          // Solicitud pendiente o rechazada - ir a pantalla de solicitud
+          Navigator.of(context).push(
             MaterialPageRoute(
                 builder: (_) => GameRequestScreen(
                         eventId: scenario.id,
                         eventTitle: scenario.name,
                     )),
-            );
+          );
         }
       } else {
-        // New user, must find code first
+        // Sin solicitud - debe encontrar código primero
         Navigator.of(context).push(
           MaterialPageRoute(
               builder: (_) => CodeFinderScreen(scenario: scenario)),
@@ -227,6 +248,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

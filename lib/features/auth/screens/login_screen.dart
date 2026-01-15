@@ -7,10 +7,14 @@ import '../../../shared/models/player.dart';
 import '../../../core/theme/app_theme.dart';
 import 'register_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
+import '../../game/screens/game_request_screen.dart';
+import '../../layouts/screens/home_screen.dart';
 import '../../admin/screens/dashboard-screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../game/providers/connectivity_provider.dart';
+import '../../game/providers/game_provider.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,15 +58,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final playerProvider =
-            Provider.of<PlayerProvider>(context, listen: false);
+        final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
         // Show loading indicator
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) =>
-              const Center(child: CircularProgressIndicator()),
+          builder: (context) => const Center(child: CircularProgressIndicator()),
         );
 
         await playerProvider.login(
@@ -73,13 +76,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Verificar estado del usuario
         final player = playerProvider.currentPlayer;
-        if (player != null) {
-          
-          // --- CAMBIO: Se eliminó el bloqueo por estado 'pending' ---
-          // Ahora los usuarios registrados pueden entrar directamente
-          // aunque la base de datos aún no los marque como activos.
-          
-          if (player.status == PlayerStatus.banned) {
+        if (player == null) return;
+
+        // Administradores van directamente al Dashboard
+        if (player.role == 'admin') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+          return;
+        }
+
+        // Solicitar permisos de ubicación antes de navegar
+        await _checkPermissions();
+        if (!mounted) return;
+
+        // Iniciar monitoreo de conectividad
+        context.read<ConnectivityProvider>().startMonitoring();
+
+        // === GATEKEEPER: Verificar estado del usuario respecto a eventos ===
+        debugPrint('LoginScreen: Checking user event status...');
+        final statusResult = await gameProvider.checkUserEventStatus(player.userId);
+        debugPrint('LoginScreen: User status is ${statusResult.status}');
+
+        if (!mounted) return;
+
+        switch (statusResult.status) {
+          // === CASOS DE BLOQUEO ===
+          case UserEventStatus.banned:
+            // Usuario baneado - cerrar sesión y mostrar mensaje
             await playerProvider.logout();
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
@@ -88,29 +112,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Colors.red,
               ),
             );
-            return;
-          }
-        }
+            break;
 
-        // Solicitar permisos de ubicación
-        // print("DEBUG: Iniciando chequeo de permisos...");
-        await _checkPermissions();
-        // print("DEBUG: Permisos chequeados. Navegando a ScenariosScreen...");
+          case UserEventStatus.waitingApproval:
+            // Usuario esperando aprobación - ir a pantalla de solicitud
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => GameRequestScreen(eventId: statusResult.eventId)),
+            );
+            break;
 
-        if (!mounted) return;
-
-        // Redirigir según el rol
-        if (player != null && player.role == 'admin') {
-           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const DashboardScreen()),
-          );
-        } else {
-          // Iniciar monitoreo de conectividad después del login exitoso
-          context.read<ConnectivityProvider>().startMonitoring();
-          
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const ScenariosScreen()),
-          );
+          // === CASOS DE FLUJO ABIERTO ===
+          // El usuario siempre va al catálogo donde puede elegir entrar al evento
+          case UserEventStatus.inGame:
+          case UserEventStatus.readyToInitialize:
+          case UserEventStatus.rejected:
+          case UserEventStatus.noEvent:
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ScenariosScreen()),
+            );
+            break;
         }
       } catch (e) {
         if (!mounted) return;
@@ -140,6 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
+
 
   Future<void> _checkPermissions() async {
     LocationPermission permission = await Geolocator.checkPermission();

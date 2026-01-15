@@ -265,4 +265,101 @@ class GameService {
       return [];
     }
   }
+
+  // ============================================================
+  // GATEKEEPER: User Event Status Methods
+  // ============================================================
+
+  /// Verifica si el usuario está baneado.
+  /// Retorna true si el usuario está baneado (status = 'banned').
+  Future<bool> checkBannedStatus(String userId) async {
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (response != null) {
+        final String? status = response['status'];
+        return status == 'banned';
+      }
+      return false;
+    } catch (e) {
+      debugPrint('GameService: Error checking banned status: $e');
+      return false;
+    }
+  }
+
+  /// Obtiene el game_player activo más reciente para un usuario.
+  /// Retorna un Map con {id, event_id, lives} o null si no existe.
+  Future<Map<String, dynamic>?> getActiveGamePlayer(String userId) async {
+    try {
+      final response = await _supabase
+          .from('game_players')
+          .select('id, event_id, lives, completed_clues_count')
+          .eq('user_id', userId)
+          .order('joined_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      return response;
+    } catch (e) {
+      debugPrint('GameService: Error getting active game player: $e');
+      return null;
+    }
+  }
+
+  /// Obtiene la solicitud de juego más reciente para un usuario.
+  /// Retorna un Map con {id, event_id, status} o null si no existe.
+  Future<Map<String, dynamic>?> getLatestGameRequest(String userId) async {
+    try {
+      final response = await _supabase
+          .from('game_requests')
+          .select('id, event_id, status')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      return response;
+    } catch (e) {
+      debugPrint('GameService: Error getting latest game request: $e');
+      return null;
+    }
+  }
+
+  /// Inicializa el juego para un usuario aprobado.
+  /// Llama al RPC initialize_game_for_user.
+  Future<bool> initializeGameForUser(String userId, String eventId) async {
+    try {
+      await _supabase.rpc('initialize_game_for_user', params: {
+        'target_user_id': userId,
+        'target_event_id': eventId,
+      });
+      debugPrint('GameService: Game initialized for user $userId in event $eventId');
+      return true;
+    } catch (e) {
+      debugPrint('GameService: Error initializing game for user: $e');
+      return false;
+    }
+  }
+
+  /// Verifica si un usuario ya es un game_player para un evento específico.
+  Future<bool> isUserGamePlayer(String userId, String eventId) async {
+    try {
+      final response = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+
+      return response != null;
+    } catch (e) {
+      debugPrint('GameService: Error checking if user is game player: $e');
+      return false;
+    }
+  }
 }
+

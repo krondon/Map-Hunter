@@ -6,6 +6,63 @@ import '../../../shared/models/player.dart';
 import '../services/game_service.dart';
 import '../models/power_effect.dart';
 
+// ============================================================
+// GATEKEEPER: User Event Status Types
+// ============================================================
+
+/// Estados posibles del usuario respecto a un evento.
+/// Orden de prioridad de seguridad: banned > inGame > readyToInitialize > waitingApproval > rejected > noEvent
+enum UserEventStatus {
+  /// Usuario baneado - bloquear acceso
+  banned,
+  /// Usuario ya está jugando (existe en game_players)
+  inGame,
+  /// Solicitud aprobada, pendiente de inicializar juego (necesita RPC initialize_game_for_user)
+  readyToInitialize,
+  /// Solicitud pendiente de aprobación
+  waitingApproval,
+  /// Solicitud rechazada
+  rejected,
+  /// Sin evento asociado (puede seleccionar uno)
+  noEvent,
+}
+
+/// Resultado de la verificación de estado del usuario.
+class UserEventStatusResult {
+  final UserEventStatus status;
+  final String? eventId;
+  final String? gamePlayerId;
+
+  const UserEventStatusResult({
+    required this.status,
+    this.eventId,
+    this.gamePlayerId,
+  });
+
+  /// Constructor para estado sin evento
+  const UserEventStatusResult.noEvent()
+      : status = UserEventStatus.noEvent,
+        eventId = null,
+        gamePlayerId = null;
+
+  /// Constructor para estado baneado
+  const UserEventStatusResult.banned()
+      : status = UserEventStatus.banned,
+        eventId = null,
+        gamePlayerId = null;
+
+  bool get isBanned => status == UserEventStatus.banned;
+  bool get isInGame => status == UserEventStatus.inGame;
+  bool get isReadyToInitialize => status == UserEventStatus.readyToInitialize;
+  bool get isWaitingApproval => status == UserEventStatus.waitingApproval;
+  bool get isRejected => status == UserEventStatus.rejected;
+  bool get hasNoEvent => status == UserEventStatus.noEvent;
+
+  @override
+  String toString() => 'UserEventStatusResult(status: $status, eventId: $eventId, gamePlayerId: $gamePlayerId)';
+}
+
+
 class GameProvider extends ChangeNotifier {
   final GameService _gameService;
   
@@ -395,6 +452,107 @@ class GameProvider extends ChangeNotifier {
   
   void updateLeaderboard(Player player) {
     // Deprecated
+  }
+
+  // ============================================================
+  // GATEKEEPER: User Event Status Methods
+  // ============================================================
+
+  /// Verifica el estado del usuario respecto a eventos.
+  /// Sigue una jerarquía estricta de seguridad:
+  /// 
+  /// Paso 0 (Seguridad): Verificar si está baneado
+  /// Paso 1 (Activo): Verificar si ya es game_player
+  /// Paso 2 (Solicitud): Verificar estado de game_requests
+  Future<UserEventStatusResult> checkUserEventStatus(String userId) async {
+    debugPrint('GameProvider: Checking user event status for $userId');
+
+    try {
+      // PASO 0: Verificar si el usuario está baneado
+      final isBanned = await _gameService.checkBannedStatus(userId);
+      if (isBanned) {
+        debugPrint('GameProvider: User is BANNED');
+        return const UserEventStatusResult.banned();
+      }
+
+      // PASO 1: Verificar si ya es un game_player activo
+      final gamePlayer = await _gameService.getActiveGamePlayer(userId);
+      if (gamePlayer != null) {
+        final String eventId = gamePlayer['event_id'];
+        final String gamePlayerId = gamePlayer['id'];
+        debugPrint('GameProvider: User is IN_GAME for event $eventId');
+        return UserEventStatusResult(
+          status: UserEventStatus.inGame,
+          eventId: eventId,
+          gamePlayerId: gamePlayerId,
+        );
+      }
+
+      // PASO 2: Verificar solicitudes de juego
+      final gameRequest = await _gameService.getLatestGameRequest(userId);
+      if (gameRequest != null) {
+        final String status = gameRequest['status'] ?? '';
+        final String eventId = gameRequest['event_id'];
+
+        switch (status) {
+          case 'approved':
+            debugPrint('GameProvider: User has APPROVED request for event $eventId');
+            return UserEventStatusResult(
+              status: UserEventStatus.readyToInitialize,
+              eventId: eventId,
+            );
+          case 'pending':
+            debugPrint('GameProvider: User has PENDING request for event $eventId');
+            return UserEventStatusResult(
+              status: UserEventStatus.waitingApproval,
+              eventId: eventId,
+            );
+          case 'rejected':
+            debugPrint('GameProvider: User has REJECTED request for event $eventId');
+            return UserEventStatusResult(
+              status: UserEventStatus.rejected,
+              eventId: eventId,
+            );
+        }
+      }
+
+      // PASO 3: Sin evento asociado
+      debugPrint('GameProvider: User has NO_EVENT');
+      return const UserEventStatusResult.noEvent();
+
+    } catch (e) {
+      debugPrint('GameProvider: Error checking user event status: $e');
+      // En caso de error, devolvemos noEvent para permitir el flujo normal
+      return const UserEventStatusResult.noEvent();
+    }
+  }
+
+  /// Inicializa el juego para un usuario con solicitud aprobada.
+  /// Llama al RPC initialize_game_for_user y espera el resultado.
+  /// Retorna true si la inicialización fue exitosa.
+  Future<bool> initializeGameForApprovedUser(String userId, String eventId) async {
+    debugPrint('GameProvider: Initializing game for approved user $userId in event $eventId');
+    
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _gameService.initializeGameForUser(userId, eventId);
+      
+      if (success) {
+        // Configurar el evento actual
+        _currentEventId = eventId;
+        debugPrint('GameProvider: Game initialized successfully');
+      }
+      
+      return success;
+    } catch (e) {
+      debugPrint('GameProvider: Error initializing game: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
   
   @override

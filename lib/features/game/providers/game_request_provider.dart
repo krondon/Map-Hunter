@@ -3,40 +3,75 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/game_request.dart';
 import '../../../shared/models/player.dart';
 
+/// Resultado de enviar una solicitud.
+enum SubmitRequestResult {
+  /// Solicitud enviada exitosamente
+  submitted,
+  /// Ya existe una solicitud para este evento
+  alreadyRequested,
+  /// El usuario ya es jugador de este evento
+  alreadyPlayer,
+  /// Error al enviar la solicitud
+  error,
+}
+
 class GameRequestProvider extends ChangeNotifier {
   List<GameRequest> _requests = [];
   final _supabase = Supabase.instance.client;
 
   List<GameRequest> get requests => _requests;
 
-  Future<void> submitRequest(Player player, String eventId) async {
+  /// Envía una solicitud de acceso a un evento.
+  /// 
+  /// Verifica primero si el usuario ya es un game_player o ya tiene una solicitud.
+  /// Retorna el resultado de la operación.
+  Future<SubmitRequestResult> submitRequest(Player player, String eventId) async {
     try {
-      // Check if request already exists
-      final existing = await _supabase
-          .from('game_requests')
-          .select()
-          .eq('user_id', player.id)
+      // IMPORTANTE: Usar player.userId para consultas de BD, no player.id (que puede ser gamePlayerId)
+      final String userId = player.userId;
+
+      // PASO 1: Verificar si ya es un game_player para este evento
+      final existingPlayer = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', userId)
           .eq('event_id', eventId)
           .maybeSingle();
 
-      if (existing != null) {
-        // Already requested
-        return;
+      if (existingPlayer != null) {
+        debugPrint('GameRequestProvider: User is already a game_player for this event');
+        return SubmitRequestResult.alreadyPlayer;
       }
 
-      // Insert request
+      // PASO 2: Verificar si ya tiene una solicitud para este evento
+      final existingRequest = await _supabase
+          .from('game_requests')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+
+      if (existingRequest != null) {
+        debugPrint('GameRequestProvider: User already has a request for this event');
+        return SubmitRequestResult.alreadyRequested;
+      }
+
+      // PASO 3: Crear nueva solicitud
       await _supabase.from('game_requests').insert({
-        'user_id': player.id,
+        'user_id': userId,
         'event_id': eventId,
         'status': 'pending',
       });
       
+      debugPrint('GameRequestProvider: Request submitted successfully');
       notifyListeners();
+      return SubmitRequestResult.submitted;
     } catch (e) {
-      debugPrint('Error submitting request: $e');
-      rethrow;
+      debugPrint('GameRequestProvider: Error submitting request: $e');
+      return SubmitRequestResult.error;
     }
   }
+
 
 void clearLocalRequests() {
   _requests = []; // Vacía la lista local
