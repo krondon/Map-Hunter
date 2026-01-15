@@ -11,6 +11,7 @@ import '../../game/models/game_request.dart';
 import 'package:geolocator/geolocator.dart'; 
 import '../../../core/theme/app_theme.dart';
 import '../widgets/qr_display_dialog.dart';
+import '../widgets/request_tile.dart';
 import '../../auth/providers/player_provider.dart'; 
 import '../../../shared/models/player.dart'; 
 import 'package:flutter_map/flutter_map.dart';
@@ -20,6 +21,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http; 
 import '../../mall/providers/store_provider.dart';
 import '../widgets/store_edit_dialog.dart';
+import '../widgets/clue_form_dialog.dart';
 import '../../mall/models/mall_store.dart'; 
 
 class CompetitionDetailScreen extends StatefulWidget {
@@ -69,7 +71,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   
   XFile? _selectedImage;
   bool _isLoading = false;
-  List<Map<String, dynamic>> _leaderboardData = []; 
+  List<Map<String, dynamic>> _leaderboardData = [];
+  
+  // Search state for participants tab
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController(); 
+  Timer? _debounce; 
 
   Future<void> _fetchLeaderboard() async {
     try {
@@ -119,6 +126,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
       _fetchLeaderboard(); // Cargar ranking
       // Cargar tiendas
       Provider.of<StoreProvider>(context, listen: false).fetchStores(widget.event.id);
+      // Cargar pistas
+      Provider.of<EventProvider>(context, listen: false).fetchCluesForEvent(widget.event.id);
     });
   }
 
@@ -126,6 +135,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   void dispose() {
     _tabController.dispose();
     _locationController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -569,7 +580,17 @@ Future<bool> _showConfirmDialog() async {
     if (_tabController.index == 2) {
       return FloatingActionButton(
         backgroundColor: AppTheme.primaryPurple,
-        onPressed: () => _showAddClueDialog(),
+        onPressed: () async {
+          final result = await showDialog(
+            context: context,
+            builder: (_) => ClueFormDialog(
+              eventId: widget.event.id,
+              eventLatitude: widget.event.latitude,
+              eventLongitude: widget.event.longitude,
+            ),
+          );
+          if (result == true) setState(() {});
+        },
         child: const Icon(Icons.add, color: Colors.white),
       );
     } else if (_tabController.index == 3) {
@@ -851,8 +872,21 @@ Future<bool> _showConfirmDialog() async {
         // Filter requests for THIS event
         final allRequests = provider.requests.where((r) => r.eventId == widget.event.id).toList();
         
-        final approved = allRequests.where((r) => r.isApproved).toList();
-        final pending = allRequests.where((r) => r.isPending).toList();
+        var approved = allRequests.where((r) => r.isApproved).toList();
+        var pending = allRequests.where((r) => r.isPending).toList();
+
+        // --- SEARCH FILTER ---
+        if (_searchQuery.isNotEmpty) {
+          final query = _searchQuery.toLowerCase();
+          pending = pending.where((r) =>
+            (r.playerName?.toLowerCase().contains(query) ?? false) ||
+            (r.playerEmail?.toLowerCase().contains(query) ?? false)
+          ).toList();
+          approved = approved.where((r) =>
+            (r.playerName?.toLowerCase().contains(query) ?? false) ||
+            (r.playerEmail?.toLowerCase().contains(query) ?? false)
+          ).toList();
+        }
 
         if (allRequests.isEmpty) {
           return const Center(child: Text("No hay participantes ni solicitudes.", style: TextStyle(color: Colors.white54)));
@@ -898,17 +932,56 @@ Future<bool> _showConfirmDialog() async {
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            // --- SEARCH FIELD ---
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Buscar por nombre o email...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                  suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                onChanged: (value) {
+                  if (_debounce?.isActive ?? false) _debounce!.cancel();
+                  _debounce = Timer(const Duration(milliseconds: 300), () {
+                     setState(() => _searchQuery = value);
+                  });
+                },
+              ),
+            ),
+
             if (pending.isNotEmpty) ...[
               const Text("Solicitudes Pendientes", style: TextStyle(color: AppTheme.secondaryPink, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              ...pending.map((req) => _RequestTile(request: req)),
+              ...pending.map((req) => RequestTile(request: req)),
               const SizedBox(height: 20),
             ],
             
             const Text("Participantes Inscritos (Ranking)", style: TextStyle(color: Colors.greenAccent, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            if (approved.isEmpty)
-              const Text("Nadie inscrito aún.", style: TextStyle(color: Colors.white30))
+            if (sortedApproved.isEmpty)
+              Text(
+                _searchQuery.isNotEmpty ? "No se encontraron resultados." : "Nadie inscrito aún.", 
+                style: const TextStyle(color: Colors.white30)
+              )
             else
               // 4. Map safely to Widgets
               ...sortedApproved.map((req) {
@@ -923,7 +996,7 @@ Future<bool> _showConfirmDialog() async {
                  final rawIndex = _leaderboardData.indexWhere((l) => l['user_id'] == req.playerId);
                  final progress = rawIndex != -1 ? _leaderboardData[rawIndex]['completed_clues'] as int : 0;
                  
-                 return _RequestTile(
+                 return RequestTile(
                    request: req, 
                    isReadOnly: true,
                    rank: index != -1 ? index + 1 : null, // Pass null rank if banned or unranked
@@ -978,7 +1051,18 @@ Future<bool> _showConfirmDialog() async {
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit, color: AppTheme.accentGold),
-                      onPressed: () => _showEditClueDialog(clue),
+                      onPressed: () async {
+                        final result = await showDialog(
+                          context: context,
+                          builder: (_) => ClueFormDialog(
+                            clue: clue,
+                            eventId: widget.event.id,
+                            eventLatitude: widget.event.latitude,
+                            eventLongitude: widget.event.longitude,
+                          ),
+                        );
+                        if (result == true) setState(() {});
+                      },
                     ),
                   ],
                 ),
@@ -990,270 +1074,8 @@ Future<bool> _showConfirmDialog() async {
     );
   }
 
-  void _showEditClueDialog(Clue clue) {
-    // Controllers for persistent state
-    final titleController = TextEditingController(text: clue.title);
-    final descriptionController = TextEditingController(text: clue.description);
-    final questionController = TextEditingController(text: clue.riddleQuestion ?? '');
-    final answerController = TextEditingController(text: clue.riddleAnswer ?? '');
-    final xpController = TextEditingController(text: clue.xpReward.toString());
-    final coinController = TextEditingController(text: clue.coinReward.toString());
-    final hintController = TextEditingController(text: clue.hint);
-    final latController = TextEditingController(text: clue.latitude?.toString() ?? '');
-    final longController = TextEditingController(text: clue.longitude?.toString() ?? '');
+  // Edit legacy method removed
 
-    PuzzleType selectedType = clue.puzzleType;
-    
-    // We still need these as variables to handle logic, but data comes from controllers
-    double? latitude = clue.latitude;
-    double? longitude = clue.longitude;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text("Editar Pista / Minijuego", style: TextStyle(color: Colors.white)),
-        content: StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   DropdownButtonFormField<PuzzleType>(
-                    value: selectedType,
-                    dropdownColor: AppTheme.darkBg,
-                    isExpanded: true, // Fix overflow
-                    decoration: _buildInputDecoration('Tipo de Minijuego', icon: Icons.games),
-                    style: const TextStyle(color: Colors.white),
-                    items: PuzzleType.values.map((type) {
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(
-                          type.label,
-                          overflow: TextOverflow.ellipsis, // Fix overflow text
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                         setStateDialog(() {
-                           selectedType = val;
-                           // Set default question if switching types
-                           if (questionController.text.isEmpty) {
-                             questionController.text = val.defaultQuestion;
-                           }
-                         });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: titleController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Título'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: descriptionController,
-                    maxLines: 2,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Descripción / Historia'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: questionController,
-                    maxLines: 2,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Pregunta / Instrucción'),
-                  ),
-                  const SizedBox(height: 10),
-                  if (!selectedType.isAutoValidation)
-                    TextFormField(
-                      controller: answerController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _buildInputDecoration('Respuesta Correcta'),
-                    ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: xpController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Puntos XP'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: coinController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Monedas'),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("📍 Geolocalización (Opcional)", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: hintController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Pista de Ubicación QR (ej: Detrás del árbol)', icon: Icons.location_on),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: latController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _buildInputDecoration('Latitud'),
-                          onChanged: (v) => latitude = double.tryParse(v),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: longController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _buildInputDecoration('Longitud'),
-                          onChanged: (v) => longitude = double.tryParse(v),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    alignment: WrapAlignment.spaceEvenly,
-                    spacing: 10,
-                    runSpacing: 5,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.store, size: 16),
-                        label: const Text("Usar Evento", style: TextStyle(fontSize: 12)),
-                        onPressed: () {
-                           setStateDialog(() {
-                             latitude = widget.event.latitude;
-                             longitude = widget.event.longitude;
-                             latController.text = latitude.toString();
-                             longController.text = longitude.toString();
-                           });
-                        },
-                      ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.my_location, size: 16),
-                        label: const Text("Mi Ubicación", style: TextStyle(fontSize: 12)),
-                         onPressed: () async {
-                           try {
-                             bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                             if (!serviceEnabled) throw Exception("GPS desactivado");
-                             
-                             LocationPermission permission = await Geolocator.checkPermission();
-                             if (permission == LocationPermission.denied) {
-                               permission = await Geolocator.requestPermission();
-                               if (permission == LocationPermission.denied) throw Exception("Permiso denegado");
-                             }
-                             
-                             Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
-                             setStateDialog(() {
-                               latitude = position.latitude;
-                               longitude = position.longitude;
-                               latController.text = latitude.toString();
-                               longController.text = longitude.toString();
-                             });
-                           } catch(e) {
-                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-                           }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        actions: [
-          // Delete Button
-          TextButton(
-            onPressed: () {
-               showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: AppTheme.cardBg,
-                  title: const Text('Eliminar Pista', style: TextStyle(color: Colors.white)),
-                  content: const Text('¿Estás seguro de que quieres eliminar esta pista? Esta acción no se puede deshacer.', style: TextStyle(color: Colors.white70)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancelar'),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      onPressed: () async {
-                        try {
-                          Navigator.pop(context); // Close confirm dialog
-                          await Provider.of<EventProvider>(ctx, listen: false).deleteClue(clue.id);
-                          if (mounted) {
-                            Navigator.pop(ctx); // Close edit dialog
-                             setState(() {}); // Force refresh
-                            ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Pista eliminada')));
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
-                        }
-                      },
-                      child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: const Text("Eliminar", style: TextStyle(color: Colors.redAccent)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple),
-            onPressed: () async {
-              try {
-                // Create updated clue object
-                final updatedClue = Clue(
-                  id: clue.id,
-                  title: titleController.text,
-                  description: descriptionController.text, // Keep original or add field if needed
-                  hint: hintController.text, // Updated value
-                  type: clue.type,
-                  latitude: latitude, // Updated value
-                  longitude: longitude, // Updated value
-                  qrCode: clue.qrCode,
-                  minigameUrl: clue.minigameUrl,
-                  xpReward: int.tryParse(xpController.text) ?? 50,
-                  coinReward: int.tryParse(coinController.text) ?? 10,
-                  puzzleType: selectedType,
-                  riddleQuestion: questionController.text,
-                  riddleAnswer: answerController.text,
-                  isLocked: clue.isLocked,
-                  isCompleted: clue.isCompleted,
-                  sequenceIndex: clue.sequenceIndex,
-                );
-
-                await Provider.of<EventProvider>(context, listen: false).updateClue(updatedClue);
-                
-                if (mounted) {
-                   Navigator.pop(ctx);
-                   setState(() {}); // Refresh UI
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pista actualizada')));
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-              }
-            },
-            child: const Text("Guardar", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 
 void _showRestartConfirmDialog() {
   showDialog(
@@ -1307,229 +1129,8 @@ void _showRestartConfirmDialog() {
   );
 }
 
-  void _showAddClueDialog() {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final questionController = TextEditingController();
-    final answerController = TextEditingController();
-    final xpController = TextEditingController(text: '50');
-    final coinController = TextEditingController(text: '10');
-    final hintController = TextEditingController();
-    final latController = TextEditingController();
-    final longController = TextEditingController();
-
-    // CORRECCIÓN: 'riddle' ya no existe en PuzzleType.
-    PuzzleType selectedType = PuzzleType.slidingPuzzle; 
-
-    double? latitude;
-    double? longitude;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text("Agregar Nueva Pista", style: TextStyle(color: Colors.white)),
-        content: StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   DropdownButtonFormField<PuzzleType>(
-                    value: selectedType,
-                    dropdownColor: AppTheme.darkBg,
-                    isExpanded: true, 
-                    decoration: _buildInputDecoration('Tipo de Minijuego', icon: Icons.games),
-                    style: const TextStyle(color: Colors.white),
-                    items: PuzzleType.values.map((type) {
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(type.label, overflow: TextOverflow.ellipsis),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                         setStateDialog(() {
-                           selectedType = val;
-                           if (questionController.text.isEmpty) {
-                             questionController.text = val.defaultQuestion;
-                           }
-                         });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: titleController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Título'),
-                  ),
-                  const SizedBox(height: 10),
-                   TextFormField(
-                    controller: descriptionController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Descripción / Historia'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: questionController,
-                    maxLines: 2,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Pregunta / Instrucción'),
-                  ),
-                  const SizedBox(height: 10),
-                  if (!selectedType.isAutoValidation)
-                    TextFormField(
-                      controller: answerController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _buildInputDecoration('Respuesta Correcta'),
-                    ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: xpController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Puntos XP'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: coinController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Monedas'),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("📍 Geolocalización (Opcional)", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: hintController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _buildInputDecoration('Pista de Ubicación QR (ej: Detrás del árbol)', icon: Icons.location_on),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: latController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _buildInputDecoration('Latitud'),
-                          onChanged: (v) => latitude = double.tryParse(v),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextFormField(
-                          controller: longController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _buildInputDecoration('Longitud'),
-                          onChanged: (v) => longitude = double.tryParse(v),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    alignment: WrapAlignment.spaceEvenly,
-                    spacing: 10,
-                    runSpacing: 5,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.store, size: 16),
-                        label: const Text("Usar Evento", style: TextStyle(fontSize: 12)),
-                        onPressed: () {
-                           setStateDialog(() {
-                             latitude = widget.event.latitude;
-                             longitude = widget.event.longitude;
-                             latController.text = latitude.toString();
-                             longController.text = longitude.toString();
-                           });
-                        },
-                      ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.my_location, size: 16),
-                        label: const Text("Mi Ubicación", style: TextStyle(fontSize: 12)),
-                         onPressed: () async {
-                           try {
-                             bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                             if (!serviceEnabled) throw Exception("GPS desactivado");
-                             
-                             LocationPermission permission = await Geolocator.checkPermission();
-                             if (permission == LocationPermission.denied) {
-                               permission = await Geolocator.requestPermission();
-                               if (permission == LocationPermission.denied) throw Exception("Permiso denegado");
-                             }
-                             
-                             Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
-                             setStateDialog(() {
-                               latitude = position.latitude;
-                               longitude = position.longitude;
-                               latController.text = latitude.toString();
-                               longController.text = longitude.toString();
-                             });
-                           } catch(e) {
-                             if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-                           }
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple),
-            onPressed: () async {
-              try {
-                if (titleController.text.isEmpty) {
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('El título es requerido')));
-                   return;
-                }
-                
-                // Create new clue object
-                final newClue = Clue(
-                  id: '', // Will be generated by DB
-                  title: titleController.text,
-                  description: descriptionController.text,
-                  hint: hintController.text,
-                  type: ClueType.minigame, // Default to minigame
-                  xpReward: int.tryParse(xpController.text) ?? 50,
-                  coinReward: int.tryParse(coinController.text) ?? 10,
-                  latitude: latitude,
-                  longitude: longitude,
-                  puzzleType: selectedType,
-                  riddleQuestion: questionController.text,
-                  riddleAnswer: answerController.text,
-                );
-
-                await Provider.of<EventProvider>(context, listen: false).addClue(widget.event.id, newClue);
-                
-                if (mounted) {
-                   Navigator.pop(ctx);
-                   setState(() {}); // Refresh UI
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pista agregada')));
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-              }
-            },
-            child: const Text("Agregar", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
   Widget _buildStoresTab() {
+
     return Consumer<StoreProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
@@ -1675,142 +1276,5 @@ void _showRestartConfirmDialog() {
       SnackBar(content: Text(message), backgroundColor: color),
     );
   }
-
-}
-
-
-
-
-class _RequestTile extends StatelessWidget {
-  final GameRequest request;
-  final bool isReadOnly;
-  final int? rank;
-  final int? progress;
-
-  const _RequestTile({
-    required this.request, 
-    this.isReadOnly = false,
-    this.rank,
-    this.progress,
-  });
-
-  void _toggleBan(BuildContext context, PlayerProvider provider, String userId, bool isBanned) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: Text(isBanned ? "Desbanear Usuario" : "Banear Usuario", style: const TextStyle(color: Colors.white)),
-        content: Text(
-          isBanned 
-            ? "¿Permitir el acceso nuevamente a este usuario?" 
-            : "¿Estás seguro? El usuario será expulsado de la app inmediatamente.",
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: isBanned ? Colors.green : Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await provider.toggleBanUser(userId, !isBanned);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(isBanned ? "Usuario desbaneado" : "Usuario baneado")),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-                }
-              }
-            },
-            child: Text(isBanned ? "DESBANEAR" : "BANEAR", style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<PlayerProvider>(
-      builder: (context, playerProvider, _) {
-        // Buscamos el estado REAL del usuario en la lista de profiles
-        final userStatus = playerProvider.allPlayers
-            .firstWhere((p) => p.id == request.playerId,
-                 orElse: () => Player(userId: '', email: '', name: '', role: '', status: PlayerStatus.active))
-            .status;
-            
-        final isBanned = userStatus == PlayerStatus.banned;
-
-        return Card(
-          color: isBanned ? Colors.red.withOpacity(0.1) : AppTheme.cardBg, // Feedback visual en toda la tarjeta
-          margin: const EdgeInsets.only(bottom: 10),
-          child: ListTile(
-            leading: (isReadOnly && rank != null) 
-              ? CircleAvatar(
-                  backgroundColor: _getRankColor(rank!),
-                  foregroundColor: Colors.white,
-                  child: Text("#$rank", style: const TextStyle(fontWeight: FontWeight.bold)),
-                )
-              : null,
-            title: Text(
-              request.playerName ?? 'Desconocido', 
-              style: TextStyle(
-                color: isBanned ? Colors.redAccent : Colors.white,
-                decoration: isBanned ? TextDecoration.lineThrough : null,
-                fontWeight: FontWeight.bold,
-              )
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(request.playerEmail ?? 'No email', style: const TextStyle(color: Colors.white54)),
-                if (isReadOnly && progress != null)
-                   Text("Pistas completadas: $progress", style: const TextStyle(color: AppTheme.accentGold, fontSize: 12)),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isReadOnly) ...[
-                   // Si está inscrito, mostramos check, pero si está baneado mostramos alerta visual
-                   Icon(Icons.check_circle, color: isBanned ? Colors.grey : Colors.green),
-                   const SizedBox(width: 8),
-                   IconButton(
-                     icon: Icon(isBanned ? Icons.lock_open : Icons.block),
-                     color: isBanned ? Colors.greenAccent : Colors.red,
-                     tooltip: isBanned ? "Desbanear Usuario" : "Banear Usuario",
-                     onPressed: () => _toggleBan(context, playerProvider, request.playerId, isBanned),
-                   ),
-                ] else ...[
-                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => Provider.of<GameRequestProvider>(context, listen: false).rejectRequest(request.id),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => Provider.of<GameRequestProvider>(context, listen: false).approveRequest(request.id),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Color _getRankColor(int rank) {
-    if (rank == 1) return const Color(0xFFFFD700); // Gold
-    if (rank == 2) return const Color(0xFFC0C0C0); // Silver
-    if (rank == 3) return const Color(0xFFCD7F32); // Bronze
-    return AppTheme.primaryPurple;
-  }
-
 
 }

@@ -5,7 +5,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/player_provider.dart';
 import 'event_creation_screen.dart';
 import 'competitions_management_screen.dart';
-import 'requests_management_screen.dart';
 import 'user_management_screen.dart';
 import 'admin_login_screen.dart';
 import '../../auth/screens/login_screen.dart';
@@ -26,7 +25,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     "Dashboard",
     "Crear Evento",
     "Competencias",
-    "Solicitudes",
     "Usuarios",
     "Reportes", 
     "Configuración" 
@@ -36,7 +34,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.dashboard,
     Icons.add_circle_outline,
     Icons.emoji_events,
-    Icons.assignment_ind,
     Icons.people,
     Icons.bar_chart,
     Icons.settings,
@@ -86,7 +83,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // DEFINIMOS LAS VISTAS DENTRO DEL BUILD
     // Esto es necesario para poder pasarle la función _goToDashboard
     final List<Widget> views = [
-      const _WelcomeDashboardView(), // Index 0
+      _WelcomeDashboardView(
+        onNavigate: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+      ), // Index 0
       
       // Index 1: Le pasamos el callback aquí
       EventCreationScreen(
@@ -94,8 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ), 
       
       const CompetitionsManagementScreen(), // Index 2
-      const RequestsManagementScreen(),     // Index 3
-      const UserManagementScreen(),         // Index 4
+      const UserManagementScreen(),         // Index 3
     ];
 
     return LayoutBuilder(
@@ -297,7 +299,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 // ------------------------------------------------------------------
 
 class _WelcomeDashboardView extends StatefulWidget {
-  const _WelcomeDashboardView();
+  final void Function(int)? onNavigate;
+  const _WelcomeDashboardView({this.onNavigate});
 
   @override
   State<_WelcomeDashboardView> createState() => _WelcomeDashboardViewState();
@@ -380,7 +383,11 @@ class _WelcomeDashboardViewState extends State<_WelcomeDashboardView> {
               _SummaryCard(
                   title: "Eventos Creados", value: _createdEvents, color: Colors.orange),
               _SummaryCard(
-                  title: "Solicitudes Pendientes", value: _pendingRequests, color: Colors.purple),
+                  title: "Solicitudes Pendientes", 
+                  value: _pendingRequests, 
+                  color: Colors.purple,
+                  onTap: () => widget.onNavigate?.call(2), // Navigate to Competitions (Index 2)
+              ),
             ],
           )
         ],
@@ -395,14 +402,17 @@ class _SummaryCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
+  final VoidCallback? onTap;
 
   const _SummaryCard(
-      {required this.title, required this.value, required this.color});
+      {required this.title, required this.value, required this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 250,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 250,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppTheme.cardBg,
@@ -423,6 +433,7 @@ class _SummaryCard extends StatelessWidget {
                   fontSize: 28,
                   fontWeight: FontWeight.bold)),
         ],
+      ),
       ),
     );
   }
