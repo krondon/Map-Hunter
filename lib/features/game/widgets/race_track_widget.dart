@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/player.dart';
+import '../../game/models/race_view_data.dart';
+import '../../game/models/i_targetable.dart';
 import '../providers/power_effect_provider.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../mall/models/power_item.dart';
 import 'power_gesture_wrapper.dart';
+import '../services/race_logic_service.dart';
 
 class RaceTrackWidget extends StatelessWidget {
-  final List<Player>
-      leaderboard; // Esta lista DEBE venir de 'event_leaderboard' (donde totalXP = pistas completadas)
-  final String currentPlayerId; // ID para identificarte
-  final int totalClues; // Meta del evento (Total de pistas)
+  final List<Player> leaderboard;
+  final String currentPlayerId;
+  final int totalClues;
   final VoidCallback? onSurrender;
 
   const RaceTrackWidget({
@@ -27,67 +29,87 @@ class RaceTrackWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final effectProvider = Provider.of<PowerEffectProvider>(context);
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final gameProvider = Provider.of<GameProvider>(context);
     final String? myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
-    // Lógica principal: Seleccionar quién aparece en la carrera basado ESTRICTAMENTE en progreso del evento
-    final activeRacers = _selectRacersToShow();
+    // --- LOGIC LAYER (Service Use) ---
+    final raceService = RaceLogicService();
+    
+    // SOLID: Widget consumes View Model via Service. No business logic here.
+    final raceView = raceService.buildRaceView(
+      leaderboard: leaderboard, 
+      currentUserId: currentPlayerId, 
+      activePowers: gameProvider.activePowerEffects, 
+      totalClues: totalClues
+    );
 
-    // Mantener la lógica de progreso intacta. Si en el futuro se quiere
-    // representar efectos (p.ej. freeze) visualmente, este multiplicador
-    // puede ajustarse sin tocar el cálculo base de progreso del evento.
-    const double speedMultiplier = 1.0;
-
-    void handleSwipeAttack() async {
+    Future<void> handleSwipeAttack() async {
       final me = playerProvider.currentPlayer;
       if (me == null) return;
 
-      final offensiveSlugs = <String>{'freeze', 'black_screen', 'life_steal'};
+      final offensiveSlugs = <String>{'freeze', 'black_screen', 'life_steal', 'blur_screen'};
       final String selectedPowerSlug = me.inventory.firstWhere(
         (slug) => offensiveSlugs.contains(slug),
         orElse: () => '',
       );
 
       if (selectedPowerSlug.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('No tienes poderes ofensivos disponibles')),
-        );
+        if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No tienes poderes ofensivos disponibles')),
+          );
+        }
         return;
       }
 
-      if (leaderboard.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sin rivales para atacar')),
-        );
-        return;
+      if (leaderboard.isEmpty) return; // Should not happen if race is active
+
+      // Targeting Logic
+      String? targetGameId;
+      
+      // 1. Explicit Target
+      final explicitTargetId = gameProvider.targetPlayerId;
+      if (explicitTargetId != null) {
+          // Find in view models first (most reliable for race context)
+          final targetVM = raceView.racers.where((vm) => vm.data.id == explicitTargetId).firstOrNull;
+          if (targetVM != null) {
+              targetGameId = targetVM.data.id;
+          } else {
+             // Fallback: Check leaderboard for finding ID by auth ID if needed?
+             // But explicitTargetId should already be the gamePlayerId/targetId if set via interface.
+             // If set via clicking avatar, it IS the targetId.
+             targetGameId = explicitTargetId;
+          }
       }
 
-      final bool iAmLeader =
-          leaderboard.isNotEmpty && leaderboard.first.id == currentPlayerId;
-      final Player? target = iAmLeader
-          ? (leaderboard.length > 1 ? leaderboard[1] : null)
-          : leaderboard.first;
+      // 2. Auto-Target (Leader if I am not, or Second place if I am leader)
+      if (targetGameId == null) {
+         final RacerViewModel? leaderVM = raceView.racers.where((vm) => vm.isLeader).firstOrNull;
+         if (leaderVM != null && !leaderVM.isMe) {
+             targetGameId = leaderVM.data.id;
+         } else {
+             // Fallback: Ahead?
+             final aheadVM = raceView.racers.where((vm) => vm.lane == -1 && !vm.isMe).firstOrNull;
+             if (aheadVM != null) targetGameId = aheadVM.data.id;
+         }
+      }
 
-      final targetGamePlayerId = target?.gamePlayerId;
-
-      if (target == null ||
-          targetGamePlayerId == null ||
-          targetGamePlayerId.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se encontró un objetivo válido')),
-        );
+      if (targetGameId == null || targetGameId.isEmpty) {
+        if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se encontró un objetivo válido')),
+          );
+        }
         return;
       }
 
       final result = await playerProvider.usePower(
         powerSlug: selectedPowerSlug,
-        targetGamePlayerId: targetGamePlayerId,
+        targetGamePlayerId: targetGameId,
         effectProvider: effectProvider,
         gameProvider: gameProvider,
       );
 
-      // Map result to a success boolean without changing logic
       final bool success = result == PowerUseResult.success;
 
       if (result == PowerUseResult.error && context.mounted) {
@@ -96,12 +118,13 @@ class RaceTrackWidget extends StatelessWidget {
         );
       } else if (success && context.mounted) {
         final suppressed = effectProvider.lastDefenseAction == DefenseAction.stealFailed;
-        if (suppressed) return;
-        showDialog(
-          context: context,
-          barrierDismissible: true,
-          builder: (_) => const _AttackSentDialog(),
-        );
+        if (!suppressed) {
+          showDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (_) => const _AttackSentDialog(),
+          );
+        }
       }
     }
 
@@ -139,7 +162,7 @@ class RaceTrackWidget extends StatelessWidget {
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     const _LiveIndicator(),
                   ],
                 ),
@@ -169,18 +192,16 @@ class RaceTrackWidget extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // --- PISTA DE CARRERAS ---
+            // --- PISTA DE CARRERAS (RENDERING ONLY via RaceViewData) ---
             SizedBox(
-              height: 90,
+              height: 120,
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final double trackWidth = constraints.maxWidth;
-
                   return Stack(
                     alignment: Alignment.centerLeft,
                     clipBehavior: Clip.none,
                     children: [
-                      // 1. Línea de carrera base
+                      // 1. Línea Base
                       Center(
                         child: Container(
                           height: 8,
@@ -195,49 +216,39 @@ class RaceTrackWidget extends StatelessWidget {
                         ),
                       ),
 
-                      // Marcas de distancia (start, 50%, finish)
-                      const Positioned(
-                          left: 0,
-                          top: 50,
-                          child: Text("START",
-                              style: TextStyle(
-                                  fontSize: 8, color: Colors.white30))),
-                      const Positioned(
-                          right: 0,
-                          top: 50,
-                          child: Text("META",
-                              style: TextStyle(
-                                  fontSize: 8, color: Colors.white30))),
+                      // Marcas
+                      const Positioned(left: 0, top: 65, child: Text("START", style: TextStyle(fontSize: 8, color: Colors.white30))),
+                      const Positioned(right: 0, top: 65, child: Text("META", style: TextStyle(fontSize: 8, color: Colors.white30))),
 
-                      // Bandera de Meta
+                      // Bandera
                       const Positioned(
                         right: -8,
-                        top: 10,
-                        child: Icon(Icons.flag_circle,
-                            color: AppTheme.accentGold, size: 36),
+                        top: 25,
+                        child: Icon(Icons.flag_circle, color: AppTheme.accentGold, size: 36),
                       ),
 
-                      // 2. Renderizar corredores seleccionados
-                      // ORDENAMIENTO (Z-Index): Primero renderizar a los otros, y al final a MÍ (isMe=true)
-                      // para que mi avatar quede siempre encima.
-                      ...activeRacers.where((r) => !r.isMe).map((racer) =>
-                          _buildRacer(
-                              context, racer, trackWidth, speedMultiplier)),
-
-                      ...activeRacers.where((r) => r.isMe).map((racer) =>
-                          _buildRacer(
-                              context, racer, trackWidth, speedMultiplier)),
+                      // 2. Renderizar View Models (Using ITargetable, decoupled from Player)
+                      ...raceView.racers.map((vm) => _RacerAvatarWidget(
+                        vm: vm,
+                        trackWidth: constraints.maxWidth,
+                        totalClues: totalClues,
+                        isSelected: gameProvider.targetPlayerId == vm.data.id, 
+                        onTap: () {
+                           if (!vm.isTargetable) return;
+                           gameProvider.setTargetPlayerId(vm.data.id);
+                        },
+                      )),
                     ],
                   );
                 },
               ),
             ),
 
-            // Leyenda inferior dinámica
+            // Leyenda inferior dinámica (Pre-calculada en Service)
             const SizedBox(height: 8),
             Center(
               child: Text(
-                _getMotivationText(activeRacers, totalClues),
+                raceView.motivationText,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.5),
                   fontSize: 10,
@@ -251,392 +262,156 @@ class RaceTrackWidget extends StatelessWidget {
       ),
     );
   }
+}
 
-  // Helper para construir el widget del corredor limpiamente
-  Widget _buildRacer(BuildContext context, _RacerDisplayInfo racer,
-      double trackWidth, double speedMultiplier) {
-    final int pistasCompletadas = racer.player.totalXP;
-    final double progress =
-        totalClues > 0 ? (pistasCompletadas / totalClues).clamp(0.0, 1.0) : 0.0;
+class _RacerAvatarWidget extends StatelessWidget {
+  final RacerViewModel vm;
+  final double trackWidth;
+  final int totalClues;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-    return _buildRacerAvatar(
-      context: context,
-      player: racer.player,
-      progress: (progress * speedMultiplier).clamp(0.0, 1.0),
-      trackWidth: trackWidth,
-      offsetY: racer.laneOffset,
-      isMe: racer.isMe,
-      isLeader: racer.isLeader,
-      pistas: pistasCompletadas,
-      myGamePlayerId: Provider.of<PlayerProvider>(context, listen: false)
-          .currentPlayer
-          ?.gamePlayerId,
-      effectProvider: Provider.of<PowerEffectProvider>(context, listen: false),
-      gameProvider: Provider.of<GameProvider>(context, listen: false),
-      playerProvider: Provider.of<PlayerProvider>(context, listen: false),
-    );
-  }
+  const _RacerAvatarWidget({
+    required this.vm,
+    required this.trackWidth,
+    required this.totalClues,
+    required this.isSelected,
+    required this.onTap,
+  });
 
-  // --- LÓGICA DE SELECCIÓN (Corregida para Datos de Evento) ---
-  List<_RacerDisplayInfo> _selectRacersToShow() {
-    final List<_RacerDisplayInfo> result = [];
-    final Set<String> addedIds = {};
-
-    // 1. Buscar al usuario actual DENTRO del leaderboard del evento.
-    // IMPORTANTE: No usamos el perfil global del usuario, porque ese tendría XP global.
-    // Queremos el objeto que vino de la DB con el conteo de pistas del evento.
-    final myIndex = leaderboard.indexWhere((p) => p.id == currentPlayerId);
-
-    Player meInEvent;
-
-    if (myIndex != -1) {
-      // El usuario ya ha completado al menos 1 pista y está en el ranking
-      meInEvent = leaderboard[myIndex];
-    } else {
-      // El usuario tiene 0 pistas o no está en el top 50 cargado.
-      // Creamos un "dummy" con 0 pistas para que aparezca en la salida.
-      meInEvent = Player(
-        id: currentPlayerId,
-        name: 'Tú',
-        email: '',
-        avatarUrl: '', // Se intentará cargar, si no icono por defecto
-        totalXP: 0, // 0 Pistas completadas en este evento
-        stats: {},
-        profession: 'Novice',
-        level: 1,
-        coins: 0,
-      );
-    }
-
-    // 2. Siempre agregar al Top 1 (El Líder del Evento)
-    if (leaderboard.isNotEmpty) {
-      final leader = leaderboard.first;
-      result.add(_RacerDisplayInfo(
-          player: leader,
-          laneOffset: -35, // Carril superior
-          isLeader: true,
-          isMe: leader.id == currentPlayerId));
-      addedIds.add(leader.id);
-    }
-
-    // 3. Agregar al usuario actual (si no fue agregado como líder)
-    if (!addedIds.contains(meInEvent.id)) {
-      result.add(_RacerDisplayInfo(
-          player: meInEvent,
-          laneOffset: 0, // Carril central
-          isLeader: false,
-          isMe: true));
-      addedIds.add(meInEvent.id);
-    }
-
-    // 4. Agregar rivales cercanos BASADOS EN EL RANKING DEL EVENTO
-    if (myIndex != -1) {
-      // Rival justo adelante (alguien con más pistas o mismo # pero mejor tiempo)
-      if (myIndex > 0) {
-        final ahead = leaderboard[myIndex - 1];
-        if (!addedIds.contains(ahead.id)) {
-          result.add(_RacerDisplayInfo(
-              player: ahead,
-              laneOffset: 35, // Carril inferior
-              isLeader: false,
-              isMe: false));
-          addedIds.add(ahead.id);
-        }
-      } else if (leaderboard.length > 2) {
-        // Si yo soy el segundo, mostrar al tercero para tener contexto atrás
-        final behind = leaderboard[myIndex + 1];
-        if (!addedIds.contains(behind.id)) {
-          result.add(_RacerDisplayInfo(
-              player: behind, laneOffset: 25, isLeader: false, isMe: false));
-          addedIds.add(behind.id);
-        }
-      }
-    } else {
-      // Si tengo 0 pistas (no estoy en el ranking), mostrar al último del ranking visible
-      // para motivar al usuario a alcanzarlo.
-      if (leaderboard.isNotEmpty) {
-        final lastVisible = leaderboard.last;
-        if (!addedIds.contains(lastVisible.id)) {
-          result.add(_RacerDisplayInfo(
-              player: lastVisible,
-              laneOffset: 30,
-              isLeader: false,
-              isMe: false));
-        }
-      }
-    }
-
-    return result;
-  }
-
-  String _getMotivationText(List<_RacerDisplayInfo> racers, int total) {
-    // Buscamos al usuario en la lista procesada
-    final me = racers.firstWhere((r) => r.isMe, orElse: () => racers.first);
-    final pistas = me.player.totalXP;
-
-    if (pistas == 0)
-      return "¡La carrera comienza! Completa tu primera pista 🏃💨";
-    if (pistas >= total) return "¡FELICIDADES! Has llegado a la meta 🎉";
-
-    if (me.isLeader) return "¡Vas en PRIMER LUGAR! Mantén el ritmo 🏆";
-
-    return "Llevas $pistas de $total pistas. ¡Sigue así! 🚀";
-  }
-
-  Widget _buildRacerAvatar({
-    required BuildContext context,
-    required Player player,
-    required double progress,
-    required double trackWidth,
-    required double offsetY,
-    required bool isMe,
-    required bool isLeader,
-    required int pistas,
-    required String? myGamePlayerId,
-    required PlayerProvider playerProvider,
-    required PowerEffectProvider effectProvider,
-    required GameProvider gameProvider,
-  }) {
-    // [VISUAL UPDATE] Tamaños más pequeños para evitar superposición
-    final double avatarSize = isMe ? 36 : 28; // Antes 40 / 32
-
-    // Ajuste para que el centro del avatar esté en el punto exacto, sin salirse del ancho
+  @override
+  Widget build(BuildContext context) {
+    // Calculo visual puro usando ITargetable.progress (double)
+    // progress is already usually count/totalXP. User defined ITargetable.progress as "Mapea a completed_clues_count". 
+    // Wait, totalXP is count. 
+    // Normalized progress for UI = count / totalClues.
+    
+    final double count = vm.data.progress;
+    final progress = totalClues > 0 ? (count / totalClues).clamp(0.0, 1.0) : 0.0;
+    
+    double laneOffset = 0;
+    if (vm.lane == -1) laneOffset = -35;
+    if (vm.lane == 1) laneOffset = 35;
+    
+    final double avatarSize = (vm.isMe || isSelected) ? 40 : 30;
     final double maxScroll = trackWidth - avatarSize;
+    final double topPosition = 60 + laneOffset - (avatarSize / 2);
 
     return Positioned(
       left: maxScroll * progress,
-      top: 45 +
-          offsetY -
-          (avatarSize / 2), // Centrado verticalmente respecto a la pista
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Indicador de posición (triángulo)
-          if (isMe)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Icon(Icons.arrow_drop_down,
-                  color: AppTheme.accentGold, size: 18),
-            ),
-
-          // Avatar
-          Container(
-            width: avatarSize,
-            height: avatarSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isMe
-                    ? AppTheme.accentGold
-                    : (isLeader ? Colors.amber : Colors.white24),
-                width: isMe ? 2 : 1,
+      top: topPosition,
+      child: Opacity(
+        opacity: vm.opacity,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (vm.isMe || isSelected)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Icon(Icons.arrow_drop_down,
+                    color: isSelected ? Colors.redAccent : AppTheme.accentGold, 
+                    size: 18),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: isMe
-                      ? AppTheme.accentGold.withOpacity(0.3)
-                      : Colors.black26,
-                  blurRadius: isMe ? 8 : 4,
-                  spreadRadius: 1,
-                )
-              ],
-            ),
-            child: GestureDetector(
-              onTapDown: (TapDownDetails details) async {
-                final String? targetGamePlayerId = player.gamePlayerId;
-
-                // No abrir menú si es mi avatar (por flag o por gamePlayerId).
-                if (isMe) return;
-                if (myGamePlayerId != null &&
-                    myGamePlayerId.isNotEmpty &&
-                    targetGamePlayerId == myGamePlayerId) {
-                  return;
-                }
-
-                if (targetGamePlayerId == null || targetGamePlayerId.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('No se encontró un objetivo válido')),
-                  );
-                  return;
-                }
-
-                final me = playerProvider.currentPlayer;
-                if (me == null) return;
-
-                // Basado en InventoryScreen: poderes ofensivos/sabotaje.
-                const offensiveSlugs = <String>{
-                  'freeze',
-                  'black_screen',
-                  'life_steal',
-                  'blur_screen',
-                };
-
-                final availableOffensive = me.inventory
-                    .where(offensiveSlugs.contains)
-                    .toSet()
-                    .toList();
-
-                if (availableOffensive.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('No tienes poderes ofensivos disponibles')),
-                  );
-                  return;
-                }
-
-                final items = PowerItem.getShopItems();
-                PowerItem? findItem(String slug) {
-                  try {
-                    return items.firstWhere((i) => i.id == slug);
-                  } catch (_) {
-                    return null;
-                  }
-                }
-
-                final overlayBox =
-                    Overlay.of(context).context.findRenderObject() as RenderBox;
-                final tapPosition = details.globalPosition;
-                final menuPosition = RelativeRect.fromLTRB(
-                  tapPosition.dx,
-                  tapPosition.dy,
-                  overlayBox.size.width - tapPosition.dx,
-                  overlayBox.size.height - tapPosition.dy,
-                );
-
-                final selectedPowerSlug = await showMenu<String>(
-                  context: context,
-                  position: menuPosition,
-                  color: AppTheme.cardBg,
-                  items: availableOffensive.map((slug) {
-                    final def = findItem(slug);
-                    final icon = def?.icon ?? '⚡';
-                    final name = def?.name ?? slug;
-
-                    return PopupMenuItem<String>(
-                      value: slug,
-                      height: 36,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(icon, style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+            
+            GestureDetector(
+              onTap: onTap,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: avatarSize,
+                    height: avatarSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected 
+                           ? Colors.redAccent 
+                           : (vm.isMe
+                              ? AppTheme.accentGold
+                              : (vm.isLeader ? Colors.amber : Colors.white24)),
+                        width: (vm.isMe || isSelected) ? 2 : 1,
                       ),
-                    );
-                  }).toList(),
-                );
-
-                if (selectedPowerSlug == null) return;
-
-                try {
-                  final result = await playerProvider.usePower(
-                    powerSlug: selectedPowerSlug,
-                    targetGamePlayerId: targetGamePlayerId,
-                    effectProvider: effectProvider,
-                    gameProvider: gameProvider,
-                  );
-
-                  if (!context.mounted) return;
-
-                  if (result == PowerUseResult.error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('No se pudo lanzar el sabotaje')),
-                    );
-                  } else {
-                    final suppressed =
-                        effectProvider.lastDefenseAction == DefenseAction.stealFailed;
-                    if (suppressed) return;
-                    showDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      builder: (_) => const _AttackSentDialog(),
-                    );
-                  }
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
-                }
-              },
-              child: CircleAvatar(
-                backgroundColor:
-                    isMe ? AppTheme.primaryPurple : Colors.grey[800],
-                backgroundImage: (player.avatarUrl.isNotEmpty &&
-                        player.avatarUrl.startsWith('http'))
-                    ? NetworkImage(player.avatarUrl)
-                    : null,
-                child: (player.avatarUrl.isEmpty ||
-                        !player.avatarUrl.startsWith('http'))
-                    ? Text(
-                        player.name.isNotEmpty
-                            ? player.name[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isMe ? 14 : 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-          ),
-
-          // Etiqueta de Nombre y Pistas
-          const SizedBox(height: 3),
-
-          // [VISUAL UPDATE] Etiqueta flotante con mejor legibilidad
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(
-              color: isMe ? AppTheme.accentGold : Colors.black.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(6),
-              border: isMe ? null : Border.all(color: Colors.white10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isMe
-                      ? 'TÚ'
-                      : (isLeader ? 'TOP 1' : _getShortName(player.name)),
-                  style: TextStyle(
-                    color: isMe ? Colors.black : Colors.white,
-                    fontSize: 9, // Letra pequeña pero legible
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (isMe || isLeader) ...[
-                  const SizedBox(width: 3),
-                  Text(
-                    '$pistas',
-                    style: TextStyle(
-                      color: isMe ? Colors.black87 : Colors.white70,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isSelected 
+                              ? Colors.red.withOpacity(0.5)
+                              : (vm.isMe
+                                ? AppTheme.accentGold.withOpacity(0.3)
+                                : Colors.black26),
+                          blurRadius: (vm.isMe || isSelected) ? 8 : 4,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: vm.isMe ? AppTheme.primaryPurple : Colors.grey[800],
+                      backgroundImage: (vm.data.avatarUrl != null && vm.data.avatarUrl!.startsWith('http'))
+                          ? NetworkImage(vm.data.avatarUrl!)
+                          : null,
+                      child: (vm.data.avatarUrl == null || !vm.data.avatarUrl!.startsWith('http'))
+                          ? Text(
+                              (vm.data.label?.isNotEmpty == true)
+                                  ? vm.data.label![0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: vm.isMe ? 14 : 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
-                ]
-              ],
+                  
+                  // Status Icon Overlay
+                  if (vm.statusIcon != null)
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(vm.statusIcon, color: vm.statusColor ?? Colors.white, size: avatarSize * 0.6),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            
+            const SizedBox(height: 3),
+            Container(
+               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+               decoration: BoxDecoration(
+                 color: isSelected ? Colors.red : (vm.isMe ? AppTheme.accentGold : Colors.black.withOpacity(0.7)),
+                 borderRadius: BorderRadius.circular(6),
+               ),
+               child: Row(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                   Text(
+                     vm.isMe ? 'TÚ' : (vm.isLeader ? 'TOP 1' : _getShortName(vm.data.label ?? 'J')),
+                     style: TextStyle(
+                        color: vm.isMe ? Colors.black : Colors.white,
+                        fontSize: 9, 
+                        fontWeight: FontWeight.w700,
+                     ),
+                   ),
+                   if (vm.isMe || vm.isLeader || isSelected) ...[
+                     const SizedBox(width: 3),
+                     Text(
+                       '${vm.data.progress.toInt()}', // Display count
+                       style: TextStyle(
+                         color: vm.isMe ? Colors.black87 : Colors.white70,
+                         fontSize: 9, 
+                         fontWeight: FontWeight.w500,
+                       ),
+                     )
+                   ]
+                 ],
+               ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -646,25 +421,11 @@ class RaceTrackWidget extends StatelessWidget {
     final parts = fullName.split(' ');
     if (parts.isNotEmpty) {
       String name = parts[0];
-      if (name.length > 5) name = name.substring(0, 5); // Max 5 chars
+      if (name.length > 5) name = name.substring(0, 5); 
       return name;
     }
     return fullName.substring(0, 3);
   }
-}
-
-class _RacerDisplayInfo {
-  final Player player;
-  final double laneOffset;
-  final bool isLeader;
-  final bool isMe;
-
-  _RacerDisplayInfo({
-    required this.player,
-    required this.laneOffset,
-    required this.isLeader,
-    required this.isMe,
-  });
 }
 
 class _LiveIndicator extends StatefulWidget {

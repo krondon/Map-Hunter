@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/clue.dart';
+import '../models/power_effect.dart';
 import '../../../shared/models/player.dart';
 
 class GameService {
@@ -245,6 +246,23 @@ class GameService {
     } catch (e) {
       debugPrint('Error checking race status: $e');
       return false;
+    }
+  }
+
+  /// Obtiene los poderes activos en el evento.
+  Future<List<PowerEffect>> getActivePowers(String eventId) async {
+    try {
+      final response = await _supabase
+          .from('active_powers')
+          .select('id, slug, power_slug, target_id, caster_id, expires_at, created_at')
+          .eq('event_id', eventId)
+          .gt('expires_at', DateTime.now().toUtc().toIso8601String());
+
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((e) => PowerEffect.fromMap(e)).toList();
+    } catch (e) {
+      debugPrint('Error fetching active powers: $e');
+      return [];
     }
   }
 }

@@ -1,13 +1,16 @@
-class Player {
-  final String id;
+import '../../features/game/models/i_targetable.dart';
+
+class Player implements ITargetable {
+  final String userId;
   final String name;
   final String email;
-  final String avatarUrl;
+  final String _avatarUrl;
   final String role; // 'admin' or 'user'
   String? gamePlayerId; // ID de inscripción al evento (game_players.id)
   int level;
   int experience;
   int totalXP;
+  int completedCluesCount; // Precise tracking for race
   String profession;
   int coins;
   List<String> inventory;
@@ -18,14 +21,15 @@ class Player {
   Map<String, dynamic> stats;
 
   Player({
-    required this.id,
+    required this.userId,
     required this.name,
     required this.email,
-    this.avatarUrl = '',
+    String? avatarUrl,
     this.role = 'user',
     this.level = 1,
     this.experience = 0,
     this.totalXP = 0,
+    this.completedCluesCount = 0,
     this.profession = 'Novice',
     this.coins = 300,
     List<String>? inventory,
@@ -35,7 +39,8 @@ class Player {
     this.lives = 3,
     Map<String, dynamic>? stats,
     this.gamePlayerId,
-  })  : inventory = inventory ?? [],
+  })  : _avatarUrl = avatarUrl ?? '',
+        inventory = inventory ?? [],
         stats = stats ??
             {
               'speed': 0,
@@ -45,7 +50,7 @@ class Player {
 
   factory Player.fromJson(Map<String, dynamic> json) {
     return Player(
-      id: json['id'] ?? json['user_id'] ?? '',
+      userId: json['id'] ?? json['user_id'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       avatarUrl: json['avatar_url'] ?? '',
@@ -53,6 +58,7 @@ class Player {
       level: json['level'] ?? 1,
       experience: json['experience'] ?? 0,
       totalXP: json['total_xp'] ?? 0,
+      completedCluesCount: json['completed_clues_count'] ?? json['completed_clues'] ?? json['total_xp'] ?? 0,
       profession: json['profession'] ?? 'Novice',
       coins: (json['total_coins'] is num 
           ? (json['total_coins'] as num).toInt() 
@@ -91,7 +97,7 @@ class Player {
         return PlayerStatus.banned;
       case 'pending':
         return PlayerStatus.pending;
-      case 'invisible': // <--- Agregamos este caso
+      case 'invisible': 
         return PlayerStatus.invisible;
       default:
         return PlayerStatus.active;
@@ -152,6 +158,24 @@ class Player {
       profession = 'Balanced';
     }
   }
+  
+  // --- ITargetable Implementation ---
+  
+  // Imprime gamePlayerId como ID principal para el sistema de targeting
+  @override
+  String get id => gamePlayerId ?? userId; 
+
+  @override
+  String? get label => name;
+
+  @override
+  double get progress => completedCluesCount.toDouble(); 
+
+  @override
+  bool get isSelectable => status == PlayerStatus.active || status == PlayerStatus.shielded || status == PlayerStatus.slowed;
+  
+  @override
+  String get avatarUrl => _avatarUrl;
 }
 
 enum PlayerStatus {
@@ -162,5 +186,5 @@ enum PlayerStatus {
   banned,
   pending,
   slowed,
-  invisible, // <--- Agregamos este
+  invisible, 
 }

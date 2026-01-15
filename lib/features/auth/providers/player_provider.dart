@@ -161,7 +161,7 @@ class PlayerProvider extends ChangeNotifier {
 
     try {
       final result = await _inventoryService.purchaseItem(
-        userId: _currentPlayer!.id,
+        userId: _currentPlayer!.userId,
         eventId: eventId,
         itemId: itemId,
         cost: cost,
@@ -170,7 +170,7 @@ class PlayerProvider extends ChangeNotifier {
 
       if (result.success) {
         _currentPlayer!.coins -= cost;
-        await fetchInventory(_currentPlayer!.id, eventId);
+        await fetchInventory(_currentPlayer!.userId, eventId);
         notifyListeners();
       }
       return result.success;
@@ -186,7 +186,7 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     final result = await _inventoryService.purchaseExtraLife(
-      userId: _currentPlayer!.id,
+      userId: _currentPlayer!.userId,
       eventId: eventId,
       cost: cost,
     );
@@ -284,7 +284,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> refreshProfile() async {
     if (_currentPlayer != null) {
-      await _fetchProfile(_currentPlayer!.id);
+      await _fetchProfile(_currentPlayer!.userId);
     }
   }
 
@@ -372,7 +372,7 @@ class PlayerProvider extends ChangeNotifier {
   void _startPolling(String userId) {
     // Aumentamos el tiempo a 10 segundos para reducir el LAG y carga de red.
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (_currentPlayer != null && _currentPlayer!.id == userId) {
+      if (_currentPlayer != null && _currentPlayer!.userId == userId) {
         try {
           // OPTIMIZACION: Solo verificamos el estatus, no todo el perfil ni inventario
           await _checkPlayerStatus(userId);
@@ -447,10 +447,10 @@ class PlayerProvider extends ChangeNotifier {
     if (_currentPlayer == null) return;
 
     try {
-      debugPrint("Sincronizando inventario para user: ${_currentPlayer!.id}");
+      debugPrint("Sincronizando inventario para user: ${_currentPlayer!.userId}");
 
       final result = await _inventoryService.syncRealInventory(
-        userId: _currentPlayer!.id,
+        userId: _currentPlayer!.userId,
       );
 
       if (!result.success) {
@@ -510,7 +510,7 @@ class PlayerProvider extends ChangeNotifier {
       // Llamada RPC atómica: la base de datos resta y nos devuelve el valor final.
       // Importante: en el contexto del juego por evento, necesitamos p_event_id.
       final params = <String, dynamic>{
-        'p_user_id': _currentPlayer!.id,
+        'p_user_id': _currentPlayer!.userId,
       };
       if (eventId != null && eventId.isNotEmpty) {
         params['p_event_id'] = eventId;
@@ -532,7 +532,7 @@ class PlayerProvider extends ChangeNotifier {
 
     try {
       final int newLives = await _supabase.rpc('reset_lives', params: {
-        'p_user_id': _currentPlayer!.id,
+        'p_user_id': _currentPlayer!.userId,
       });
 
       _currentPlayer!.lives = newLives;
@@ -557,7 +557,7 @@ class PlayerProvider extends ChangeNotifier {
     try {
       await _adminService.toggleBanUser(userId, ban);
 
-      final index = _allPlayers.indexWhere((p) => p.id == userId);
+      final index = _allPlayers.indexWhere((p) => p.userId == userId);
       if (index != -1) {
         _allPlayers[index].status =
             ban ? PlayerStatus.banned : PlayerStatus.active;
@@ -572,7 +572,7 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> deleteUser(String userId) async {
     try {
       await _adminService.deleteUser(userId);
-      _allPlayers.removeWhere((p) => p.id == userId);
+      _allPlayers.removeWhere((p) => p.userId == userId);
       notifyListeners();
     } catch (e) {
       debugPrint('Error deleting user: $e');
@@ -587,7 +587,7 @@ class PlayerProvider extends ChangeNotifier {
       final gp = await _supabase
           .from('game_players')
           .select('id')
-          .eq('user_id', _currentPlayer!.id)
+          .eq('user_id', _currentPlayer!.userId)
           .order('joined_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -630,7 +630,7 @@ class PlayerProvider extends ChangeNotifier {
       // ✅ CORRECCIÓN: Eliminamos 'frozen_until' porque no existe en tu tabla 'profiles'
       await _supabase.from('profiles').update({
         'status': newStatus,
-      }).eq('id', _currentPlayer!.id);
+      }).eq('id', _currentPlayer!.userId);
 
       await refreshProfile();
       debugPrint("DEBUG: Status cambiado a $newStatus");

@@ -135,7 +135,7 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
               p.gamePlayerId == casterGamePlayerId ||
               p.id == casterGamePlayerId,
           orElse: () =>
-              Player(id: '', name: 'Un rival', email: '', avatarUrl: ''),
+              Player(userId: '', name: 'Un rival', email: '', avatarUrl: ''),
         );
     return match.name.isNotEmpty ? match.name : 'Un rival';
   }

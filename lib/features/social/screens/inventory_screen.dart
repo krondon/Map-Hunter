@@ -47,7 +47,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final eventId = widget.eventId ?? gameProvider.currentEventId;
 
     if (player != null && eventId != null) {
-      await playerProvider.fetchInventory(player.id, eventId);
+      await playerProvider.fetchInventory(player.userId, eventId);
     }
   }
 

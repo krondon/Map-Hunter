@@ -25,7 +25,7 @@ class _ShopScreenState extends State<ShopScreen> {
       final player = playerProvider.currentPlayer;
       final eventId = gameProvider.currentEventId;
       if (player != null && eventId != null) {
-        await playerProvider.fetchInventory(player.id, eventId);
+        await playerProvider.fetchInventory(player.userId, eventId);
       }
     });
   }
@@ -88,7 +88,7 @@ class _ShopScreenState extends State<ShopScreen> {
     if (item.id == 'extra_life') {
       if (playerProvider.currentPlayer != null) {
         // Actualizar vidas antes de verificar
-        await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+        await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
       }
 
       if (gameProvider.lives >= 3) {
@@ -132,12 +132,12 @@ class _ShopScreenState extends State<ShopScreen> {
         // Refrescar inventario para actualizar contador (máx 3)
         if (isPower && playerProvider.currentPlayer != null) {
           await playerProvider.fetchInventory(
-              playerProvider.currentPlayer!.id, eventId);
+              playerProvider.currentPlayer!.userId, eventId);
         }
 
         // Actualizar vidas si se compró una vida
         if (item.id == 'extra_life' && playerProvider.currentPlayer != null) {
-          await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+          await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

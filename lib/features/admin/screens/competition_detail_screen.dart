@@ -1742,7 +1742,7 @@ class _RequestTile extends StatelessWidget {
         // Buscamos el estado REAL del usuario en la lista de profiles
         final userStatus = playerProvider.allPlayers
             .firstWhere((p) => p.id == request.playerId,
-                 orElse: () => Player(id: '', email: '', name: '', role: '', status: PlayerStatus.active))
+                 orElse: () => Player(userId: '', email: '', name: '', role: '', status: PlayerStatus.active))
             .status;
             
         final isBanned = userStatus == PlayerStatus.banned;

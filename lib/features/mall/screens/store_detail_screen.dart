@@ -29,7 +29,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
       final player = playerProvider.currentPlayer;
       final eventId = gameProvider.currentEventId;
       if (player != null && eventId != null) {
-        await playerProvider.fetchInventory(player.id, eventId);
+        await playerProvider.fetchInventory(player.userId, eventId);
       }
     });
   }
@@ -91,7 +91,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
     if (item.id == 'extra_life') {
       if (playerProvider.currentPlayer != null) {
         // Actualizar vidas antes de verificar
-        await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+        await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
       }
 
       if (gameProvider.lives >= 3) {
@@ -137,9 +137,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
       // fetchInventory debe llamar internamente a esa función SQL
       if (item.id != 'extra_life') {
         await playerProvider.fetchInventory(
-            playerProvider.currentPlayer!.id, eventId);
+            playerProvider.currentPlayer!.userId, eventId);
       } else {
-        await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+        await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
       }
     } catch (e) {
       // 3. Error

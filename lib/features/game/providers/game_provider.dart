@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/clue.dart';
 import '../../../shared/models/player.dart';
 import '../services/game_service.dart';
+import '../models/power_effect.dart';
 
 class GameProvider extends ChangeNotifier {
   final GameService _gameService;
@@ -19,7 +20,11 @@ class GameProvider extends ChangeNotifier {
   bool _isRaceCompleted = false;
   bool _hintActive = false;
   String? _activeHintText;
-  
+  String? _targetPlayerId; // Selected rival for targeting
+  List<PowerEffect> _activePowerEffects = [];
+
+  List<PowerEffect> get activePowerEffects => _activePowerEffects;
+
   void _setRaceCompleted(bool completed, String source) {
     if (_isRaceCompleted != completed) {
       debugPrint('--- RACE STATUS CHANGE: $completed (via $source) ---');
@@ -48,6 +53,7 @@ class GameProvider extends ChangeNotifier {
   bool get isRaceCompleted => _isRaceCompleted;
   bool get hintActive => _hintActive;
   String? get activeHintText => _activeHintText;
+  String? get targetPlayerId => _targetPlayerId;
   
   bool get hasCompletedAllClues => totalClues > 0 && completedClues == totalClues;
   
@@ -156,8 +162,10 @@ class GameProvider extends ChangeNotifier {
 
     try {
       final data = await _gameService.getLeaderboard(_currentEventId!);
-      
       _leaderboard = data;
+      
+      // Fetch active powers in parallel or sequence
+      _activePowerEffects = await _gameService.getActivePowers(_currentEventId!);
       
       // Check for victory in leaderboard data
       for (var player in _leaderboard) {
@@ -275,6 +283,11 @@ class GameProvider extends ChangeNotifier {
   void clearHint() {
     _hintActive = false;
     _activeHintText = null;
+    notifyListeners();
+  }
+
+  void setTargetPlayerId(String? id) {
+    _targetPlayerId = id;
     notifyListeners();
   }
 

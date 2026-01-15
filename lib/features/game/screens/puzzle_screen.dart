@@ -121,7 +121,7 @@ class _PuzzleScreenState extends State<PuzzleScreen>
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
     if (playerProvider.currentPlayer != null) {
-      await gameProvider.fetchLives(playerProvider.currentPlayer!.id);
+      await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
       if (gameProvider.lives <= 0) {
         if (!mounted) return;
         _showNoLivesDialog();
