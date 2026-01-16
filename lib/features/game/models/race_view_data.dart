@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 import 'i_targetable.dart';
+import 'progress_group.dart';
 
 class RaceViewData {
   final List<RacerViewModel> racers;
   final String motivationText;
   
+  /// Groups of racers at the same progress (for overlap detection)
+  final List<ProgressGroup> progressGroups;
+  
   const RaceViewData({
     required this.racers,
     required this.motivationText,
+    this.progressGroups = const [],
   });
+  
+  /// Gets the group containing the specified player ID, if any overlap exists
+  ProgressGroup? getGroupForPlayer(String playerId) {
+    final normalizedId = playerId.trim().toLowerCase();
+    for (final group in progressGroups) {
+      if (group.hasOverlap && 
+          group.memberIds.any((id) => id.trim().toLowerCase() == normalizedId)) {
+        return group;
+      }
+    }
+    return null;
+  }
 }
 
 class RacerViewModel {

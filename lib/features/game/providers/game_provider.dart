@@ -79,8 +79,16 @@ class GameProvider extends ChangeNotifier {
   String? _activeHintText;
   String? _targetPlayerId; // Selected rival for targeting
   List<PowerEffect> _activePowerEffects = [];
+  bool _isPowerActionLoading = false; // Guards against double-clicks during power execution
 
   List<PowerEffect> get activePowerEffects => _activePowerEffects;
+  bool get isPowerActionLoading => _isPowerActionLoading;
+  
+  /// Sets the power action loading state (called by PowerActionDispatcher)
+  void setPowerActionLoading(bool value) {
+    _isPowerActionLoading = value;
+    notifyListeners();
+  }
 
   void _setRaceCompleted(bool completed, String source) {
     if (_isRaceCompleted != completed) {

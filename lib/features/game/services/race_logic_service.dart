@@ -4,96 +4,98 @@ import '../../../../shared/extensions/player_extensions.dart';
 import '../models/race_view_data.dart';
 import '../models/power_effect.dart';
 import '../models/i_targetable.dart';
+import '../models/progress_group.dart';
+
+/// Maximum number of participants to display in the race track
+const int kMaxRaceParticipants = 10;
+
+/// Number of players to show ahead of the current user
+const int kPlayersAhead = 4;
+
+/// Number of players to show behind the current user  
+const int kPlayersBehind = 5;
 
 class RaceLogicService {
   /// Generates the pure view data for the race track.
   /// 
   /// Principles:
+  /// - Filtering: Max 10 participants (4 ahead + 5 behind + me)
   /// - Sorting: Based on `completed_clues_count` (totalXP).
-  /// - Filtering: Invisible rivals are excluded.
+  /// - Visibility: Invisible rivals are excluded.
+  /// - Grouping: Players at same progress are grouped.
   /// - Status: Visual states (icons, opacity) calculated here.
-  /// - Structure: Returns me, leader, ahead, behind.
   RaceViewData buildRaceView({
     required List<Player> leaderboard,
     required String currentUserId,
     required List<PowerEffect> activePowers,
     required int totalClues,
   }) {
+    // Normalize current user ID for comparison
+    final normalizedCurrentId = _normalizeId(currentUserId);
+    
     // 1. Find Me
-    final myIndex = leaderboard.indexWhere((p) => p.id == currentUserId);
+    final myIndex = leaderboard.indexWhere((p) => _normalizeId(p.id) == normalizedCurrentId);
     Player? me = myIndex != -1 ? leaderboard[myIndex] : null;
 
     // 2. Sort leaderboard explicitly by progress (completed_clues_count)
-    // We trust the API order generally, but for "Ahead/Behind" logic we want strict sort.
     final sortedPlayers = List<Player>.from(leaderboard);
     sortedPlayers.sort((a, b) {
       // Primary: Completed Clues (Descending)
       final progressCompare = b.completedCluesCount.compareTo(a.completedCluesCount);
       if (progressCompare != 0) return progressCompare;
       
-      // Secondary: Name (for stability) or Time if available
+      // Secondary: Name (for stability)
       return a.name.compareTo(b.name);
     });
     
     // Re-find me in sorted list
-    final meSortedIndex = sortedPlayers.indexWhere((p) => p.id == currentUserId);
+    final meSortedIndex = sortedPlayers.indexWhere((p) => _normalizeId(p.id) == normalizedCurrentId);
 
-    // 3. Identify Candidates (Leader, Ahead, Behind)
-    Player? leader = sortedPlayers.isNotEmpty ? sortedPlayers.first : null;
-    
-    // For Ahead/Behind, we need to skip "Invisible" players unless it's Me (I always see myself).
-    // And actually, if *I* am invisible, I see myself with opacity. 
-    // If *Rival* is invisible, I don't see them at all -> they shouldn't occupy a lane.
-    
-    // Helper to check visibility
+    // 3. Helper to check visibility
     bool isVisible(Player p) {
-      if (p.id == currentUserId) return true; // I always see myself
+      if (_normalizeId(p.id) == normalizedCurrentId) return true; // I always see myself
       // Check active powers for invisibility
       final isStealthed = activePowers.any((e) => 
-          e.targetId == p.id && // Using ITargetable.id (which is gamePlayerId)
+          _normalizeId(e.targetId) == _normalizeId(p.id) &&
           (e.powerSlug == 'invisibility' || e.powerSlug == 'stealth') && 
           !e.isExpired
       );
       if (isStealthed) return false;
-      // Also check granular status from model if mapped
       if (p.isInvisible) return false; 
       return true;
     }
 
-    // Filter sorted list for visibility from MY perspective
+    // 4. Filter for visibility
     final visibleRacers = sortedPlayers.where(isVisible).toList();
     
-    // Re-find me in visible list
-    final meVisibleIndex = visibleRacers.indexWhere((p) => p.id == currentUserId);
-    
-    Player? ahead;
-    Player? behind;
+    // 5. Apply 10-participant limit: 4 ahead + me + 5 behind
+    final filteredRacers = _filterParticipants(
+      visibleRacers: visibleRacers,
+      currentUserId: normalizedCurrentId,
+    );
 
-    if (meVisibleIndex != -1) {
-      if (meVisibleIndex > 0) ahead = visibleRacers[meVisibleIndex - 1];
-      if (meVisibleIndex < visibleRacers.length - 1) behind = visibleRacers[meVisibleIndex + 1];
-    } else {
-      // If I am not in the list (e.g. not joined yet, or somehow filtered out - shouldn't happen),
-      // we might just show last visible as ahead?
-      if (visibleRacers.isNotEmpty) ahead = visibleRacers.last;
-    }
+    // 6. Identify Leader from filtered list
+    Player? leader = filteredRacers.isNotEmpty ? filteredRacers.first : null;
 
-    // 4. Build View Models
+    // 7. Build View Models
     final List<RacerViewModel> viewModels = [];
     final Set<String> addedIds = {};
+    
+    // Find my position in filtered list for lane calculation
+    final meFilteredIndex = filteredRacers.indexWhere((p) => _normalizeId(p.id) == normalizedCurrentId);
 
     void addRacer(Player p, int lane) {
-      if (addedIds.contains(p.id)) return;
+      final normalizedId = _normalizeId(p.id);
+      if (addedIds.contains(normalizedId)) return;
 
-      final bool isMe = p.id == currentUserId;
-      final bool isLeader = (leader != null && p.id == leader.id);
+      final bool isMe = normalizedId == normalizedCurrentId;
+      final bool isLeader = (leader != null && _normalizeId(p.id) == _normalizeId(leader.id));
       
       // Calculate visual state
       double opacity = 1.0;
       if (isMe) {
-        // If I am invisible, I see myself semi-transparent
         final amInvisible = activePowers.any((e) => 
-            e.targetId == p.gamePlayerId && 
+            _normalizeId(e.targetId) == _normalizeId(p.gamePlayerId ?? p.id) && 
             (e.powerSlug == 'invisibility' || e.powerSlug == 'stealth') && 
             !e.isExpired
         );
@@ -103,8 +105,10 @@ class RaceLogicService {
       IconData? statusIcon;
       Color? statusColor;
       
-      // Check for debuffs on this player (using ITargetable.id which is gamePlayerId)
-      final activeDebuffs = activePowers.where((e) => e.targetId == p.id && !e.isExpired).toList();
+      // Check for debuffs on this player
+      final activeDebuffs = activePowers.where((e) => 
+          _normalizeId(e.targetId) == normalizedId && !e.isExpired
+      ).toList();
       
       // Priority icons
       if (activeDebuffs.any((e) => e.powerSlug == 'freeze')) {
@@ -114,7 +118,6 @@ class RaceLogicService {
         statusIcon = Icons.visibility_off;
         statusColor = Colors.black;
       } else if (p.status == PlayerStatus.shielded) {
-        // Shield might be a buff, verify generic status
         statusIcon = Icons.shield;
         statusColor = Colors.indigoAccent;
       }
@@ -124,49 +127,128 @@ class RaceLogicService {
         lane: lane,
         isMe: isMe,
         isLeader: isLeader,
-        isTargetable: isVisible(p) && !isMe, // Can't target self, can't target invisible (already filtered)
+        isTargetable: isVisible(p), // Can target self (for defense) and visible rivals
         opacity: opacity,
         statusIcon: statusIcon,
         statusColor: statusColor,
       ));
       
-      addedIds.add(p.id);
+      addedIds.add(normalizedId);
     }
 
-    // Order of addition matters for Z-Index (Stack). Last added is ON TOP.
-    // We want Me to be on top.
-    
-    // Rivales
-    if (leader != null && leader.id != currentUserId) {
-        // If leader is invisible to me, they wouldn't be in visibleRacers, but let's check explicit object
-        if (isVisible(leader)) addRacer(leader, -1);
+    // Add racers with lane calculation based on position relative to me
+    for (int i = 0; i < filteredRacers.length; i++) {
+      final player = filteredRacers[i];
+      int lane;
+      
+      if (meFilteredIndex == -1) {
+        // I'm not in the list, treat all as ahead
+        lane = -1;
+      } else if (i < meFilteredIndex) {
+        lane = -1; // Ahead
+      } else if (i > meFilteredIndex) {
+        lane = 1;  // Behind
+      } else {
+        lane = 0;  // Me
+      }
+      
+      addRacer(player, lane);
     }
     
-    if (ahead != null && ahead.id != currentUserId) addRacer(ahead, -1);
-    if (behind != null && behind.id != currentUserId) addRacer(behind, 1);
-    
-    // Me (Last for top Z-Index)
-    if (me != null) addRacer(me, 0);
-    else {
-        // Dummy me if not in leaderboard yet
-        // We need a dummy player object
-        final dummyMe = Player(userId: currentUserId, name: 'Tú', email: '', gamePlayerId: currentUserId); 
-        // Logic might need gamePlayerId from provider but we only have ID here. 
-        // If 'me' was null, it means I am not in leaderboard.
-        // We will skip rendering me if I am not in leaderboard data? 
-        // Or create a temporary one.
-        // Better to skip if data invalid, but usually GameProvider has user.
+    // If me was not in filtered list but exists, add them
+    if (me != null && !addedIds.contains(normalizedCurrentId)) {
+      addRacer(me, 0);
     }
 
-    // Motivation Text
+    // 8. Generate Progress Groups for UI overlap detection
+    final progressGroups = _buildProgressGroups(viewModels, totalClues);
+
+    // 9. Motivation Text
     String motivation = "";
     if (me != null) {
       if (me.completedCluesCount == 0) motivation = "¡La carrera comienza! 🏃💨";
       else if (me.completedCluesCount >= totalClues && totalClues > 0) motivation = "¡META ALCANZADA! 🎉";
-      else if (leader != null && me.id == leader.id) motivation = "¡Vas LÍDER! 🏆";
+      else if (leader != null && _normalizeId(me.id) == _normalizeId(leader.id)) motivation = "¡Vas LÍDER! 🏆";
       else motivation = "Pista ${me.completedCluesCount} de $totalClues. ¡Sigue así! 🚀";
     }
 
-    return RaceViewData(racers: viewModels, motivationText: motivation);
+    return RaceViewData(
+      racers: viewModels, 
+      motivationText: motivation,
+      progressGroups: progressGroups,
+    );
+  }
+
+  /// Filters participants to max 10: 4 ahead + current user + 5 behind
+  List<Player> _filterParticipants({
+    required List<Player> visibleRacers,
+    required String currentUserId,
+  }) {
+    if (visibleRacers.length <= kMaxRaceParticipants) {
+      return visibleRacers;
+    }
+
+    final meIndex = visibleRacers.indexWhere((p) => _normalizeId(p.id) == currentUserId);
+    
+    if (meIndex == -1) {
+      // User not in list, return first 10
+      return visibleRacers.take(kMaxRaceParticipants).toList();
+    }
+
+    // Calculate range: up to 4 ahead, up to 5 behind
+    int startIndex = (meIndex - kPlayersAhead).clamp(0, visibleRacers.length - 1);
+    int endIndex = (meIndex + kPlayersBehind + 1).clamp(0, visibleRacers.length);
+    
+    // Adjust if we have room on one side but not the other
+    final aheadCount = meIndex - startIndex;
+    final behindCount = endIndex - meIndex - 1;
+    
+    if (aheadCount < kPlayersAhead && behindCount < visibleRacers.length - meIndex - 1) {
+      // Room to expand behind
+      final extraBehind = kPlayersAhead - aheadCount;
+      endIndex = (endIndex + extraBehind).clamp(0, visibleRacers.length);
+    }
+    
+    if (behindCount < kPlayersBehind && aheadCount < meIndex) {
+      // Room to expand ahead
+      final extraAhead = kPlayersBehind - behindCount;
+      startIndex = (startIndex - extraAhead).clamp(0, visibleRacers.length - 1);
+    }
+    
+    // Ensure max 10 total
+    final result = visibleRacers.sublist(startIndex, endIndex);
+    if (result.length > kMaxRaceParticipants) {
+      // Trim from behind if over limit
+      return result.take(kMaxRaceParticipants).toList();
+    }
+    
+    return result;
+  }
+
+  /// Groups racers by their integer progress count for overlap detection
+  List<ProgressGroup> _buildProgressGroups(List<RacerViewModel> racers, int totalClues) {
+    final Map<int, List<RacerViewModel>> grouped = {};
+    
+    for (final racer in racers) {
+      final progressCount = racer.data.progress.toInt();
+      grouped.putIfAbsent(progressCount, () => []).add(racer);
+    }
+    
+    return grouped.entries.map((entry) {
+      final progress = totalClues > 0 ? entry.key / totalClues : 0.0;
+      return ProgressGroup(
+        progress: progress.clamp(0.0, 1.0),
+        progressCount: entry.key,
+        memberIds: entry.value.map((r) => r.data.id).toList(),
+        members: entry.value,
+      );
+    }).toList()
+      ..sort((a, b) => b.progressCount.compareTo(a.progressCount));
+  }
+
+  /// Normalizes an ID for consistent comparison (handles UUID type mismatches)
+  String _normalizeId(String? id) {
+    if (id == null) return '';
+    return id.toString().trim().toLowerCase();
   }
 }

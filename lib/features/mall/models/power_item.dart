@@ -11,6 +11,35 @@ enum PowerType {
   stealth, // Específico para invisibilidad
 }
 
+/// Extension to classify powers as Attack or Defense for ISP filtering.
+extension PowerTypeClassification on PowerType {
+  /// Returns true for offensive powers (used against rivals)
+  bool get isAttack {
+    switch (this) {
+      case PowerType.debuff:
+      case PowerType.blind:
+      case PowerType.freeze:
+      case PowerType.lifeSteal:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /// Returns true for defensive/buff powers (used on self)
+  bool get isDefense {
+    switch (this) {
+      case PowerType.buff:
+      case PowerType.shield:
+      case PowerType.utility:
+      case PowerType.stealth:
+        return true;
+      default:
+        return false;
+    }
+  }
+}
+
 class PowerItem {
   final String id;
   final String name;
