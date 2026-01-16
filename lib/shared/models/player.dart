@@ -7,6 +7,7 @@ class Player implements ITargetable {
   final String _avatarUrl;
   final String role; // 'admin' or 'user'
   String? gamePlayerId; // ID de inscripción al evento (game_players.id)
+  String? currentEventId; // ID del evento actual en el que está jugando
   int level;
   int experience;
   int totalXP;
@@ -39,6 +40,7 @@ class Player implements ITargetable {
     this.lives = 3,
     Map<String, dynamic>? stats,
     this.gamePlayerId,
+    this.currentEventId,
   })  : _avatarUrl = avatarUrl ?? '',
         inventory = inventory ?? [],
         stats = stats ??
@@ -201,6 +203,7 @@ class Player implements ITargetable {
     int? lives,
     Map<String, dynamic>? stats,
     String? gamePlayerId,
+    String? currentEventId,
   }) {
     return Player(
       userId: userId ?? this.userId,
@@ -221,6 +224,7 @@ class Player implements ITargetable {
       lives: lives ?? this.lives,
       stats: stats ?? this.stats,
       gamePlayerId: gamePlayerId ?? this.gamePlayerId,
+      currentEventId: currentEventId ?? this.currentEventId,
     );
   }
 }

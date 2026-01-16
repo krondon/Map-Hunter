@@ -73,12 +73,13 @@ class TreasureHuntApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) {
+        Provider<AdminService>(create: (_) => AdminService(supabaseClient: Supabase.instance.client)),
+        ChangeNotifierProvider(create: (context) {
           final supabase = Supabase.instance.client;
           return PlayerProvider(
             supabaseClient: supabase,
             authService: AuthService(supabaseClient: supabase),
-            adminService: AdminService(supabaseClient: supabase),
+            adminService: Provider.of<AdminService>(context, listen: false),
             inventoryService: InventoryService(supabaseClient: supabase),
             powerService: PowerService(supabaseClient: supabase),
           );

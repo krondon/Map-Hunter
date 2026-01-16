@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,6 +15,7 @@ import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../game/providers/connectivity_provider.dart';
 import '../../game/providers/game_provider.dart';
+import 'dart:async'; // For TimeoutException
 
 
 class LoginScreen extends StatefulWidget {
@@ -76,7 +78,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Verificar estado del usuario
         final player = playerProvider.currentPlayer;
-        if (player == null) return;
+        if (player == null) {
+          if (playerProvider.banMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(playerProvider.banMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+            playerProvider.clearBanMessage();
+          }
+          return;
+        }
 
         // Administradores van directamente al Dashboard
         if (player.role == 'admin') {
@@ -95,7 +108,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // === GATEKEEPER: Verificar estado del usuario respecto a eventos ===
         debugPrint('LoginScreen: Checking user event status...');
-        final statusResult = await gameProvider.checkUserEventStatus(player.userId);
+        final statusResult = await gameProvider
+            .checkUserEventStatus(player.userId)
+            .timeout(const Duration(seconds: 10), onTimeout: () {
+              throw TimeoutException('La verificación de estado tardó demasiado');
+            });
         debugPrint('LoginScreen: User status is ${statusResult.status}');
 
         if (!mounted) return;

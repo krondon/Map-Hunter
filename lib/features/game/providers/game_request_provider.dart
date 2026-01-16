@@ -117,18 +117,62 @@ void clearLocalRequests() {
     }
   }
 
-  Future<bool> isPlayerParticipant(String playerId, String eventId) async {
+  /// Returns a map with 'isParticipant' (bool) and 'status' (String?)
+  /// to check both participation and ban status
+  Future<Map<String, dynamic>> isPlayerParticipant(String playerId, String eventId) async {
     try {
       final data = await _supabase
           .from('game_players')
-          .select()
+          .select('status')
           .eq('user_id', playerId)
           .eq('event_id', eventId)
           .maybeSingle();
           
-      return data != null;
+      if (data != null) {
+        return {
+          'isParticipant': true,
+          'status': data['status'] as String?,
+        };
+      }
+      return {'isParticipant': false, 'status': null};
     } catch (e) {
-      return false;
+      debugPrint('Error checking player participation: $e');
+      return {'isParticipant': false, 'status': null};
+    }
+  }
+
+  /// Get player status for a specific event
+  Future<String?> getPlayerStatus(String playerId, String eventId) async {
+    try {
+      final data = await _supabase
+          .from('game_players')
+          .select('status')
+          .eq('user_id', playerId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+          
+      return data?['status'] as String?;
+    } catch (e) {
+      debugPrint('Error getting player status: $e');
+      return null;
+    }
+  }
+
+  /// Obtiene el estado específico del jugador en la competencia (active, banned, etc.)
+  Future<String?> getGamePlayerStatus(String playerId, String eventId) async {
+    try {
+      final data = await _supabase
+          .from('game_players')
+          .select('status')
+          .eq('user_id', playerId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+          
+      if (data == null) return null;
+      return data['status'] as String?;
+    } catch (e) {
+      debugPrint('Error getting player status: $e');
+      return null;
     }
   }
 

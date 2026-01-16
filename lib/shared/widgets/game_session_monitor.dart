@@ -12,6 +12,9 @@ class GameSessionMonitor extends StatefulWidget {
 
   const GameSessionMonitor({super.key, required this.child});
 
+  // Static constant to avoid rebuilds of the child if not needed
+  static final GlobalKey<NavigatorState> monitorNavigatorKey = GlobalKey<NavigatorState>();
+
   @override
   State<GameSessionMonitor> createState() => _GameSessionMonitorState();
 }
@@ -26,10 +29,14 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     
     final currentGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
+    
+    debugPrint('🕒 GameSessionMonitor: Checking session...');
+    debugPrint('   - Last ID: $_lastGamePlayerId');
+    debugPrint('   - Current ID: $currentGamePlayerId');
 
     // Detectar transición de TENER inscripción a NO TENERLA
     if (_lastGamePlayerId != null && currentGamePlayerId == null) {
-      debugPrint("GameSessionMonitor: Pérdida de sesión de juego detectada.");
+      debugPrint("🕒 GameSessionMonitor: 🚫 BAN DETECTADO. Expulsando al jugador...");
       
       // Si el juego estaba activo localmente, lo limpiamos
       if (gameProvider.isGameActive || gameProvider.currentEventId != null) {
@@ -61,7 +68,7 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "El evento ha sido reiniciado por un administrador.",
+                    "Has sido baneado de la competencia.",
                     style: TextStyle(color: Colors.white),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; 
+import 'package:treasure_hunt_rpg/features/admin/services/admin_service.dart';
 import '../../game/models/event.dart';
 import '../../game/models/clue.dart';
 import '../../game/providers/event_provider.dart';
@@ -77,6 +78,26 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController(); 
   Timer? _debounce; 
+  Map<String, String> _playerStatuses = {}; // Cache para estados locales de baneo
+  RealtimeChannel? _gamePlayersChannel; // Channel for realtime updates
+
+  Future<void> _fetchPlayerStatuses([AdminService? adminService]) async {
+    debugPrint('CompetitionDetailScreen: _fetchPlayerStatuses CALLED for event ${widget.event.id}');
+    try {
+      // Use provided adminService or get from context
+      final service = adminService ?? Provider.of<AdminService>(context, listen: false);
+      final statuses = await service.fetchEventParticipantStatuses(widget.event.id);
+      debugPrint('CompetitionDetailScreen: Fetched ${statuses.length} player statuses: $statuses');
+      if (mounted) {
+        setState(() {
+          _playerStatuses = statuses;
+        });
+        debugPrint('CompetitionDetailScreen: UI updated with new statuses');
+      }
+    } catch (e) {
+      debugPrint("Error loading player statuses: $e");
+    }
+  } 
 
   Future<void> _fetchLeaderboard() async {
     try {
@@ -128,6 +149,49 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
       Provider.of<StoreProvider>(context, listen: false).fetchStores(widget.event.id);
       // Cargar pistas
       Provider.of<EventProvider>(context, listen: false).fetchCluesForEvent(widget.event.id);
+      _fetchPlayerStatuses(); // Cargar estados locales
+
+      // Capture AdminService before subscription to avoid context issues
+      final adminService = Provider.of<AdminService>(context, listen: false);
+      
+      // Subscribe to game_players changes for realtime UI updates
+      debugPrint('🔔 CompetitionDetailScreen: Setting up realtime subscription for event ${widget.event.id}');
+      
+      try {
+        _gamePlayersChannel = Supabase.instance.client
+          .channel('game_players_${widget.event.id}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'game_players',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'event_id',
+              value: widget.event.id,
+            ),
+            callback: (payload) {
+              debugPrint('🔔 CompetitionDetailScreen: REALTIME UPDATE received!');
+              debugPrint('   - Event type: ${payload.eventType}');
+              debugPrint('   - Table: ${payload.table}');
+              debugPrint('   - New record: ${payload.newRecord}');
+              debugPrint('   - Old record: ${payload.oldRecord}');
+              
+              if (mounted) {
+                _fetchPlayerStatuses(adminService);
+              }
+            },
+          )
+          .subscribe((status, error) {
+            debugPrint('🔔 CompetitionDetailScreen: Subscription status changed: $status');
+            if (error != null) {
+              debugPrint('🔔 CompetitionDetailScreen: Subscription ERROR: $error');
+            }
+          });
+        
+        debugPrint('🔔 CompetitionDetailScreen: Channel created successfully');
+      } catch (e) {
+        debugPrint('🔔 CompetitionDetailScreen: Failed to setup subscription: $e');
+      }
     });
   }
 
@@ -137,6 +201,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     _locationController.dispose();
     _searchController.dispose();
     _debounce?.cancel();
+    _gamePlayersChannel?.unsubscribe(); // Unsubscribe from realtime channel
     super.dispose();
   }
 
@@ -908,10 +973,10 @@ Future<bool> _showConfirmDialog() async {
         }
 
         // --- SORT LOGIC FIX ---
-        // 0. Identify banned players
-        final bannedIds = playerProvider.allPlayers
-           .where((p) => p.status == PlayerStatus.banned)
-           .map((p) => p.id)
+        // 0. Identify banned/suspended players (USING LOCAL STATUS NOW)
+        final bannedIds = _playerStatuses.entries
+           .where((e) => e.value == 'banned' || e.value == 'suspended')
+           .map((e) => e.key)
            .toSet();
 
         // 1. Build a 'virtual' leaderboard excluding banned players for ranking calculation
@@ -986,7 +1051,11 @@ Future<bool> _showConfirmDialog() async {
             if (pending.isNotEmpty) ...[
               const Text("Solicitudes Pendientes", style: TextStyle(color: AppTheme.secondaryPink, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              ...pending.map((req) => RequestTile(request: req)),
+              ...pending.map((req) => RequestTile(
+                request: req, 
+                currentStatus: _playerStatuses[req.playerId], // Pass local status
+                onBanToggled: () => _fetchPlayerStatuses(), // Refresh on ban/unban
+              )),
               const SizedBox(height: 20),
             ],
             
@@ -1016,6 +1085,8 @@ Future<bool> _showConfirmDialog() async {
                    isReadOnly: true,
                    rank: index != -1 ? index + 1 : null, // Pass null rank if banned or unranked
                    progress: progress,
+                   currentStatus: _playerStatuses[req.playerId], // Local status
+                   onBanToggled: () => _fetchPlayerStatuses(), // Refresh on ban/unban
                  );
               }).toList(),
           ],

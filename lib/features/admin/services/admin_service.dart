@@ -48,6 +48,52 @@ class AdminService {
     }
   }
 
+  Future<void> toggleGameBanUser(String userId, String eventId, bool ban) async {
+    debugPrint('AdminService: toggleGameBanUser (RPC-V2-SUSPENDED) CALLED. User: $userId, Event: $eventId, Ban: $ban');
+    try {
+      // Usamos la versión V2 NUCLEAR que desactiva triggers
+      final success = await _supabase.rpc<bool>(
+        'toggle_event_member_ban_v2',
+        params: {
+          'p_user_id': userId,
+          'p_event_id': eventId,
+          // CAMBIO CLAVE: Usamos 'suspended' en lugar de 'banned'
+          'p_new_status': ban ? 'suspended' : 'active',
+        },
+      );
+       
+      debugPrint('AdminService: toggleGameBanUser RPC Result: $success');
+      
+      if (!success) {
+        throw Exception("La función RPC retornó false (no se encontró el registro o falló)");
+      }
+    } catch (e) {
+      debugPrint('AdminService: Error toggling game ban via RPC: $e');
+      rethrow;
+    }
+  }
+  
+  /// Obtiene un mapa de {userId: status} para todos los participantes de un evento.
+  Future<Map<String, String>> fetchEventParticipantStatuses(String eventId) async {
+    try {
+      final data = await _supabase
+          .from('game_players')
+          .select('user_id, status')
+          .eq('event_id', eventId);
+          
+      final Map<String, String> result = {};
+      for (var row in data) {
+        if (row['user_id'] != null && row['status'] != null) {
+          result[row['user_id'] as String] = row['status'] as String;
+        }
+      }
+      return result;
+    } catch (e) {
+      debugPrint('AdminService: Error fetching event statuses: $e');
+      return {};
+    }
+  }
+
   /// Elimina un usuario del sistema.
   /// 
   /// [userId] - ID del usuario a eliminar.

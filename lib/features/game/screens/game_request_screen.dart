@@ -13,6 +13,7 @@ import '../models/game_request.dart';
 import '../models/event.dart'; // Import GameEvent
 import '../../layouts/screens/home_screen.dart';
 import '../../auth/screens/login_screen.dart';
+import './scenarios_screen.dart';
 
 class GameRequestScreen extends StatefulWidget {
   final String? eventId;
@@ -33,12 +34,15 @@ class _GameRequestScreenState extends State<GameRequestScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  RealtimeChannel? _subscription;
+  RealtimeChannel? _subscriptionRequest;
+  RealtimeChannel? _subscriptionPlayer;
   Timer? _pollingTimer;
 
   
   GameRequest? _gameRequest;
+
   bool _isLoading = true;
+  bool _isSubmitting = false; // Estado para el botón de envío
 
   @override
   void initState() {
@@ -74,17 +78,18 @@ class _GameRequestScreenState extends State<GameRequestScreen>
 
   void _setupRealtimeSubscription() {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final userId = playerProvider.currentPlayer?.id;
+    final userId = playerProvider.currentPlayer?.userId;
     final eventId = widget.eventId;
 
     if (userId == null || eventId == null) return;
 
     final supabase = Supabase.instance.client;
 
-    _subscription = supabase
+    // 1. Escuchar cambios en la solicitud (status update)
+    _subscriptionRequest = supabase
         .channel('game_requests_updates_$userId')
         .onPostgresChanges(
-          event: PostgresChangeEvent.update,
+          event: PostgresChangeEvent.all, // Escuchar INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'game_requests',
           filter: PostgresChangeFilter(
@@ -93,10 +98,31 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             value: userId,
           ),
           callback: (payload) {
-            final newRecord = payload.newRecord;
-            if (newRecord['event_id'] == eventId) {
-              _checkApprovalStatus();
-            }
+             debugPrint('[REALTIME] Request Change Detected: ${payload.eventType}');
+             // Siempre verificar estado, sin importar el tipo de cambio
+             _checkApprovalStatus();
+          },
+        )
+        .subscribe();
+        
+    // 2. Escuchar INSERCIONES en game_players (Aprobación definitiva)
+    _subscriptionPlayer = supabase
+        .channel('game_players_inserts_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'game_players',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+             debugPrint('[REALTIME] Player Insert Detected!');
+             final newRecord = payload.newRecord;
+             if (newRecord['event_id'] == eventId) {
+                _checkApprovalStatus();
+             }
           },
         )
         .subscribe();
@@ -106,14 +132,36 @@ class _GameRequestScreenState extends State<GameRequestScreen>
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final requestProvider =
         Provider.of<GameRequestProvider>(context, listen: false);
-    final userId = playerProvider.currentPlayer?.id;
+    final userId = playerProvider.currentPlayer?.userId;
     final eventId = widget.eventId;
 
     if (userId != null && eventId != null) {
       try {
         final request =
             await requestProvider.getRequestForPlayer(userId, eventId);
+        // 2. VERIFICACIÓN CRÍTICA: ¿Ya es participante? (User game_players table)
+        final participantData = await requestProvider.isPlayerParticipant(userId, eventId);
+        final isParticipant = participantData['isParticipant'] as bool;
+        final playerStatus = participantData['status'] as String?;
+
         if (mounted) {
+           // Verificar si está suspendido/baneado
+           if (isParticipant && (playerStatus == 'suspended' || playerStatus == 'banned')) {
+             debugPrint('🚫 GameRequestScreen: User is BANNED, redirecting to ScenariosScreen');
+             Navigator.of(context).pushReplacement(
+               MaterialPageRoute(builder: (_) => ScenariosScreen()),
+             );
+             return;
+           }
+           
+           // Si ya es participante ACTIVO o está aprobado -> REDIRECCIÓN INMEDIATA
+           if ((request != null && request.isApproved) || (isParticipant && playerStatus == 'active')) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
+              );
+              return; 
+           }
+
           setState(() {
             _gameRequest = request;
             _isLoading = false;
@@ -221,12 +269,24 @@ class _GameRequestScreenState extends State<GameRequestScreen>
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final requestProvider =
         Provider.of<GameRequestProvider>(context, listen: false);
-    final userId = playerProvider.currentPlayer?.id;
+    final userId = playerProvider.currentPlayer?.userId;
     final eventId = widget.eventId;
 
     if (userId != null && eventId != null) {
+      // 1. Obtener solicitud (si existe)
       final request =
           await requestProvider.getRequestForPlayer(userId, eventId);
+      
+      // 2. VERIFICACIÓN CRÍTICA: ¿Ya es participante? (User game_players table)
+      // Esto cubre el caso donde la solicitud se borra al aprobarse o el realtime falla
+      final participantData = await requestProvider.isPlayerParticipant(userId, eventId);
+      final isParticipant = participantData['isParticipant'] as bool;
+      final playerStatus = participantData['status'] as String?;
+
+      debugPrint('🔍 GameRequestScreen: Checking approval status');
+      debugPrint('   - isParticipant: $isParticipant');
+      debugPrint('   - playerStatus: $playerStatus');
+      debugPrint('   - request: ${request?.toJson()}');
 
       if (mounted) {
         setState(() {
@@ -234,17 +294,49 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         });
       }
 
-      if (request != null && request.isApproved && mounted) {
+      // 3. VERIFICAR SI ESTÁ SUSPENDIDO/BANEADO
+      if (isParticipant && (playerStatus == 'suspended' || playerStatus == 'banned')) {
+        if (!mounted) return;
+        
         _pollingTimer?.cancel(); // Detener polling
+        
+        debugPrint('🚫 GameRequestScreen: User is BANNED from this event!');
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Tu solicitud ha sido aprobada!'),
-            backgroundColor: Colors.green,
+            content: Text('Has sido suspendido de esta competencia. No puedes participar.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
           ),
         );
+        
+        // Redirigir a ScenariosScreen
         Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
-      );
+          MaterialPageRoute(builder: (_) => ScenariosScreen()),
+        );
+        return;
+      }
+
+      // 4. Si está aprobado O ya es participante ACTIVO, entrar al juego
+      if ((request != null && request.isApproved) || (isParticipant && playerStatus == 'active')) {
+        if (!mounted) return;
+        
+        _pollingTimer?.cancel(); // Detener polling
+        
+        debugPrint('✅ GameRequestScreen: User approved, entering game');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Tu solicitud ha sido aprobada! Entrando al juego...'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        // Navegación segura
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
+        );
       }
     }
   }
@@ -252,7 +344,8 @@ class _GameRequestScreenState extends State<GameRequestScreen>
   @override
   void dispose() {
     _pollingTimer?.cancel();
-    _subscription?.unsubscribe();
+    _subscriptionRequest?.unsubscribe();
+    _subscriptionPlayer?.unsubscribe();
     _animationController.dispose();
     super.dispose();
   }
@@ -263,6 +356,8 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         Provider.of<GameRequestProvider>(context, listen: false);
 
     if (playerProvider.currentPlayer != null && widget.eventId != null) {
+      setState(() => _isSubmitting = true); // Activar loading
+      
       try {
         debugPrint('[UI] Attempting to submit request...');
         
@@ -277,7 +372,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
           case SubmitRequestResult.submitted:
             // Refresh data para mostrar la nueva solicitud
             final request = await requestProvider.getRequestForPlayer(
-                playerProvider.currentPlayer!.id, widget.eventId!);
+                playerProvider.currentPlayer!.userId, widget.eventId!);
 
             if (!mounted) return;
             
@@ -335,7 +430,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             
             // Refresh para mostrar la solicitud existente en la UI
             final request = await requestProvider.getRequestForPlayer(
-                playerProvider.currentPlayer!.id, widget.eventId!);
+                playerProvider.currentPlayer!.userId, widget.eventId!);
             if (!mounted) return;
             setState(() {
               _gameRequest = request;
@@ -410,6 +505,8 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             backgroundColor: Colors.red,
           ),
         );
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false); // Desactivar loading
       }
     }
   }
@@ -421,7 +518,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
 
     if (playerProvider.currentPlayer != null && widget.eventId != null) {
       final request = await requestProvider.getRequestForPlayer(
-          playerProvider.currentPlayer!.id, widget.eventId!);
+          playerProvider.currentPlayer!.userId, widget.eventId!);
 
       if (mounted) {
         setState(() {
@@ -798,24 +895,37 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                       ],
                                     ),
                                     child: ElevatedButton(
-                                      onPressed: () async {
-                                        await _handleRequestJoin();
-                                      },
+                                      onPressed: _isSubmitting
+                                          ? null // Disable while submitting
+                                          : () async {
+                                              await _handleRequestJoin();
+                                            },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.transparent,
                                         shadowColor: Colors.transparent,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'ENVIAR SOLICITUD',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
+                                      child: _isSubmitting
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'ENVIAR SOLICITUD',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
                                     ),
                                   ),
                                 )

@@ -44,9 +44,9 @@ serve(async (req) => {
     if (profileError || profile?.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin role required' }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -175,7 +175,7 @@ serve(async (req) => {
         .from("clues")
         .select("id")
         .eq("event_id", eventId);
-      
+
       const clueIds = clues?.map(c => c.id) || [];
 
       // 2. Obtener IDs de game_players para este evento (para borrar poderes si no hay cascada)
@@ -183,7 +183,7 @@ serve(async (req) => {
         .from("game_players")
         .select("id")
         .eq("event_id", eventId);
-      
+
       const gpIds = gps?.map(g => g.id) || [];
 
       // 3. Borrar progreso de pistas

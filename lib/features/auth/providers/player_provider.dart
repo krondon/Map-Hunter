@@ -29,6 +29,8 @@ class PlayerProvider extends ChangeNotifier {
 
   bool _isProcessing = false;
   bool _isLoggingOut = false;
+  bool _isDisposed = false; // Flag para evitar notifyListeners tras dispose
+  StreamSubscription? _gamePlayersSubscription; // Nueva suscripción por stream para baneos de competencia
 
   Player? get currentPlayer => _currentPlayer;
   List<Player> get allPlayers => _allPlayers;
@@ -99,6 +101,9 @@ class PlayerProvider extends ChangeNotifier {
     _pollingTimer?.cancel();
     await _profileSubscription?.cancel();
     _profileSubscription = null;
+    
+    await _gamePlayersSubscription?.cancel();
+    _gamePlayersSubscription = null;
 
     await _authService.logout();
     _currentPlayer = null;
@@ -303,33 +308,54 @@ class PlayerProvider extends ChangeNotifier {
           await _supabase.from('profiles').select().eq('id', userId).single();
 
       // 2. Obtener GamePlayer y Vidas
+      // Si tenemos eventId explícito, úsalo. Si no, usa el currentEventId almacenado
+      final targetEventId = eventId ?? _currentPlayer?.currentEventId;
+      
       final baseQuery = _supabase
           .from('game_players')
-          .select('id, lives')
+          .select('id, lives, status, event_id')
           .eq('user_id', userId);
       
       Map<String, dynamic>? gpData;
       
-      if (eventId != null) {
-        gpData = await baseQuery.eq('event_id', eventId).maybeSingle();
+      if (targetEventId != null) {
+        // Buscar específicamente para este evento
+        gpData = await baseQuery.eq('event_id', targetEventId).maybeSingle();
       } else {
+        // Si no hay evento específico, tomar el más reciente
         gpData = await baseQuery.order('joined_at', ascending: false).limit(1).maybeSingle();
       }
 
       List<String> realInventory = [];
       int actualLives = 3;
       String? gamePlayerId;
+      String? fetchedEventId;
 
       if (gpData != null) {
-        actualLives = gpData['lives'] ?? 3;
-        final String gpId = gpData['id'];
-        gamePlayerId = gpId;
+        fetchedEventId = gpData['event_id'] as String?;
+        
+        // Check if user is suspended/banned from THIS SPECIFIC event
+        final status = gpData['status'] as String?;
+        if (status == 'suspended' || status == 'banned') {
+          debugPrint('PlayerProvider: User is $status from event $fetchedEventId. Invalidating session.');
+          // Don't set gamePlayerId - this will trigger GameSessionMonitor to kick the user
+          gpData = null;
+          fetchedEventId = null;
+        } else {
+          actualLives = gpData['lives'] ?? 3;
+          final String gpId = gpData['id'];
+          gamePlayerId = gpId;
+        }
+      }
+
+      // Only fetch inventory if we have a valid, non-suspended game player
+      if (gpData != null && gamePlayerId != null) {
 
         // 3. Obtener Inventario real de player_powers
         final List<dynamic> powersData = await _supabase
             .from('player_powers')
             .select('quantity, powers!inner(slug)')
-            .eq('game_player_id', gpId)
+            .eq('game_player_id', gamePlayerId!)
             .gt('quantity', 0);
 
         for (var item in powersData) {
@@ -349,6 +375,7 @@ class PlayerProvider extends ChangeNotifier {
       newPlayer.lives = actualLives;
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;
+      newPlayer.currentEventId = fetchedEventId; // Store the event ID
 
       // --- CAMBIO: Verificar baneo ANTES de notificar un estado "válido" ---
       if (newPlayer.status == PlayerStatus.banned) {
@@ -360,6 +387,7 @@ class PlayerProvider extends ChangeNotifier {
       }
 
       _currentPlayer = newPlayer;
+      debugPrint('🔍 PlayerProvider: notifyListeners() called. gamePlayerId: ${_currentPlayer?.gamePlayerId}');
       notifyListeners();
 
       // --- NUEVO: Verificar penalizaciones pendientes de desconexiones previas ---
@@ -367,6 +395,9 @@ class PlayerProvider extends ChangeNotifier {
 
       // ASEGURAR que los listeners estén corriendo pero SOLAMENTE UNA VEZ
       _startListeners(userId);
+
+      // --- NUEVO: Suscripción en tiempo real (STREAM) para el jugador actual ---
+      _subscribeToGamePlayers(userId);
     } catch (e) {
       debugPrint('Error fetching profile: $e');
     }
@@ -383,8 +414,8 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void _startPolling(String userId) {
-    // Aumentamos el tiempo a 10 segundos para reducir el LAG y carga de red.
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    // Aumentamos el tiempo a 5 segundos para reducir el LAG pero ser más reactivos si Realtime falla.
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (_currentPlayer != null && _currentPlayer!.userId == userId) {
         try {
           // OPTIMIZACION: Solo verificamos el estatus, no todo el perfil ni inventario
@@ -451,6 +482,51 @@ class PlayerProvider extends ChangeNotifier {
         }, onError: (e) {
           debugPrint('Profile stream error: $e');
           _profileSubscription = null;
+        });
+  }
+
+  void _subscribeToGamePlayers(String userId) {
+    // Si ya estamos suscritos, no hacemos nada.
+    if (_gamePlayersSubscription != null) return;
+
+    debugPrint('🔊 PlayerProvider: Suscribiendo STREAM de game_players para usuario $userId');
+    
+    _gamePlayersSubscription = _supabase
+        .from('game_players')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .listen((data) {
+          debugPrint('🔊 PlayerProvider: ⚡ STREAM UPDATE recibida en game_players! (${data.length} filas)');
+          
+          bool banDetectedForCurrentEvent = false;
+          final currentEventId = _currentPlayer?.currentEventId;
+
+          for (final gp in data) {
+            final String? status = gp['status'];
+            final String? eventId = gp['event_id'];
+            
+            if (eventId == currentEventId && (status == 'suspended' || status == 'banned')) {
+               debugPrint('🚫 PlayerProvider: BAN detectado para el evento actual ($eventId) via Stream!');
+               banDetectedForCurrentEvent = true;
+               break;
+            }
+          }
+
+          if (!_isDisposed && _currentPlayer != null) {
+            if (banDetectedForCurrentEvent) {
+              // ACCIÓN INMEDIATA: Invalidar el ID de sesión localmente para disparar el GameSessionMonitor
+              _currentPlayer!.gamePlayerId = null;
+              _currentPlayer!.status = PlayerStatus.banned; // Asegurar consistencia total del estado
+              debugPrint('🔍 PlayerProvider: Invalidadando sesión local (BAN INSTANTÁNEO).');
+              notifyListeners();
+            } else {
+              // Para cualquier otro cambio (vidas, unban, etc.), refrescamos normalmente
+              refreshProfile();
+            }
+          }
+        }, onError: (error) {
+          debugPrint('❌ PlayerProvider: Error en STREAM game_players: $error');
+          _gamePlayersSubscription = null;
         });
   }
 
@@ -583,6 +659,19 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> toggleGameBanUser(String userId, String eventId, bool ban) async {
+    debugPrint('PlayerProvider: toggleGameBanUser CALLED. Delegating to AdminService...');
+    try {
+      await _adminService.toggleGameBanUser(userId, eventId, ban);
+      debugPrint('PlayerProvider: toggleGameBanUser completed successfully');
+      // No actualizamos _allPlayers porque ese es global. 
+      // El estado de juego se recarga al entrar a la competencia.
+    } catch (e) {
+      debugPrint('PlayerProvider: Error toggling game ban: $e');
+      rethrow;
+    }
+  }
+
   Future<void> deleteUser(String userId) async {
     try {
       await _adminService.deleteUser(userId);
@@ -667,5 +756,14 @@ class PlayerProvider extends ChangeNotifier {
     for (var slug in slugs) {
       await debugAddPower(slug);
     }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _pollingTimer?.cancel();
+    _profileSubscription?.cancel();
+    _gamePlayersSubscription?.cancel();
+    super.dispose();
   }
 }
