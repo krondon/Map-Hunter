@@ -52,70 +52,72 @@ class _ShopScreenState extends State<ShopScreen> {
   Future<void> _purchaseItem(BuildContext context, PowerItem item) async {
     if (_isLoading) return;
 
-    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    // 1. Bloquear inmediatamente para evitar doble click / race condition
+    setState(() => _isLoading = true);
 
-    final String? eventId = gameProvider.currentEventId;
+    try {
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
-    if (eventId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Error: Debes estar en un evento para comprar.')),
-      );
-      return;
-    }
+      final String? eventId = gameProvider.currentEventId;
 
-    // Determinar si es un poder (p_is_power en SQL)
-    // Excluimos utilidades y vidas de la lógica de la tabla player_powers
-    final bool isPower =
-        item.type != PowerType.utility && item.id != 'extra_life';
-
-    // Límite de 3 unidades por evento (poderes)
-    if (isPower) {
-      final int count = playerProvider.getPowerCount(item.id, eventId);
-      if (count >= 3) {
-        await _showQuickFeedback(
-          icon: item.icon,
-          title: 'Límite alcanzado',
-          message: 'Máximo 3 por evento ($count/3).',
-          accentColor: AppTheme.dangerRed,
+      if (eventId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Error: Debes estar en un evento para comprar.')),
         );
         return;
       }
-    }
 
-    // Verificar límite de vidas
-    if (item.id == 'extra_life') {
-      if (playerProvider.currentPlayer != null) {
-        // Actualizar vidas antes de verificar
-        await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
+      // Determinar si es un poder (p_is_power en SQL)
+      // Excluimos utilidades y vidas de la lógica de la tabla player_powers
+      final bool isPower =
+          item.type != PowerType.utility && item.id != 'extra_life';
+
+      // Límite de 3 unidades por evento (poderes)
+      if (isPower) {
+        final int count = playerProvider.getPowerCount(item.id, eventId);
+        if (count >= 3) {
+          await _showQuickFeedback(
+            icon: item.icon,
+            title: 'Límite alcanzado',
+            message: 'Máximo 3 por evento ($count/3).',
+            accentColor: AppTheme.dangerRed,
+          );
+          return;
+        }
       }
 
-      if (gameProvider.lives >= 3) {
+      // Verificar límite de vidas
+      if (item.id == 'extra_life') {
+        if (playerProvider.currentPlayer != null) {
+          // Actualizar vidas antes de verificar
+          await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
+        }
+
+        if (gameProvider.lives >= 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('¡Ya tienes el máximo de vidas (3)!'),
+              backgroundColor: AppTheme.dangerRed,
+            ),
+          );
+          return;
+        }
+      }
+
+      // Validar visualmente antes de llamar al backend
+      if ((playerProvider.currentPlayer?.coins ?? 0) < item.cost) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Ya tienes el máximo de vidas (3)!'),
+            content: Text('No tienes suficientes monedas'),
             backgroundColor: AppTheme.dangerRed,
           ),
         );
         return;
       }
-    }
 
-    // Validar visualmente antes de llamar al backend
-    if ((playerProvider.currentPlayer?.coins ?? 0) < item.cost) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No tienes suficientes monedas'),
-          backgroundColor: AppTheme.dangerRed,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
+      // Proceder con la compra
       final success = await playerProvider
           .purchaseItem(item.id, eventId, item.cost, isPower: isPower);
 
@@ -143,6 +145,16 @@ class _ShopScreenState extends State<ShopScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Error al realizar la compra. Intenta de nuevo.'),
+            backgroundColor: AppTheme.dangerRed,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error purchasing item: $e');
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ocurrió un error inesperado.'),
             backgroundColor: AppTheme.dangerRed,
           ),
         );
