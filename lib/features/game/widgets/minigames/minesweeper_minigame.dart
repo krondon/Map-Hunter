@@ -57,6 +57,11 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
+
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause timer
+
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
       } else {

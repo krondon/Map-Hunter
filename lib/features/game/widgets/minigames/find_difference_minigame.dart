@@ -81,6 +81,12 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause timer
+
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
       } else {
@@ -91,6 +97,9 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
 
   void _handleTap(bool isTop) {
     if (_isGameOver) return;
+    
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) return; // Ignore input if frozen
 
     if (isTop == _targetInTopImage) {
       _winGame();

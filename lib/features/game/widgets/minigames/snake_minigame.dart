@@ -94,6 +94,10 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
         timer.cancel();
         return;
       }
+
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause countdown
       
       setState(() {
         if (_preStartCount > 1) {
@@ -113,12 +117,24 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   
   void _startGameLoop() {
     _gameLoop = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+      if (!mounted) return;
+      
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause game loop
+
       _updateGame();
     });
   }
 
   void _startCountdown() {
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) return;
+
+          // Check for freeze state
+          final gameProvider = Provider.of<GameProvider>(context, listen: false);
+          if (gameProvider.isFrozen) return; // Pause timer
+
           if (_secondsRemaining > 0) {
               setState(() => _secondsRemaining--);
           } else {

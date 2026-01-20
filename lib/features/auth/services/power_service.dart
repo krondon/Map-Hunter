@@ -147,6 +147,9 @@ class PowerService {
         if (response['error'] == 'target_invisible') {
           throw '¡El objetivo es invisible!';
         }
+        if (response['error'] == 'shield_already_active') {
+          throw '¡El escudo ya está activo!';
+        }
         return PowerUseResponse.error(response['error']?.toString() ?? 'Error');
       }
 

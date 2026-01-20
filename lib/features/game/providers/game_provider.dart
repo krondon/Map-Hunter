@@ -80,9 +80,19 @@ class GameProvider extends ChangeNotifier {
   String? _targetPlayerId; // Selected rival for targeting
   List<PowerEffect> _activePowerEffects = [];
   bool _isPowerActionLoading = false; // Guards against double-clicks during power execution
+  bool _isFrozen = false; // Estado de congelamiento para minijuegos
 
   List<PowerEffect> get activePowerEffects => _activePowerEffects;
   bool get isPowerActionLoading => _isPowerActionLoading;
+  bool get isFrozen => _isFrozen;
+
+  /// Sets the frozen state (called by PowerEffectProvider)
+  void setFrozen(bool value) {
+    if (_isFrozen != value) {
+      _isFrozen = value;
+      notifyListeners();
+    }
+  }
   
   /// Sets the power action loading state (called by PowerActionDispatcher)
   void setPowerActionLoading(bool value) {

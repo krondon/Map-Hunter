@@ -140,6 +140,12 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     _timer?.cancel();
     int speed = max(100, 800 - (_level * 50));
     _timer = Timer.periodic(Duration(milliseconds: speed), (timer) {
+      if (!mounted) return;
+      
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause game loop
+
       if (!_isPaused && !_isGameOver) {
         _moveDown();
       }

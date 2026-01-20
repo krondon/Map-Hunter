@@ -48,6 +48,12 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause timer
+
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
       } else {
@@ -67,6 +73,9 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   }
 
   void _handleGiveUp() {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) return;
+
     _stopTimer();
     _loseLife("Te has rendido.");
   }
@@ -157,6 +166,10 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   }
 
   void _onTileTap(int index) {
+    if (!mounted) return;
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) return;
+
     final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
     if (_isGameOver || board[index].isNotEmpty || !_isPlayerTurn || (player != null && player.isFrozen)) return;
 
@@ -183,6 +196,13 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
 
   void _computerMove() {
      if (_isGameOver) return;
+     
+     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+     if (gameProvider.isFrozen) {
+        // If frozen, retry later
+        Future.delayed(const Duration(milliseconds: 500), _computerMove);
+        return;
+     }
 
      // IA Simple: Bloquear o ganar si puede, o random.
      // 1. Check if AI can win

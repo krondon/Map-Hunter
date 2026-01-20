@@ -140,6 +140,14 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     
     // Lista de efectos que deben congelar la navegación
     final shouldBlock = activeSlug == 'freeze' || activeSlug == 'black_screen';
+    
+    // Actualizar estado de congelamiento en GameProvider
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (activeSlug == 'freeze' && !gameProvider.isFrozen) {
+      gameProvider.setFrozen(true);
+    } else if (activeSlug != 'freeze' && gameProvider.isFrozen) {
+      gameProvider.setFrozen(false);
+    }
 
     if (shouldBlock && !_isBlockingActive) {
       _isBlockingActive = true;

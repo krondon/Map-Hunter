@@ -60,6 +60,11 @@ class _HangmanMinigameState extends State<HangmanMinigame> {
     _stopTimer();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
+      
+      // Check for freeze state
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      if (gameProvider.isFrozen) return; // Pause timer
+
       setState(() {
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
@@ -77,6 +82,9 @@ class _HangmanMinigameState extends State<HangmanMinigame> {
   }
 
   void _onLetterGuess(String letter) {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) return; // Ignore input if frozen
+
     if (_isGameOver || _guessedLetters.contains(letter)) return;
 
     setState(() {
@@ -116,6 +124,9 @@ class _HangmanMinigameState extends State<HangmanMinigame> {
   }
 
   void _handleGiveUp() {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) return; // Ignore input if frozen
+
     _stopTimer();
     _loseLife("Te has rendido.");
   }

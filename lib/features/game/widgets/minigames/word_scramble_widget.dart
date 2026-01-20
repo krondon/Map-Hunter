@@ -9,6 +9,9 @@ import '../../providers/game_provider.dart';
   int _attempts = 3;
 
   void _checkAnswer() {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) return;
+
     if (_currentWord == widget.clue.riddleAnswer?.toUpperCase()) {
       // ÉXITO
       widget.onSuccess();
