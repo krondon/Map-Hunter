@@ -157,7 +157,7 @@ class _LowSignalOverlayState extends State<LowSignalOverlay>
   }
 
   Widget _buildCountdownIndicator() {
-    final progress = widget.secondsRemaining / 10.0;
+    final progress = widget.secondsRemaining / 25.0;
     
     return Column(
       children: [
