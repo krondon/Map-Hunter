@@ -1031,7 +1031,7 @@ Widget _buildMinigameScaffold(
                           currentPlayerId: player?.id ?? '',
                           totalClues: game.clues.length,
                           onSurrender: () => showSkipDialog(context, onFinish),
-                          compact: clue.puzzleType == PuzzleType.tetris,
+                          compact: clue.puzzleType == PuzzleType.tetris || clue.puzzleType == PuzzleType.hangman,
                         ),
                       ),
 
