@@ -398,6 +398,40 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   }
 
   @override
+  // --- GESTURE CONTROLS ---
+  double _horizontalDragAccumulator = 0.0;
+  double _verticalDragAccumulator = 0.0;
+  static const double _sensitivity = 20.0; // Píxeles para detectar movimiento
+
+  void _handleHorizontalDrag(DragUpdateDetails details) {
+    if (_isPaused || _isGameOver) return;
+    _horizontalDragAccumulator += details.delta.dx;
+    
+    if (_horizontalDragAccumulator.abs() > _sensitivity) {
+      if (_horizontalDragAccumulator > 0) {
+        _moveRight();
+      } else {
+        _moveLeft();
+      }
+      _horizontalDragAccumulator = 0.0; // Reset after move
+    }
+  }
+
+  void _handleVerticalDrag(DragUpdateDetails details) {
+    if (_isPaused || _isGameOver) return;
+    _verticalDragAccumulator += details.delta.dy;
+
+    if (_verticalDragAccumulator > _sensitivity) {
+      _moveDown(); // Soft drop
+      _verticalDragAccumulator = 0.0;
+    }
+  }
+
+  void _handleTap() {
+    _rotate();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final player = Provider.of<PlayerProvider>(context).currentPlayer;
 
@@ -406,151 +440,198 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       onPopInvoked: (didPop) {},
       child: Stack(
         children: [
-          // GAME CONTENT
-          Column(
-            children: [
-              // Status Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Vidas
-                    Row(
-                      children: [
-                         IconButton(
-                          icon: Icon(_isMusicPlaying ? Icons.music_note : Icons.music_off, color: Colors.white54),
-                          onPressed: () => _isMusicPlaying ? _stopMusic() : _playMusic(),
-                        ),
-                        const SizedBox(width: 5),
-                        const Icon(Icons.favorite, color: AppTheme.dangerRed),
-                        const SizedBox(width: 5),
-                        Text("x${player?.lives ?? 0}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    // Score & Target
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text("Puntos: $_score / $_targetScore", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        Text("Nivel: $_level", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-          
-              const Text(
-                "TETRIS CHALLENGE",
-                style: TextStyle(color: AppTheme.accentGold, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 5),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  widget.clue.riddleQuestion ?? "Consigue los puntos para ganar",
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 10),
-          
-              // Game Board & Next Piece Sidebar
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Main Board
-                    Expanded(
-                      flex: 3,
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: columns / rows,
-                          child: Container(
-                            margin: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              border: Border.all(color: Colors.white24, width: 2),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.1), blurRadius: 20)
-                              ]
-                            ),
-                            child: Column(
-                              children: List.generate(rows, (y) {
-                                return Expanded(
-                                  child: Row(
-                                    children: List.generate(columns, (x) {
-                                      Color? color = board[y][x];
-                                      
-                                      bool isCurrentPiece = false;
-                                      for (var p in currentPiece) {
-                                        if (currentPiecePosition.y + p.y == y && currentPiecePosition.x + p.x == x) {
-                                          color = currentPieceColor;
-                                          isCurrentPiece = true;
-                                          break;
-                                        }
-                                      }
-          
-                                      return Expanded(
-                                        child: Container(
-                                          margin: const EdgeInsets.all(0.5),
-                                          decoration: BoxDecoration(
-                                            color: color ?? Colors.white.withOpacity(0.02),
-                                            borderRadius: BorderRadius.circular(1),
-                                            border: isCurrentPiece || color != null 
-                                              ? Border.all(color: Colors.white.withOpacity(0.3), width: 0.5) 
-                                              : null,
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                );
-                              }),
-                            ),
+          // Background/Game Layer
+          GestureDetector(
+            onTap: _handleTap,
+            onHorizontalDragUpdate: _handleHorizontalDrag,
+            onVerticalDragUpdate: _handleVerticalDrag,
+            behavior: HitTestBehavior.opaque, // Catch all touches
+            child: Column(
+              children: [
+                // Game Board Area
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Main Board (Maximized)
+                      Expanded(
+                        flex: 6, // Increased flex
+                        child: Center(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Calcular tamaño máximo posible manteniendo aspect ratio 1:2
+                              double height = constraints.maxHeight;
+                              double width = height / 2; // Ratio 10 cols / 20 rows = 0.5
+                              
+                              // Allow wider if possible, limited by container
+                              if (width > constraints.maxWidth) {
+                                width = constraints.maxWidth;
+                                height = width * 2;
+                              }
+
+                              return Container(
+                                width: width,
+                                height: height,
+                                margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.8),
+                                  border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5), width: 1),
+                                  boxShadow: [
+                                    BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)
+                                  ]
+                                ),
+                                child: Column(
+                                  children: List.generate(rows, (y) {
+                                    return Expanded(
+                                      child: Row(
+                                        children: List.generate(columns, (x) {
+                                          Color? color = board[y][x];
+                                          bool isCurrentPiece = false;
+                                          
+                                          // Check current piece
+                                          for (var p in currentPiece) {
+                                            if (currentPiecePosition.y + p.y == y && currentPiecePosition.x + p.x == x) {
+                                              color = currentPieceColor;
+                                              isCurrentPiece = true;
+                                              break;
+                                            }
+                                          }
+
+                                          if (color == null) {
+                                             return Expanded(
+                                              child: Container(
+                                                margin: const EdgeInsets.all(0),
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(color: Colors.white.withOpacity(0.03), width: 0.5), // Subtle grid
+                                                ),
+                                              ),
+                                            );
+                                          }
+
+                                          return Expanded(
+                                            child: Container(
+                                              margin: const EdgeInsets.all(0.5),
+                                              decoration: BoxDecoration(
+                                                color: color,
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  colors: [
+                                                    color!.withOpacity(0.9),
+                                                    color!.withOpacity(0.7),
+                                                  ]
+                                                ),
+                                                boxShadow: isCurrentPiece ? [
+                                                  BoxShadow(color: color!.withOpacity(0.6), blurRadius: 4, spreadRadius: 0)
+                                                ] : null,
+                                                borderRadius: BorderRadius.circular(2),
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              );
+                            }
                           ),
                         ),
                       ),
-                    ),
-                    
-                    // Right Sidebar (Next Piece)
-                    Expanded(
-                      flex: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 20, right: 10),
-                        child: Column(
-                          children: [
-                            const Text("SIGUIENTE", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 10),
-                            _buildNextPiecePreview(),
-                            const Spacer(),
-                            // Score info
-                            _buildMiniStat("LVL", "$_level"),
-                            const SizedBox(height: 10),
-                            _buildMiniStat("LINES", "$_linesCleared"),
-                          ],
+                      
+                      // Right Sidebar (Integrated)
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10, right: 10, left: 10),
+                          child: Column(
+                            children: [
+                              // Score Block
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white10),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Text("META", style: TextStyle(color: AppTheme.accentGold, fontSize: 8, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        "$_score / $_targetScore", 
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              
+                              // Next Piece
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.white10),
+                                  borderRadius: BorderRadius.circular(8)
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: Column(
+                                  children: [
+                                    const Text("NEXT", style: TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 2),
+                                    SizedBox(
+                                      height: 35, // Slightly bigger height
+                                      width: 45,  // and width
+                                      child: _buildNextPiecePreview()
+                                    ),
+                                  ],
+                                ),
+                              ),
+// ... (rest of sidebar) ...
+
+// ... (rest of build) ...
+
+                            ],
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                
+                // Bottom Controls (Discrete but functional)
+                // Mantenerlos como opción secundaria o para accesibilidad
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: const Text(
+                    "Desliza para mover • Toca para rotar",
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      letterSpacing: 1.0,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-          
-              // Controls
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20, left: 20, right: 20, top: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlBtn(Icons.arrow_back, _moveLeft),
-                    _buildControlBtn(Icons.rotate_right, _rotate, color: AppTheme.accentGold),
-                    _buildControlBtn(Icons.arrow_downward, _moveDown), // Soft drop
-                    _buildControlBtn(Icons.arrow_forward, _moveRight),
-                  ],
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       // Left/Right handled by swipe mainly, but buttons can stay small
+                       _buildControlBtn(Icons.arrow_back, _moveLeft, size: 40, iconSize: 20),
+                       _buildControlBtn(Icons.arrow_downward, _moveDown, size: 50, iconSize: 28), // Down is useful
+                       _buildControlBtn(Icons.arrow_forward, _moveRight, size: 40, iconSize: 20),
+                       // Rotate button might be redundant with tap, but good to keep
+                       _buildControlBtn(Icons.rotate_right, _rotate, color: AppTheme.accentGold, size: 50, iconSize: 28),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           // OVERLAY
@@ -569,7 +650,6 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
                   context,
                   MaterialPageRoute(builder: (_) => const ShopScreen()),
                 );
-                // Check lives upon return
                 if (!context.mounted) return;
                 final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
                 if ((player?.lives ?? 0) > 0) {
@@ -590,17 +670,18 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     );
   }
 
-  Widget _buildControlBtn(IconData icon, VoidCallback onTap, {Color color = Colors.white}) {
+  Widget _buildControlBtn(IconData icon, VoidCallback onTap, {Color color = Colors.white, double size = 50, double iconSize = 28}) {
     return GestureDetector(
       onTapDown: (_) => onTap(),
       child: Container(
-        padding: const EdgeInsets.all(15),
+        width: size,
+        height: size,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.05),
           shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
-        child: Icon(icon, color: color, size: 28),
+        child: Icon(icon, color: color, size: iconSize),
       ),
     );
   }
@@ -612,44 +693,54 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     final color = _tetrominoColors[_nextPieceIndex!];
     
     return Container(
-      width: 60,
-      height: 60,
-      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.black38,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white10),
       ),
-      child: Center(
-        child: LayoutBuilder(builder: (context, constraints) {
-          final size = constraints.maxWidth / 4;
-          return Stack(
-            children: piece.map((p) {
-              return Positioned(
-                left: p.x * size,
-                top: p.y * size,
-                child: Container(
-                  width: size - 1,
-                  height: size - 1,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(2),
+      child: LayoutBuilder(builder: (context, constraints) {
+        // Calculate bounds
+        int minX = 4, maxX = 0, minY = 4, maxY = 0;
+        for (var p in piece) {
+          if (p.x < minX) minX = p.x;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.y > maxY) maxY = p.y;
+        }
+        
+        final width = maxX - minX + 1;
+        final height = maxY - minY + 1;
+        
+        final size = min(constraints.maxWidth / width, constraints.maxHeight / height) * 0.8;
+        
+        final totalWidth = width * size;
+        final totalHeight = height * size;
+
+        return Center(
+          child: SizedBox(
+            width: totalWidth,
+            height: totalHeight,
+            child: Stack(
+              children: piece.map((p) {
+                return Positioned(
+                  left: (p.x - minX) * size,
+                  top: (p.y - minY) * size,
+                  child: Container(
+                    width: size - 1,
+                    height: size - 1,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(1),
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
-          );
-        }),
-      ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      }),
     );
   }
 
-  Widget _buildMiniStat(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 8)),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-      ],
-    );
-  }
+
 }

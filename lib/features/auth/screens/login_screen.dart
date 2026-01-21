@@ -132,9 +132,9 @@ class _LoginScreenState extends State<LoginScreen> {
             break;
 
           case UserEventStatus.waitingApproval:
-            // Usuario esperando aprobación - ir a pantalla de solicitud
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => GameRequestScreen(eventId: statusResult.eventId)),
+            // Usuario esperando aprobación - ir a lista de escenarios
+             Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ScenariosScreen()),
             );
             break;
 

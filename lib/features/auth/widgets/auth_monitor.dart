@@ -112,9 +112,8 @@ class _AuthMonitorState extends State<AuthMonitor> {
             break;
             
           case UserEventStatus.waitingApproval:
-            debugPrint('AuthMonitor: User waiting approval, navigating to GameRequestScreen...');
-            _hasRedirected = true;
-            _navigateToGameRequest(statusResult.eventId!);
+            // CAMBIO: No redirigir automáticamente. Dejar que el usuario elija en ScenariosScreen.
+            debugPrint('AuthMonitor: User waiting approval - continue to ScenariosScreen');
             break;
 
           // === CASOS DE FLUJO ABIERTO ===

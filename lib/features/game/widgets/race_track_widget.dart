@@ -28,7 +28,10 @@ class RaceTrackWidget extends StatelessWidget {
     required this.currentPlayerId,
     required this.totalClues,
     this.onSurrender,
+    this.compact = false,
   });
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -161,24 +164,25 @@ class RaceTrackWidget extends StatelessWidget {
                 ],
               ),
               
-              // Tactical hint
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '👆 Toca un avatar para usar poderes',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
-                    fontSize: 10,
-                    fontStyle: FontStyle.italic,
+              // Tactical hint - HIDDEN IN COMPACT MODE
+              if (!compact)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '👆 Toca un avatar para usar poderes',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4),
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
-              ),
               
-              const SizedBox(height: 16),
+              SizedBox(height: compact ? 8 : 16),
 
               // --- RACE TRACK (RENDERING ONLY via RaceViewData) ---
               SizedBox(
-                height: 120,
+                height: compact ? 60 : 120,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return Stack(
@@ -218,6 +222,7 @@ class RaceTrackWidget extends StatelessWidget {
                           totalClues: totalClues,
                           isSelected: gameProvider.targetPlayerId == vm.data.id, 
                           onTap: () => handleAvatarTap(vm),
+                          compact: compact,
                         )),
                       ],
                     );
@@ -225,19 +230,23 @@ class RaceTrackWidget extends StatelessWidget {
                 ),
               ),
 
-              // Dynamic legend (Pre-calculated in Service)
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  raceView.motivationText,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
-                    fontSize: 10,
-                    fontStyle: FontStyle.italic,
+
+
+              // Dynamic legend (Pre-calculated in Service) - HIDDEN IN COMPACT MODE
+              if (!compact) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    raceView.motivationText,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
+              ],
             ],
           ),
           
@@ -340,7 +349,10 @@ class _RacerAvatarWidget extends StatelessWidget {
     required this.totalClues,
     required this.isSelected,
     required this.onTap,
+    this.compact = false,
   });
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -354,7 +366,7 @@ class _RacerAvatarWidget extends StatelessWidget {
     
     final double avatarSize = (vm.isMe || isSelected) ? 40 : 30;
     final double maxScroll = trackWidth - avatarSize;
-    final double topPosition = 60 + laneOffset - (avatarSize / 2);
+    final double topPosition = (compact ? 30 : 60) + laneOffset - (avatarSize / 2);
 
     return Positioned(
       left: maxScroll * progress,
