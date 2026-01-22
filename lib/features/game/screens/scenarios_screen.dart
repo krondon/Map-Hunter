@@ -27,8 +27,15 @@ class ScenariosScreen extends StatefulWidget {
   State<ScenariosScreen> createState() => _ScenariosScreenState();
 }
 
-class _ScenariosScreenState extends State<ScenariosScreen> {
+class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderStateMixin {
   late PageController _pageController;
+  late AnimationController _hoverController;
+  late Animation<Offset> _hoverAnimation;
+  
+  // New Controllers
+  late AnimationController _shimmerController;
+  late AnimationController _glitchController;
+  
   int _currentPage = 0;
   bool _isLoading = true;
   bool _isProcessing = false; // Prevents double taps
@@ -38,6 +45,34 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
     super.initState();
     print("DEBUG: ScenariosScreen initState");
     _pageController = PageController(viewportFraction: 0.85);
+
+    // 1. Levitation (Hover) Animation
+    _hoverController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true); 
+
+    _hoverAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, -0.05),
+    ).animate(CurvedAnimation(
+      parent: _hoverController,
+      curve: Curves.easeInOutSine,
+    ));
+
+    // 2. Shimmer Border Animation
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
+    // 3. Glitch Text Animation
+    _glitchController = AnimationController(
+        vsync: this, 
+        duration: const Duration(milliseconds: 2000), // Occurs every 2 seconds roughly
+    )..repeat();
+
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadEvents();
     });
@@ -57,8 +92,14 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _hoverController.dispose();
+    _shimmerController.dispose();
+    _glitchController.dispose();
     super.dispose();
   }
+
+
+
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
     if (_isProcessing) return;
@@ -342,413 +383,536 @@ class _ScenariosScreenState extends State<ScenariosScreen> {
     return Scaffold(
       body: AnimatedCyberBackground(
         child: SafeArea(
-          child: RefreshIndicator(
+          child: Stack(
+            children: [
+             RefreshIndicator(
             onRefresh: _loadEvents,
             color: AppTheme.accentGold,
             backgroundColor: AppTheme.cardBg,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-              // Custom AppBar
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              backgroundColor: AppTheme.cardBg,
-                              title: const Text('Cerrar Sesión',
-                                  style: TextStyle(color: Colors.white)),
-                              content: const Text(
-                                '¿Estás seguro que deseas cerrar sesión?',
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  child: const Text('Cancelar',
-                                      style: TextStyle(color: Colors.white54)),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: constraints.maxHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Custom AppBar
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                TextButton(
-                                  onPressed: () async {
-                                    Navigator.pop(ctx); // Close dialog
-                                    // Logout logic
-                                    await Provider.of<PlayerProvider>(context,
-                                            listen: false)
-                                        .logout();
-                                    
-                                    // Navigator handled by AuthMonitor
+                                child: IconButton(
+                                  icon: const Icon(Icons.logout,
+                                      color: Colors.white),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        backgroundColor: AppTheme.cardBg,
+                                        title: const Text('Cerrar Sesión',
+                                            style:
+                                                TextStyle(color: Colors.white)),
+                                        content: const Text(
+                                          '¿Estás seguro que deseas cerrar sesión?',
+                                          style:
+                                              TextStyle(color: Colors.white70),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx),
+                                            child: const Text('Cancelar',
+                                                style: TextStyle(
+                                                    color: Colors.white54)),
+                                          ),
+                                          TextButton(
+                                            onPressed: () async {
+                                              Navigator.pop(ctx);
+                                              await Provider.of<PlayerProvider>(
+                                                      context,
+                                                      listen: false)
+                                                  .logout();
+                                            },
+                                            child: const Text('Salir',
+                                                style: TextStyle(
+                                                    color: AppTheme.dangerRed)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
                                   },
-                                  child: const Text('Salir',
-                                      style:
-                                          TextStyle(color: AppTheme.dangerRed)),
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      'Escenarios',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Explanation Card
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryPurple.withOpacity(0.2),
-                        border:
-                            Border.all(color: Colors.white.withOpacity(0.1)),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(Icons.map, color: AppTheme.accentGold),
-                              SizedBox(width: 10),
-                              Text(
-                                "Misión de Exploración",
+                              ),
+                              const SizedBox(width: 16),
+                              const Text(
+                                'Escenarios',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accentGold,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            "Participa en una búsqueda de tesoro donde tendrás que resolver pistas para encontrar el objetivo utilizando tus habilidades.",
-                            style:
-                                TextStyle(color: Colors.white70, height: 1.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+                        ),
 
-              const SizedBox(height: 20),
-
-              // Title for Selection
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Text(
-                  "Elige tu campo de batalla",
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        letterSpacing: 1,
-                      ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Scenarios Carousel
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.65, // Altura fija para el carrusel
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                            color: AppTheme.accentGold))
-                    : scenarios.isEmpty
-                        ? const Center(
-                            child: Text("No hay competencias disponibles",
-                                style: TextStyle(color: Colors.white)))
-                        : ScrollConfiguration(
-                          behavior: ScrollConfiguration.of(context).copyWith(
-                            dragDevices: {
-                              PointerDeviceKind.touch,
-                              PointerDeviceKind.mouse,
-                            },
-                          ),
-                          child: PageView.builder(
-                            controller: _pageController,
-                            onPageChanged: (index) {
-                              setState(() {
-                                _currentPage = index;
-                              });
-                            },
-                            itemCount: scenarios.length,
-                            itemBuilder: (context, index) {
-                              final scenario = scenarios[index];
-                              return AnimatedBuilder(
-                                animation: _pageController,
-                                builder: (context, child) {
-                                  double value = 1.0;
-                                  if (_pageController.position.haveDimensions) {
-                                    value = _pageController.page! - index;
-                                    value = (1 - (value.abs() * 0.3))
-                                        .clamp(0.0, 1.0);
-                                  } else {
-                                    value = index == _currentPage ? 1.0 : 0.7;
-                                  }
-
-                                  return Center(
-                                    child: SizedBox(
-                                      height: Curves.easeOut.transform(value) *
-                                          450, 
-                                      width:
-                                          Curves.easeOut.transform(value) * 400,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: GestureDetector(
-                                  onTap: () => _onScenarioSelected(scenario),
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 10),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(30),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.5),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 10),
-                                        ),
+                        // Explanation Card - Catchy & Dopamine
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: SlideTransition(
+                            position: _hoverAnimation,
+                            child: AnimatedBuilder(
+                              animation: _shimmerController,
+                              builder: (context, child) {
+                                return Container(
+                                  padding: const EdgeInsets.all(2.0), // Border width
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(22), // Outer radius slightly larger
+                                    gradient: SweepGradient(
+                                      colors: const [
+                                        AppTheme.accentGold, 
+                                        Colors.white, 
+                                        AppTheme.accentGold, 
+                                        Colors.transparent, 
+                                        AppTheme.accentGold
                                       ],
+                                      stops: const [0.0, 0.2, 0.4, 0.5, 1.0],
+                                      transform: GradientRotation(_shimmerController.value * 2 * 3.14159),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          // Background Image
-                                          (scenario.imageUrl.isNotEmpty &&
-                                                  scenario.imageUrl
-                                                      .startsWith('http'))
-                                              ? Image.network(
-                                                  scenario.imageUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error,
-                                                      stackTrace) {
-                                                    return Container(
-                                                      color: Colors.grey[800],
-                                                      child: const Icon(
-                                                          Icons.broken_image,
-                                                          size: 50,
-                                                          color:
-                                                              Colors.white54),
-                                                    );
-                                                  },
-                                                  loadingBuilder: (context,
-                                                      child, loadingProgress) {
-                                                    if (loadingProgress == null)
-                                                      return child;
-                                                    return Container(
-                                                      color: Colors.black26,
-                                                      child: const Center(
-                                                          child: CircularProgressIndicator(
-                                                              color: AppTheme
-                                                                  .accentGold)),
-                                                    );
-                                                  },
-                                                )
-                                              : Container(
-                                                  color: Colors.grey[900],
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: const [
-                                                      Icon(
-                                                          Icons
-                                                              .image_not_supported,
-                                                          size: 50,
-                                                          color:
-                                                              Colors.white24),
-                                                      SizedBox(height: 8),
-                                                      Text("Sin imagen",
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .white24,
-                                                              fontSize: 12)),
-                                                    ],
-                                                  ),
-                                                ),
-
-                                          // Gradient Overlay
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                colors: [
-                                                  Colors.transparent,
-                                                  Colors.black.withOpacity(0.6),
-                                                  Colors.black.withOpacity(0.9),
-                                                ],
-                                                stops: const [0.3, 0.7, 1.0],
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.accentGold.withOpacity(0.3 + 0.2 * 
+                                            (0.5 - (0.5 - _shimmerController.value).abs())), // Pulsing shadow
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppTheme.primaryPurple.withOpacity(0.9),
+                                          Colors.deepPurple.shade900,
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.menu_book,
+                                          color: AppTheme.accentGold, size: 28),
+                                      const SizedBox(width: 8),
+                                      Transform.rotate(
+                                        angle: 3.14 / 1, // Rotate to look like a sword down or up
+                                        child: const Icon(Icons.colorize, // Looks like a dagger/sword
+                                            color: AppTheme.accentGold, size: 28),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      AnimatedBuilder(
+                                        animation: _glitchController,
+                                        builder: (context, child) {
+                                          // Glitch logic: if value > 0.95, offset randomly
+                                          double offsetX = 0;
+                                          double offsetY = 0;
+                                          Color color = AppTheme.accentGold;
+                                          
+                                          if (_glitchController.value > 0.90) {
+                                            offsetX = (DateTime.now().millisecondsSinceEpoch % 3) - 1.5;
+                                            offsetY = (DateTime.now().millisecondsSinceEpoch % 2) - 1.0;
+                                            // Occasionally change color
+                                            if (_glitchController.value > 0.98) {
+                                                color = Colors.cyanAccent;
+                                            }
+                                          }
+                                          
+                                          return Transform.translate(
+                                            offset: Offset(offsetX, offsetY),
+                                            child: Text(
+                                              "Misión de Exploración",
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w900,
+                                                color: color,
+                                                letterSpacing: 0.5,
+                                                shadows: _glitchController.value > 0.90 ? [
+                                                    const Shadow(color: Colors.red, offset: Offset(-2, 0)),
+                                                    const Shadow(color: Colors.blue, offset: Offset(2, 0)),
+                                                ] : [],
                                               ),
                                             ),
-                                          ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    "¡Embárcate en una emocionante búsqueda del tesoro! Pon a prueba tus habilidades resolviendo pistas intrigantes y desafiantes para descubrir el gran premio oculto. ¿Estás listo para la aventura? ¡El tesoro te espera!",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      height: 1.4,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
 
-                                          // Content
-                                          Padding(
-                                            padding: const EdgeInsets.all(24.0),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.end,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // State Tag
-                                                Row(
-                                                  children: [
-                                                    // Badge de Estado (Finalizada vs Max Players)
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(
-                                                          horizontal: 12, vertical: 6),
-                                                      decoration: BoxDecoration(
-                                                        color: scenario.isCompleted 
-                                                            ? AppTheme.dangerRed.withOpacity(0.9) // Rojo si finalizó
-                                                            : Colors.black54,
-                                                        borderRadius: BorderRadius.circular(20),
-                                                        border: Border.all(
-                                                            color: Colors.white24),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Icon(
-                                                              scenario.isCompleted 
-                                                                  ? Icons.emoji_events // Trofeo si finalizó
-                                                                  : Icons.people,
-                                                              color: Colors.white,
-                                                              size: 14), // Un poco más grande
-                                                          const SizedBox(width: 6),
-                                                          Text(
-                                                            scenario.isCompleted 
-                                                                ? 'FINALIZADA'
-                                                                : 'MAX ${scenario.maxPlayers}',
-                                                            style: const TextStyle(
-                                                              color: Colors.white,
-                                                              fontWeight: FontWeight.bold,
-                                                              fontSize: 12, // Más legible
-                                                              letterSpacing: 0.5,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
+                        const SizedBox(height: 40),
+
+                        // Title for Selection
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Text(
+                            "Elige tu campo de batalla",
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  letterSpacing: 1,
+                                ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Scenarios Carousel - Expanded to fit remaining space
+                        Expanded(
+                          child: _isLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                      color: AppTheme.accentGold))
+                              : scenarios.isEmpty
+                                  ? const Center(
+                                      child: Text("No hay competencias disponibles",
+                                          style: TextStyle(color: Colors.white)))
+                                  : ScrollConfiguration(
+                                      behavior: ScrollConfiguration.of(context)
+                                          .copyWith(
+                                        dragDevices: {
+                                          PointerDeviceKind.touch,
+                                          PointerDeviceKind.mouse,
+                                        },
+                                      ),
+                                      child: PageView.builder(
+                                        controller: _pageController,
+                                        onPageChanged: (index) {
+                                          setState(() {
+                                            _currentPage = index;
+                                          });
+                                        },
+                                        itemCount: scenarios.length,
+                                        itemBuilder: (context, index) {
+                                          final scenario = scenarios[index];
+                                          return AnimatedBuilder(
+                                            animation: _pageController,
+                                            builder: (context, child) {
+                                              double value = 1.0;
+                                              if (_pageController
+                                                  .position.haveDimensions) {
+                                                value = _pageController.page! -
+                                                    index;
+                                                value =
+                                                    (1 - (value.abs() * 0.3))
+                                                        .clamp(0.0, 1.0);
+                                              } else {
+                                                value = index == _currentPage
+                                                    ? 1.0
+                                                    : 0.7;
+                                              }
+                                              
+                                              // Use LayoutBuilder to be responsive inside the carousel item
+                                              return Center(
+                                                child: SizedBox(
+                                                  height: Curves.easeOut
+                                                          .transform(value) *
+                                                      400, // Reduced base height
+                                                  width: Curves.easeOut
+                                                          .transform(value) *
+                                                      350,
+                                                  child: child,
+                                                ),
+                                              );
+                                            },
+                                            child: GestureDetector(
+                                              onTap: () =>
+                                                  _onScenarioSelected(scenario),
+                                              child: Container(
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 10),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(30),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black
+                                                          .withOpacity(0.5),
+                                                      blurRadius: 20,
+                                                      offset:
+                                                          const Offset(0, 10),
                                                     ),
                                                   ],
                                                 ),
-                                                const SizedBox(height: 12),
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(30),
+                                                  child: Stack(
+                                                    fit: StackFit.expand,
+                                                    children: [
+                                                      // Background Image
+                                                      (scenario.imageUrl
+                                                                  .isNotEmpty &&
+                                                              scenario.imageUrl
+                                                                  .startsWith(
+                                                                      'http'))
+                                                          ? Image.network(
+                                                              scenario.imageUrl,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder: (context,
+                                                                  error,
+                                                                  stackTrace) {
+                                                                return Container(
+                                                                  color: Colors
+                                                                      .grey[800],
+                                                                  child: const Icon(
+                                                                      Icons
+                                                                          .broken_image,
+                                                                      size: 50,
+                                                                      color: Colors
+                                                                          .white54),
+                                                                );
+                                                              },
+                                                            )
+                                                          : Container(
+                                                              color: Colors
+                                                                  .grey[900],
+                                                              child: Column(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: const [
+                                                                  Icon(
+                                                                      Icons
+                                                                          .image_not_supported,
+                                                                      size: 50,
+                                                                      color: Colors
+                                                                          .white24),
+                                                                  SizedBox(
+                                                                      height:
+                                                                          8),
+                                                                  Text(
+                                                                      "Sin imagen",
+                                                                      style: TextStyle(
+                                                                          color: Colors
+                                                                              .white24,
+                                                                          fontSize:
+                                                                              12)),
+                                                                ],
+                                                              ),
+                                                            ),
 
-                                                Text(
-                                                  scenario.name,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 24,
-                                                    fontWeight: FontWeight.bold,
-                                                    shadows: [
-                                                      Shadow(
-                                                        offset: Offset(0, 2),
-                                                        blurRadius: 4,
-                                                        color: Colors.black,
+                                                      // Gradient Overlay
+                                                      Container(
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          gradient:
+                                                              LinearGradient(
+                                                            begin: Alignment
+                                                                .topCenter,
+                                                            end: Alignment
+                                                                .bottomCenter,
+                                                            colors: [
+                                                              Colors
+                                                                  .transparent,
+                                                              Colors.black
+                                                                  .withOpacity(
+                                                                      0.6),
+                                                              Colors.black
+                                                                  .withOpacity(
+                                                                      0.9),
+                                                            ],
+                                                            stops: const [
+                                                              0.3,
+                                                              0.7,
+                                                              1.0
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+
+                                                      // Content
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(24.0),
+                                                        child: Column(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            // State Tag
+                                                            Row(
+                                                              children: [
+                                                                Container(
+                                                                  padding: const EdgeInsets.symmetric(
+                                                                      horizontal: 12, vertical: 6),
+                                                                  decoration: BoxDecoration(
+                                                                    color: scenario.isCompleted 
+                                                                        ? AppTheme.dangerRed.withOpacity(0.9)
+                                                                        : Colors.black54,
+                                                                    borderRadius: BorderRadius.circular(20),
+                                                                    border: Border.all(
+                                                                        color: Colors.white24),
+                                                                  ),
+                                                                  child: Row(
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Icon(
+                                                                          scenario.isCompleted 
+                                                                              ? Icons.emoji_events
+                                                                              : Icons.people,
+                                                                          color: Colors.white,
+                                                                          size: 14),
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              6),
+                                                                      Text(
+                                                                        scenario.isCompleted 
+                                                                            ? 'FINALIZADA'
+                                                                            : 'MAX ${scenario.maxPlayers}',
+                                                                        style: const TextStyle(
+                                                                          color: Colors.white,
+                                                                          fontWeight: FontWeight.bold,
+                                                                          fontSize: 12,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 12),
+
+                                                            Text(
+                                                              scenario.name,
+                                                              style: const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 24,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 4),
+                                                            Text(
+                                                              scenario
+                                                                  .description,
+                                                              style: const TextStyle(
+                                                                color: Colors
+                                                                    .white70,
+                                                                fontSize: 12,
+                                                              ),
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 10),
+
+                                                            if (scenario.date !=
+                                                                    null &&
+                                                                !scenario
+                                                                    .isCompleted)
+                                                              Center(
+                                                                  child: ScenarioCountdown(
+                                                                      targetDate:
+                                                                          scenario.date!)),
+
+                                                            const SizedBox(
+                                                                height: 10),
+                                                            SizedBox(
+                                                              width: double
+                                                                  .infinity,
+                                                              child:
+                                                                  ElevatedButton(
+                                                                onPressed: () {
+                                                                  _onScenarioSelected(
+                                                                      scenario);
+                                                                },
+                                                                style: ElevatedButton
+                                                                    .styleFrom(
+                                                                  backgroundColor:
+                                                                      AppTheme
+                                                                          .accentGold,
+                                                                  foregroundColor:
+                                                                      Colors
+                                                                          .black,
+                                                                  elevation: 8,
+                                                                ),
+                                                                child: const Text(
+                                                                    "SELECCIONAR",
+                                                                    style: TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.bold)),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
                                                 ),
-                                                const SizedBox(height: 4),
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  scenario.description,
-                                                  style: const TextStyle(
-                                                    color: Colors.white70,
-                                                    fontSize: 12,
-                                                    shadows: [
-                                                      Shadow(
-                                                        offset: Offset(0, 1),
-                                                        blurRadius: 2,
-                                                        color: Colors.black,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 10),
-                                                
-                                                // COUNTDOWN (si fecha existe y NO ha terminado)
-                                                if (scenario.date != null && !scenario.isCompleted)
-                                                  Center(child: ScenarioCountdown(targetDate: scenario.date!)),
-
-                                                const SizedBox(height: 10),
-                                                SizedBox(
-                                                  width: double.infinity,
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      // Immediate visual feedback or navigation
-                                                      _onScenarioSelected(
-                                                          scenario);
-                                                    },
-                                                    style: ElevatedButton
-                                                        .styleFrom(
-                                                      backgroundColor:
-                                                          AppTheme.accentGold,
-                                                      foregroundColor:
-                                                          Colors.black,
-                                                      elevation:
-                                                          8, 
-                                                    ),
-                                                    child: const Text(
-                                                        "SELECCIONAR",
-                                                        style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold)),
-                                                  ),
-                                                ),
-                                              ],
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
                         ),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
+                        // Bottom spacing
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                );
+              },
+             ),
+            ),
+
+          ],
         ),
       ),
-      ),
+    ),
     );
   }
 }
