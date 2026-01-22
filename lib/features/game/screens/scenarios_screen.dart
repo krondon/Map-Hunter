@@ -552,7 +552,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(Icons.menu_book,
+                                      const Icon(Icons.diamond, // Diamond = Treasure
                                           color: AppTheme.accentGold, size: 28),
                                       const SizedBox(width: 8),
                                       Transform.rotate(
@@ -603,6 +603,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                   const SizedBox(height: 12),
                                   const Text(
                                     "¡Embárcate en una emocionante búsqueda del tesoro! Pon a prueba tus habilidades resolviendo pistas intrigantes y desafiantes para descubrir el gran premio oculto. ¿Estás listo para la aventura? ¡El tesoro te espera!",
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 14,
