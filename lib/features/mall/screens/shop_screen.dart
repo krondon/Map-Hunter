@@ -16,19 +16,15 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   bool _isLoading = false;
+  List<PowerItem> _shopItems = PowerItem.getShopItems(); // Lista local mutable
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        final supabase = Supabase.instance.client;
-        final data = await supabase.from('powers').select().limit(1);
-        debugPrint("🔍 DB POWERS SCHEMA: $data");
-      } catch (e) {
-        debugPrint("🔍 DB ERROR: $e");
-      }
-
+      await _fetchPowerConfigs(); // Fetch real durations first
+      
+      if (!mounted) return;
       final playerProvider = context.read<PlayerProvider>();
       final gameProvider = context.read<GameProvider>();
       final player = playerProvider.currentPlayer;
@@ -37,6 +33,44 @@ class _ShopScreenState extends State<ShopScreen> {
         await playerProvider.fetchInventory(player.userId, eventId);
       }
     });
+  }
+
+  Future<void> _fetchPowerConfigs() async {
+    try {
+      final supabase = Supabase.instance.client;
+      // Seleccionamos slug y duration de la tabla powers
+      final data = await supabase.from('powers').select('slug, duration');
+      
+      if (!mounted) return;
+
+      setState(() {
+        _shopItems = _shopItems.map((item) {
+          // Buscar configuración en DB
+          final matches = data.where((d) => d['slug'] == item.id);
+          final config = matches.isNotEmpty ? matches.first : null;
+
+          if (config != null) {
+            final int duration = (config['duration'] as num?)?.toInt() ?? 0;
+            
+            // Actualizar descripción dinámica si tiene duración > 0
+            String newDesc = item.description;
+            if (duration > 0) {
+              // Reemplazar patrones como "25s", "30s" por el valor real
+              // Usamos una regex más flexible por si hay espacios
+              newDesc = newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
+            }
+
+            return item.copyWith(
+              durationSeconds: duration,
+              description: newDesc,
+            );
+          }
+          return item;
+        }).toList();
+      });
+    } catch (e) {
+      debugPrint("Error fetching power configs: $e");
+    }
   }
 
   Future<void> _showQuickFeedback({
@@ -150,7 +184,7 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
     final player = playerProvider.currentPlayer;
-    final shopItems = PowerItem.getShopItems();
+    // final shopItems = PowerItem.getShopItems(); // REPLACED by local state
     final gameProvider = Provider.of<GameProvider>(context);
     final eventId = gameProvider.currentEventId;
 
@@ -275,9 +309,9 @@ class _ShopScreenState extends State<ShopScreen> {
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: shopItems.length,
+                    itemCount: _shopItems.length,
                     itemBuilder: (context, index) {
-                      final item = shopItems[index];
+                      final item = _shopItems[index];
                       final bool isPower = item.type != PowerType.utility &&
                           item.id != 'extra_life';
                       final int? ownedCount = (eventId != null && isPower)

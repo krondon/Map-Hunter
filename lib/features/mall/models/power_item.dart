@@ -49,6 +49,7 @@ class PowerItem {
   final String icon;
   final Color color;
   final int durationMinutes;
+  final int durationSeconds;
 
   const PowerItem({
     required this.id,
@@ -59,6 +60,7 @@ class PowerItem {
     required this.icon,
     this.color = Colors.blue,
     this.durationMinutes = 0,
+    this.durationSeconds = 0,
   });
 
   PowerItem copyWith({
@@ -70,6 +72,7 @@ class PowerItem {
     String? icon,
     Color? color,
     int? durationMinutes,
+    int? durationSeconds,
   }) {
     return PowerItem(
       id: id ?? this.id,
@@ -80,6 +83,7 @@ class PowerItem {
       icon: icon ?? this.icon,
       color: color ?? this.color,
       durationMinutes: durationMinutes ?? this.durationMinutes,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
     );
   }
 
