@@ -1,6 +1,6 @@
 # SOLID & Security Audit Report
 
-**Project:** Treasure Hunt RPG
+**Project:** MapHunter RPG
 **Date:** January 14, 2026
 **Auditor:** Cortex Agent
 

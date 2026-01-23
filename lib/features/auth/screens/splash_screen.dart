@@ -145,7 +145,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                 // Título
                 const Text(
-                  'TREASURE HUNT',
+                  'MAPHUNTER',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,

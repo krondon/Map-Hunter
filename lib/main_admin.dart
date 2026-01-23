@@ -93,7 +93,7 @@ class TreasureHuntAdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EventProvider()),
       ],
       child: MaterialApp(
-        title: 'Treasure Hunt Admin',
+        title: 'MapHunter Admin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         // Usamos AuthGate para manejar la sesión

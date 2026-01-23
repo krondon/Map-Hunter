@@ -1,8 +1,8 @@
 # 🔐 Informe de Auditoría SOLID + Seguridad
 
-## Treasure Hunt RPG - Análisis de Arquitectura y Vulnerabilidades
+##  MapHunter RPG - Análisis de Arquitectura y Vulnerabilidades
 
-**Proyecto:** Juego_QR (Treasure Hunt RPG)  
+**Proyecto:** Juego_QR (MapHunte RPG)  
 **Fecha:** 2026-01-13  
 **Tipo:** Auditoría Combinada (Arquitectura + Seguridad)
 

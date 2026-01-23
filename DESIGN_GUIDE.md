@@ -1,8 +1,8 @@
-# 🎨 Guía de Diseño Visual - Treasure Hunt RPG
+# 🎨 Guía de Diseño Visual - Map Hunter RPG
 
 ## 🎯 Filosofía de Diseño
 
-El diseño de Treasure Hunt RPG se basa en crear una experiencia **premium, moderna y dinámica** que inspire aventura y competencia.
+El diseño de Map Hunter RPG se basa en crear una experiencia **premium, moderna y dinámica** que inspire aventura y competencia.
 
 ---
 

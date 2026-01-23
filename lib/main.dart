@@ -105,7 +105,7 @@ class TreasureHuntApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
       ],
       child: MaterialApp(
-        title: 'Treasure Hunt RPG',
+        title: 'MapHunter',
         navigatorKey: rootNavigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,

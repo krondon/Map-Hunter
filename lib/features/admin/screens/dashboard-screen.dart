@@ -150,7 +150,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                             Text(
-                              "Treasure Hunt RPG",
+                              "MapHunter Admin",
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.white54,

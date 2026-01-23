@@ -1,4 +1,4 @@
-# 🎮 PROYECTO CREADO: Treasure Hunt RPG
+# 🎮 PROYECTO CREADO: Map Hunter RPG
 
 ## ✅ COMPLETADO
 

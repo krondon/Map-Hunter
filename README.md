@@ -1,4 +1,4 @@
-# 🎮 Treasure Hunt RPG (Juego QR) v2.1
+# 🎮 MapHunter (Juego QR) v2.2
 
 **Real Life RPG - Búsqueda del Tesoro Interactiva**
 
