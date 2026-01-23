@@ -184,34 +184,21 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   void _verifyCode() {
-  // 1. Validar longitud exacta antes de verificar el contenido
-  if (_codeController.text.length != 6) {
-    _shakeController.forward(from: 0.0); // Agitar pantalla
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("El código debe ser de 6 dígitos."),
-        backgroundColor: Colors.orange, // Un color de advertencia diferente
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    return; // Detener la ejecución aquí
+    // Verificar si coincide con el código secreto
+    if (_codeController.text == widget.scenario.secretCode) {
+      _showSuccessDialog();
+    } else {
+      // Shake animation for error
+      _shakeController.forward(from: 0.0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("El código QR no coincide."),
+          backgroundColor: AppTheme.dangerRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
-
-  // 2. Verificar si coincide con el código secreto
-  if (_codeController.text == widget.scenario.secretCode) {
-    _showSuccessDialog();
-  } else {
-    // Shake animation for error
-    _shakeController.forward(from: 0.0);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Código incorrecto. Sigue buscando."),
-        backgroundColor: AppTheme.dangerRed,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-}
 
   void _showSuccessDialog() {
     showDialog(
