@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb; 
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart'; 
 import 'package:geolocator/geolocator.dart'; 
 import 'dart:ui';
@@ -380,7 +381,42 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
       );
     }).toList();
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: const Text('¿Salir de MapHunter?', style: TextStyle(color: Colors.white)),
+            content: const Text(
+              '¿Estás seguro que deseas salir de la aplicación?',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.dangerRed,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('SALIR'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldExit == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       body: AnimatedCyberBackground(
         child: SafeArea(
           child: Stack(
@@ -915,6 +951,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         ),
       ),
     ),
+      ),
     );
   }
 }
