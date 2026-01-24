@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/power_effect_provider.dart';
 import 'power_strategy.dart';
 
@@ -8,8 +9,7 @@ class LifeStealStrategy implements PowerStrategy {
 
   @override
   void onActivate(PowerEffectProvider provider) async {
-    debugPrint("LifeStealStrategy.onActivate");
-    
+    // Contexto temporal se establece en provider antes de llamar aquí
     final effectId = provider.pendingEffectId;
     final casterId = provider.pendingCasterId;
     final myId = provider.listeningForId;
@@ -23,6 +23,10 @@ class LifeStealStrategy implements PowerStrategy {
       debugPrint("[DEBUG] 🩸 LIFE_STEAL detectado (Strategy):");
       debugPrint("[DEBUG]    Effect ID: $effectId");
       debugPrint("[DEBUG]    Caster ID: $casterId");
+
+      // Feedback físico inmediato para la víctima
+      HapticFeedback.heavyImpact();
+      debugPrint("💔 Has sufrido Robo de Vida!");
 
       provider.markEffectAsProcessed(effectId);
       provider.setActiveEffectCasterId(casterId);

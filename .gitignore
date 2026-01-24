@@ -74,3 +74,5 @@ lib/generated_plugin_registrant.dart
 .env
 
 supabase/funciones.md
+.github/copilot-instructions.md
+docs/reports/

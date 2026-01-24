@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/power_effect_provider.dart';
 import 'power_strategy.dart';
 
@@ -8,7 +9,9 @@ class InvisibilityStrategy implements PowerStrategy {
 
   @override
   void onActivate(PowerEffectProvider provider) {
-    debugPrint("InvisibilityStrategy.onActivate");
+    debugPrint("👻 Invisibilidad activada - Eres indetectable.");
+    HapticFeedback.lightImpact();
+    
     // La lógica de invisibilidad es principalmente estado y preservación
     // El provider ya maneja _activePowerSlug asignado en el flujo principal,
     // pero si hay lógica adicional específica, iría aquí.

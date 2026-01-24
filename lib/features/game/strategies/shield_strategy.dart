@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../providers/power_effect_provider.dart';
 import 'power_strategy.dart';
 
@@ -8,7 +9,9 @@ class ShieldStrategy implements PowerStrategy {
 
   @override
   void onActivate(PowerEffectProvider provider) {
-    debugPrint("ShieldStrategy.onActivate");
+    debugPrint("🛡️ Escudo desplegado - Duración: Infinita");
+    HapticFeedback.mediumImpact();
+
     // provider.setShielded llama a setShieldState y limpia.
     // Para evitar recursion si setShielded llama a la estrategia, debemos llamar a setShieldState directamente 
     // o el caller de strategy debe ser distinto.

@@ -498,6 +498,13 @@ class PowerEffectProvider extends ChangeNotifier {
       return;
     }
 
+    // Detectar cambio de estado para activar estrategias (Side Effects)
+    if (_activePowerSlug != latestSlug && latestSlug != null) {
+      debugPrint("PowerEffectProvider: Activando estrategia para '$latestSlug'...");
+      final strategy = PowerStrategyFactory.get(latestSlug);
+      strategy?.onActivate(this);
+    }
+
     _activePowerSlug = latestSlug;
 
     // Guardamos la fecha exacta para la UI
