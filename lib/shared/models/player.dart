@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../features/game/models/i_targetable.dart';
 
 class Player implements ITargetable {
@@ -6,6 +7,7 @@ class Player implements ITargetable {
   final String email;
   final String _avatarUrl;
   final String role; // 'admin' or 'user'
+  String? avatarId; // ID del sprite elegido
   String? gamePlayerId; // ID de inscripción al evento (game_players.id)
   String? currentEventId; // ID del evento actual en el que está jugando
   int level;
@@ -41,6 +43,7 @@ class Player implements ITargetable {
     this.eventsCompleted,
     this.lives = 3,
     Map<String, dynamic>? stats,
+    this.avatarId,
     this.gamePlayerId,
     this.currentEventId,
   })  : _avatarUrl = avatarUrl ?? '',
@@ -53,10 +56,39 @@ class Player implements ITargetable {
             };
 
   factory Player.fromJson(Map<String, dynamic> json) {
+    debugPrint('DEBUG: Player.fromJson input: $json');
     String? avatar = json['avatar_url'];
     if (avatar != null && (avatar.contains('file:') || avatar.contains('C:/'))) {
        avatar = null; // Sanitize local paths
     }
+
+    // INSPECCIÓN DE LLAVES (Para diagnosticar por qué no se ve el avatar)
+    debugPrint('DEBUG: Player.fromJson Keys for ${json['name']}: ${json.keys.toList()}');
+    
+    String? avatarUrlCol = json['avatar_url']?.toString();
+    dynamic profilesData = json['profiles'];
+    String? extractedAvatarId;
+    
+    if (profilesData is Map) {
+      extractedAvatarId = profilesData['avatar_id']?.toString() ?? profilesData['avatarId']?.toString();
+    } else if (profilesData is List && profilesData.isNotEmpty) {
+      extractedAvatarId = profilesData.first['avatar_id']?.toString() ?? profilesData.first['avatarId']?.toString();
+    }
+    
+    // Si avatar_url no es una URL real, podría ser el ID
+    if (avatarUrlCol != null && !avatarUrlCol.startsWith('http') && avatarUrlCol.isNotEmpty && !avatarUrlCol.contains('/')) {
+      extractedAvatarId ??= avatarUrlCol;
+    }
+    
+    // Lista de posibles nombres para el ID del sprite
+    final avatarId = json['avatar_id'] ?? 
+                     json['avatarId'] ?? 
+                     json['sprite_id'] ?? 
+                     json['avatar_url_local'] ?? 
+                     json['avatar'] ?? 
+                     extractedAvatarId;
+                     
+    debugPrint('DEBUG: Player.fromJson final avatarId mapping result for ${json['name']}: $avatarId');
 
     return Player(
       userId: json['user_id'] ?? json['id'] ?? '',
@@ -93,6 +125,7 @@ class Player implements ITargetable {
       inventory:
           json['inventory'] != null ? List<String>.from(json['inventory']) : [],
       gamePlayerId: json['player_id'] ?? json['game_player_id'],
+      avatarId: avatarId,
     );
   }
 
@@ -210,6 +243,7 @@ class Player implements ITargetable {
     int? lives,
     Map<String, dynamic>? stats,
     String? gamePlayerId,
+    String? avatarId,
     String? currentEventId,
   }) {
     return Player(
@@ -232,6 +266,7 @@ class Player implements ITargetable {
       lives: lives ?? this.lives,
       stats: stats ?? this.stats,
       gamePlayerId: gamePlayerId ?? this.gamePlayerId,
+      avatarId: avatarId ?? this.avatarId,
       currentEventId: currentEventId ?? this.currentEventId,
     );
   }

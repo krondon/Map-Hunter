@@ -16,7 +16,7 @@ import 'puzzle_screen.dart';
 import '../../game/models/clue.dart'; // Import para usar tipo Clue
 import 'clue_finder_screen.dart'; // Import nuevo
 import 'winner_celebration_screen.dart'; // Import for celebration screen
-import 'story_intro_screen.dart'; // Import for story introduction
+
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../shared/widgets/exit_protection_wrapper.dart'; // Protection
 
@@ -46,22 +46,7 @@ class _CluesScreenState extends State<CluesScreen> {
       
       debugPrint("DEBUG: Checking story intro. hasSeenStory: $hasSeenStory for event: ${widget.eventId}");
       
-      if (!hasSeenStory && mounted) {
-        // Show story introduction
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => StoryIntroScreen(
-              onComplete: () {
-                Navigator.pop(context);
-              },
-            ),
-          ),
-        );
-        
-        // Mark as seen
-        await prefs.setBool(storyKey, true);
-      }
+
       
       // Continue with normal initialization
       if (mounted) {

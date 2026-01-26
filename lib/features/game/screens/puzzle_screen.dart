@@ -33,8 +33,7 @@ import '../widgets/animated_lives_widget.dart';
 import '../widgets/loss_flash_overlay.dart';
 import '../widgets/success_celebration_dialog.dart';
 import '../../../shared/widgets/time_stamp_animation.dart';
-import '../widgets/mission_briefing_overlay.dart';
-import '../widgets/mission_briefing_overlay.dart';
+
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../widgets/no_lives_widget.dart';
 
@@ -51,7 +50,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   // PenaltyService removed as requested
   bool _legalExit = false;
   bool _isNavigatingToWinner = false; // Flag to prevent double navigation
-  bool _showBriefing = true; // Empieza mostrando la historia
+  bool _showBriefing = false; // Deshabilitado como se solicitó
   
   // Safe Provider Access
   late GameProvider _gameProvider;
@@ -438,12 +437,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         break;
     }
 
-    if (_showBriefing) {
-      return MissionBriefingOverlay(
-        stampIndex: ((widget.clue.sequenceIndex - 1) % 9) + 1,
-        onStart: () => setState(() => _showBriefing = false),
-      );
-    }
+
 
     // WRAPPER DE SEGURIDAD: Evitar salir sin penalización
     return PopScope(

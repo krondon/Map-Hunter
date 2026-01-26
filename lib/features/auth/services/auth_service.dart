@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Servicio de autenticación que encapsula la lógica de login, registro y logout.
@@ -85,6 +86,45 @@ class AuthService {
   /// Cierra la sesión del usuario actual.
   Future<void> logout() async {
     await _supabase.auth.signOut();
+  }
+
+  /// Envía un correo de recuperación de contraseña.
+  Future<void> resetPassword(String email) async {
+    try {
+      await _supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        redirectTo: kIsWeb ? null : 'io.supabase.treasurehunt://reset-password',
+      );
+    } catch (e) {
+      debugPrint('AuthService: Error resetting password: $e');
+      throw _handleAuthError(e);
+    }
+  }
+
+  /// Actualiza la contraseña del usuario actual.
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+    } catch (e) {
+      debugPrint('AuthService: Error updating password: $e');
+      throw _handleAuthError(e);
+    }
+  }
+
+  /// Actualiza el avatar del usuario en su perfil.
+  Future<void> updateAvatar(String userId, String avatarId) async {
+    debugPrint('AuthService: Updating avatar for $userId to $avatarId');
+    try {
+      await _supabase.from('profiles').update({
+        'avatar_id': avatarId,
+      }).eq('id', userId);
+      debugPrint('AuthService: Avatar updated successfully in profiles table');
+    } catch (e) {
+      debugPrint('AuthService: Error updating avatar: $e');
+      throw _handleAuthError(e);
+    }
   }
 
   /// Convierte errores de autenticación en mensajes legibles para el usuario.

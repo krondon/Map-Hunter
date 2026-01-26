@@ -78,11 +78,11 @@ class GameService {
     }
   }
 
-  /// Obtiene el leaderboard de un evento desde la vista o función fallback.
+  /// Obtiene el leaderboard de un evento y lo enriquece con datos de perfiles (Avatars)
   Future<List<Player>> getLeaderboard(String eventId) async {
     try {
-      // ✅ Consultamos la VISTA
-      final List<dynamic> data = await _supabase
+      // 1. Obtener la lista base del ranking desde la VISTA
+      final List<dynamic> leaderboardData = await _supabase
           .from('event_leaderboard')
           .select()
           .eq('event_id', eventId)
@@ -90,24 +90,49 @@ class GameService {
           .order('last_completion_time', ascending: true)
           .limit(50);
 
-      return data.map((json) {
-        // Normalización de IDs
-        if (json['id'] == null && json['user_id'] != null) {
-          json['id'] = json['user_id'];
-        } else if (json['id'] == null && json['player_id'] != null) {
-          json['id'] = json['player_id'];
-        }
+      if (leaderboardData.isEmpty) return [];
+
+      // 2. Extraer todos los userIDs para traer sus perfiles ACTUALIZADOS
+      final List<String> userIds = leaderboardData
+          .map((e) => (e['user_id'] ?? e['id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toList();
+
+      Map<String, Map<String, dynamic>> profilesMap = {};
+      if (userIds.isNotEmpty) {
+        final List<dynamic> profilesData = await _supabase
+            .from('profiles')
+            .select('id, avatar_id, avatar_url, name')
+            .inFilter('id', userIds);
         
-        // Mapeo necesario para compatibilidad
-        if (json['completed_clues'] != null) {
-          json['total_xp'] = json['completed_clues'];
+        for (var p in profilesData) {
+          profilesMap[p['id']] = p;
+        }
+      }
+
+      // 3. Mapear y Fusionar (Leaderboard + Profiles)
+      return leaderboardData.map((json) {
+        final String uid = (json['user_id'] ?? json['id'] ?? '').toString();
+        
+        // Normalización de IDs obligatoria
+        if (json['id'] == null) json['id'] = uid;
+        if (json['total_xp'] == null) json['total_xp'] = json['completed_clues'];
+
+        // Inyectar datos del perfil si existen
+        if (profilesMap.containsKey(uid)) {
+          final p = profilesMap[uid]!;
+          json['avatar_id'] = p['avatar_id'];
+          // Si el JSON base no tiene nombre, usa el del perfil
+          if (json['name'] == null || json['name'].toString().isEmpty) {
+            json['name'] = p['name'];
+          }
         }
         
         return Player.fromJson(json);
       }).toList();
+
     } catch (e) {
-      debugPrint('Error fetching leaderboard: $e');
-      // Intentar fallback si falla la vista
+      debugPrint('GameService: Error in getLeaderboard (enriched): $e');
       return _getLeaderboardFallback(eventId);
     }
   }

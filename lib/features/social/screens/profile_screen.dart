@@ -147,7 +147,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                    ),
                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 15)]
                  ),
-                 child: Icon(_getAvatarIcon(player.profession), size: 55, color: Colors.white),
+                 child: ClipRRect(
+                   borderRadius: BorderRadius.circular(47.5),
+                   child: Builder(
+                     builder: (context) {
+                       final avatarId = player.avatarId;
+                       
+                       // 1. Prioridad: Avatar Local
+                       if (avatarId != null && avatarId.isNotEmpty) {
+                         return Image.asset(
+                           'assets/images/avatars/$avatarId.png',
+                           fit: BoxFit.cover,
+                           errorBuilder: (_, __, ___) => Icon(_getAvatarIcon(player.profession), size: 55, color: Colors.white),
+                         );
+                       }
+                       
+                       // 2. Fallback: Foto de perfil (URL)
+                       if (player.avatarUrl != null && player.avatarUrl!.startsWith('http')) {
+                         return Image.network(
+                           player.avatarUrl!,
+                           fit: BoxFit.cover,
+                           errorBuilder: (_, __, ___) => Icon(_getAvatarIcon(player.profession), size: 55, color: Colors.white),
+                         );
+                       }
+                       
+                       // 3. Fallback: Icono de profesión
+                       return Icon(_getAvatarIcon(player.profession), size: 55, color: Colors.white);
+                     },
+                   ),
+                 ),
                ),
                Positioned(
                  bottom: 0,

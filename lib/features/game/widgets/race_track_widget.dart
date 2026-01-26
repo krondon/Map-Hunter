@@ -414,8 +414,8 @@ class _RacerAvatarWidget extends StatelessWidget {
                         color: isSelected 
                            ? Colors.redAccent 
                            : (vm.isMe
-                              ? AppTheme.accentGold
-                              : (vm.isLeader ? Colors.amber : Colors.white24)),
+                               ? AppTheme.accentGold
+                               : (vm.isLeader ? Colors.amber : Colors.white24)),
                         width: (vm.isMe || isSelected) ? 2 : 1,
                       ),
                       boxShadow: [
@@ -430,23 +430,52 @@ class _RacerAvatarWidget extends StatelessWidget {
                         )
                       ],
                     ),
-                    child: CircleAvatar(
-                      backgroundColor: vm.isMe ? AppTheme.primaryPurple : Colors.grey[800],
-                      backgroundImage: (vm.data.avatarUrl != null && vm.data.avatarUrl!.startsWith('http'))
-                          ? NetworkImage(vm.data.avatarUrl!)
-                          : null,
-                      child: (vm.data.avatarUrl == null || !vm.data.avatarUrl!.startsWith('http'))
-                          ? Text(
-                              (vm.data.label?.isNotEmpty == true)
-                                  ? vm.data.label![0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: vm.isMe ? 14 : 10,
-                                fontWeight: FontWeight.bold,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(avatarSize / 2),
+                      child: Container(
+                        color: vm.isMe ? AppTheme.primaryPurple : Colors.grey[800],
+                        child: Builder(
+                          builder: (context) {
+                            // 1. Prioridad: Avatar Local
+                            if (vm.data.avatarId != null && vm.data.avatarId!.isNotEmpty) {
+                              return Image.asset(
+                                'assets/images/avatars/${vm.data.avatarId}.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Text(
+                                      (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
+                                      style: TextStyle(color: Colors.white, fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                            
+                            // 2. Fallback: Foto de perfil (URL)
+                            if (vm.data.avatarUrl != null && vm.data.avatarUrl!.startsWith('http')) {
+                              return Image.network(
+                                vm.data.avatarUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Center(
+                                  child: Text(
+                                    (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
+                                    style: TextStyle(color: Colors.white, fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            // 3. Fallback: Iniciales
+                            return Center(
+                              child: Text(
+                                (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
+                                style: TextStyle(color: Colors.white, fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
                               ),
-                            )
-                          : null,
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                   

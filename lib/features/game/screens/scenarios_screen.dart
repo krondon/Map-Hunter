@@ -14,12 +14,14 @@ import '../providers/game_request_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import 'code_finder_screen.dart';
 import 'game_request_screen.dart';
-import 'event_waiting_screen.dart'; // Import Waiting Screen
+import '../../auth/screens/avatar_selection_screen.dart';
+import 'event_waiting_screen.dart'; 
 import '../models/event.dart'; // Import GameEvent model
 import '../../auth/screens/login_screen.dart';
 import '../../layouts/screens/home_screen.dart';
 import '../widgets/scenario_countdown.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import '../../../core/services/video_preload_service.dart';
 
 class ScenariosScreen extends StatefulWidget {
   const ScenariosScreen({super.key});
@@ -76,6 +78,8 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadEvents();
+      // Empezar a precargar el video del primer avatar para que sea instantáneo
+      VideoPreloadService().preloadVideo('assets/escenarios.avatar/explorer_m_scene.mp4');
     });
   }
 
@@ -250,8 +254,15 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
   
         if (!mounted) return;
   
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+        // Verificar si ya tiene avatar (incluso si ya es participante)
+        if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
+          debugPrint('ScenariosScreen: Active player but no avatar. Redirecting to selection.');
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: scenario.id)));
+        } else {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+        }
       } else {
       try {
         // Usuario NO es game_player - verificar si tiene solicitud
@@ -261,36 +272,36 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
         if (request != null) {
           if (request.isApproved) {
-            // Solicitud aprobada - inicializar juego y entrar (readyToInitialize)
-            debugPrint('ScenariosScreen: Request approved, initializing game...');
-            
-            // Show loading for initialization
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => const Center(child: CircularProgressIndicator()),
-            );
-
-            // Llamar RPC para inicializar
-            final success = await gameProvider.initializeGameForApprovedUser(userId, scenario.id);
-            
-            if (!mounted) return;
-            Navigator.pop(context); // Dismiss loading
-
-            if (success) {
-              // Fetch clues and navigate
-              await gameProvider.fetchClues(eventId: scenario.id);
-              if (!mounted) return;
+            // Solicitud aprobada - Verificar si ya tiene avatar
+            if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
+              debugPrint('ScenariosScreen: Approved! Redirecting to Avatar Selection...');
               Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+                  MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: scenario.id)));
             } else {
-              // Fallo en inicialización - mostrar error
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Error al inicializar el juego. Intenta de nuevo.'),
-                  backgroundColor: Colors.red,
-                ),
+              // Ya tiene avatar - Inicializar y entrar
+              debugPrint('ScenariosScreen: Request approved and has avatar, initializing game...');
+              
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
               );
+
+              final success = await gameProvider.initializeGameForApprovedUser(userId, scenario.id);
+              
+              if (!mounted) return;
+              Navigator.pop(context); // Dismiss loading
+
+              if (success) {
+                await gameProvider.fetchClues(eventId: scenario.id);
+                if (!mounted) return;
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Error al inicializar el juego.')),
+                );
+              }
             }
           } else {
             // Solicitud pendiente o rechazada - ir a pantalla de solicitud

@@ -12,8 +12,8 @@ import '../../../core/theme/app_theme.dart';
 import '../models/game_request.dart';
 import '../models/event.dart'; // Import GameEvent
 import '../../layouts/screens/home_screen.dart';
-import '../../auth/screens/login_screen.dart';
 import './scenarios_screen.dart';
+import '../../auth/screens/avatar_selection_screen.dart';
 
 class GameRequestScreen extends StatefulWidget {
   final String? eventId;
@@ -323,22 +323,27 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         
         _pollingTimer?.cancel(); // Detener polling
         
-        debugPrint('✅ GameRequestScreen: User approved, entering game INSTANTLY');
+        debugPrint('✅ GameRequestScreen: User approved!');
         
-        // 🚀 NAVEGACIÓN INSTANTÁNEA (Sin SnackBar, Sin Delay)
-        // Solo inicializamos el juego y nos vamos
-        
-        final gameProvider = Provider.of<GameProvider>(context, listen: false);
-        try {
-           await gameProvider.startGame(widget.eventId!);
-        } catch (e) {
-           debugPrint("Warn: Error auto-starting game (non-fatal): $e");
-        }
-        
-        if (mounted) {
-           Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
-           );
+        if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
+          // No tiene avatar, ir a seleccionarlo
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: widget.eventId!)),
+          );
+        } else {
+          // Ya tiene avatar, entrar directamente (o ir a historia)
+          final gameProvider = Provider.of<GameProvider>(context, listen: false);
+          try {
+             await gameProvider.startGame(widget.eventId!);
+          } catch (e) {
+             debugPrint("Warn: Error auto-starting game: $e");
+          }
+          
+          if (mounted) {
+             Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
+             );
+          }
         }
       }
     }
@@ -601,7 +606,16 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                     onPressed: () async {
                       // Initialize game and fetch clues
                       final gameProvider = Provider.of<GameProvider>(context, listen: false);
+                      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+
                       if (widget.eventId != null) {
+                        if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
+                           Navigator.of(context).pop();
+                           Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: widget.eventId!)),
+                          );
+                          return;
+                        }
                         await gameProvider.startGame(widget.eventId!);
                       }
                       

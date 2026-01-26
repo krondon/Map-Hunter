@@ -212,13 +212,34 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   ),
                 ],
               ),
-              child: CircleAvatar(
-                backgroundImage: (player.avatarUrl.isNotEmpty) 
-                  ? NetworkImage(player.avatarUrl) 
-                  : null,
-                child: (player.avatarUrl.isEmpty) 
-                  ? const Icon(Icons.person) 
-                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: Builder(
+                  builder: (context) {
+                    final avatarId = player.avatarId;
+                    
+                    // 1. Prioridad: Avatar Local
+                    if (avatarId != null && avatarId.isNotEmpty) {
+                      return Image.asset(
+                        'assets/images/avatars/$avatarId.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 30)),
+                      );
+                    }
+                    
+                    // 2. Fallback: Foto de perfil (URL)
+                    if (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http')) {
+                      return Image.network(
+                        player.avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 30)),
+                      );
+                    }
+                    
+                    // 3. Fallback: Icono genérico
+                    return const Center(child: Icon(Icons.person, color: Colors.white70, size: 30));
+                  },
+                ),
               ),
             ),
             Positioned(

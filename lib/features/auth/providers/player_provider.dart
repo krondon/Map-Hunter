@@ -132,6 +132,44 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> resetPassword(String email) async {
+    try {
+      await _authService.resetPassword(email);
+    } catch (e) {
+      debugPrint('Error resetting password: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _authService.updatePassword(newPassword);
+    } catch (e) {
+      debugPrint('Error updating password: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateAvatar(String avatarId) async {
+    if (_currentPlayer == null) return;
+    try {
+      // 1. Guardar en SharedPreferences para acceso inmediato y offline
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_avatar_${_currentPlayer!.userId}', avatarId);
+      debugPrint('PlayerProvider: Avatar $avatarId guardado en cache local');
+
+      // 2. Actualizar DB
+      await _authService.updateAvatar(_currentPlayer!.userId, avatarId);
+      
+      // 3. Actualizar memoria y notificar
+      _currentPlayer = _currentPlayer!.copyWith(avatarId: avatarId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating avatar: $e');
+      rethrow;
+    }
+  }
+
   Future<void> logout({bool clearBanMessage = true}) async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
@@ -344,6 +382,7 @@ class PlayerProvider extends ChangeNotifier {
       // 1. Obtener perfil básico
       final profileData =
           await _supabase.from('profiles').select().eq('id', userId).single();
+      debugPrint('PlayerProvider: Raw profile data from DB: $profileData');
 
       // 2. Obtener GamePlayer y Vidas
       // Si tenemos eventId explícito, úsalo. Si no, usa el currentEventId almacenado
@@ -421,7 +460,18 @@ class PlayerProvider extends ChangeNotifier {
       }
 
       // 4. Construir jugador de forma atómica
-      final newPlayer = Player.fromJson(profileData);
+      final Player newPlayer = Player.fromJson(profileData);
+      
+      // RECUPERACIÓN DE CACHE LOCAL: Si el servidor no envió avatar, busca en cache
+      if (newPlayer.avatarId == null || newPlayer.avatarId!.isEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        final localAvatar = prefs.getString('cached_avatar_$userId');
+        if (localAvatar != null && localAvatar.isNotEmpty) {
+           debugPrint('PlayerProvider: Recuperando avatar $localAvatar de cache local (DB retornó null)');
+           newPlayer.avatarId = localAvatar;
+        }
+      }
+
       newPlayer.lives = actualLives;
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;

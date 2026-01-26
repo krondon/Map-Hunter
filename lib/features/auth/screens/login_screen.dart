@@ -16,6 +16,7 @@ import '../../../core/utils/error_handler.dart';
 import '../../game/providers/connectivity_provider.dart';
 import '../../game/providers/game_provider.dart';
 import 'dart:async'; // For TimeoutException
+import 'dart:math' as math;
 
 
 class LoginScreen extends StatefulWidget {
@@ -25,16 +26,27 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  late AnimationController _shimmerTitleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerTitleController = AnimationController(
+      duration: const Duration(milliseconds: 2500),
+      vsync: this,
+    )..repeat();
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _shimmerTitleController.dispose();
     super.dispose();
   }
 
@@ -178,6 +190,99 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final emailController = TextEditingController(text: _emailController.text);
+    final formKey = GlobalKey<FormState>();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Recuperar Contraseña',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: emailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Ingresa tu email';
+                    if (!value.contains('@')) return 'Email inválido';
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSending ? null : () => Navigator.pop(context),
+              child: const Text('CANCELAR', style: TextStyle(color: Colors.white60)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryPurple,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      if (formKey.currentState!.validate()) {
+                        setDialogState(() => isSending = true);
+                        try {
+                          await context
+                              .read<PlayerProvider>()
+                              .resetPassword(emailController.text.trim());
+                          if (!mounted) return;
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Enlace enviado. Revisa tu correo.'),
+                              backgroundColor: AppTheme.accentGold,
+                            ),
+                          );
+                        } catch (e) {
+                          setDialogState(() => isSending = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ErrorHandler.getFriendlyErrorMessage(e)),
+                              backgroundColor: AppTheme.dangerRed,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('ENVIAR'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Future<void> _checkPermissions() async {
     LocationPermission permission = await Geolocator.checkPermission();
@@ -296,32 +401,74 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Logo
+                          // Título Animado
+                          AnimatedBuilder(
+                            animation: _shimmerTitleController,
+                            builder: (context, child) {
+                              return ShaderMask(
+                                shaderCallback: (bounds) {
+                                  return LinearGradient(
+                                    colors: const [
+                                      Colors.white,
+                                      AppTheme.accentGold,
+                                      Colors.white,
+                                      AppTheme.accentGold,
+                                      Colors.white,
+                                    ],
+                                    stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+                                    begin: Alignment(-1.0 + (_shimmerTitleController.value * 2.0), -0.5),
+                                    end: Alignment(1.0 + (_shimmerTitleController.value * 2.0), 0.5),
+                                    tileMode: TileMode.clamp,
+                                  ).createShader(bounds);
+                                },
+                                child: const _GlitchText(
+                                  text: 'MAPHUNTER',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 4,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Logo con imagen personalizada (Agrandado para llenar el espacio)
                           Container(
-                            padding: const EdgeInsets.all(20),
+                            width: 180, // Aumentado de 140
+                            height: 180, // Aumentado de 140
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: AppTheme.primaryGradient,
                               boxShadow: [
                                 BoxShadow(
                                   color: AppTheme.primaryPurple.withOpacity(0.4),
-                                  blurRadius: 30,
+                                  blurRadius: 35,
                                   spreadRadius: 5,
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.explore,
-                              size: 60,
-                              color: Colors.white,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(90),
+                              child: Transform.scale(
+                                scale: 1.5, // Zoom para eliminar el padding que pusimos para el icono APK
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 30),
 
-                          // Title
+                          // Subtítulo
                           Text(
-                            'Bienvenido',
-                            style: Theme.of(context).textTheme.displayLarge,
+                            'BIENVENIDO',
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                              fontSize: 18,
+                              letterSpacing: 2,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -392,7 +539,21 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
-                    const SizedBox(height: 30),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _showForgotPasswordDialog,
+                              child: const Text(
+                                '¿Olvidaste tu contraseña?',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                    const SizedBox(height: 20),
 
                     // Login button
                     SizedBox(
@@ -465,6 +626,108 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     ),
+    );
+  }
+}
+
+class _GlitchText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const _GlitchText({required this.text, required this.style});
+
+  @override
+  State<_GlitchText> createState() => _GlitchTextState();
+}
+
+class _GlitchTextState extends State<_GlitchText> with SingleTickerProviderStateMixin {
+  late AnimationController _glitchController;
+  late String _displayText;
+  final String _chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
+  Timer? _decodeTimer;
+  int _decodeIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayText = '';
+    _startDecoding();
+
+    _glitchController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2000)
+    )..repeat();
+  }
+
+  void _startDecoding() {
+    _decodeTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (_decodeIndex >= widget.text.length) {
+        timer.cancel();
+        setState(() => _displayText = widget.text);
+        return;
+      }
+
+      setState(() {
+        _displayText = String.fromCharCodes(Iterable.generate(widget.text.length, (index) {
+          if (index < _decodeIndex) return widget.text.codeUnitAt(index);
+          return _chars.codeUnitAt(math.Random().nextInt(_chars.length));
+        }));
+        _decodeIndex++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _glitchController.dispose();
+    _decodeTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glitchController,
+      builder: (context, child) {
+        final double glitchValue = _glitchController.value;
+        final bool isGlitching = glitchValue > 0.90 && glitchValue < 0.95;
+        
+        double offsetX = 0;
+        double offsetY = 0;
+        
+        if (isGlitching) {
+          offsetX = (math.Random().nextDouble() - 0.5) * 5;
+          offsetY = (math.Random().nextDouble() - 0.5) * 5;
+        }
+
+        return Stack(
+          children: [
+            if (isGlitching)
+              Transform.translate(
+                offset: Offset(offsetX + 2, offsetY),
+                child: Text(
+                  _displayText,
+                  style: widget.style.copyWith(color: Colors.red.withOpacity(0.8)),
+                ),
+              ),
+            if (isGlitching)
+              Transform.translate(
+                offset: Offset(offsetX - 2, offsetY),
+                child: Text(
+                  _displayText,
+                  style: widget.style.copyWith(color: Colors.blue.withOpacity(0.8)),
+                ),
+              ),
+            Transform.translate(
+              offset: Offset(offsetX, offsetY),
+              child: Text(
+                _displayText,
+                style: widget.style,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

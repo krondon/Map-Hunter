@@ -183,18 +183,38 @@ class _PlayerTile extends StatelessWidget {
                   width: racer.isMe ? 2 : 1,
                 ),
               ),
-              child: CircleAvatar(
-                backgroundColor: racer.isMe ? AppTheme.primaryPurple : Colors.grey[800],
-                backgroundImage: hasValidAvatar ? NetworkImage(avatarUrl!) : null,
-                child: !hasValidAvatar
-                    ? Text(
-                        label.isNotEmpty ? label[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Container(
+                  color: racer.isMe ? AppTheme.primaryPurple : Colors.grey[800],
+                  child: Builder(
+                    builder: (context) {
+                      final avatarId = racer.data.avatarId;
+                      final avatarUrl = racer.data.avatarUrl;
+                      
+                      // 1. Prioridad: Avatar Local
+                      if (avatarId != null && avatarId.isNotEmpty) {
+                        return Image.asset(
+                          'assets/images/avatars/$avatarId.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildInitials(label),
+                        );
+                      }
+                      
+                      // 2. Fallback: Foto de perfil (URL)
+                      if (avatarUrl != null && avatarUrl.startsWith('http')) {
+                        return Image.network(
+                          avatarUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildInitials(label),
+                        );
+                      }
+                      
+                      // 3. Fallback: Iniciales
+                      return _buildInitials(label);
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -268,6 +288,18 @@ class _PlayerTile extends StatelessWidget {
                 color: Colors.white.withOpacity(0.3),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInitials(String label) {
+    return Center(
+      child: Text(
+        label.isNotEmpty ? label[0].toUpperCase() : '?',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

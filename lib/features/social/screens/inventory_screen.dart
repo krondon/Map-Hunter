@@ -347,17 +347,37 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     itemBuilder: (context, index) {
                       final rival = rivals[index];
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.primaryPurple,
-                          backgroundImage: (rival.avatarUrl.isNotEmpty &&
-                                  rival.avatarUrl.startsWith('http'))
-                              ? NetworkImage(rival.avatarUrl)
-                              : null,
-                          child: (rival.avatarUrl.isEmpty ||
-                                  !rival.avatarUrl.startsWith('http'))
-                              ? Text(
-                                  rival.name.isNotEmpty ? rival.name[0] : '?')
-                              : null,
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(shape: BoxShape.circle),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Builder(
+                              builder: (context) {
+                                final avatarId = rival.avatarId;
+                                final avatarUrl = rival.avatarUrl;
+                                
+                                if (avatarId != null && avatarId.isNotEmpty) {
+                                  return Image.asset(
+                                    'assets/images/avatars/$avatarId.png',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white70),
+                                  );
+                                }
+                                
+                                if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
+                                  return Image.network(
+                                    avatarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white70),
+                                  );
+                                }
+                                
+                                return const Icon(Icons.person, color: Colors.white70);
+                              },
+                            ),
+                          ),
                         ),
                         title: Text(rival.name,
                             style: const TextStyle(color: Colors.white)),

@@ -36,16 +36,49 @@ class ProgressHeader extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 25,
-                    backgroundColor: Colors.white24,
-                    backgroundImage: (player.avatarUrl != null && player.avatarUrl!.startsWith('http'))
-                        ? NetworkImage(player.avatarUrl!)
-                        : null,
-                    child: (player.avatarUrl == null || !player.avatarUrl!.startsWith('http'))
-                        ? Text(player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
-                            style: const TextStyle(fontWeight: FontWeight.bold))
-                        : null,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      color: Colors.white24,
+                      child: Builder(
+                        builder: (context) {
+                          // 1. Prioridad: Avatar Local
+                          if (player.avatarId != null && player.avatarId!.isNotEmpty) {
+                            return Image.asset(
+                              'assets/images/avatars/${player.avatarId}.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                debugPrint('❌ ERROR: No se pudo cargar asset: assets/images/avatars/${player.avatarId}.png');
+                                return Center(
+                                  child: Text(player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                );
+                              },
+                            );
+                          }
+                          
+                          // 2. Fallback: Foto de perfil (URL)
+                          if (player.avatarUrl != null && player.avatarUrl!.startsWith('http')) {
+                            return Image.network(
+                              player.avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Center(
+                                child: Text(player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            );
+                          }
+                          
+                          // 3. Fallback: Iniciales
+                          return Center(
+                            child: Text(player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

@@ -86,23 +86,34 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Fondo de partículas o radar
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: RadarPainter(_pulseController.value),
-                  size: Size.infinite,
-                );
-              },
-            ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Imagen de fondo (La que subiste)
+          Image.asset(
+            'assets/images/intro_bg.png',
+            fit: BoxFit.cover,
+          ),
+          
+          // Overlay oscuro sutil para legibilidad
+          Container(
+            color: Colors.black.withOpacity(0.4),
+          ),
+
+          // Fondo de partículas o radar (opcional, lo mantenemos sobre la imagen)
+          AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: RadarPainter(_pulseController.value),
+                size: Size.infinite,
+              );
+            },
+          ),
+
+          Stack(
+            alignment: Alignment.center,
+            children: [
 
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -229,7 +240,8 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ],
         ),
-      ),
+      ],
+    ),
     );
   }
 }

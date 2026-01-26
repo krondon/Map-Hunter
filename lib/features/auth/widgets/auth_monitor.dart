@@ -9,6 +9,9 @@ import '../../game/providers/game_provider.dart';
 import '../../game/screens/game_request_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../layouts/screens/home_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../screens/reset_password_screen.dart';
+import 'dart:async';
 
 /// AuthMonitor: Gestiona la navegación basada en el estado de autenticación
 /// y el estado del usuario respecto a eventos (Gatekeeper).
@@ -29,6 +32,42 @@ class _AuthMonitorState extends State<AuthMonitor> {
   bool? _wasLoggedIn;
   bool _hasRedirected = false;
   bool _isCheckingStatus = false;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToAuthChanges();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToAuthChanges() {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      debugPrint('AuthMonitor: Auth Event: $event');
+
+      if (event == AuthChangeEvent.passwordRecovery) {
+        debugPrint('AuthMonitor: Password Recovery detected! Redirecting...');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _navigateToResetPassword();
+        });
+      }
+    });
+  }
+
+  void _navigateToResetPassword() {
+    if (rootNavigatorKey.currentState != null) {
+      rootNavigatorKey.currentState!.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   void didChangeDependencies() {

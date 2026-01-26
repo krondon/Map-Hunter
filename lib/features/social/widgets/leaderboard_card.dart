@@ -67,22 +67,41 @@ class LeaderboardCard extends StatelessWidget {
           
           // Avatar
           Container(
-            width: 44, // Equivalente a radius 22 * 2
+            width: 44,
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.grey[800],
-              image: (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http'))
-                  ? DecorationImage(
-                      image: NetworkImage(player.avatarUrl),
-                      fit: BoxFit.cover,
-                      onError: (_, __) {},
-                    )
-                  : null,
             ),
-            child: (player.avatarUrl.isEmpty || !player.avatarUrl.startsWith('http'))
-                ? const Center(child: Icon(Icons.person, color: Colors.white70, size: 24))
-                : null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: Builder(
+                builder: (context) {
+                  final avatarId = player.avatarId;
+                  
+                  // 1. Prioridad: Avatar Local
+                  if (avatarId != null && avatarId.isNotEmpty) {
+                    return Image.asset(
+                      'assets/images/avatars/$avatarId.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 24)),
+                    );
+                  }
+                  
+                  // 2. Fallback: Foto de perfil (URL)
+                  if (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http')) {
+                    return Image.network(
+                      player.avatarUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 24)),
+                    );
+                  }
+                  
+                  // 3. Fallback: Icono genérico
+                  return const Center(child: Icon(Icons.person, color: Colors.white70, size: 24));
+                },
+              ),
+            ),
           ),
           
           const SizedBox(width: 12),
