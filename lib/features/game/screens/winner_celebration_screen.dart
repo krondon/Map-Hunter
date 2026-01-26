@@ -136,13 +136,13 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
     return WillPopScope(
       onWillPop: () async => false, // Prevent back button
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
-        ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Stack(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.darkGradient,
+          ),
+          child: Stack(
             children: [
               // Confetti overlay
               Align(
@@ -167,245 +167,195 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
               ),
 
               SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
-
-                      // Medal/Trophy Icon
-                      Text(
-                        _getMedalEmoji(),
-                        style: const TextStyle(fontSize: 100),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Celebration Message
-                      Text(
-                        _getCelebrationMessage(),
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: _getPositionColor(),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Position Display
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getPositionColor().withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: _getPositionColor(),
-                            width: 2,
+                      // User's Position Header (Very Prominent)
+                      Column(
+                        children: [
+                          Text(
+                            _getCelebrationMessage(),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: _getPositionColor(),
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        child: Text(
-                          'Posición #$_currentPosition',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: _getPositionColor(),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Clues completed
-                      Text(
-                        'Pistas Completadas: ${widget.totalCluesCompleted}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Colors.white70,
-                        ),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // Final Leaderboard Title
-                      const Text(
-                        'Tabla de Posiciones Final',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Leaderboard
-                      if (gameProvider.isLoading)
-                        const CircularProgressIndicator()
-                      else if (gameProvider.leaderboard.isEmpty)
-                        const Text(
-                          'No hay datos del ranking',
-                          style: TextStyle(color: Colors.white70),
-                        )
-                      else
-                        ...gameProvider.leaderboard
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                          final index = entry.key;
-                          final player = entry.value;
-                          final position = index + 1;
-                          final isCurrentPlayer = player.id == currentPlayerId;
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                             decoration: BoxDecoration(
-                              color: isCurrentPlayer
-                                  ? AppTheme.accentGold.withOpacity(0.2)
-                                  : AppTheme.cardBg,
-                              borderRadius: BorderRadius.circular(12),
-                              border: isCurrentPlayer
-                                  ? Border.all(
-                                      color: AppTheme.accentGold, width: 2)
-                                  : null,
+                              color: _getPositionColor().withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: _getPositionColor(), width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _getPositionColor().withOpacity(0.2),
+                                  blurRadius: 15,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Position
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: position <= 3
-                                        ? _getPositionColorForRank(position)
-                                        : Colors.grey.shade700,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      position <= 3
-                                          ? _getMedalEmojiForRank(position)
-                                          : '$position',
+                                Text(
+                                  _getMedalEmoji(),
+                                  style: const TextStyle(fontSize: 40),
+                                ),
+                                const SizedBox(width: 15),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'TU POSICIÓN',
                                       style: TextStyle(
-                                        fontSize: position <= 3 ? 20 : 16,
+                                        color: Colors.white70,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color:
-                                            position <= 3 ? null : Colors.white,
+                                        letterSpacing: 1.5,
                                       ),
                                     ),
-                                  ),
-                                ),
-
-                                const SizedBox(width: 16),
-
-                                // Player Avatar
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: player.avatarUrl.isNotEmpty
-                                      ? NetworkImage(player.avatarUrl)
-                                      : null,
-                                  child: player.avatarUrl.isEmpty
-                                      ? Text(
-                                          player.name.isNotEmpty
-                                              ? player.name[0].toUpperCase()
-                                              : '?',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        )
-                                      : null,
-                                ),
-
-                                const SizedBox(width: 12),
-
-                                // Player name
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        player.name,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: isCurrentPlayer
-                                              ? AppTheme.accentGold
-                                              : Colors.white,
-                                        ),
+                                    Text(
+                                      '#$_currentPosition',
+                                      style: TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.w900,
+                                        color: _getPositionColor(),
                                       ),
-                                      Text(
-                                        'Nivel ${player.level}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white54,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Clues completed (using totalXP as clues count)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    '${player.totalXP} pistas',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.greenAccent,
-                                      fontWeight: FontWeight.bold,
                                     ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      // Top 3 Podium (Fixed at center)
+                      if (gameProvider.leaderboard.length >= 3)
+                        Column(
+                          children: [
+                            const Text(
+                              'PODIO DE LA CARRERA',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardBg.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: AppTheme.accentGold.withOpacity(0.2)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // 2nd place
+                                  _buildPodiumPosition(
+                                    gameProvider.leaderboard[1],
+                                    2,
+                                    60,
+                                    Colors.grey,
+                                  ),
+                                  // 1st place
+                                  _buildPodiumPosition(
+                                    gameProvider.leaderboard[0],
+                                    1,
+                                    90,
+                                    const Color(0xFFFFD700),
+                                  ),
+                                  // 3rd place
+                                  _buildPodiumPosition(
+                                    gameProvider.leaderboard[2],
+                                    3,
+                                    50,
+                                    const Color(0xFFCD7F32),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (gameProvider.isLoading)
+                        const CircularProgressIndicator()
+                      else
+                        const Text(
+                          'Cargando resultados finales...',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+
+                      const Spacer(),
+
+                      // Final Info and Button
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.stars, color: Colors.greenAccent, size: 20),
+                                const SizedBox(width: 10),
+                                Text(
+                                  '${widget.totalCluesCompleted} Pistas Completadas',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-
-                      const SizedBox(height: 40),
-
-                      // Return to Home Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // Navigate to ScenariosScreen and clear stack
-                             Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const ScenariosScreen()),
-                              (route) => false,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.accentGold,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          ),
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (_) => const ScenariosScreen()),
+                                  (route) => false,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentGold,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                elevation: 8,
+                                shadowColor: AppTheme.accentGold.withOpacity(0.5),
+                              ),
+                              icon: const Icon(Icons.home_rounded, size: 28),
+                              label: const Text(
+                                'VOLVER AL INICIO',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                             ),
                           ),
-                          icon: const Icon(Icons.home, size: 24),
-                          label: const Text(
-                            'VOLVER AL INICIO',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
-
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -441,5 +391,117 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       default:
         return '';
     }
+  }
+
+  Widget _buildPodiumPosition(player, int position, double height, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: Builder(
+                  builder: (context) {
+                    final avatarId = player.avatarId;
+                    if (avatarId != null && avatarId.isNotEmpty) {
+                      return Image.asset(
+                        'assets/images/avatars/$avatarId.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white70, size: 25),
+                      );
+                    }
+                    if (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http')) {
+                      return Image.network(
+                        player.avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white70, size: 25),
+                      );
+                    }
+                    return const Icon(Icons.person, color: Colors.white70, size: 25);
+                  },
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -2,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$position',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: 60,
+          child: Text(
+            player.name,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: 60,
+          height: height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [color.withOpacity(0.4), color.withOpacity(0.1)],
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            border: Border(
+              top: BorderSide(color: color, width: 2),
+              left: BorderSide(color: color.withOpacity(0.5), width: 1),
+              right: BorderSide(color: color.withOpacity(0.5), width: 1),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              '${player.totalXP}',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
