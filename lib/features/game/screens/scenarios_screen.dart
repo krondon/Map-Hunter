@@ -22,6 +22,7 @@ import '../../layouts/screens/home_screen.dart';
 import '../widgets/scenario_countdown.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/services/video_preload_service.dart';
+import 'winner_celebration_screen.dart';
 
 class ScenariosScreen extends StatefulWidget {
   const ScenariosScreen({super.key});
@@ -108,6 +109,22 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
     if (_isProcessing) return;
+
+    // Si la competencia ya terminó, vamos directo al podio
+    if (scenario.isCompleted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WinnerCelebrationScreen(
+            eventId: scenario.id,
+            playerPosition: 0, // 0 indica que no participó o posición desconocida
+            totalCluesCompleted: 0,
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
     });
@@ -929,9 +946,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                                           .black,
                                                                   elevation: 8,
                                                                 ),
-                                                                child: const Text(
-                                                                    "SELECCIONAR",
-                                                                    style: TextStyle(
+                                                                child: Text(
+                                                                    scenario.isCompleted ? "VER PODIO" : "SELECCIONAR",
+                                                                    style: const TextStyle(
                                                                         fontWeight:
                                                                             FontWeight.bold)),
                                                               ),

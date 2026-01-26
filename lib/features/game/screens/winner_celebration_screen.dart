@@ -41,8 +41,13 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     }
 
     // Load final leaderboard and update position if needed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
+
+      // CRITICAL: Ensure eventId is set in the provider so fetchLeaderboard knows what to fetch
+      if (gameProvider.currentEventId != widget.eventId) {
+        await gameProvider.fetchClues(eventId: widget.eventId, silent: true);
+      }
 
       // Add listener to self-correct position
       gameProvider.addListener(_updatePositionFromLeaderboard);
@@ -62,6 +67,10 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     if (gameProvider.leaderboard.isNotEmpty) {
       final index =
           gameProvider.leaderboard.indexWhere((p) => p.userId == playerProvider.currentPlayer?.userId);
+      
+      // Si no participó (index -1) y ya estábamos en 0, nos quedamos en 0
+      if (index == -1 && _currentPosition == 0) return;
+
       final newPos =
           index >= 0 ? index + 1 : gameProvider.leaderboard.length + 1;
 
@@ -175,7 +184,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                       Column(
                         children: [
                           Text(
-                            _getCelebrationMessage(),
+                            _currentPosition > 0 ? _getCelebrationMessage() : 'Resultados del Evento',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -184,60 +193,75 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                            decoration: BoxDecoration(
-                              color: _getPositionColor().withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: _getPositionColor(), width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getPositionColor().withOpacity(0.2),
-                                  blurRadius: 15,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _getMedalEmoji(),
-                                  style: const TextStyle(fontSize: 40),
-                                ),
-                                const SizedBox(width: 15),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'TU POSICIÓN',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.5,
+                          if (_currentPosition > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                              decoration: BoxDecoration(
+                                color: _getPositionColor().withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _getPositionColor(), width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _getPositionColor().withOpacity(0.2),
+                                    blurRadius: 15,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _getMedalEmoji(),
+                                    style: const TextStyle(fontSize: 40),
+                                  ),
+                                  const SizedBox(width: 15),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'TU POSICIÓN',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.5,
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      '#$_currentPosition',
-                                      style: TextStyle(
-                                        fontSize: 36,
-                                        fontWeight: FontWeight.w900,
-                                        color: _getPositionColor(),
+                                      Text(
+                                        '#$_currentPosition',
+                                        style: TextStyle(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.w900,
+                                          color: _getPositionColor(),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: const Text(
+                                'No participaste en esta competencia.\nAquí tienes el podio final:',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white70, fontSize: 14),
+                              ),
                             ),
-                          ),
                         ],
                       ),
 
                       const Spacer(),
 
                       // Top 3 Podium (Fixed at center)
-                      if (gameProvider.leaderboard.length >= 3)
+                      if (gameProvider.leaderboard.isNotEmpty)
                         Column(
                           children: [
                             const Text(
@@ -262,12 +286,16 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   // 2nd place
-                                  _buildPodiumPosition(
-                                    gameProvider.leaderboard[1],
-                                    2,
-                                    60,
-                                    Colors.grey,
-                                  ),
+                                  if (gameProvider.leaderboard.length >= 2)
+                                    _buildPodiumPosition(
+                                      gameProvider.leaderboard[1],
+                                      2,
+                                      60,
+                                      Colors.grey,
+                                    )
+                                  else if (gameProvider.leaderboard.length >= 3)
+                                    const SizedBox(width: 60),
+                                    
                                   // 1st place
                                   _buildPodiumPosition(
                                     gameProvider.leaderboard[0],
@@ -275,13 +303,17 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                     90,
                                     const Color(0xFFFFD700),
                                   ),
+                                  
                                   // 3rd place
-                                  _buildPodiumPosition(
-                                    gameProvider.leaderboard[2],
-                                    3,
-                                    50,
-                                    const Color(0xFFCD7F32),
-                                  ),
+                                  if (gameProvider.leaderboard.length >= 3)
+                                    _buildPodiumPosition(
+                                      gameProvider.leaderboard[2],
+                                      3,
+                                      50,
+                                      const Color(0xFFCD7F32),
+                                    )
+                                  else if (gameProvider.leaderboard.length >= 2)
+                                    const SizedBox(width: 60),
                                 ],
                               ),
                             ),
@@ -291,7 +323,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                         const CircularProgressIndicator()
                       else
                         const Text(
-                          'Cargando resultados finales...',
+                          'No hay resultados disponibles',
                           style: TextStyle(color: Colors.white54),
                         ),
 
