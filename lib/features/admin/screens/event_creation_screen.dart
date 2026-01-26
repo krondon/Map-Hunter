@@ -35,6 +35,12 @@ class EventCreationScreen extends StatefulWidget {
 }
 
 class _EventCreationScreenState extends State<EventCreationScreen> {
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
   final _formKey = GlobalKey<FormState>();
 
   // Variables para guardar los datos
@@ -55,6 +61,10 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   bool _isLoading = false;
   bool _isFormValid = false;
   late String _eventId; // ID del evento (existente o nuevo generado)
+  
+  // UX Refinement Variables
+  late TextEditingController _pinController;
+  bool _isPinLocked = false;
 
   // Stores
   List<Map<String, dynamic>> _pendingStores = [];
@@ -98,6 +108,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
        // Nota: la imagen y las pistas se cargan aparte o no se editan aqui directamente si no se cambian
        _checkFormValidity();
     }
+    
+    // Initialize PIN controller
+    _pinController = TextEditingController(text: _pin);
+    // If PIN exists (editing), we might want to lock it? Or only lock if generated?
+    // User requirement: "Una vez generado el QR... debe volverse de solo lectura". 
+    // Assuming editing doesn't auto-lock unless generated.
   }
 
   void _checkFormValidity() {
@@ -602,11 +618,22 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                         labelText: 'Max. Jugadores'),
                                     style: const TextStyle(color: Colors.white),
                                     keyboardType: TextInputType.number,
-                                    validator: (v) =>
-                                        v!.isEmpty ? 'Requerido' : null,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    validator: (v) {
+                                        if (v == null || v.isEmpty) return 'Requerido';
+                                        int? val = int.tryParse(v);
+                                        if (val == null) return 'Número inválido';
+                                        if (val <= 0) return 'Mínimo 1 jugador';
+                                        if (val > 5000) return 'Máximo 5,000 jugadores';
+                                        return null;
+                                    },
                                     onChanged: (v) {
-                                      if (v.isNotEmpty)
+                                      if (v.isNotEmpty) {
                                         _maxParticipants = int.tryParse(v) ?? 0;
+                                      }
+                                      _checkFormValidity();
                                     },
                                     onSaved: (v) =>
                                         _maxParticipants = int.parse(v!),
@@ -645,11 +672,22 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                           labelText: 'Max. Jugadores'),
                                       style: const TextStyle(color: Colors.white),
                                       keyboardType: TextInputType.number,
-                                      validator: (v) =>
-                                          v!.isEmpty ? 'Requerido' : null,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      validator: (v) {
+                                          if (v == null || v.isEmpty) return 'Requerido';
+                                          int? val = int.tryParse(v);
+                                          if (val == null) return 'Número inválido';
+                                          if (val <= 0) return 'Mínimo 1 jugador';
+                                          if (val > 5000) return 'Máximo 5,000 jugadores';
+                                          return null;
+                                      },
                                       onChanged: (v) {
-                                        if (v.isNotEmpty)
+                                        if (v.isNotEmpty) {
                                           _maxParticipants = int.tryParse(v) ?? 0;
+                                        }
+                                        _checkFormValidity();
                                       },
                                       onSaved: (v) =>
                                           _maxParticipants = int.parse(v!),
@@ -673,7 +711,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                     children: [
                                       Expanded(
                                         child: TextFormField(
-                                          initialValue: _pin,
+                                          controller: _pinController, // Use controller instead of initialValue
+                                          readOnly: _isPinLocked,
                                           keyboardType: TextInputType.number,
                                           inputFormatters: [
                                             FilteringTextInputFormatter.digitsOnly,
@@ -682,15 +721,19 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                           decoration: inputDecoration.copyWith(
                                             labelText: 'PIN de Acceso',
                                             prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
+                                            suffixIcon: _isPinLocked ? Icon(Icons.lock, color: AppTheme.accentGold, size: 16) : null,
                                             hintText: '123456',
                                           ),
-                                          style: const TextStyle(color: Colors.white),
+                                          style: TextStyle(color: _isPinLocked ? Colors.grey : Colors.white),
                                           validator: (v) {
                                             if (v == null || v.isEmpty) return 'Requerido';
                                             if (v.length != 6) return 'El PIN debe ser de 6 dígitos';
                                             return null;
                                           },
-                                          onChanged: (v) => _pin = v,
+                                          onChanged: (v) {
+                                            _pin = v;
+                                            _checkFormValidity();
+                                          },
                                           onSaved: (v) => _pin = v!,
                                         ),
                                       ),
@@ -707,31 +750,34 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                           icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
                                           tooltip: "Generar QR",
                                           onPressed: () {
-                                            // Auto-generar PIN si está vacío
-                                            if (_pin.isEmpty || _pin.length != 6) {
-                                              final random = Random();
-                                              final newPin = (100000 + random.nextInt(900000)).toString();
-                                              setState(() {
-                                                _pin = newPin;
-                                              });
-                                              // Necesitamos refrescar el campo de texto visualmente
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('PIN generado automáticamente: $_pin')),
-                                              );
-                                            }
+                                            // Always generate new if pressed, or only if empty?
+                                            // User instruction: "Vincular el botón... Al obtener el código... asígnalo inmediatamente... bloqueado"
                                             
-                                            // Mostrar QR usando el ID pre-generado
-                                            if (_pin.length == 6) {
-                                              final qrData = "EVENT:$_eventId:$_pin"; // Usamos _eventId que ya existe
-                                              showDialog(
-                                                context: context,
-                                                builder: (_) => QRDisplayDialog(
-                                                  data: qrData,
-                                                  title: "QR de Acceso",
-                                                  label: "PIN: $_pin",
-                                                ),
-                                              );
-                                            }
+                                            // Generate logic
+                                            final random = Random();
+                                            final newPin = (100000 + random.nextInt(900000)).toString();
+                                            
+                                            setState(() {
+                                              _pin = newPin;
+                                              _pinController.text = newPin;
+                                              _isPinLocked = true;
+                                            });
+                                            
+                                            // Message
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('PIN generado y bloqueado: $_pin')),
+                                            );
+                                            
+                                            // Display QR
+                                            final qrData = "EVENT:$_eventId:$_pin";
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) => QRDisplayDialog(
+                                                data: qrData,
+                                                title: "QR de Acceso",
+                                                label: "PIN: $_pin",
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
@@ -764,7 +810,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                       children: [
                                         Expanded(
                                           child: TextFormField(
-                                            initialValue: _pin,
+                                            controller: _pinController,
+                                            readOnly: _isPinLocked,
                                             keyboardType: TextInputType.number,
                                             inputFormatters: [
                                               FilteringTextInputFormatter.digitsOnly,
@@ -773,15 +820,19 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                             decoration: inputDecoration.copyWith(
                                               labelText: 'PIN de Acceso',
                                               prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
+                                              suffixIcon: _isPinLocked ? Icon(Icons.lock, color: AppTheme.accentGold, size: 16) : null,
                                               hintText: '123456',
                                             ),
-                                            style: const TextStyle(color: Colors.white),
+                                            style: TextStyle(color: _isPinLocked ? Colors.grey : Colors.white),
                                             validator: (v) {
                                               if (v == null || v.isEmpty) return 'Requerido';
                                               if (v.length != 6) return 'El PIN debe ser de 6 dígitos';
                                               return null;
                                             },
-                                            onChanged: (v) => _pin = v,
+                                            onChanged: (v) {
+                                              _pin = v;
+                                              _checkFormValidity();
+                                            },
                                             onSaved: (v) => _pin = v!,
                                           ),
                                         ),
@@ -798,29 +849,30 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                             icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
                                             tooltip: "Generar QR",
                                             onPressed: () {
-                                              // Auto-generar PIN si está vacío
-                                              if (_pin.isEmpty || _pin.length != 6) {
-                                                final random = Random();
-                                                final newPin = (100000 + random.nextInt(900000)).toString();
-                                                setState(() {
-                                                  _pin = newPin;
-                                                });
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(content: Text('PIN generado automáticamente: $_pin')),
-                                                );
-                                              }
-
-                                              if (_pin.length == 6) {
-                                                final qrData = "EVENT:$_eventId:$_pin"; // Usamos _eventId
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (_) => QRDisplayDialog(
-                                                    data: qrData,
-                                                    title: "QR de Acceso",
-                                                    label: "PIN: $_pin",
-                                                  ),
-                                                );
-                                              }
+                                              // Generate logic
+                                              final random = Random();
+                                              final newPin = (100000 + random.nextInt(900000)).toString();
+                                              
+                                              setState(() {
+                                                _pin = newPin;
+                                                _pinController.text = newPin;
+                                                _isPinLocked = true;
+                                              });
+                                              
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('PIN generado y bloqueado: $_pin')),
+                                              );
+                                              
+                                              // Display QR
+                                              final qrData = "EVENT:$_eventId:$_pin";
+                                              showDialog(
+                                                context: context,
+                                                builder: (_) => QRDisplayDialog(
+                                                  data: qrData,
+                                                  title: "QR de Acceso",
+                                                  label: "PIN: $_pin",
+                                                ),
+                                              );
                                             },
                                           ),
                                         ),
@@ -914,7 +966,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                                     if (v == null || v.isEmpty) return 'Requerido';
                                                     int? num = int.tryParse(v);
                                                     if (num == null || num <= 0) return 'Mín. 1';
-                                                    if (num > 12) return 'Máximo 12 pistas';
+                                                    if (num > 12) return 'Máximo 12 pistas por ahora';
                                                     return null;
                                                 },
                                               ),
@@ -985,7 +1037,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                                 if (v == null || v.isEmpty) return 'Requerido';
                                                 int? num = int.tryParse(v);
                                                 if (num == null || num <= 0) return 'Mín. 1';
-                                                if (num > 12) return 'Máximo 12 pistas';
+                                                if (num > 12) return 'Máximo 12 pistas por ahora';
                                                 return null;
                                             },
                                           ),
