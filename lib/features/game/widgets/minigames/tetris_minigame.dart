@@ -9,7 +9,7 @@ import '../../providers/game_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'game_over_overlay.dart';
-import '../../../mall/screens/shop_screen.dart';
+import '../../../mall/screens/mall_screen.dart';
 
 class TetrisMinigame extends StatefulWidget {
   final Clue clue;
@@ -651,7 +651,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
               onGoToShop: _showShopButton ? () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ShopScreen()),
+                  MaterialPageRoute(builder: (_) => const MallScreen()),
                 );
                 if (!context.mounted) return;
                 final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;

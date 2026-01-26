@@ -8,7 +8,7 @@ import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
 import 'game_over_overlay.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../mall/screens/shop_screen.dart';
+import '../../../mall/screens/mall_screen.dart';
 
 class SnakeMinigame extends StatefulWidget {
   final Clue clue;
@@ -575,7 +575,7 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
               onGoToShop: _showShopButton ? () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ShopScreen()),
+                  MaterialPageRoute(builder: (_) => const MallScreen()),
                 );
                 // Check lives upon return
                 if (!context.mounted) return;

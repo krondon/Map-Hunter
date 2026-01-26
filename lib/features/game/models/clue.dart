@@ -163,7 +163,10 @@ enum PuzzleType {
   flags,          
   minesweeper,    
   snake,          
-  blockFill;      
+  blockFill,
+  codeBreaker,
+  imageTrivia,
+  wordScramble;      
 
   String get dbValue => toString().split('.').last;
 
@@ -178,6 +181,9 @@ enum PuzzleType {
       case PuzzleType.minesweeper: return '💣 Buscaminas';
       case PuzzleType.snake: return '🐍 Snake (Culebrita)';
       case PuzzleType.blockFill: return '🟦 Rellenar Bloques';
+      case PuzzleType.codeBreaker: return '🔐 Caja Fuerte (Code)';
+      case PuzzleType.imageTrivia: return '🖼️ Desafío Visual (Trivia)';
+      case PuzzleType.wordScramble: return '🔤 Palabra Misteriosa';
     }
   }
 
@@ -208,6 +214,9 @@ enum PuzzleType {
       case PuzzleType.minesweeper: return 'Descubre todas las casillas seguras';
       case PuzzleType.snake: return 'Come 15 manzanas sin chocar';
       case PuzzleType.blockFill: return 'Rellena todo el camino';
+      case PuzzleType.codeBreaker: return 'Descifra el código de 4 dígitos';
+      case PuzzleType.imageTrivia: return '¿Qué es lo que ves en la imagen?';
+      case PuzzleType.wordScramble: return 'Ordena las letras para formar la palabra';
       
     }
   }

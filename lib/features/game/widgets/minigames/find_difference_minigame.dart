@@ -8,7 +8,7 @@ import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
-import '../../../mall/screens/shop_screen.dart';
+import '../../../mall/screens/mall_screen.dart';
 
 class FindDifferenceMinigame extends StatefulWidget {
   final Clue clue;
@@ -309,7 +309,7 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
               onGoToShop: _showShopButton ? () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ShopScreen()),
+                  MaterialPageRoute(builder: (_) => const MallScreen()),
                 );
                 // Check lives upon return
                 if (!context.mounted) return;

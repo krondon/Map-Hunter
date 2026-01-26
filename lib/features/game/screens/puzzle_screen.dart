@@ -21,6 +21,9 @@ import '../widgets/minigames/flags_minigame.dart';
 import '../widgets/minigames/minesweeper_minigame.dart';
 import '../widgets/minigames/snake_minigame.dart';
 import '../widgets/minigames/block_fill_minigame.dart';
+import '../widgets/minigames/code_breaker_widget.dart';
+import '../widgets/minigames/image_trivia_widget.dart';
+import '../widgets/minigames/word_scramble_widget.dart';
 import '../widgets/minigame_countdown_overlay.dart';
 import 'scenarios_screen.dart';
 import '../../game/providers/game_request_provider.dart';
@@ -434,6 +437,18 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       case PuzzleType.blockFill:
         gameWidget =
             BlockFillWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.codeBreaker:
+        gameWidget =
+            CodeBreakerWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.imageTrivia:
+        gameWidget =
+            ImageTriviaWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.wordScramble:
+        gameWidget =
+            WordScrambleWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
     }
 
@@ -914,6 +929,60 @@ class FindDifferenceWrapper extends StatelessWidget {
           }));
 }
 
+class CodeBreakerWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const CodeBreakerWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      CodeBreakerWidget(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class ImageTriviaWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const ImageTriviaWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      ImageTriviaWidget(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class WordScrambleWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const WordScrambleWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      WordScrambleWidget(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
 // --- SCAFFOLD COMPARTIDO ACTUALIZADO (Soporta onFinish para Rendición Legal) ---
 
 String _getMinigameInstruction(Clue clue) {
@@ -936,6 +1005,12 @@ String _getMinigameInstruction(Clue clue) {
       return "Maneja la culebrita";
     case PuzzleType.blockFill:
       return "Rellena los bloques";
+    case PuzzleType.codeBreaker:
+      return "Descifra el código";
+    case PuzzleType.imageTrivia:
+      return "Adivina la imagen";
+    case PuzzleType.wordScramble:
+      return "Ordena las letras";
     default:
       // Si es un tipo estándar, verificamos por el título o descripción
       if (clue.riddleQuestion?.contains("código") ?? false) return "Descifra el código";

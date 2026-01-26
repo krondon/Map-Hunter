@@ -7,7 +7,7 @@ import '../../../auth/providers/player_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../utils/minigame_logic_helper.dart';
 import 'game_over_overlay.dart';
-import '../../../mall/screens/shop_screen.dart';
+import '../../../mall/screens/mall_screen.dart';
 
 class WordScrambleWidget extends StatefulWidget {
   final Clue clue;
@@ -257,7 +257,7 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
               onGoToShop: _showShopButton ? () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ShopScreen()),
+                  MaterialPageRoute(builder: (_) => const MallScreen()),
                 );
                 // Check lives upon return
                 if (!context.mounted) return;
