@@ -36,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
       final effectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
       playerProvider.syncRealInventory(effectProvider: effectProvider);
+      
+      // Sincronizar contexto del evento actual
+      playerProvider.setCurrentEventContext(widget.eventId);
     });
     _screens = [
       CluesScreen(

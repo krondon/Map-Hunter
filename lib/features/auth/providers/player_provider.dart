@@ -74,6 +74,21 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  /// Establece el contexto del evento actual para asegurar que el perfil
+  /// se mantenga sincronizado con la competencia que el usuario está jugando.
+  Future<void> setCurrentEventContext(String eventId) async {
+    if (_currentPlayer == null) return;
+    
+    debugPrint('PlayerProvider: Setting current event context to $eventId');
+    
+    // Si el evento ya es el mismo, no hacemos fetch completo pero aseguramos el ID
+    if (_currentPlayer!.currentEventId == eventId) {
+      return;
+    }
+
+    await _fetchProfile(_currentPlayer!.userId, eventId: eventId);
+  }
+
   /// Carga la configuración de items de la tienda desde el servicio
   Future<void> loadShopItems() async {
     try {
@@ -487,7 +502,7 @@ class PlayerProvider extends ChangeNotifier {
       }
 
       _currentPlayer = newPlayer;
-      debugPrint('🔍 PlayerProvider: notifyListeners() called. gamePlayerId: ${_currentPlayer?.gamePlayerId}');
+      debugPrint('🔍 PlayerProvider: notifyListeners() called. gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}');
       notifyListeners();
 
       // --- NUEVO: Verificar penalizaciones pendientes de desconexiones previas ---

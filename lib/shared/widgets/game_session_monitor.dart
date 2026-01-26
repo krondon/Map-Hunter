@@ -47,10 +47,20 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
     }
 
     if (_lastGamePlayerId != null && currentGamePlayerId == null) {
+      // SOLO expulsar si el evento que se perdió es el que estamos jugando actualmente
+      final currentPlayingEventId = gameProvider.currentEventId;
+      final lostSessionEventId = playerProvider.currentPlayer?.currentEventId;
+
       debugPrint("🕒 GameSessionMonitor: 🚫 PÉRDIDA DE SESIÓN DETECTADA.");
-      debugPrint("   - Prev ID: $_lastGamePlayerId");
-      debugPrint("   - Curr ID: null");
-      shouldKick = true;
+      debugPrint("   - Prev GP ID: $_lastGamePlayerId");
+      debugPrint("   - Curr GP ID: null");
+      debugPrint("   - Current Playing Event: $currentPlayingEventId");
+      
+      // Si el usuario ya no tiene currentEventId (porque se borró su GP), 
+      // pero el monitorNavigator tiene un evento activo, es sospechoso.
+      if (currentPlayingEventId != null) {
+        shouldKick = true;
+      }
     }
 
     // Caso 2: El status cambió a BANNED (Baneo detectado por Stream)
