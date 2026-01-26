@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_map/flutter_map.dart';
+
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../widgets/shared/location_picker_widget.dart';
 import '../../game/models/event.dart';
 import '../../game/providers/event_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -121,290 +121,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
     }
   }
 
-  Future<void> _selectLocationOnMap() async {
-    // Obtener ubicación actual para centrar el mapa
-    // 1. Validar Permisos explícitamente antes de obtener ubicación
-    Position? position;
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        debugPrint('Servicios de ubicación deshabilitados.');
-        // Opcional: Mostrar alerta para activar
-      }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          debugPrint('Permiso de ubicación denegado.');
-        }
-      }
-      
-      if (permission == LocationPermission.whileInUse || 
-          permission == LocationPermission.always) {
-         // Mostrar toast o feedback visual si es necesario
-         position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-            timeLimit: const Duration(seconds: 15), // Mayor tiempo para mejor precisión
-         );
-      }
-    } catch (e) {
-      debugPrint("Error obteniendo ubicación: $e");
-    }
-    final latlng.LatLng initial = position != null
-        ? latlng.LatLng(position.latitude, position.longitude)
-        : const latlng.LatLng(10.4806, -66.9036); // Caracas por defecto
-
-    latlng.LatLng? picked;
-    String? address;
-    latlng.LatLng temp = initial;
-    final MapController mapController = MapController();
-    final TextEditingController searchController = TextEditingController();
-    Timer? debounce;
-    List<dynamic> suggestions = [];
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            Future<void> searchLocation() async {
-              final query = searchController.text;
-              if (query.isEmpty) {
-                setStateDialog(() => suggestions = []);
-                return;
-              }
-
-              final apiKey = 'pk.45e576837f12504a63c6d1893820f1cf';
-              final url = Uri.parse(
-                  'https://us1.locationiq.com/v1/search.php?key=$apiKey&q=$query&format=json&limit=5&countrycodes=ve');
-
-              try {
-                final response = await http.get(url);
-                if (response.statusCode == 200) {
-                  final data = json.decode(response.body);
-                  if (data is List) {
-                    setStateDialog(() {
-                      suggestions = data;
-                    });
-                  }
-                }
-              } catch (e) {
-                debugPrint('Error searching: $e');
-              }
-            }
-
-            void selectSuggestion(dynamic suggestion) {
-              final lat = double.parse(suggestion['lat']);
-              final lon = double.parse(suggestion['lon']);
-              final display = suggestion['display_name'];
-              final newPos = latlng.LatLng(lat, lon);
-
-              setStateDialog(() {
-                temp = newPos;
-                suggestions = [];
-                searchController.text = display;
-              });
-              mapController.move(newPos, 15);
-              FocusScope.of(context).unfocus();
-            }
-
-            return AlertDialog(
-              backgroundColor: AppTheme.cardBg,
-              contentPadding: const EdgeInsets.all(15),
-              content: SizedBox(
-                width: 350,
-                height: 450,
-                child: Column(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: TextField(
-                        controller: searchController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Buscar dirección...',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 12),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.search, color: Colors.white),
-                            onPressed: searchLocation,
-                          ),
-                        ),
-                        onChanged: (value) {
-                          if (debounce?.isActive ?? false) debounce!.cancel();
-                          debounce =
-                              Timer(const Duration(milliseconds: 400), () {
-                            searchLocation();
-                          });
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Stack(
-                          children: [
-                            FlutterMap(
-                              mapController: mapController,
-                              options: MapOptions(
-                                center: initial,
-                                zoom: 14,
-                                cameraConstraint: CameraConstraint.contain(
-                                  bounds: LatLngBounds(
-                                    const latlng.LatLng(
-                                        0.5, -73.5), // Suroeste de Venezuela
-                                    const latlng.LatLng(
-                                        12.5, -59.5), // Noreste de Venezuela
-                                  ),
-                                ),
-                                minZoom: 5,
-                                onTap: (tapPos, latLng) {
-                                  setStateDialog(() {
-                                    temp = latLng;
-                                    suggestions = [];
-                                  });
-                                },
-                              ),
-                              children: [
-                                TileLayer(
-                                    // Utilizamos la URL con subdominios. Esto ayuda al navegador a cargar
-                                    // las imágenes más rápido y a veces resuelve problemas de CORS.
-                                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-                                    
-                                    // Agregar los subdominios es crucial
-                                    subdomains: const ['a', 'b', 'c'],
-                                  ),
-                                MarkerLayer(
-                                  markers: [
-                                    Marker(
-                                      width: 40,
-                                      height: 40,
-                                      point: temp,
-                                      child: const Icon(Icons.location_on,
-                                          color: Colors.red, size: 40),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            if (suggestions.isNotEmpty)
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                height: 200,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1E1E1E),
-                                    borderRadius: const BorderRadius.vertical(
-                                        bottom: Radius.circular(8)),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.5),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ListView.separated(
-                                    padding: EdgeInsets.zero,
-                                    itemCount: suggestions.length,
-                                    separatorBuilder: (_, __) => const Divider(
-                                        height: 1, color: Colors.white10),
-                                    itemBuilder: (context, index) {
-                                      final item = suggestions[index];
-                                      return ListTile(
-                                        dense: true,
-                                        title: Text(
-                                          item['display_name'] ?? '',
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        onTap: () => selectSuggestion(item),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            Positioned(
-                              bottom: 10,
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    // Validación geográfica estricta para Venezuela
-                                    if (temp.latitude < 0.5 ||
-                                        temp.latitude > 12.5 ||
-                                        temp.longitude < -73.5 ||
-                                        temp.longitude > -59.5) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              '⚠️ Por favor selecciona una ubicación dentro de Venezuela'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                    picked = temp;
-                                    Navigator.of(context).pop();
-                                  },
-                                  child:
-                                      const Text('Seleccionar esta ubicación'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (picked != null) {
-      // Llamar a LocationIQ para obtener la dirección
-      final apiKey =
-          'pk.45e576837f12504a63c6d1893820f1cf'; // LocationIQ API Key
-      final url = Uri.parse(
-          'https://us1.locationiq.com/v1/reverse.php?key=$apiKey&lat=${picked!.latitude}&lon=${picked!.longitude}&format=json');
-      try {
-        final response = await http.get(url);
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          address = data['display_name'] ?? 'Ubicación seleccionada';
-        } else {
-          address = 'Ubicación seleccionada';
-        }
-      } catch (_) {
-        address = 'Ubicación seleccionada';
-      }
-      setState(() {
-        _latitude = picked!.latitude;
-        _longitude = picked!.longitude;
-        _locationName = address;
-        _checkFormValidity();
-      });
-    }
-  }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -862,28 +579,20 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                 children: [
                                   SizedBox(
                                     width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primaryPurple,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                      ),
-                                      onPressed: _selectLocationOnMap,
-                                      icon: const Icon(Icons.map),
-                                      label: const Text('Ubicación en Mapa'), // Shortened text
+                                    child: LocationPickerWidget(
+                                      initialPosition: _latitude != null && _longitude != null
+                                          ? latlng.LatLng(_latitude!, _longitude!)
+                                          : null,
+                                      onLocationSelected: (picked, address) {
+                                        setState(() {
+                                          _latitude = picked.latitude;
+                                          _longitude = picked.longitude;
+                                          _locationName = address;
+                                          _checkFormValidity();
+                                        });
+                                      },
                                     ),
                                   ),
-                                  if (_locationName != null &&
-                                      _latitude != null &&
-                                      _longitude != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child: Text(
-                                        '📍 $_locationName',
-                                        style: const TextStyle(
-                                            color: Colors.white70, fontSize: 13),
-                                      ),
-                                    ),
                                   const SizedBox(height: 20),
                                   TextFormField(
                                     initialValue: _maxParticipants == 0
@@ -912,32 +621,18 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                 children: [
                                   Expanded(
                                     flex: 2,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppTheme.primaryPurple,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                                          ),
-                                          onPressed: _selectLocationOnMap,
-                                          icon: const Icon(Icons.map),
-                                          label: const Text('Seleccionar ubicación'),
-                                        ),
-                                        if (_locationName != null &&
-                                            _latitude != null &&
-                                            _longitude != null)
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 8.0),
-                                            child: Text(
-                                              'Ubicación: $_locationName',
-                                              style: const TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 13),
-                                            ),
-                                          ),
-                                      ],
+                                    child: LocationPickerWidget(
+                                      initialPosition: _latitude != null && _longitude != null
+                                          ? latlng.LatLng(_latitude!, _longitude!)
+                                          : null,
+                                      onLocationSelected: (picked, address) {
+                                        setState(() {
+                                          _latitude = picked.latitude;
+                                          _longitude = picked.longitude;
+                                          _locationName = address;
+                                          _checkFormValidity();
+                                        });
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 20),
