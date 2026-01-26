@@ -113,22 +113,64 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
     });
   }
 
-  void _handleTap(bool isTop) {
+  void _handleTap(bool isTop, TapDownDetails? details, double panelWidth, double panelHeight) {
     if (_isGameOver) return;
     
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     if (gameProvider.isFrozen) return; // Ignore input if frozen
 
+    // 1. Check if we are in the correct panel
     if (isTop == _targetInTopImage) {
-      _winGame();
-    } else {
+        // 2. Exact Hit Detection
+        if (details != null) {
+            // Re-calculate target position in pixels exactly as rendered
+            // Logic must match the Positioned widgets below
+            // Width used for rendering was (MediaQuery - 80) ?? 
+            // Let's verify exactly what width is used in buildCompactPanel.
+            // It uses: d.position.dx * (MediaQuery.of(context).size.width - 80)
+            
+            final double renderWidth = MediaQuery.of(context).size.width - 80;
+            final double renderHeight = panelHeight;
+            
+            final double targetX = _targetPosition.dx * renderWidth;
+            final double targetY = _targetPosition.dy * renderHeight;
+            
+            // Icon is size 22 roughly. Center is +11.
+            final double centerX = targetX + 11;
+            final double centerY = targetY + 11;
+            
+            final double tapX = details.localPosition.dx;
+            final double tapY = details.localPosition.dy;
+            
+            // Euclidean distance
+            final double dist = sqrt(pow(tapX - centerX, 2) + pow(tapY - centerY, 2));
+            
+            // Threshold: 35px radius (generous but precise enough)
+            if (dist < 45.0) {
+               _winGame();
+               return; 
+            }
+        }
+    }
+    
+    // If we reached here, it's a miss (wrong panel OR missed the icon)
+    _handleMiss();
+  }
+
+  void _handleMiss() {
+      if (_isGameOver) return;
       setState(() {
         _localAttempts--;
       });
+      // Shake or visual feedback could go here
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text("¡Fallaste! Sigue buscando."), duration: Duration(milliseconds: 500), backgroundColor: Colors.redAccent)
+      );
+      
       if (_localAttempts <= 0) {
         _handleFailure("Demasiados errores");
       }
-    }
   }
 
   void _winGame() {
@@ -295,7 +337,8 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
     
     return Expanded(
       child: GestureDetector(
-        onTap: () => _handleTap(isTop),
+        onTapDown: (details) => _handleTap(isTop, details, MediaQuery.of(context).size.width, maxHeight),
+        // Pass generic width, logic handles the -80 inside
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(

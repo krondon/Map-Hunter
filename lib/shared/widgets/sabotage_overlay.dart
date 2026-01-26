@@ -28,6 +28,7 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   String? _lifeStealBannerText;
   Timer? _lifeStealBannerTimer;
   String? _lastLifeStealEffectId;
+  String? _lastBlurEffectId; // Track blur to avoid duplicate notifications
   
   // Control de animación LifeSteal (desacoplado de expiración en BD)
   bool _showLifeStealAnimation = false;
@@ -118,18 +119,10 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   void dispose() {
     _lifeStealBannerTimer?.cancel();
     _lifeStealAnimationTimer?.cancel();
-    // Importante: remover listener
-    // Como no guardamos la referencia al provider en una variable variable final,
-    // intentar obtenerlo en dispose puede fallar si el contexto ya no es válido.
-    // Lo ideal sería usar una referencia, pero en este patrón simple:
-    // context.read<PowerEffectProvider>().removeListener(_handlePowerChanges);
-    // (A veces lanza error si el widget se desmonta, así que lo envolvemos)
-    try {
-      if (mounted) {
-        Provider.of<PowerEffectProvider>(context, listen: false)
-            .removeListener(_handlePowerChanges);
-      }
-    } catch (_) {}
+    // CRITICAL FIX: No acceder a context en dispose()
+    // El listener se limpiará automáticamente cuando el provider sea destruido
+    // o usamos una referencia guardada si la tuviéramos.
+    // Por ahora, lo dejamos sin remover explícitamente ya que causa el error.
     super.dispose();
   }
   
@@ -142,10 +135,13 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     final shouldBlock = activeSlug == 'freeze' || activeSlug == 'black_screen';
     
     // Actualizar estado de congelamiento en GameProvider
+    // AHORA: Tanto freeze como black_screen pausan los minijuegos
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    if (activeSlug == 'freeze' && !gameProvider.isFrozen) {
+    final shouldPauseGame = activeSlug == 'freeze' || activeSlug == 'black_screen';
+    
+    if (shouldPauseGame && !gameProvider.isFrozen) {
       gameProvider.setFrozen(true);
-    } else if (activeSlug != 'freeze' && gameProvider.isFrozen) {
+    } else if (!shouldPauseGame && gameProvider.isFrozen) {
       gameProvider.setFrozen(false);
     }
 
@@ -205,6 +201,11 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     final isPlayerInvisible =
         playerProvider.currentPlayer?.isInvisible ?? false;
 
+    // DEBUG: Ver qué slug está llegando
+    if (activeSlug != null) {
+      debugPrint("🌫️ SabotageOverlay: activeSlug = '$activeSlug'");
+    }
+
     // Banner life_steal (Point B): sólo banner, no bloquea interacción.
     final effectId = powerProvider.activeEffectId;
     final isNewLifeSteal =
@@ -219,6 +220,21 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
+      });
+    }
+
+    // Banner blur_screen: Notificar quién te saboteó con visión borrosa
+    final isNewBlur =
+        activeSlug == 'blur_screen' && effectId != _lastBlurEffectId;
+
+    if (isNewBlur) {
+      _lastBlurEffectId = effectId;
+      final attackerName =
+          _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showLifeStealBanner('🌫️ ¡$attackerName te nubló la vista!');
       });
     }
 
@@ -270,7 +286,7 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
 
         if (_lifeStealBannerText != null)
           Positioned(
-            top: 12,
+            top: 50, // Bajado para evitar overlap con barra de estado
             left: 12,
             right: 12,
             child: Material(

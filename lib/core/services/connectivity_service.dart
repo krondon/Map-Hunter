@@ -49,6 +49,13 @@ class ConnectivityService {
   void startMonitoring() {
     if (_pingTimer != null) return; // Ya está corriendo
     
+    // SKIP on Web: Chrome tiene problemas de CORS con pings y causa falsos positivos
+    if (kIsWeb) {
+      debugPrint('ConnectivityService: Saltando monitoreo en Web (desarrollo)');
+      _currentStatus = ConnectivityStatus.online; // Asumir online
+      return;
+    }
+    
     debugPrint('ConnectivityService: Iniciando monitoreo de conexión');
     _failedPings = 0;
     _currentStatus = ConnectivityStatus.online;

@@ -70,12 +70,13 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
   void _handleGameReset() {
     // 2. Notificar al usuario, Redirigir y Limpiar estado
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // CRITICAL: Exit early if widget was disposed
+      if (!mounted) return;
+      
       // Limpiar estado del GameProvider de manera segura fuera del ciclo de build
-      if (mounted) {
-         context.read<GameProvider>().resetState();
-      }
+      context.read<GameProvider>().resetState();
 
-      if (rootNavigatorKey.currentState != null) {
+      if (rootNavigatorKey.currentState != null && rootNavigatorKey.currentContext != null) {
         // Volver a la pantalla de escenarios (o la raíz de la app)
         rootNavigatorKey.currentState!.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const ScenariosScreen()),

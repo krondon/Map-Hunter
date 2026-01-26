@@ -194,6 +194,10 @@ class PowerEffectProvider extends ChangeNotifier {
         .stream(primaryKey: ['id'])
         .eq('target_id', myGamePlayerId)
         .listen((List<Map<String, dynamic>> data) async {
+          debugPrint('📡 PowerEffectProvider: Stream RECEIVED ${data.length} effects for target $_listeningForId');
+          for (var e in data) {
+            debugPrint('   📡 Effect: ${e['power_slug'] ?? e['slug'] ?? 'unknown'} | ID: ${e['id']}');
+          }
           await _processEffects(data);
         }, onError: (e) {
           debugPrint('PowerEffectProvider stream error: $e');

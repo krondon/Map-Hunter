@@ -76,7 +76,8 @@ class PowerService {
   }) async {
     try {
       // [FIX] GUARDIA DE AUTO-ATAQUE: Poderes ofensivos no pueden targetear al caster
-      const selfTargetingPowers = {'invisibility', 'shield', 'return'};
+      // blur_screen es especial: se usa contra TODOS los rivales simultáneamente (broadcast)
+      const selfTargetingPowers = {'invisibility', 'shield', 'return', 'blur_screen'};
       final isOffensivePower = !selfTargetingPowers.contains(powerSlug);
       final isSelfTargeting = casterGamePlayerId == targetGamePlayerId;
       
@@ -136,12 +137,19 @@ class PowerService {
       }
       // 5. OTROS PODERES
       else {
+        debugPrint('PowerService: ⚡ Executing RPC for $powerSlug');
+        debugPrint('   Caster: $casterGamePlayerId');
+        debugPrint('   Target: $targetGamePlayerId');
+        
         response = await _supabase.rpc('use_power_mechanic', params: {
           'p_caster_id': casterGamePlayerId,
           'p_target_id': targetGamePlayerId,
           'p_power_slug': powerSlug,
         });
+        
+        debugPrint('PowerService: 📦 RPC Response: $response');
         success = _coerceRpcSuccess(response);
+        debugPrint('PowerService: ✅ Success: $success');
       }
 
       // Manejo de errores del servidor
@@ -261,6 +269,19 @@ class PowerService {
       final duration = await getPowerDuration(powerSlug: 'blur_screen');
       final expiresAt = now.add(duration).toIso8601String();
 
+      // CRITICAL FIX: Fetch power_id (required NOT NULL in active_powers table)
+      final powerRes = await _supabase
+          .from('powers')
+          .select('id')
+          .eq('slug', 'blur_screen')
+          .maybeSingle();
+
+      if (powerRes == null || powerRes['id'] == null) {
+        debugPrint('PowerService: Could not find power_id for blur_screen');
+        return;
+      }
+      final String powerId = powerRes['id'];
+
       final validRivals = rivals
           .where((r) => r.gamePlayerId.isNotEmpty && r.gamePlayerId != casterGamePlayerId)
           .toList();
@@ -271,6 +292,7 @@ class PowerService {
           .map((rival) => <String, dynamic>{
                 'target_id': rival.gamePlayerId,
                 'caster_id': casterGamePlayerId,
+                'power_id': powerId, // REQUIRED by table constraint
                 'power_slug': 'blur_screen',
                 'expires_at': expiresAt,
                 if (eventId != null) 'event_id': eventId,

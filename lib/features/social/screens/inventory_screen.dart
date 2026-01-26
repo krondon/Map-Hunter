@@ -260,6 +260,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       } catch (e) {
         debugPrint('Error enviando blur_screen a todos: $e');
+        if (!mounted) return; // Prevent context usage after dispose
         showGameSnackBar(
           context,
           title: 'Error',
@@ -439,7 +440,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         }
     }
 
-    if (!context.mounted) return;
+    // CRITICAL: Exit if widget was disposed during async operation
+    if (!mounted) return;
 
     // Map result to a success boolean without changing logic
     final bool success = result == PowerUseResult.success;

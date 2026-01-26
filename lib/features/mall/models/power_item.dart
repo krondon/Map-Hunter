@@ -105,7 +105,7 @@ class PowerItem {
       const PowerItem(
         id: 'blur_screen',
         name: 'Pantalla Borrosa',
-        description: 'Aplica un efecto borroso sobre la pantalla del objetivo.',
+        description: 'Aplica un efecto borroso sobre la pantalla de todos los rivales.',
         type: PowerType.debuff,
         cost: 110,
         icon: '🌫️',

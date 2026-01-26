@@ -4,6 +4,7 @@ import '../models/mall_store.dart';
 import '../models/power_item.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../game/providers/game_provider.dart';
+import '../../game/providers/power_effect_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/shop_item_card.dart';
 
@@ -73,6 +74,10 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
       if (!mounted) return;
 
       if (successCount > 0) {
+        // CRITICAL FIX: Sincronizar inventario inmediatamente
+        final effectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+        await playerProvider.syncRealInventory(effectProvider: effectProvider);
+        
         // Actualizar vidas si es necesario
         if (item.id == 'extra_life') {
           // Usar syncLives para actualización inmediata sin red adicional

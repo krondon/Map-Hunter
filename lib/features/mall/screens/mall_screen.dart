@@ -5,7 +5,8 @@ import '../../../core/theme/app_theme.dart';
 import 'store_detail_screen.dart';
 import '../providers/store_provider.dart';
 import '../../game/providers/game_provider.dart';
-import '../../auth/providers/player_provider.dart'; // Added Import
+import '../../auth/providers/player_provider.dart';
+import '../../game/screens/qr_scanner_screen.dart'; // Import Scanner
 
 class MallScreen extends StatefulWidget {
   const MallScreen({super.key});
@@ -63,6 +64,43 @@ class _MallScreenState extends State<MallScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text("CANCELAR", style: TextStyle(color: Colors.white60)),
+          ),
+          // Botón Escaneo Real
+          TextButton.icon(
+             icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
+             label: const Text("ESCANEAR QR", style: TextStyle(color: AppTheme.accentGold)),
+             onPressed: () async {
+                 // Close dialog temporarily? No, push scanner on top.
+                 final scannedCode = await Navigator.push<String>(
+                   context, 
+                   MaterialPageRoute(builder: (_) => const QRScannerScreen())
+                 );
+                 
+                 if (scannedCode != null) {
+                     if (scannedCode == store.qrCodeData) {
+                         // Éxito: Cerrar diálogo con TRUE
+                         if (context.mounted) Navigator.pop(context, true);
+                     } else {
+                         // Fallo - Mostrar Alerta en vez de SnackBar (que puede quedar tapado)
+                         if (context.mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                backgroundColor: AppTheme.cardBg,
+                                title: const Text("❌ Código Incorrecto", style: TextStyle(color: AppTheme.dangerRed)),
+                                content: const Text("El código QR escaneado no pertenece a esta tienda. Intenta de nuevo.", style: TextStyle(color: Colors.white)),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context), 
+                                    child: const Text("OK")
+                                  )
+                                ],
+                              )
+                            );
+                         }
+                     }
+                 }
+             },
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),

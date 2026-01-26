@@ -13,18 +13,29 @@ class BlurScreenEffect extends StatefulWidget {
 class _BlurScreenEffectState extends State<BlurScreenEffect>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _opacity;
+  late Animation<double> _blurAnimation;
+  late Animation<double> _opacityAnimation;
+
+  // Progressive blur: starts clear, gets blurrier over ~4 seconds
+  static const double maxBlur = 12.0; // Strong blur effect
+  static const Duration blurDuration = Duration(milliseconds: 4000);
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    )..repeat(reverse: true);
+      duration: blurDuration,
+    )..forward(); // Forward only, no repeat - progressive blur
 
-    _opacity = Tween<double>(begin: 0.05, end: 0.18)
-        .chain(CurveTween(curve: Curves.easeInOut))
+    // Blur goes from 0 to maxBlur
+    _blurAnimation = Tween<double>(begin: 0, end: maxBlur)
+        .chain(CurveTween(curve: Curves.easeIn))
+        .animate(_controller);
+
+    // Opacity for overlay tint
+    _opacityAnimation = Tween<double>(begin: 0, end: 0.25)
+        .chain(CurveTween(curve: Curves.easeIn))
         .animate(_controller);
   }
 
@@ -43,22 +54,13 @@ class _BlurScreenEffectState extends State<BlurScreenEffect>
           AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              final double blur = 3 + (_controller.value * 3);
+              final double blur = _blurAnimation.value;
               return BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.white.withOpacity(_opacity.value),
-                      ],
-                      radius: 1.2,
-                    ),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(_opacity.value),
-                      width: 1.2,
-                    ),
+                    // White haze overlay that also fades in
+                    color: Colors.white.withOpacity(_opacityAnimation.value),
                   ),
                 ),
               );

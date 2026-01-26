@@ -28,8 +28,8 @@ enum Direction { up, down, left, right }
 
 class _SnakeMinigameState extends State<SnakeMinigame> {
   // Config
-  static const int rows = 20;
-  static const int cols = 20;
+  static const int rows = 15; // Reduced from 20 to enlarge view
+  static const int cols = 15; // Reduced from 20 to enlarge view
 
   // Overlay State
   bool _showOverlay = false;
@@ -50,7 +50,10 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   static const int winScore = 10;
   
   // Game State
-  List<Point<int>> _snake = [const Point(10, 10)];
+  List<Point<int>> _snake = [const Point(7, 7)]; // Adjusted start position for smaller grid
+  List<Point<int>> _obstacles = [];
+  bool _isOrangeMode = false;
+  
   Point<int>? _food;
   Direction _direction = Direction.right;
   Direction _nextDirection = Direction.right;
@@ -91,7 +94,9 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
     _preStartTimer?.cancel();
     
     setState(() {
-      _snake = [const Point(10, 10), const Point(9, 10), const Point(8, 10)];
+      _snake = [const Point(7, 7), const Point(6, 7), const Point(5, 7)];
+      _obstacles = [];
+      _isOrangeMode = false;
       _direction = Direction.right;
       _nextDirection = Direction.right;
       _score = 0;
@@ -135,7 +140,10 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   }
   
   void _startGameLoop() {
-    _gameLoop = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+    _gameLoop?.cancel();
+    int speed = _isOrangeMode ? 300 : 400;
+    
+    _gameLoop = Timer.periodic(Duration(milliseconds: speed), (timer) {
       if (!mounted) return;
       
       // Check for freeze state
@@ -167,10 +175,31 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
     Point<int> newFood;
     do {
       newFood = Point(random.nextInt(cols), random.nextInt(rows));
-    } while (_snake.contains(newFood));
+    } while (_snake.contains(newFood) || _obstacles.contains(newFood));
     
     setState(() {
       _food = newFood;
+    });
+  }
+
+  void _generateObstacles(int count) {
+    final random = Random();
+    
+    setState(() {
+      for (int i = 0; i < count; i++) {
+        Point<int> obstacle;
+        int attempts = 0;
+        do {
+            obstacle = Point(random.nextInt(cols), random.nextInt(rows));
+            attempts++;
+        } while ((_snake.contains(obstacle) || 
+                 _obstacles.contains(obstacle) || 
+                 obstacle == _food) && attempts < 50);
+        
+        if (attempts < 50) {
+           _obstacles.add(obstacle);
+        }
+      }
     });
   }
 
@@ -200,11 +229,38 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
              return;
         }
 
+        // Colisión Obstáculos
+        if (_obstacles.contains(newHead)) {
+             _handleCrash("¡Chocaste con una roca!");
+             return; 
+        }
+
         _snake.insert(0, newHead);
 
         // Comer
         if (newHead == _food) {
             _score++;
+            
+            // Generar 3 Obstáculos cada 2 puntos
+            if (_score % 2 == 0) {
+                _generateObstacles(3);
+            }
+
+            // Activar MODO NARANJA (Velocidad) al llegar a 5 puntos
+            if (_score == 5 && !_isOrangeMode) {
+                _isOrangeMode = true;
+                _startGameLoop(); // Reinicia el loop con la nueva velocidad
+                
+                // Feedback visual
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("¡MODO TURBO ACTIVADO! 🍊💨"),
+                    backgroundColor: Colors.deepOrange,
+                    duration: Duration(seconds: 1),
+                  )
+                );
+            }
+
             if (_score >= winScore) {
                 _winGame();
             } else {
@@ -226,6 +282,7 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
     } else {
        // Pausar y Feedback
        _gameLoop?.cancel();
+
        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("¡Choque! Intentos: $_crashAllowance. Reiniciando posición..."), 
@@ -236,14 +293,16 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
        
        setState(() {
           // Resetear solo la serpiente, mantener score y tiempo
-          _snake = [const Point(10, 10), const Point(9, 10), const Point(8, 10)];
+          _snake = [const Point(7, 7), const Point(6, 7), const Point(5, 7)];
           _direction = Direction.right;
           _nextDirection = Direction.right;
        });
        
        // Reanudar
        Future.delayed(const Duration(seconds: 1), () {
-         if (!_isGameOver && mounted) _startGameLoop();
+         if (!_isGameOver && mounted) {
+             _startGameLoop();
+         }
        });
     }
   }
@@ -423,24 +482,33 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                                           painter: GridPainter(rows, cols, Colors.white.withOpacity(0.04)),
                                                         ),
                                                         
-                                                        if (_food != null)
-                                                            Positioned(
-                                                                left: _food!.x * cellSize,
-                                                                top: _food!.y * cellSize,
-                                                                child: SizedBox(
+                                                        // Render Obstacles
+                                                        ..._obstacles.map((obs) {
+                                                            return Positioned(
+                                                                left: obs.x * cellSize,
+                                                                top: obs.y * cellSize,
+                                                                child: Container(
                                                                     width: cellSize,
                                                                     height: cellSize,
-                                                                    child: Center(
-                                                                      child: Text("🍎", style: TextStyle(fontSize: cellSize * 1.0)),
+                                                                    decoration: BoxDecoration(
+                                                                        color: Colors.grey[700],
+                                                                        borderRadius: BorderRadius.circular(4),
+                                                                        border: Border.all(color: Colors.white24),
                                                                     ),
                                                                 ),
-                                                            ),
+                                                            );
+                                                        }),
                                                         
+                                                        // Render Player Snake
                                                         ..._snake.asMap().entries.map((entry) {
                                                             final index = entry.key;
                                                             final part = entry.value;
                                                             final isHead = index == 0;
                                                             
+                                                            // Logic COLOR: Green usually, Orange if Turbo Mode
+                                                            Color bodyColor = _isOrangeMode ? Colors.orange : Colors.greenAccent[700]!;
+                                                            Color headColor = _isOrangeMode ? Colors.deepOrange : AppTheme.successGreen;
+
                                                             return Positioned(
                                                                 left: part.x * cellSize,
                                                                 top: part.y * cellSize,
@@ -449,13 +517,30 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                                                     height: cellSize,
                                                                     margin: const EdgeInsets.all(0.5),
                                                                     decoration: BoxDecoration(
-                                                                        color: isHead ? AppTheme.successGreen : Colors.greenAccent[700],
+                                                                        color: isHead ? headColor : bodyColor,
                                                                         borderRadius: BorderRadius.circular(isHead ? 4 : 2),
+                                                                        boxShadow: _isOrangeMode ? [
+                                                                          BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 5)
+                                                                        ] : null,
                                                                     ),
                                                                     child: isHead ? _buildHeadEyes(cellSize) : null,
                                                                 ),
                                                             );
                                                         }),
+                                                            Positioned(
+                                                                left: _food!.x * cellSize,
+                                                                top: _food!.y * cellSize,
+                                                                child: SizedBox(
+                                                                    width: cellSize,
+                                                                    height: cellSize,
+                                                                    child: FittedBox(
+                                                                      fit: BoxFit.contain,
+                                                                      child: Text("🍎", style: TextStyle(fontSize: cellSize)),
+                                                                    ),
+                                                                ),
+                                                            ),
+                                                        
+
 
                                                         if (_showingPreStart)
                                                           _buildPreStartOverlay(cellSize),
