@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/player_provider.dart';
+import '../services/admin_service.dart';
 import 'event_creation_screen.dart';
 import '../providers/event_creation_provider.dart';
 import 'competitions_management_screen.dart';
@@ -322,35 +322,26 @@ class _WelcomeDashboardViewState extends State<_WelcomeDashboardView> {
   }
 
   Future<void> _fetchStats() async {
-    final supabase = Supabase.instance.client;
     try {
-      // 1. Count Users (Profiles)
-      final usersCount = await supabase
-          .from('profiles')
-          .count(CountOption.exact);
-      
-      // 2. Count Events
-      final eventsCount = await supabase
-          .from('events')
-          .count(CountOption.exact);
-
-      // 3. Count Pending Requests
-      final requestsCount = await supabase
-          .from('game_requests')
-          .select('*')
-          .eq('status', 'pending')
-          .count(CountOption.exact);
+      final adminService = context.read<AdminService>();
+      final stats = await adminService.fetchGeneralStats();
 
       if (mounted) {
         setState(() {
-          _activeUsers = usersCount.toString();
-          _createdEvents = eventsCount.toString();
-          // requestsCount is a PostgrestResponse because we used .select()
-          _pendingRequests = requestsCount.count.toString(); 
+          _activeUsers = stats.activeUsers.toString();
+          _createdEvents = stats.createdEvents.toString();
+          _pendingRequests = stats.pendingRequests.toString(); 
         });
       }
     } catch (e) {
-      print('Error fetching dashboard stats: $e');
+      debugPrint('Error fetching dashboard stats: $e');
+      if (mounted) {
+         setState(() {
+          _activeUsers = "-";
+          _createdEvents = "-";
+          _pendingRequests = "-"; 
+        });
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/player.dart';
+import '../models/admin_stats.dart';
 
 /// Servicio de administración que encapsula la lógica de gestión de usuarios.
 /// 
@@ -11,6 +12,37 @@ class AdminService {
 
   AdminService({required SupabaseClient supabaseClient})
       : _supabase = supabaseClient;
+
+  /// Obtiene estadísticas generales para el dashboard.
+  Future<AdminStats> fetchGeneralStats() async {
+    try {
+      // 1. Count Users (Profiles)
+      final usersCount = await _supabase
+          .from('profiles')
+          .count(CountOption.exact);
+      
+      // 2. Count Events
+      final eventsCount = await _supabase
+          .from('events')
+          .count(CountOption.exact);
+
+      // 3. Count Pending Requests
+      final requestsCount = await _supabase
+          .from('game_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .count(CountOption.exact);
+
+      return AdminStats(
+        activeUsers: usersCount,
+        createdEvents: eventsCount,
+        pendingRequests: requestsCount.count,
+      );
+    } catch (e) {
+      debugPrint('AdminService: Error fetching stats: $e');
+      rethrow;
+    }
+  }
 
   /// Obtiene todos los jugadores registrados en el sistema.
   /// 
