@@ -55,7 +55,7 @@ class GameEvent {
       createdByAdminId: json['created_by_admin_id'] ?? '',
       clue: json['clue'] ?? '',
       imageUrl: json['image_url'] ?? '',
-      maxParticipants: json['max_participants'] ?? 0,
+      maxParticipants: (json['max_participants'] as num?)?.toInt() ?? 0,
       pin: json['pin'] ?? '',
       status: json['status'] ?? 'pending',
       completedAt: json['completed_at'] != null ? DateTime.parse(json['completed_at']) : null,

@@ -55,8 +55,15 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     print(
         "SECRET CODE FOR ${widget.scenario.name}: ${widget.scenario.secretCode}");
 
-    // Iniciar rastreo de ubicación real
-    _startLocationUpdates();
+    // Iniciar rastreo SOLO si es presencial
+    if (widget.scenario.type != 'online') {
+      _startLocationUpdates();
+    } else {
+      // Si es online, 'simulamos' que estamos cerca para activar la UI
+      setState(() {
+        _distanceToTarget = 0; // Distancia 0 para activar todo
+      });
+    }
   }
 
   Future<void> _startLocationUpdates() async {
@@ -353,45 +360,104 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
 
                           const SizedBox(height: 40),
 
-                          // Hot/Cold Indicator
-                          Column(
-                            children: [
-                              // Animated Icon
-                              AnimatedBuilder(
-                                animation: _pulseController,
-                                builder: (context, child) {
-                                  return Transform.scale(
-                                    scale: 1.0 + (_pulseController.value * 0.2),
-                                    child: Icon(
-                                      _temperatureIcon,
-                                      size: 100,
-                                      color: _temperatureColor,
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                _temperatureStatus,
-                                style: TextStyle(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
-                                  color: _temperatureColor,
-                                  shadows: [
-                                    BoxShadow(
-                                      color: _temperatureColor.withOpacity(0.5),
-                                      blurRadius: 20,
-                                    ),
-                                  ],
+                          // Hot/Cold Indicator OR Online Header
+                          if (widget.scenario.type == 'online')
+                            // --- HEADER ONLINE ---
+                            Column(
+                              children: [
+                                AnimatedBuilder(
+                                  animation: _pulseController,
+                                  builder: (context, child) {
+                                    return Transform.scale(
+                                      scale: 1.0 + (_pulseController.value * 0.1),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(30),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.cyanAccent.withOpacity(0.1),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.cyanAccent.withOpacity(0.3),
+                                              blurRadius: 30,
+                                              spreadRadius: 5,
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.cloud_done_rounded,
+                                          size: 80,
+                                          color: Colors.cyanAccent,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                "${_distanceToTarget.toInt()}m del objetivo",
-                                style: const TextStyle(color: Colors.white54),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  "EVENTO REMOTO DETECTADO",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.cyanAccent,
+                                    letterSpacing: 1.2,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 20.0),
+                                  child: Text(
+                                    "No es necesario desplazarse físicamente.\nIngresa el PIN para continuar.",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white70,
+                                      height: 1.5,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            // --- INDICADOR PRESENCIAL (HOT/COLD) ---
+                            Column(
+                              children: [
+                                // Animated Icon
+                                AnimatedBuilder(
+                                  animation: _pulseController,
+                                  builder: (context, child) {
+                                    return Transform.scale(
+                                      scale: 1.0 + (_pulseController.value * 0.2),
+                                      child: Icon(
+                                        _temperatureIcon,
+                                        size: 100,
+                                        color: _temperatureColor,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  _temperatureStatus,
+                                  style: TextStyle(
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.bold,
+                                    color: _temperatureColor,
+                                    shadows: [
+                                      BoxShadow(
+                                        color: _temperatureColor.withOpacity(0.5),
+                                        blurRadius: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  "${_distanceToTarget.toInt()}m del objetivo",
+                                  style: const TextStyle(color: Colors.white54),
+                                ),
+                              ],
+                            ),
 
                           const SizedBox(height: 40),
 
@@ -432,53 +498,101 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 10),
-                                    // --- QR CODE SECTION (Primary) ---
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(15),
-                                        border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          const Icon(Icons.qr_code_2, size: 60, color: AppTheme.accentGold),
-                                          const SizedBox(height: 10),
-                                          const Text(
-                                            "Escanea el QR del evento",
-                                            style: TextStyle(color: Colors.white70, fontSize: 16),
-                                          ),
-                                          const SizedBox(height: 20),
-                                          SizedBox(
-                                            width: double.infinity,
-                                            child: ElevatedButton.icon(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppTheme.accentGold,
-                                                foregroundColor: Colors.black,
-                                                padding: const EdgeInsets.symmetric(vertical: 15),
-                                              ),
-                                              onPressed: () async {
-                                                final scannedCode = await Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(builder: (_) => const QRScannerScreen()),
-                                                );
-                                                if (scannedCode != null) {
-                                                  _handleScannedCode(scannedCode);
-                                                }
-                                              },
-                                              icon: const Icon(Icons.camera_alt),
-                                              label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold)),
+                                    
+                                    // --- CONDICIONAL ONLINE / PRESENCIAL ---
+                                    if (widget.scenario.type == 'online') ...[
+                                       // --- MODO ONLINE: SOLICITUD DIRECTA ---
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(15),
+                                          border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.touch_app_rounded, size: 60, color: Colors.cyanAccent),
+                                            const SizedBox(height: 10),
+                                            const Text(
+                                              "Acceso directo habilitado",
+                                              style: TextStyle(color: Colors.white70, fontSize: 16),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(height: 20),
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.cyanAccent,
+                                                  foregroundColor: Colors.black,
+                                                  padding: const EdgeInsets.symmetric(vertical: 15),
+                                                ),
+                                                onPressed: () {
+                                                  // Ir directo a la solicitud/ingreso de PIN
+                                                    Navigator.of(context).pushReplacement(
+                                                      MaterialPageRoute(
+                                                          builder: (_) => GameRequestScreen(
+                                                                eventId: widget.scenario.id,
+                                                                eventTitle: widget.scenario.name,
+                                                              )),
+                                                    );
+                                                },
+                                                icon: const Icon(Icons.login),
+                                                label: const Text("SOLICITAR ACCESO", style: TextStyle(fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                    ] else ...[
+                                      // --- MODO PRESENCIAL: SCANNER QR ---
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(15),
+                                          border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.qr_code_2, size: 60, color: AppTheme.accentGold),
+                                            const SizedBox(height: 10),
+                                            const Text(
+                                              "Escanea el QR del evento",
+                                              style: TextStyle(color: Colors.white70, fontSize: 16),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppTheme.accentGold,
+                                                  foregroundColor: Colors.black,
+                                                  padding: const EdgeInsets.symmetric(vertical: 15),
+                                                ),
+                                                onPressed: () async {
+                                                  final scannedCode = await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+                                                  );
+                                                  if (scannedCode != null) {
+                                                    _handleScannedCode(scannedCode);
+                                                  }
+                                                },
+                                                icon: const Icon(Icons.camera_alt),
+                                                label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                     
                                     const SizedBox(height: 30),
                                     const Divider(color: Colors.white24),
                                     const SizedBox(height: 10),
-                                    // Hidden TextField for logic compatibility (optional, better to use variable)
-                                    // kept invisible or removed. We will use _codeController programmatically.
+                                    
+                                    // Botón secundario para verificar (solo presencial o como fallback)
+                                    if (widget.scenario.type != 'online')
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton(

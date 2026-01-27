@@ -7,6 +7,7 @@ import '../../game/providers/game_provider.dart';
 import '../../game/providers/power_effect_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/shop_item_card.dart';
+import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
 
 class StoreDetailScreen extends StatefulWidget {
   final MallStore store;
@@ -187,28 +188,61 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                       ),
                       const SizedBox(height: 20),
                       
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: widget.store.products.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final item = widget.store.products[index];
-                            final playerProvider = Provider.of<PlayerProvider>(context);
-                            final gameProvider = Provider.of<GameProvider>(context);
-                            final eventId = gameProvider.currentEventId;
+                      // FALLBACK LOGIC: Si es Online y la tienda viene vacía (error de datos), mostramos todo el catálogo
+                      Builder(
+                        builder: (context) {
+                          bool isOnline = false;
+                          try {
+                            // Using listen: false to just check state once
+                            isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
+                            print("DEBUG: StoreDetailScreen isOnline=$isOnline");
+                          } catch (e) {
+                            print("DEBUG: StoreDetailScreen AppModeProvider Error: $e");
+                          }
+                          
+                          // FORCE CATALOG IN ONLINE MODE: Siempre mostrar todo el catálogo disponible
+                          final displayProducts = isOnline 
+                              ? PowerItem.getShopItems() 
+                              : widget.store.products;
                             
-                            final bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
-                            final int? ownedCount = (eventId != null && isPower)
-                                ? playerProvider.getPowerCount(item.id, eventId)
-                                : (item.id == 'extra_life' ? gameProvider.lives : null);
+                          print("DEBUG: displayProducts length=${displayProducts.length}");
 
-                            return ShopItemCard(
-                              item: item,
-                              ownedCount: ownedCount,
-                              onPurchase: (qty) => _purchaseItem(context, item, qty),
+                          if (displayProducts.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Center(
+                                child: Text(
+                                  "No hay productos disponibles por el momento.",
+                                  style: TextStyle(color: Colors.white54),
+                                ),
+                              ),
                             );
-                          },
+                          }
+
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: displayProducts.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                                final item = displayProducts[index];
+                                final playerProvider = Provider.of<PlayerProvider>(context);
+                                final gameProvider = Provider.of<GameProvider>(context);
+                                final eventId = gameProvider.currentEventId;
+                                
+                                final bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
+                                final int? ownedCount = (eventId != null && isPower)
+                                    ? playerProvider.getPowerCount(item.id, eventId)
+                                    : (item.id == 'extra_life' ? gameProvider.lives : null);
+
+                                return ShopItemCard(
+                                  item: item,
+                                  ownedCount: ownedCount,
+                                  onPurchase: (qty) => _purchaseItem(context, item, qty),
+                                );
+                            },
+                          );
+                        }
                       )
                     ],
                   ),

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 
+import 'package:provider/provider.dart'; // IMPORT AGREGADO
+import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
+
 class ClueCard extends StatelessWidget {
   final Clue clue;
   final bool isLocked;
@@ -16,6 +19,9 @@ class ClueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check mode
+    final isOnline = Provider.of<AppModeProvider>(context).isOnlineMode;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -74,10 +80,12 @@ class ClueCard extends StatelessWidget {
                                     color: Colors.white,
                                     size: 32,
                                   )
-                                : Text(
-                                    clue.typeIcon,
-                                    style: const TextStyle(fontSize: 28),
-                                  ),
+                                : isOnline 
+                                    ? const Icon(Icons.flash_on, color: Colors.white, size: 28)
+                                    : Text(
+                                        clue.typeIcon,
+                                        style: const TextStyle(fontSize: 28),
+                                      ),
                   ),
                 ),
                 
@@ -102,7 +110,9 @@ class ClueCard extends StatelessWidget {
                             ? 'Completada'
                             : isLocked
                                 ? 'Bloqueada'
-                                : clue.typeName,
+                                : isOnline 
+                                    ? 'Misión Disponible'
+                                    : clue.typeName,
                         style: TextStyle(
                           fontSize: 12,
                           color: clue.isCompleted

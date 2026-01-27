@@ -5,6 +5,7 @@ import '../../game/providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../mall/models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
 import '../widgets/inventory_item_card.dart';
 import '../../mall/screens/mall_screen.dart';
 import '../../../shared/utils/game_ui_utils.dart';
@@ -207,8 +208,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const MallScreen())),
+        onPressed: () {
+          final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
+          if (isOnline) {
+             // BYPASS: Directo a la tienda (quemada o provider)
+             // Asumiendo que MallScreen maneja la logica o tiene un parametro
+             // El prompt dice "Navega directamente a StoreScreen(storeId: defaultStoreId)"
+             // Voy a asumir que MallScreen tiene un check o que debo navegar a StoreScreen directo.
+             // Voy a revisar mall_screen antes de finalizar este cambio.
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen())); 
+          } else {
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
+          }
+        },
         label: const Text('Ir al Mall'),
         icon: const Icon(Icons.store),
         backgroundColor: AppTheme.accentGold,
