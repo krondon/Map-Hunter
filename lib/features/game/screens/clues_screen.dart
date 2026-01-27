@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart'; // IMPORT AGREGADO
+import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../widgets/clue_card.dart';
@@ -263,31 +264,33 @@ class _CluesScreenState extends State<CluesScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : gameProvider.errorMessage != null
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline, size: 60, color: Colors.red),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Error al cargar pistas',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 32),
-                                child: Text(
-                                  gameProvider.errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.white70),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error al cargar pistas',
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                              ),
-                              const SizedBox(height: 24),
-                              ElevatedButton(
-                                // Pasamos el ID nuevamente al reintentar por seguridad
-                                onPressed: () => gameProvider.fetchClues(eventId: widget.eventId),
-                                child: const Text('Reintentar'),
-                              ),
-                            ],
+                                const SizedBox(height: 8),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                                  child: Text(
+                                    gameProvider.errorMessage!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                ElevatedButton(
+                                  // Pasamos el ID nuevamente al reintentar por seguridad
+                                  onPressed: () => gameProvider.fetchClues(eventId: widget.eventId),
+                                  child: const Text('Reintentar'),
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : gameProvider.clues.isEmpty
@@ -381,6 +384,14 @@ class _CluesScreenState extends State<CluesScreen> {
 
                                   // 1. Verificamos si ya fue escaneada/encontrada
                                   if (!_scannedClues.contains(clue.id)) {
+                                    final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
+                                    
+                                    if (isOnline) {
+                                      // BYPASS ONLINE: Sin radar, sin escaneo. Directo al juego.
+                                      _unlockAndProceed(clue);
+                                      return;
+                                    }
+
                                     // 2. Si NO fue encontrada -> Ir a pantalla de Frio/Caliente
                                     final bool? success = await Navigator.push(
                                       context,
@@ -442,6 +453,15 @@ class _CluesScreenState extends State<CluesScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onPressed: () async {
+                  // --- ONLINE MODE BYPASS ---
+                  final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
+                  
+                  if (isOnline) {
+                     Navigator.pop(context); // Cerrar diálogo
+                     _unlockAndProceed(clue); // Desbloqueo directo
+                     return;
+                  }
+
                   Navigator.pop(context); // Cerrar diálogo
                   final scannedCode = await Navigator.push(
                     context,

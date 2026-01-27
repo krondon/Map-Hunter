@@ -10,6 +10,7 @@ import '../models/scenario.dart';
 import '../providers/event_provider.dart'; 
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
+import '../../../core/providers/app_mode_provider.dart';
 import '../providers/game_request_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import 'code_finder_screen.dart';
@@ -378,9 +379,19 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
   Widget build(BuildContext context) {
     print("DEBUG: ScenariosScreen build. isLoading: $_isLoading");
     final eventProvider = Provider.of<EventProvider>(context);
+    final appMode = Provider.of<AppModeProvider>(context);
+
+    // Filtrar eventos según el modo seleccionado
+    List<GameEvent> visibleEvents = eventProvider.events;
+    if (appMode.isOnlineMode) {
+      visibleEvents = visibleEvents.where((e) => e.type == 'online').toList();
+    } else if (appMode.isPresencialMode) {
+      // Presencial: Todo lo que NO sea online (o explícitamente presencial si hubiera ese tipo)
+      visibleEvents = visibleEvents.where((e) => e.type != 'online').toList();
+    }
 
     // Convertir Eventos a Escenarios
-    final List<Scenario> scenarios = eventProvider.events.map((event) {
+    final List<Scenario> scenarios = visibleEvents.map((event) {
       String location = '';
       if (event.locationName.isNotEmpty) {
         location = event.locationName;
@@ -406,6 +417,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         longitude: longitude,
         date: event.date,
         isCompleted: event.winnerId != null && event.winnerId!.isNotEmpty,
+        type: event.type,
       );
     }).toList();
 

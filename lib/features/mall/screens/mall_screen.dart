@@ -7,6 +7,7 @@ import '../providers/store_provider.dart';
 import '../../game/providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../game/screens/qr_scanner_screen.dart'; // Import Scanner
+import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
 
 class MallScreen extends StatefulWidget {
   const MallScreen({super.key});
@@ -40,6 +41,17 @@ class _MallScreenState extends State<MallScreen> {
   }
 
   void _onStoreTap(BuildContext context, MallStore store) async {
+    final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
+    
+    // BYPASS ONLINE: Entrar directo sin escanear QR
+    if (isOnline) {
+       Navigator.push(
+         context, 
+         MaterialPageRoute(builder: (_) => StoreDetailScreen(store: store))
+       );
+       return;
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -228,7 +240,8 @@ class _MallScreenState extends State<MallScreen> {
                                          ],
                                        ),
                                      ),
-                                     const Icon(Icons.qr_code_scanner, color: AppTheme.secondaryPink),
+                                     if (!Provider.of<AppModeProvider>(context).isOnlineMode)
+                                        const Icon(Icons.qr_code_scanner, color: AppTheme.secondaryPink),
                                    ],
                                  ),
                                )

@@ -57,6 +57,7 @@ class EventService {
             'max_participants': event.maxParticipants,
             'pin': event.pin,
             'created_by_admin_id': _supabase.auth.currentUser?.id ?? 'admin_1',
+            'type': event.type,
           })
           .select()
           .single();
@@ -149,6 +150,7 @@ class EventService {
             'image_url': imageUrl,
             'max_participants': event.maxParticipants,
             'pin': event.pin,
+            'type': event.type,
           })
           .eq('id', event.id)
           .select()
@@ -219,6 +221,7 @@ class EventService {
       maxParticipants: (data['max_participants'] ?? 0) as int,
       pin: (data['pin'] ?? '') as String,
       winnerId: data['winner_id'] as String?, 
+      type: data['type'] ?? 'on_site',
     );
   }
 

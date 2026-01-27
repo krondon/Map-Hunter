@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import 'register_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../game/screens/game_request_screen.dart';
+import '../../game/screens/game_mode_selector_screen.dart';
 import '../../layouts/screens/home_screen.dart';
 import '../../admin/screens/dashboard-screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
@@ -144,20 +145,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             break;
 
           case UserEventStatus.waitingApproval:
-            // Usuario esperando aprobación - ir a lista de escenarios
+            // Usuario esperando aprobación - ir a selector de modo
              Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const ScenariosScreen()),
+              MaterialPageRoute(builder: (_) => const GameModeSelectorScreen()),
             );
             break;
 
           // === CASOS DE FLUJO ABIERTO ===
-          // El usuario siempre va al catálogo donde puede elegir entrar al evento
+          // El usuario siempre va al selector de modo
           case UserEventStatus.inGame:
           case UserEventStatus.readyToInitialize:
           case UserEventStatus.rejected:
           case UserEventStatus.noEvent:
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const ScenariosScreen()),
+              MaterialPageRoute(builder: (_) => const GameModeSelectorScreen()),
             );
             break;
         }

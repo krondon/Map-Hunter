@@ -27,6 +27,7 @@ import 'shared/utils/global_keys.dart'; // Importar llaves globales
 import 'features/auth/widgets/auth_monitor.dart'; // Importar AuthMonitor
 import 'shared/widgets/game_session_monitor.dart'; // Nuevo
 import 'features/mall/providers/store_provider.dart';
+import 'core/providers/app_mode_provider.dart';
 
 import 'features/game/services/game_service.dart';
 
@@ -103,6 +104,7 @@ class TreasureHuntApp extends StatelessWidget {
         }),
         ChangeNotifierProvider(create: (_) => PowerEffectProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
+        ChangeNotifierProvider(create: (_) => AppModeProvider()),
       ],
       child: MaterialApp(
         title: 'MapHunter',

@@ -12,7 +12,7 @@ class Scenario {
   final double? longitude;
   final DateTime? date;
   final bool isCompleted; // Nueva propiedad
-
+  final String type;
 
   const Scenario({
     required this.id,
@@ -28,6 +28,44 @@ class Scenario {
     this.longitude,
     this.date,
     this.isCompleted = false,
+    this.type = 'on_site',
   });
 
+  factory Scenario.fromJson(Map<String, dynamic> json) {
+    return Scenario(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      location: json['location'] as String,
+      imageUrl: json['image_url'] as String,
+      state: json['state'] as String,
+      maxPlayers: json['max_players'] as int,
+      starterClue: json['starter_clue'] as String,
+      secretCode: json['secret_code'] as String,
+      latitude: (json['latitude'] is num?) ? (json['latitude'] as num?)?.toDouble() : null,
+      longitude: (json['longitude'] is num?) ? (json['longitude'] as num?)?.toDouble() : null,
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
+      isCompleted: json['is_completed'] ?? false,
+      type: json['type'] ?? 'on_site',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'location': location,
+      'image_url': imageUrl,
+      'state': state,
+      'max_players': maxPlayers,
+      'starter_clue': starterClue,
+      'secret_code': secretCode,
+      'latitude': latitude,
+      'longitude': longitude,
+      'date': date?.toIso8601String(),
+      'is_completed': isCompleted,
+      'type': type,
+    };
+  }
 }

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/player_provider.dart';
 import 'event_creation_screen.dart';
+import '../providers/event_creation_provider.dart';
 import 'competitions_management_screen.dart';
 import 'user_management_screen.dart';
 import 'admin_login_screen.dart';
@@ -92,9 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ), // Index 0
       
       // Index 1: Le pasamos el callback aquí
-      EventCreationScreen(
-        onEventCreated: _goToDashboard,
-      ), 
+      ChangeNotifierProvider(
+        create: (_) => EventCreationProvider(),
+        child: EventCreationScreen(
+          onEventCreated: _goToDashboard,
+        ),
+      ),
       
       const CompetitionsManagementScreen(), // Index 2
       const UserManagementScreen(),         // Index 3

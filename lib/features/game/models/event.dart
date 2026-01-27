@@ -16,6 +16,7 @@ class GameEvent {
   final String status;      // Status: 'pending', 'active', 'completed'
   final DateTime? completedAt;
   final String? winnerId;
+  final String type;
 
   GameEvent({
     required this.id,
@@ -33,6 +34,7 @@ class GameEvent {
     this.status = 'pending',
     this.completedAt,
     this.winnerId,
+    this.type = 'on_site',
   });
 
   LatLng get location => LatLng(latitude, longitude);
@@ -40,4 +42,46 @@ class GameEvent {
   bool get isCompleted => status == 'completed';
   bool get isActive => status == 'active';
   bool get isPending => status == 'pending';
+
+  factory GameEvent.fromJson(Map<String, dynamic> json) {
+    return GameEvent(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      locationName: json['location_name'] ?? '',
+      latitude: (json['latitude'] is num) ? (json['latitude'] as num).toDouble() : 0.0,
+      longitude: (json['longitude'] is num) ? (json['longitude'] as num).toDouble() : 0.0,
+      date: DateTime.parse(json['date']),
+      createdByAdminId: json['created_by_admin_id'] ?? '',
+      clue: json['clue'] ?? '',
+      imageUrl: json['image_url'] ?? '',
+      maxParticipants: (json['max_participants'] as num?)?.toInt() ?? 0,
+      pin: json['pin'] ?? '',
+      status: json['status'] ?? 'pending',
+      completedAt: json['completed_at'] != null ? DateTime.parse(json['completed_at']) : null,
+      winnerId: json['winner_id'],
+      type: json['type'] ?? 'on_site',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'location_name': locationName,
+      'latitude': latitude,
+      'longitude': longitude,
+      'date': date.toIso8601String(),
+      'created_by_admin_id': createdByAdminId,
+      'clue': clue,
+      'image_url': imageUrl,
+      'max_participants': maxParticipants,
+      'pin': pin,
+      'status': status,
+      'completed_at': completedAt?.toIso8601String(),
+      'winner_id': winnerId,
+      'type': type,
+    };
+  }
 }
