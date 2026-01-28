@@ -631,7 +631,7 @@ class _GlitchTextState extends State<_GlitchText> with SingleTickerProviderState
 
     _glitchController = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 2000)
+        duration: const Duration(milliseconds: 4000)
     )..repeat();
   }
 
@@ -664,24 +664,30 @@ class _GlitchTextState extends State<_GlitchText> with SingleTickerProviderState
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _glitchController,
-      builder: (context, child) {
-        final random = math.Random();
-        final double glitchValue = _glitchController.value;
-        
-        // Aggressive jitter on every frame
-        double offsetX = (random.nextDouble() - 0.5) * 3;
-        double offsetY = (random.nextDouble() - 0.5) * 1.5;
-        
-        // Chromatic offsets (Cyan/Magenta)
-        double cyanX = offsetX - 2.5 - (random.nextDouble() * 2);
-        double magX = offsetX + 2.5 + (random.nextDouble() * 2);
-        
-        // Occasional flash
-        Color currentColor = widget.style.color ?? Colors.white;
-        if (glitchValue > 0.98) {
-          currentColor = Colors.white;
-          offsetX *= 2.5;
-        }
+    builder: (context, child) {
+      final double value = _glitchController.value;
+      
+      // Much slower oscillation (10x instead of 40x)
+      double offsetX = math.sin(value * 10 * math.pi) * 0.5;
+      double offsetY = math.cos(value * 8 * math.pi) * 0.3;
+      
+      // Chromatic aberrations breathing much slower (5x instead of 20x)
+      double cyanX = offsetX - 1.5 - (math.sin(value * 5 * math.pi) * 2.0);
+      double magX = offsetX + 1.5 + (math.cos(value * 5 * math.pi) * 2.0);
+      
+      // Softer periodic spikes
+      double spike = 0.0;
+      if (value > 0.45 && value < 0.50) {
+        spike = 3.0 * math.sin((value - 0.45) * 20 * math.pi);
+      } else if (value > 0.90 && value < 0.95) {
+        spike = -2.0 * math.sin((value - 0.90) * 20 * math.pi);
+      }
+      offsetX += spike;
+
+      Color currentColor = widget.style.color ?? Colors.white;
+      if (value > 0.98) {
+        currentColor = Colors.white;
+      }
 
         return Stack(
           children: [
@@ -691,7 +697,7 @@ class _GlitchTextState extends State<_GlitchText> with SingleTickerProviderState
               child: Text(
                 _displayText,
                 style: widget.style.copyWith(
-                  color: const Color(0xFF00FFFF).withOpacity(0.7), // Cyan
+                  color: const Color(0xFF00FFFF).withOpacity(0.6), // Cyan
                 ),
               ),
             ),
@@ -700,7 +706,7 @@ class _GlitchTextState extends State<_GlitchText> with SingleTickerProviderState
               child: Text(
                 _displayText,
                 style: widget.style.copyWith(
-                  color: const Color(0xFFFF00FF).withOpacity(0.7), // Magenta
+                  color: const Color(0xFFFF00FF).withOpacity(0.6), // Magenta
                 ),
               ),
             ),
