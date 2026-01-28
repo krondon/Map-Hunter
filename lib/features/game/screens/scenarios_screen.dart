@@ -83,7 +83,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     // 3. Glitch Text Animation
     _glitchController = AnimationController(
         vsync: this, 
-        duration: const Duration(milliseconds: 2000), // Occurs every 2 seconds roughly
+        duration: const Duration(milliseconds: 4000), // Occurs every 4 seconds
     )..repeat();
 
 
@@ -560,21 +560,30 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                 child: Center(
                                   child: AnimatedBuilder(
                                     animation: _glitchController,
-                                    builder: (context, child) {
-                                      final random = math.Random();
-                                      const Color primaryColor = Color(0xFFFAE500); // Cyberpunk bright yellow
-                                      
-                                      // Much more aggressive frame-level jitter
-                                      double offsetX = (random.nextDouble() - 0.5) * 3;
-                                      double offsetY = (random.nextDouble() - 0.5) * 1.5;
-                                      
-                                      // Chromatic offsets (Cyan/Magenta)
-                                      double cyanX = offsetX - 2.5 - (random.nextDouble() * 2);
-                                      double magX = offsetX + 2.5 + (random.nextDouble() * 2);
-                                      
+                                      builder: (context, child) {
+                                        final double value = _glitchController.value;
+                                        const Color primaryColor = Color(0xFFFAE500); // Cyberpunk bright yellow
+                                        
+                                        // Much slower oscillation (10x instead of 40x)
+                                        double offsetX = math.sin(value * 10 * math.pi) * 0.5;
+                                        double offsetY = math.cos(value * 8 * math.pi) * 0.3;
+                                        
+                                        // Chromatic aberrations breathing much slower (5x instead of 20x)
+                                        double cyanX = offsetX - 1.5 - (math.sin(value * 5 * math.pi) * 2.0);
+                                        double magX = offsetX + 1.5 + (math.cos(value * 5 * math.pi) * 2.0);
+                                        
+                                        // Softer periodic spikes
+                                        double spike = 0.0;
+                                        if (value > 0.45 && value < 0.50) {
+                                          spike = 3.0 * math.sin((value - 0.45) * 20 * math.pi);
+                                        } else if (value > 0.90 && value < 0.95) {
+                                          spike = -2.0 * math.sin((value - 0.90) * 20 * math.pi);
+                                        }
+                                        offsetX += spike;
+
                                       return Stack(
                                         children: [
-                                          // Cyan Shadow (Always visible and vibrating)
+                                          // Cyan Shadow (Rhythmic vibration)
                                           Transform.translate(
                                             offset: Offset(cyanX, offsetY),
                                             child: Text(
@@ -582,12 +591,12 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                               style: TextStyle(
                                                 fontSize: 32,
                                                 fontWeight: FontWeight.w900,
-                                                color: const Color(0xFF00FFFF).withOpacity(0.7),
+                                                color: const Color(0xFF00FFFF).withOpacity(0.6),
                                                 letterSpacing: 1,
                                               ),
                                             ),
                                           ),
-                                          // Magenta Shadow (Always visible and vibrating)
+                                          // Magenta Shadow (Rhythmic vibration)
                                           Transform.translate(
                                             offset: Offset(magX, offsetY),
                                             child: Text(
@@ -595,7 +604,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                               style: TextStyle(
                                                 fontSize: 32,
                                                 fontWeight: FontWeight.w900,
-                                                color: const Color(0xFFFF00FF).withOpacity(0.7),
+                                                color: const Color(0xFFFF00FF).withOpacity(0.6),
                                                 letterSpacing: 1,
                                               ),
                                             ),
@@ -608,7 +617,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                               style: TextStyle(
                                                 fontSize: 32,
                                                 fontWeight: FontWeight.w900,
-                                                color: _glitchController.value > 0.98 ? Colors.white : primaryColor,
+                                                color: value > 0.98 ? Colors.white : primaryColor,
                                                 letterSpacing: 1,
                                               ),
                                             ),
@@ -672,52 +681,19 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
                         // Description Text
                         // Description Text with Enhanced Style
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppTheme.accentGold.withOpacity(0.3),
-                              width: 1,
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                          child: Text(
+                            '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              height: 1.5,
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: 0.5,
+                              fontStyle: FontStyle.italic,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.accentGold.withOpacity(0.1),
-                                blurRadius: 10,
-                                spreadRadius: -2,
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accentGold.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: AppTheme.accentGold,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: const Text(
-                                  '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto.',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    height: 1.4,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
                         ),
 

@@ -93,12 +93,12 @@ class _WalletScreenState extends State<WalletScreen> {
                         child: Column(
                           children: [
                             const Text(
-                              'SALDO DISPONIBLE',
+                              'TRÉBOLES',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 10,
-                                letterSpacing: 3,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                letterSpacing: 4,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -114,7 +114,8 @@ class _WalletScreenState extends State<WalletScreen> {
                             // Balance Amount
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
                               children: [
                                 Text(
                                   cloverBalance.toString(),
@@ -125,24 +126,26 @@ class _WalletScreenState extends State<WalletScreen> {
                                     height: 1,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    '🍀',
-                                    style: TextStyle(fontSize: 20),
-                                  ),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'TRÉBOLES',
-                              style: TextStyle(
-                                color: Color(0xFF10B981),
-                                fontSize: 10,
-                                letterSpacing: 2,
-                                fontWeight: FontWeight.bold,
+                            // Massive Conversion info
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentGold.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                              ),
+                              child: const Text(
+                                '1 🍀 = 1\$',
+                                style: TextStyle(
+                                  color: AppTheme.accentGold,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
                               ),
                             ),
                           ],
