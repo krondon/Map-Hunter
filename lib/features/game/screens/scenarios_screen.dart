@@ -24,6 +24,9 @@ import '../widgets/scenario_countdown.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/services/video_preload_service.dart';
 import 'winner_celebration_screen.dart';
+import '../services/game_access_service.dart'; // NEW
+import '../mappers/scenario_mapper.dart'; // NEW
+
 
 class ScenariosScreen extends StatefulWidget {
   const ScenariosScreen({super.key});
@@ -111,14 +114,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
   Future<void> _onScenarioSelected(Scenario scenario) async {
     if (_isProcessing) return;
 
-    // Si la competencia ya terminó, vamos directo al podio
     if (scenario.isCompleted) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => WinnerCelebrationScreen(
             eventId: scenario.id,
-            playerPosition: 0, // 0 indica que no participó o posición desconocida
+            playerPosition: 0,
             totalCluesCompleted: 0,
           ),
         ),
@@ -131,231 +133,120 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     });
 
     try {
-      // Show loading immediately
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Solo verificamos permisos si NO estamos en Windows
-      bool shouldCheckLocation = true;
-      try {
-        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-          shouldCheckLocation = false;
-        }
-      } catch (e) {
-        shouldCheckLocation = true; 
-      }
-
-      if (shouldCheckLocation) {
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied) {
-            Navigator.pop(context); // Pop loading
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content:
-                        Text('Se requieren permisos de ubicación para participar')),
-              );
-            }
-            return;
-          }
-        }
-
-        if (permission == LocationPermission.deniedForever) {
-          Navigator.pop(context); // Pop loading
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text(
-                      'Los permisos de ubicación están denegados permanentemente. Habilítalos en la configuración.')),
-            );
-          }
-          return;
-        }
-
-        // Check for Fake GPS
-        try {
-          final position = await Geolocator.getCurrentPosition(timeLimit: const Duration(seconds: 5));
-          if (position.isMocked) {
-            Navigator.pop(context); // Pop loading
-            if (mounted) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: AppTheme.cardBg,
-                  title: const Text('⛔ Ubicación Falsa', style: TextStyle(color: Colors.red)),
-                  content: const Text(
-                    'Se ha detectado el uso de una aplicación de ubicación falsa.\n\nDesactívala para poder jugar.',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))
-                  ],
-                ),
-              );
-            }
-            return;
-          }
-        } catch (e) {
-          // Ignore location errors here, let the game handle it later if needed or retry
-        }
-      }
-
       final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
       final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
-      if (playerProvider.currentPlayer == null) {
-        Navigator.pop(context); // Pop loading
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error: Sesión no válida. Por favor reloguea.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
+      final accessService = GameAccessService();
 
-      // IMPORTANTE: Usar userId para consultas de BD, no player.id (que puede ser gamePlayerId)
-      final String userId = playerProvider.currentPlayer!.userId;
+      final result = await accessService.checkAccess(
+        context: context,
+        scenario: scenario,
+        playerProvider: playerProvider,
+        requestProvider: requestProvider,
+      );
 
-      // Loading already shown at start
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading
 
+      switch (result.type) {
+        case AccessResultType.allowed:
+          final isParticipant = result.data?['isParticipant'] ?? false;
+          final isApproved = result.data?['isApproved'] ?? false;
 
-    try {
-      // === GATEKEEPER: Verificar estado del usuario para ESTE evento específico ===
-      final participantData = await requestProvider.isPlayerParticipant(userId, scenario.id);
-      final isGamePlayer = participantData['isParticipant'] as bool;
-      final playerStatus = participantData['status'] as String?;
-  
-      if (!mounted) {
-        Navigator.pop(context); // Dismiss loading if unmounted (though this pop might be wrong if dialog not shown yet? No, dialog IS shown above line 144)
-        return; 
-      }
-      Navigator.pop(context); // Dismiss loading BEFORE logic to keep UI clean
-  
-      if (isGamePlayer) {
-        // Usuario ya es game_player para este evento - verificar si está baneado
-        debugPrint('ScenariosScreen: User is game_player for event ${scenario.id}');
-        debugPrint('ScenariosScreen: Player status: $playerStatus');
-        
-        if (playerStatus == 'suspended' || playerStatus == 'banned') {
-           // Mostrar diálogo de Acceso Denegado
-          if (!mounted) return;
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: AppTheme.cardBg,
-              title: const Text('⛔ Acceso Denegado', style: TextStyle(color: AppTheme.dangerRed)),
-              content: const Text(
-                'Has sido suspendido de esta competencia por un administrador.',
-                style: TextStyle(color: Colors.white),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))
-              ],
-            ),
-          );
-          return;
-        }
-  
-        // Fetch clues for the selected event before navigating
-        await gameProvider.fetchClues(eventId: scenario.id);
-  
-        if (!mounted) return;
-  
-        // Verificar si ya tiene avatar (incluso si ya es participante)
-        if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
-          debugPrint('ScenariosScreen: Active player but no avatar. Redirecting to selection.');
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: scenario.id)));
-        } else {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
-        }
-      } else {
-      try {
-        // Usuario NO es game_player - verificar si tiene solicitud
-        final request = await requestProvider.getRequestForPlayer(userId, scenario.id);
-
-        if (!mounted) return;
-
-        if (request != null) {
-          if (request.isApproved) {
-            // Solicitud aprobada - Verificar si ya tiene avatar
-            if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
-              debugPrint('ScenariosScreen: Approved! Redirecting to Avatar Selection...');
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: scenario.id)));
+          if (isParticipant || isApproved) {
+            // Check Avatar
+            if (playerProvider.currentPlayer?.avatarId == null ||
+                playerProvider.currentPlayer!.avatarId!.isEmpty) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          AvatarSelectionScreen(eventId: scenario.id)));
             } else {
-              // Ya tiene avatar - Inicializar y entrar
-              debugPrint('ScenariosScreen: Request approved and has avatar, initializing game...');
-              
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
-              );
-
-              final success = await gameProvider.initializeGameForApprovedUser(userId, scenario.id);
-              
-              if (!mounted) return;
-              Navigator.pop(context); // Dismiss loading
+              // Initialize if needed
+              bool success = true;
+              if (!isParticipant && isApproved) {
+                showDialog(
+                    barrierDismissible: false,
+                    context: context,
+                    builder: (_) =>
+                        const Center(child: CircularProgressIndicator()));
+                success = await gameProvider.initializeGameForApprovedUser(
+                    playerProvider.currentPlayer!.userId, scenario.id);
+                if (mounted) Navigator.pop(context);
+              }
 
               if (success) {
                 await gameProvider.fetchClues(eventId: scenario.id);
-                if (!mounted) return;
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+                if (mounted) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => HomeScreen(eventId: scenario.id)));
+                }
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Error al inicializar el juego.')),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Error al inicializar el juego.')));
               }
             }
-          } else {
-            // Solicitud pendiente o rechazada - ir a pantalla de solicitud
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => GameRequestScreen(
-                          eventId: scenario.id,
-                          eventTitle: scenario.name,
-                      )),
-            );
           }
-        } else {
-          // Sin solicitud - debe encontrar código primero
+          break;
+
+        case AccessResultType.deniedPermissions:
+        case AccessResultType.deniedForever:
+        case AccessResultType.fakeGps:
+        case AccessResultType.sessionInvalid:
+        case AccessResultType.suspended:
+          if (result.message != null) {
+            if (result.type == AccessResultType.fakeGps ||
+                result.type == AccessResultType.suspended) {
+              _showErrorDialog(result.message!,
+                  title: result.type == AccessResultType.suspended
+                      ? '⛔ Acceso Denegado'
+                      : '⛔ Ubicación Falsa');
+            } else {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(result.message!)));
+            }
+          }
+          break;
+
+        case AccessResultType.requestPendingOrRejected:
+          Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => GameRequestScreen(
+                      eventId: scenario.id,
+                      eventTitle: scenario.name,
+                    )),
+          );
+          break;
+
+        case AccessResultType.needsCode:
           Navigator.of(context).push(
             MaterialPageRoute(
                 builder: (_) => CodeFinderScreen(scenario: scenario)),
           );
-        }
-      } catch (e) {
-        debugPrint('ScenariosScreen: Error in navigation: $e');
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error de navegación: $e'), backgroundColor: Colors.red),
-           );
-        }
+          break;
+          
+        case AccessResultType.needsAvatar:
+           // Should be handled in allowed logic usually, but if separated:
+           Navigator.push(context, MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: scenario.id)));
+           break;
+          
+        case AccessResultType.approvedWait: 
+           break;
       }
-    }
     } catch (e, stackTrace) {
       debugPrint('ScenariosScreen: CRITICAL ERROR: $e');
       debugPrint(stackTrace.toString());
       if (mounted) {
-        // Ensure loading is gone if it stuck
-        // Note: We popped loading at start of try, so only need to handle crashes BEFORE that pop? 
-        // No, we are inside the function. Logic is: Dialog -> Try -> ...
-        // If error happens we might need to verify loading state. 
-        // For now just show error.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
@@ -364,8 +255,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
           ),
         );
       }
-    }
-  } finally {
+    } finally {
       if (mounted) {
         setState(() {
           _isProcessing = false;
@@ -373,6 +263,26 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
       }
     }
   }
+
+  void _showErrorDialog(String msg, {String title = 'Atención'}) {
+    showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              backgroundColor: AppTheme.cardBg,
+              title: Text(title,
+                  style: const TextStyle(color: AppTheme.dangerRed)),
+              content: Text(
+                msg,
+                style: const TextStyle(color: Colors.white),
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Entendido'))
+              ],
+            ));
+  }
+
 
 
   @override
@@ -390,36 +300,8 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
       visibleEvents = visibleEvents.where((e) => e.type != 'online').toList();
     }
 
-    // Convertir Eventos a Escenarios
-    final List<Scenario> scenarios = visibleEvents.map((event) {
-      String location = '';
-      if (event.locationName.isNotEmpty) {
-        location = event.locationName;
-      }
-      else {
-        location =
-            '${event.latitude.toStringAsFixed(4)}, ${event.longitude.toStringAsFixed(4)}';
-      }
-      double? latitude = event.latitude;
-      double? longitude = event.longitude;
-
-      return Scenario(
-        id: event.id,
-        name: event.title,
-        description: event.description,
-        location: location,
-        state: location,
-        imageUrl: event.imageUrl,
-        maxPlayers: event.maxParticipants,
-        starterClue: event.clue,
-        secretCode: event.pin,
-        latitude: latitude,
-        longitude: longitude,
-        date: event.date,
-        isCompleted: event.winnerId != null && event.winnerId!.isNotEmpty,
-        type: event.type,
-      );
-    }).toList();
+    // Convertir Eventos a Escenarios usando Mapper
+    final List<Scenario> scenarios = ScenarioMapper.fromEvents(visibleEvents);
 
     return PopScope(
       canPop: false,

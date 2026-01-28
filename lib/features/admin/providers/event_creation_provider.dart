@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
-import 'package:latlong2/latlong.dart' as latlng;
-import 'dart:math';
 
 import '../../game/models/event.dart';
-import '../../game/models/clue.dart'; // For PuzzleType enum if needed
+import '../../game/models/clue.dart'; // For PuzzleType enum
 import '../../game/providers/event_provider.dart';
 import '../../mall/providers/store_provider.dart';
 import '../../mall/models/mall_store.dart';
+import '../services/event_factory_service.dart';
+
 
 class EventCreationProvider extends ChangeNotifier {
   // Estado del Formulario
@@ -129,9 +131,7 @@ class EventCreationProvider extends ChangeNotifier {
   }
   
   void generateRandomPin() {
-    final random = Random();
-    final newPin = (100000 + random.nextInt(900000)).toString();
-    _pin = newPin;
+    _pin = EventFactoryService.generatePin(isOnline: _eventType == 'online');
     checkFormValidity();
     notifyListeners();
   }
@@ -153,13 +153,58 @@ class EventCreationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Platform-aware image picker:
+  /// - Windows/Linux/macOS: Uses file_picker (more reliable on desktop)
+  /// - Mobile/Web: Uses image_picker
   Future<void> pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      _selectedImage = image;
-      checkFormValidity();
-      notifyListeners();
+    try {
+      // Check if running on desktop
+      final isDesktop = !kIsWeb && 
+          (defaultTargetPlatform == TargetPlatform.windows ||
+           defaultTargetPlatform == TargetPlatform.linux ||
+           defaultTargetPlatform == TargetPlatform.macOS);
+      
+      if (isDesktop) {
+        // Use file_picker on desktop for better compatibility
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+        );
+        
+        if (result != null && result.files.isNotEmpty) {
+          final file = result.files.first;
+          if (file.path != null) {
+            _selectedImage = XFile(file.path!);
+            checkFormValidity();
+            notifyListeners();
+          }
+        }
+      } else {
+        // Use image_picker on mobile
+        final ImagePicker picker = ImagePicker();
+        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+        if (image != null) {
+          _selectedImage = image;
+          checkFormValidity();
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      // Fallback: try file_picker as last resort
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+        );
+        if (result != null && result.files.isNotEmpty && result.files.first.path != null) {
+          _selectedImage = XFile(result.files.first.path!);
+          checkFormValidity();
+          notifyListeners();
+        }
+      } catch (fallbackError) {
+        debugPrint('Fallback image picker also failed: $fallbackError');
+      }
     }
   }
 
@@ -171,14 +216,15 @@ class EventCreationProvider extends ChangeNotifier {
       if (_clueForms.length < _numberOfClues) {
         final newItems = _numberOfClues - _clueForms.length;
         for (int i = 0; i < newItems; i++) {
+          final defaultPuzzleType = PuzzleType.slidingPuzzle;
           _clueForms.add({
             'id': const Uuid().v4(),
             'title': _eventType == 'online' ? 'Minijuego ${_clueForms.length + 1}' : 'Pista ${_clueForms.length + 1}',
             'description': '',
             'type': 'minigame',
-            'puzzle_type': PuzzleType.slidingPuzzle.dbValue,
-            'riddle_question': '',
-            'riddle_answer': '',
+            'puzzle_type': defaultPuzzleType.dbValue,
+            'riddle_question': defaultPuzzleType.defaultQuestion, // Set default instruction
+            'riddle_answer': defaultPuzzleType.isAutoValidation ? 'WIN' : '',
             'xp_reward': 50,
             'coin_reward': 10,
             'hint': '',
@@ -322,14 +368,8 @@ class EventCreationProvider extends ChangeNotifier {
     try {
       // Auto-generate PIN for Online Mode
       if (_eventType == 'online') {
-         final random = Random();
-         // Generate 6-char alphanumeric PIN or just digits? 
-         // Request said "alfanuméricos" but original was digits. 
-         // Sticking to digits for simplicity unless alphanumeric is required by backend/field type, 
-         // but prompt said "ej: 6 caracteres alfanuméricos". 
-         // Let's make it alphanumeric for "Online".
-         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Leaving out confusing chars
-         finalPin = List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+         // Use Factory
+         finalPin = EventFactoryService.generatePin(isOnline: true);
          _pin = finalPin; // Update state so UI might show it if needed
       }
 
@@ -356,16 +396,7 @@ class EventCreationProvider extends ChangeNotifier {
       if (createdEventId != null && _clueForms.isNotEmpty) {
         // Sanitize Clues for Online Mode
         if (_eventType == 'online') {
-            for (var clue in _clueForms) {
-                if (clue['description'] == null || clue['description'].toString().trim().isEmpty) {
-                    clue['description'] = "Pista Online";
-                }
-                if (clue['hint'] == null || clue['hint'].toString().trim().isEmpty) {
-                    clue['hint'] = "Pista Online";
-                }
-                if (clue['latitude'] == null) clue['latitude'] = 0.0;
-                if (clue['longitude'] == null) clue['longitude'] = 0.0;
-            }
+            EventFactoryService.sanitizeCluesForOnline(_clueForms);
         }
 
         await eventProvider.createCluesBatch(createdEventId, _clueForms);
@@ -374,17 +405,9 @@ class EventCreationProvider extends ChangeNotifier {
       // 3. Create Stores
       if (createdEventId != null) {
         if (_eventType == 'online') {
-            // Default Online Store
+            // Default Online Store via Factory
             try {
-               final defaultStore = MallStore(
-                 id: const Uuid().v4(),
-                 eventId: createdEventId,
-                 name: 'Tienda Online Oficial',
-                 description: 'Tienda oficial para este evento online.',
-                 imageUrl: '', // Could use a default asset or leave empty
-                 qrCodeData: 'ONLINE_STORE_${createdEventId}',
-                 products: [], // Empty or default products
-               );
+               final defaultStore = EventFactoryService.createDefaultOnlineStore(createdEventId);
                // We pass null for imageFile as we don't have one selected
                await storeProvider.createStore(defaultStore, null);
             } catch (e) {

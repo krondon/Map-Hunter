@@ -34,7 +34,7 @@ class EventCreationScreen extends StatefulWidget {
 }
 
 class _EventCreationScreenState extends State<EventCreationScreen> {
-  final _formKey = GlobalKey<FormState>();
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   
   // UX Refinement Variables (UI ONLY)
   late TextEditingController _pinController;
@@ -58,11 +58,32 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
         // provider.init handles reset if event is null.
         _pinController.text = provider.pin;
       }
+      
+      // Listen for form reset
+      provider.addListener(_onProviderChange);
     });
+  }
+  
+  void _onProviderChange() {
+    final provider = Provider.of<EventCreationProvider>(context, listen: false);
+    // Detect reset: if title is empty and we're not loading, reset UI state
+    if (provider.title.isEmpty && !provider.isLoading && provider.pin.isEmpty) {
+      _pinController.clear();
+      _isPinLocked = false;
+      // Force form rebuild with new key
+      setState(() {
+        _formKey = GlobalKey<FormState>();
+      });
+    }
   }
 
   @override
   void dispose() {
+    // Remove listener
+    try {
+      final provider = Provider.of<EventCreationProvider>(context, listen: false);
+      provider.removeListener(_onProviderChange);
+    } catch (_) {}
     _pinController.dispose();
     super.dispose();
   }
@@ -653,15 +674,17 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                         ),
                                         const SizedBox(height: 10),
                                         
-                                        if (provider.eventType == 'on_site') ...[
-                                          TextFormField(
-                                            initialValue: provider.clueForms[provider.currentClueIndex]['description'],
-                                            decoration: inputDecoration.copyWith(labelText: 'Instrucciones / Historia'),
-                                            style: const TextStyle(color: Colors.white),
-                                            onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'description', v),
+                                        // Description field for BOTH modes (online minigames also need instructions)
+                                        TextFormField(
+                                          initialValue: provider.clueForms[provider.currentClueIndex]['description'],
+                                          decoration: inputDecoration.copyWith(
+                                            labelText: provider.eventType == 'online' 
+                                                ? 'Instrucciones del Minijuego' 
+                                                : 'Instrucciones / Historia',
                                           ),
-                                          const SizedBox(height: 10),
-                                        ],
+                                          style: const TextStyle(color: Colors.white),
+                                          onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'description', v),
+                                        ),
                                         const SizedBox(height: 10),
                                         
                                         // Question

@@ -10,16 +10,14 @@ import '../widgets/clue_card.dart';
 import '../../../shared/widgets/progress_header.dart';
 import '../widgets/race_track_widget.dart';
 import '../widgets/no_lives_widget.dart';
-import 'qr_scanner_screen.dart';
-import 'geolocation_screen.dart';
-import '../../mall/screens/mall_screen.dart';
-import 'puzzle_screen.dart';
 import '../../game/models/clue.dart'; // Import para usar tipo Clue
-import 'clue_finder_screen.dart'; // Import nuevo
+import 'qr_scanner_screen.dart'; // Needed for _showUnlockClueDialog
 import 'winner_celebration_screen.dart'; // Import for celebration screen
 
-import '../../../shared/widgets/animated_cyber_background.dart';
+// Duplicate import removed (animated_cyber_background already imported above)
 import '../../../shared/widgets/exit_protection_wrapper.dart'; // Protection
+import '../services/clue_navigator_service.dart'; // New Service
+
 
 class CluesScreen extends StatefulWidget {
   // 1. Recibimos el ID del evento obligatorio
@@ -172,9 +170,8 @@ class _CluesScreenState extends State<CluesScreen> {
     );
   }
 
-  void _handleClueAction(BuildContext context, Clue clue) {
-    clue.executeAction(context);
-  }
+  // REMOVED: _handleClueAction - Now using ClueActionHandler.handle() or ClueNavigatorService
+  // The executeAction method was removed from Clue model to comply with SRP.
 
   // Estado local para recordar qué pistas ya se escanearon en esta sesión
   final Set<String> _scannedClues = {};
@@ -339,7 +336,7 @@ class _CluesScreenState extends State<CluesScreen> {
 
                                   // Polimorfismo: Delegamos la ejecución a la pista misma
                                   // Esto reemplaza checks de isOnline y switch de tipos
-                                  clue.executeAction(context);
+                                  ClueNavigatorService.navigateToClue(context, clue);
                                 }
                               },
                             );
@@ -435,7 +432,7 @@ class _CluesScreenState extends State<CluesScreen> {
     gameProvider.unlockClue(clue.id);
     
     // Navegar al minijuego correspondiente
-    clue.executeAction(context);
+    ClueNavigatorService.navigateToClue(context, clue);
   }
 
 }

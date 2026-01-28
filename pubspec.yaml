@@ -25,6 +25,7 @@ dependencies:
   # Utilities
   intl: ^0.18.1
   image_picker: ^1.2.1
+  file_picker: ^8.0.0 # For Windows compatibility
   flutter_dotenv: ^6.0.0
   google_maps_flutter: ^2.14.0
   geolocator: ^14.0.2

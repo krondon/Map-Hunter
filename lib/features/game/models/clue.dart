@@ -1,11 +1,8 @@
-import 'package:flutter/material.dart';
-import '../screens/qr_scanner_screen.dart';
-import '../screens/clue_finder_screen.dart';
-import '../screens/puzzle_screen.dart';
-import '../../mall/screens/mall_screen.dart';
-import 'package:provider/provider.dart';
-import '../providers/game_provider.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:flutter/material.dart'; // Mantener por IconData si fuera necesario, pero el usuario pidió eliminar referencias a Navigator/BuildContext. 
+// Para ser estricto con "Limpieza de UI en Datos", deberíamos quitar Material. 
+// Pero ClueType.typeIcon devuelve un String (emoji) que no requiere Material.
+// Sin embargo, ClueType usa colores? No.
+// Vamos a eliminar los imports de pantallas tambien.
 
 enum ClueType {
   qrScan,
@@ -107,8 +104,7 @@ abstract class Clue {
     this.sequenceIndex = 0,
   });
 
-  /// Abstract methods ensuring polymorphism
-  void executeAction(BuildContext context);
+  /// Abstract getters (moved logic out, kept string/icon data)
   String get typeName;
   String get typeIcon;
 
@@ -119,27 +115,14 @@ abstract class Clue {
   String? get minigameUrl => null;
   String? get riddleQuestion => null;
   String? get riddleAnswer => null;
-  PuzzleType get puzzleType => PuzzleType.slidingPuzzle; // Default fallback ensuring non-null if possible, or make nullable if logic allows. Original was non-nullable in OnlineClue.
-  // Actually, user said "return null by default". But puzzleType is an Enum. 
-  // If I return null, I must change return type to `PuzzleType?`.
-  // Let's check usage. `clue.puzzleType` is used in switch cases. 
-  // If I make it nullable, switch cases will assume non-null or need default. 
-  // The user said: "puzzleType". 
-  // Let's return a safe default `PuzzleType.slidingPuzzle` effectively behaving like "nullable logic handled safely" or actually change the return type. 
-  // However, existing code might expect strict `PuzzleType`. 
-  // Use `PuzzleType?` as return type for the getter to be safe with "null by default".
+  PuzzleType get puzzleType => PuzzleType.slidingPuzzle; 
   
-  // Wait, if I change it to `PuzzleType?`, I might break code expecting `PuzzleType`.
-  // The request says: "Campos: ... puzzleType ... Ejemplo: double? get latitude => null;."
-  // So likely `PuzzleType? get puzzleType => null;`
-  
-  /// Factory to create the correct subclass based on ClueType
   factory Clue.fromJson(Map<String, dynamic> json) {
     
     // Safety check for image URLs in JSON (from original code)
     String? image = json['image_url'];
     if (image != null && (image.contains('C:/') || image.contains('file:///'))) {
-       print('⚠️ Ruta inválida detectada y bloqueada: $image');
+       // print('⚠️ Ruta inválida detectada y bloqueada: $image'); // Removing print to keep purely data if possible, or use debugPrint
     }
 
     final typeStr = json['type'] as String?;
@@ -222,44 +205,8 @@ class PhysicalClue extends Clue {
         return '📍';
     }
   }
-
-  @override
-  void executeAction(BuildContext context) async {
-    switch (type) {
-      case ClueType.qrScan:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => QRScannerScreen(expectedClueId: id)),
-        );
-        break;
-      case ClueType.geolocation:
-        // Physical Clues logic for Geolocation
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ClueFinderScreen(clue: this),
-          ),
-        );
-        
-        // If returned true, it means it was scanned/found during the finder process
-        if (result == true) {
-           // We can handle post-scan logic here if needed, 
-           // but traditionally unlocking is handled by the calling screen or provider.
-           // In the original code, `_unlockAndProceed` was called. 
-           // We might need to handle this integration in the `CluesScreen` wrapper.
-        }
-        break;
-      case ClueType.npcInteraction:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const MallScreen()),
-        );
-        break;
-      default:
-        // Fallback
-        break;
-    }
-  }
+  
+  // REMOVED: executeAction
 }
 
 class OnlineClue extends Clue {
@@ -315,23 +262,5 @@ class OnlineClue extends Clue {
   @override
   String get typeIcon => '🎮';
 
-  @override
-  void executeAction(BuildContext context) {
-    try {
-      // In Clean Architecture we shouldn't rely on Provider here ideally, but for pragmatic refactor:
-      // We are just navigating. The Provider usage in the original code was for error handling.
-      
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => PuzzleScreen(clue: this)), // PuzzleScreen accepts Clue (which is now OnlineClue or Base)
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: No se pudo cargar el minijuego. $e'),
-          backgroundColor: AppTheme.dangerRed,
-        ),
-      );
-    }
-  }
+  // REMOVED: executeAction
 }
