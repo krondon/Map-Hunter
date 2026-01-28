@@ -180,14 +180,16 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     final gameProvider = _gameProviderRef;
     if (powerProvider == null || gameProvider == null) return;
     
-    final activeSlug = powerProvider.activePowerSlug;
+    // Check concurrent blocking effects
+    final isFreezeActive = powerProvider.isEffectActive('freeze');
+    final isBlackScreenActive = powerProvider.isEffectActive('black_screen');
     
     // Lista de efectos que deben congelar la navegación
-    final shouldBlock = activeSlug == 'freeze' || activeSlug == 'black_screen';
+    final shouldBlock = isFreezeActive || isBlackScreenActive;
     
     // Actualizar estado de congelamiento en GameProvider
     // AHORA: Tanto freeze como black_screen pausan los minijuegos
-    final shouldPauseGame = activeSlug == 'freeze' || activeSlug == 'black_screen';
+    final shouldPauseGame = shouldBlock;
     
     if (shouldPauseGame && !gameProvider.isFrozen) {
       gameProvider.setFrozen(true);
@@ -197,7 +199,7 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
 
     if (shouldBlock && !_isBlockingActive) {
       _isBlockingActive = true;
-      debugPrint("⛔ BLOQUEANDO NAVEGACIÓN por sabotaje ($activeSlug) ⛔");
+      debugPrint("⛔ BLOQUEANDO NAVEGACIÓN por sabotaje (freeze/black_screen) ⛔");
       rootNavigatorKey.currentState?.push(_BlockingPageRoute()).then((_) {
         // Cuando la ruta se cierre (pop), actualizamos el estado
         // Esto maneja el caso donde el usuario pudiera cerrarlo (aunque no debería poder)
@@ -248,19 +250,21 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   @override
   Widget build(BuildContext context) {
     final powerProvider = Provider.of<PowerEffectProvider>(context);
-    final activeSlug = powerProvider.activePowerSlug;
     final defenseAction = powerProvider.lastDefenseAction;
     final playerProvider = Provider.of<PlayerProvider>(context);
     // Detectamos si el usuario actual es invisible según el PlayerProvider
     final isPlayerInvisible =
         playerProvider.currentPlayer?.isInvisible ?? false;
-
-    // DEBUG: Ver qué slug está llegando
-    if (activeSlug != null) {
-      debugPrint("🌫️ SabotageOverlay: activeSlug = '$activeSlug'");
-    }
+    
+    // Concurrent Effect Checks
+    final isBlackScreen = powerProvider.isEffectActive('black_screen');
+    final isFreeze = powerProvider.isEffectActive('freeze');
+    final isBlur = powerProvider.isEffectActive('blur_screen');
+    final isInvisible = powerProvider.isEffectActive('invisibility');
 
     // Banner life_steal (Point B): sólo banner, no bloquea interacción.
+    // Life steal is transient (no duration in map), logic remains with activeEffectId change detection for banners
+    final activeSlug = powerProvider.activePowerSlug; // Still use this for transient/latest detection if needed
     final effectId = powerProvider.activeEffectId;
     final isNewLifeSteal =
         activeSlug == 'life_steal' && effectId != _lastLifeStealEffectId;
@@ -278,6 +282,11 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     }
 
     // Banner blur_screen: Notificar quién te saboteó con visión borrosa
+    // Check if blur is active AND it's a new effect ID (to avoid spam)
+    // We iterate active effects to find the blur ID? _activeEffects map stores effectId.
+    // Simplifying: Check if isBlur is true and if we haven't notified for this specific running instance?
+    // Map approach:
+    // We can rely on 'activePowerSlug' being the *latest* added effect for notification triggers.
     final isNewBlur =
         activeSlug == 'blur_screen' && effectId != _lastBlurEffectId;
 
@@ -296,9 +305,13 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       children: [
         widget.child, // El juego base siempre debajo
 
-        // Capas de sabotaje (se activan según el slug recibido de la DB)
-        if (activeSlug == 'black_screen') BlindEffect(expiresAt: powerProvider.activePowerExpiresAt),
-        if (activeSlug == 'freeze') FreezeEffect(expiresAt: powerProvider.activePowerExpiresAt),
+        // Capas de sabotaje (se activan concurrente)
+        if (isBlackScreen) 
+            BlindEffect(expiresAt: powerProvider.getPowerExpiration('black_screen')),
+        
+        if (isFreeze) 
+            FreezeEffect(expiresAt: powerProvider.getPowerExpiration('freeze')),
+            
         if (defenseAction == DefenseAction.returned) ...[
           if (powerProvider.returnedByPlayerName != null)
              ReturnRejectionEffect(
@@ -321,12 +334,12 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
           ),
 
         // blur_screen reutiliza el efecto visual de invisibility para los rivales.
-        if (activeSlug == 'blur_screen')
-          BlurScreenEffect(expiresAt: powerProvider.activePowerExpiresAt), 
+        if (isBlur)
+          BlurScreenEffect(expiresAt: powerProvider.getPowerExpiration('blur_screen')), 
 
         // --- ESTADOS BENEFICIOSOS (BUFFS) ---
-        if (isPlayerInvisible || activeSlug == 'invisibility')
-          InvisibilityEffect(expiresAt: powerProvider.activePowerExpiresAt),
+        if (isPlayerInvisible || isInvisible)
+          InvisibilityEffect(expiresAt: powerProvider.getPowerExpiration('invisibility')),
 
         if (defenseAction == DefenseAction.shieldBlocked)
           _DefenseFeedbackToast(action: defenseAction),
