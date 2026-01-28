@@ -6,6 +6,8 @@ import '../../game/models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import 'wallet_screen.dart';
+import '../../game/screens/scenarios_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,6 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
+      bottomNavigationBar: _buildBottomNavBar(),
       body: AnimatedCyberBackground(
         child: CustomScrollView(
           slivers: [
@@ -201,15 +204,160 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           const SizedBox(height: 30),
           
+          // Single Stats Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatCompact(Icons.monetization_on, "${player.coins}", "MONEDAS", AppTheme.accentGold),
-              _buildVerticalDivider(),
               _buildStatCompact(Icons.star, "${player.totalXP}", "XP TOTAL", AppTheme.secondaryPink),
+              _buildVerticalDivider(),
+              _buildStatCompact(Icons.eco, "${player.clovers}", "TRÉBOLES", Colors.green),
               _buildVerticalDivider(),
               _buildStatCompact(Icons.emoji_events, "${player.eventsCompleted?.length ?? 0}", "EVENTOS", Colors.cyan),
             ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Horizontal Divider
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Divider(
+              color: Colors.white.withOpacity(0.2),
+              thickness: 1,
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Edit/Delete Profile Buttons
+          Row(
+            children: [
+              Expanded(
+                child: _buildProfileButton(
+                  icon: Icons.edit,
+                  label: "Editar Perfil",
+                  color: AppTheme.primaryPurple,
+                  onTap: () => _showEditProfileSheet(player),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildProfileButton(
+                  icon: Icons.delete_outline,
+                  label: "Borrar Cuenta",
+                  color: AppTheme.dangerRed,
+                  onTap: () => _showDeleteConfirmation(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileSheet(dynamic player) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Editar Perfil",
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.face, color: AppTheme.accentGold),
+              title: const Text("Cambiar Avatar", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Podrás cambiar tu avatar al ingresar a una nueva competencia"),
+                    backgroundColor: AppTheme.primaryPurple,
+                  ),
+                );
+              },
+            ),
+            const Divider(color: Colors.white10),
+            ListTile(
+              leading: const Icon(Icons.close, color: Colors.white54),
+              title: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text("Borrar Cuenta", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "¿Estás seguro de que deseas borrar tu cuenta? Esta acción no se puede deshacer.",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Funcionalidad de borrar cuenta en desarrollo"),
+                  backgroundColor: AppTheme.dangerRed,
+                ),
+              );
+            },
+            child: const Text("Borrar", style: TextStyle(color: AppTheme.dangerRed)),
           ),
         ],
       ),
@@ -375,5 +523,139 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Color> _getStampGradient(int index) {
     const gradients = [[Color(0xFF3B82F6), Color(0xFF06B6D4)], [Color(0xFF06B6D4), Color(0xFF10B981)], [Color(0xFF10B981), Color(0xFF84CC16)], [Color(0xFF84CC16), Color(0xFFF59E0B)], [Color(0xFFF59E0B), Color(0xFFEF4444)], [Color(0xFFEF4444), Color(0xFFEC4899)], [Color(0xFFEC4899), Color(0xFFD946EF)], [Color(0xFFD946EF), Color(0xFF8B5CF6)], [Color(0xFF8B5CF6), Color(0xFF6366F1)]];
     return gradients[index % gradients.length];
+  }
+
+  Widget _buildBottomNavBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryPurple.withOpacity(0.2),
+            blurRadius: 15,
+            spreadRadius: -5,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, Icons.weekend, 'Local'),
+            _buildNavItem(1, Icons.explore, 'Escenarios'),
+            _buildNavItem(2, Icons.account_balance_wallet, 'Recargas'),
+            _buildNavItem(3, Icons.person, 'Perfil'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = index == 3; // Perfil is always selected in this screen
+    return GestureDetector(
+      onTap: () {
+        // Navigation logic
+        switch (index) {
+          case 0: // Local
+            _showComingSoonDialog(label);
+            break;
+          case 1: // Escenarios
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ScenariosScreen(),
+              ),
+            );
+            break;
+          case 2: // Recargas
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WalletScreen(),
+              ),
+            );
+            break;
+          case 3: // Perfil - already here
+            break;
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16 : 12,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.accentGold.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.accentGold : Colors.white54,
+              size: isSelected ? 24 : 22,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppTheme.accentGold,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showComingSoonDialog(String featureName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.construction, color: AppTheme.accentGold),
+            const SizedBox(width: 12),
+            const Text(
+              'Próximamente',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(
+          'La sección "$featureName" estará disponible muy pronto. ¡Mantente atento a las actualizaciones!',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Entendido',
+              style: TextStyle(color: AppTheme.accentGold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -22,6 +22,7 @@ class Player implements ITargetable {
   DateTime? lastCompletionTime; // [FIX] Para desempate en ranking
   List<String>? eventsCompleted;
   int lives;
+  int clovers; // New currency - tréboles
   Map<String, dynamic> stats;
 
   Player({
@@ -42,6 +43,7 @@ class Player implements ITargetable {
     this.lastCompletionTime,
     this.eventsCompleted,
     this.lives = 3,
+    this.clovers = 0,
     Map<String, dynamic>? stats,
     this.avatarId,
     this.gamePlayerId,
@@ -126,8 +128,10 @@ class Player implements ITargetable {
           json['inventory'] != null ? List<String>.from(json['inventory']) : [],
       gamePlayerId: json['player_id'] ?? json['game_player_id'],
       avatarId: avatarId,
+      clovers: json['clovers'] ?? 0,
     );
   }
+
 
   static PlayerStatus _parseStatus(String? status) {
     switch (status) {
@@ -241,6 +245,7 @@ class Player implements ITargetable {
     DateTime? lastCompletionTime,
     List<String>? eventsCompleted,
     int? lives,
+    int? clovers,
     Map<String, dynamic>? stats,
     String? gamePlayerId,
     String? avatarId,
@@ -264,6 +269,7 @@ class Player implements ITargetable {
       lastCompletionTime: lastCompletionTime ?? this.lastCompletionTime,
       eventsCompleted: eventsCompleted ?? this.eventsCompleted,
       lives: lives ?? this.lives,
+      clovers: clovers ?? this.clovers,
       stats: stats ?? this.stats,
       gamePlayerId: gamePlayerId ?? this.gamePlayerId,
       avatarId: avatarId ?? this.avatarId,

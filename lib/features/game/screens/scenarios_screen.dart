@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:io' show Platform; 
 import 'package:flutter/foundation.dart' show kIsWeb; 
 
@@ -27,6 +28,9 @@ import '../../../core/services/video_preload_service.dart';
 import 'winner_celebration_screen.dart';
 import '../services/game_access_service.dart'; // NEW
 import '../mappers/scenario_mapper.dart'; // NEW
+import '../../social/screens/profile_screen.dart'; // For navigation
+import '../../social/screens/wallet_screen.dart'; // For wallet navigation
+
 
 
 class ScenariosScreen extends StatefulWidget {
@@ -48,6 +52,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
   int _currentPage = 0;
   bool _isLoading = true;
   bool _isProcessing = false; // Prevents double taps
+  int _navIndex = 1; // Default to Escenarios (index 1)
 
   @override
   void initState() {
@@ -314,7 +319,159 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
             ));
   }
 
+  void _showComingSoonDialog(String featureName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.construction, color: AppTheme.accentGold),
+            const SizedBox(width: 12),
+            const Text(
+              'Próximamente',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(
+          'La sección "$featureName" estará disponible muy pronto. ¡Mantente atento a las actualizaciones!',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Entendido',
+              style: TextStyle(color: AppTheme.accentGold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildBottomNavBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppTheme.primaryPurple.withOpacity(0.2),
+            blurRadius: 15,
+            spreadRadius: -5,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, Icons.weekend, 'Local'),
+            _buildNavItem(1, Icons.explore, 'Escenarios'),
+            _buildNavItem(2, Icons.account_balance_wallet, 'Recargas'),
+            _buildNavItem(3, Icons.person, 'Perfil'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _navIndex == index;
+    return GestureDetector(
+      onTap: () {
+        // Navigation logic
+        switch (index) {
+          case 0: // Local
+            // Don't change navIndex, keep Escenarios selected
+            _showComingSoonDialog(label);
+            break;
+          case 2: // Recargas - Navigate to Wallet
+            setState(() {
+              _navIndex = index;
+            });
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WalletScreen(),
+              ),
+            ).then((_) {
+              // Reset to Escenarios when returning from Wallet
+              setState(() {
+                _navIndex = 1;
+              });
+            });
+            break;
+          case 1: // Escenarios - already showing
+            setState(() {
+              _navIndex = 1;
+            });
+            break;
+          case 3: // Perfil
+            setState(() {
+              _navIndex = index;
+            });
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
+            ).then((_) {
+              // Reset to Escenarios when returning from Profile
+              setState(() {
+                _navIndex = 1;
+              });
+            });
+            break;
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16 : 12,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.accentGold.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.accentGold : Colors.white54,
+              size: isSelected ? 24 : 22,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppTheme.accentGold,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -370,10 +527,13 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         }
       },
       child: Scaffold(
+      bottomNavigationBar: _buildBottomNavBar(),
       body: AnimatedCyberBackground(
         child: SafeArea(
           child: Stack(
             children: [
+              // Dark overlay for better text readability
+              // Dark overlay removed for lighter background
              RefreshIndicator(
             onRefresh: _loadEvents,
             color: AppTheme.accentGold,
@@ -387,11 +547,79 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Custom AppBar
+                        // Custom AppBar with Game Title
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                          padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
                           child: Row(
                             children: [
+                              // Left Spacer for Symmetry (Button width 48 + Spacing 16 = 64)
+                              const SizedBox(width: 64),
+                              
+                              // Game Title with Glitch Effect in Header
+                              Expanded(
+                                child: Center(
+                                  child: AnimatedBuilder(
+                                    animation: _glitchController,
+                                    builder: (context, child) {
+                                      final random = math.Random();
+                                      const Color primaryColor = Color(0xFFFAE500); // Cyberpunk bright yellow
+                                      
+                                      // Much more aggressive frame-level jitter
+                                      double offsetX = (random.nextDouble() - 0.5) * 3;
+                                      double offsetY = (random.nextDouble() - 0.5) * 1.5;
+                                      
+                                      // Chromatic offsets (Cyan/Magenta)
+                                      double cyanX = offsetX - 2.5 - (random.nextDouble() * 2);
+                                      double magX = offsetX + 2.5 + (random.nextDouble() * 2);
+                                      
+                                      return Stack(
+                                        children: [
+                                          // Cyan Shadow (Always visible and vibrating)
+                                          Transform.translate(
+                                            offset: Offset(cyanX, offsetY),
+                                            child: Text(
+                                              "MapHunter",
+                                              style: TextStyle(
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.w900,
+                                                color: const Color(0xFF00FFFF).withOpacity(0.7),
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          // Magenta Shadow (Always visible and vibrating)
+                                          Transform.translate(
+                                            offset: Offset(magX, offsetY),
+                                            child: Text(
+                                              "MapHunter",
+                                              style: TextStyle(
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.w900,
+                                                color: const Color(0xFFFF00FF).withOpacity(0.7),
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          // Primary Yellow Text
+                                          Transform.translate(
+                                            offset: Offset(offsetX, offsetY),
+                                            child: Text(
+                                              "MapHunter",
+                                              style: TextStyle(
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.w900,
+                                                color: _glitchController.value > 0.98 ? Colors.white : primaryColor,
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.1),
@@ -438,135 +666,58 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              const Text(
-                                'Escenarios',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
                             ],
                           ),
                         ),
 
-                        // Explanation Card - Catchy & Dopamine
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          child: SlideTransition(
-                            position: _hoverAnimation,
-                            child: AnimatedBuilder(
-                              animation: _shimmerController,
-                              builder: (context, child) {
-                                return Container(
-                                  padding: const EdgeInsets.all(2.0), // Border width
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(22), // Outer radius slightly larger
-                                    gradient: SweepGradient(
-                                      colors: const [
-                                        AppTheme.accentGold, 
-                                        Colors.white, 
-                                        AppTheme.accentGold, 
-                                        Colors.transparent, 
-                                        AppTheme.accentGold
-                                      ],
-                                      stops: const [0.0, 0.2, 0.4, 0.5, 1.0],
-                                      transform: GradientRotation(_shimmerController.value * 2 * 3.14159),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.accentGold.withOpacity(0.3 + 0.2 * 
-                                            (0.5 - (0.5 - _shimmerController.value).abs())), // Pulsing shadow
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppTheme.primaryPurple.withOpacity(0.9),
-                                          Colors.deepPurple.shade900,
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.diamond, // Diamond = Treasure
-                                          color: AppTheme.accentGold, size: 28),
-                                      const SizedBox(width: 8),
-                                      Transform.rotate(
-                                        angle: 3.14 / 1, // Rotate to look like a sword down or up
-                                        child: const Icon(Icons.colorize, // Looks like a dagger/sword
-                                            color: AppTheme.accentGold, size: 28),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: AnimatedBuilder(
-                                          animation: _glitchController,
-                                          builder: (context, child) {
-                                            // Glitch logic: if value > 0.95, offset randomly
-                                            double offsetX = 0;
-                                            double offsetY = 0;
-                                            Color color = AppTheme.accentGold;
-                                            
-                                            if (_glitchController.value > 0.90) {
-                                              offsetX = (DateTime.now().millisecondsSinceEpoch % 3) - 1.5;
-                                              offsetY = (DateTime.now().millisecondsSinceEpoch % 2) - 1.0;
-                                              // Occasionally change color
-                                              if (_glitchController.value > 0.98) {
-                                                  color = Colors.cyanAccent;
-                                              }
-                                            }
-                                            
-                                            return Transform.translate(
-                                              offset: Offset(offsetX, offsetY),
-                                              child: Text(
-                                                "Misión de Exploración",
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.w900,
-                                                  color: color,
-                                                  letterSpacing: 0.5,
-                                                  shadows: _glitchController.value > 0.90 ? [
-                                                      const Shadow(color: Colors.red, offset: Offset(-2, 0)),
-                                                      const Shadow(color: Colors.blue, offset: Offset(2, 0)),
-                                                  ] : [],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    "¡Embárcate en una emocionante búsqueda del tesoro! Pon a prueba tus habilidades resolviendo pistas intrigantes y desafiantes para descubrir el gran premio oculto. ¿Estás listo para la aventura? ¡El tesoro te espera!",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      height: 1.4,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        // Description Text
+                        // Description Text with Enhanced Style
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppTheme.accentGold.withOpacity(0.3),
+                              width: 1,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.accentGold.withOpacity(0.1),
+                                blurRadius: 10,
+                                spreadRadius: -2,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentGold.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.auto_awesome,
+                                  color: AppTheme.accentGold,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: const Text(
+                                  '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto.',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
@@ -575,20 +726,20 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                         // Title for Selection
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                          child: Text(
-                            "Elige tu campo de batalla",
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  letterSpacing: 1,
-                                ),
+                          child: const Center(
+                            child: Text(
+                              "Elige tu campo de batalla",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
 
                         // Scenarios Carousel - Expanded to fit remaining space
                         Expanded(

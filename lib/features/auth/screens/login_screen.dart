@@ -401,38 +401,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Título Animado
-                          AnimatedBuilder(
-                            animation: _shimmerTitleController,
-                            builder: (context, child) {
-                              return ShaderMask(
-                                shaderCallback: (bounds) {
-                                  return LinearGradient(
-                                    colors: const [
-                                      Colors.white,
-                                      AppTheme.accentGold,
-                                      Colors.white,
-                                      AppTheme.accentGold,
-                                      Colors.white,
-                                    ],
-                                    stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-                                    begin: Alignment(-1.0 + (_shimmerTitleController.value * 2.0), -0.5),
-                                    end: Alignment(1.0 + (_shimmerTitleController.value * 2.0), 0.5),
-                                    tileMode: TileMode.clamp,
-                                  ).createShader(bounds);
-                                },
-                                child: const _GlitchText(
-                                  text: 'MAPHUNTER',
+                                const _GlitchText(
+                                  text: 'MapHunter',
                                   style: TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.white,
-                                    letterSpacing: 4,
+                                    color: Color(0xFFFAE500),
+                                    letterSpacing: 2,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
                           const SizedBox(height: 20),
 
                           // Logo con imagen personalizada (Agrandado para llenar el espacio)
@@ -688,40 +665,51 @@ class _GlitchTextState extends State<_GlitchText> with SingleTickerProviderState
     return AnimatedBuilder(
       animation: _glitchController,
       builder: (context, child) {
+        final random = math.Random();
         final double glitchValue = _glitchController.value;
-        final bool isGlitching = glitchValue > 0.90 && glitchValue < 0.95;
         
-        double offsetX = 0;
-        double offsetY = 0;
+        // Aggressive jitter on every frame
+        double offsetX = (random.nextDouble() - 0.5) * 3;
+        double offsetY = (random.nextDouble() - 0.5) * 1.5;
         
-        if (isGlitching) {
-          offsetX = (math.Random().nextDouble() - 0.5) * 5;
-          offsetY = (math.Random().nextDouble() - 0.5) * 5;
+        // Chromatic offsets (Cyan/Magenta)
+        double cyanX = offsetX - 2.5 - (random.nextDouble() * 2);
+        double magX = offsetX + 2.5 + (random.nextDouble() * 2);
+        
+        // Occasional flash
+        Color currentColor = widget.style.color ?? Colors.white;
+        if (glitchValue > 0.98) {
+          currentColor = Colors.white;
+          offsetX *= 2.5;
         }
 
         return Stack(
           children: [
-            if (isGlitching)
-              Transform.translate(
-                offset: Offset(offsetX + 2, offsetY),
-                child: Text(
-                  _displayText,
-                  style: widget.style.copyWith(color: Colors.red.withOpacity(0.8)),
+            // Constant Chromatic Aberration Shadows (Cyan/Magenta)
+            Transform.translate(
+              offset: Offset(cyanX, offsetY),
+              child: Text(
+                _displayText,
+                style: widget.style.copyWith(
+                  color: const Color(0xFF00FFFF).withOpacity(0.7), // Cyan
                 ),
               ),
-            if (isGlitching)
-              Transform.translate(
-                offset: Offset(offsetX - 2, offsetY),
-                child: Text(
-                  _displayText,
-                  style: widget.style.copyWith(color: Colors.blue.withOpacity(0.8)),
+            ),
+            Transform.translate(
+              offset: Offset(magX, offsetY),
+              child: Text(
+                _displayText,
+                style: widget.style.copyWith(
+                  color: const Color(0xFFFF00FF).withOpacity(0.7), // Magenta
                 ),
               ),
+            ),
+            // Primary Text
             Transform.translate(
               offset: Offset(offsetX, offsetY),
               child: Text(
                 _displayText,
-                style: widget.style,
+                style: widget.style.copyWith(color: currentColor),
               ),
             ),
           ],
