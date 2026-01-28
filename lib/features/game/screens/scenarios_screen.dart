@@ -242,6 +242,28 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
           
         case AccessResultType.approvedWait: 
            break;
+
+        case AccessResultType.needsPayment:
+          // User needs to pay entry fee before joining
+          final entryFee = result.data?['entryFee'] ?? 0.0;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Se requiere inscripción de ${entryFee.toStringAsFixed(2)} 🍀'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          break;
+
+        case AccessResultType.spectatorAllowed:
+          // Spectator mode - navigate to read-only game view
+          // TODO: Implement SpectatorScreen when Phase 2 is complete
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Modo Espectador - Próximamente'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+          break;
       }
     } catch (e, stackTrace) {
       debugPrint('ScenariosScreen: CRITICAL ERROR: $e');

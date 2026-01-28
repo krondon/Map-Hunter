@@ -34,6 +34,14 @@ import 'features/game/services/game_service.dart';
 import 'features/mall/services/store_service.dart';
 import 'features/events/services/event_service.dart';
 
+// --- NEW: Phase 1 Refactoring Imports ---
+import 'core/repositories/lives_repository.dart';
+import 'core/repositories/mock_payment_repository.dart';
+import 'features/wallet/providers/wallet_provider.dart';
+import 'features/auth/providers/player_inventory_provider.dart';
+import 'features/auth/providers/player_stats_provider.dart';
+import 'features/game/services/game_stream_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -75,6 +83,13 @@ class TreasureHuntApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<AdminService>(create: (_) => AdminService(supabaseClient: Supabase.instance.client)),
+        
+        // --- NEW: Infrastructure Layer (DIP) ---
+        Provider<SupabaseLivesRepository>(create: (_) => SupabaseLivesRepository()),
+        Provider<MockPaymentRepository>(create: (_) => MockPaymentRepository()),
+        Provider<GameStreamService>(create: (_) => GameStreamService()),
+        
+        // --- Existing Providers ---
         ChangeNotifierProvider(create: (context) {
           final supabase = Supabase.instance.client;
           return PlayerProvider(
@@ -105,6 +120,22 @@ class TreasureHuntApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PowerEffectProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => AppModeProvider()),
+        
+        // --- NEW: SRP-Segregated Providers ---
+        ChangeNotifierProvider(create: (context) {
+          final supabase = Supabase.instance.client;
+          return PlayerInventoryProvider(
+            inventoryService: InventoryService(supabaseClient: supabase),
+          );
+        }),
+        ChangeNotifierProvider(create: (context) {
+          final livesRepo = Provider.of<SupabaseLivesRepository>(context, listen: false);
+          return PlayerStatsProvider(livesRepository: livesRepo);
+        }),
+        ChangeNotifierProvider(create: (context) {
+          final paymentRepo = Provider.of<MockPaymentRepository>(context, listen: false);
+          return WalletProvider(paymentRepository: paymentRepo);
+        }),
       ],
       child: MaterialApp(
         title: 'MapHunter',
