@@ -13,6 +13,14 @@ import '../../admin/services/admin_service.dart';
 
 enum PowerUseResult { success, reflected, error }
 
+  /// Core Player Provider - Handles player identity, session, and coordination.
+/// 
+/// After SRP refactoring:
+/// - Inventory operations are handled by [PlayerInventoryProvider]
+/// - Stats/Lives operations are handled by [PlayerStatsProvider]
+/// - This provider focuses on: Auth, Profile, Avatar, Session management
+/// 
+/// Public API remains unchanged for backward compatibility.
 class PlayerProvider extends ChangeNotifier {
   Player? _currentPlayer;
   List<Player> _allPlayers = [];
@@ -24,14 +32,15 @@ class PlayerProvider extends ChangeNotifier {
   final InventoryService _inventoryService;
   final PowerService _powerService;
 
-  // Mapa para guardar el inventario filtrado por evento
-  // Estructura: { eventId: { powerId: quantity } }
+  // Event-scoped inventories (kept for backward compatibility)
   final Map<String, Map<String, int>> _eventInventories = {};
 
   bool _isProcessing = false;
   bool _isLoggingOut = false;
-  bool _isDisposed = false; // Flag para evitar notifyListeners tras dispose
-  StreamSubscription? _gamePlayersSubscription; // Nueva suscripción por stream para baneos de competencia
+  bool _isDisposed = false;
+  StreamSubscription? _gamePlayersSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
+  Timer? _pollingTimer;
   
   List<PowerItem> _shopItems = PowerItem.getShopItems();
   
@@ -43,7 +52,7 @@ class PlayerProvider extends ChangeNotifier {
   String? _banMessage;
   String? get banMessage => _banMessage;
 
-  /// Constructor con inyección de dependencias.
+  /// Constructor with dependency injection.
   PlayerProvider({
     required SupabaseClient supabaseClient,
     required AuthService authService,
@@ -61,12 +70,12 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- NUEVO: Obtener cantidad de un poder específico en un evento ---
+  /// Get power count for a specific event.
   int getPowerCount(String itemId, String eventId) {
     return _eventInventories[eventId]?[itemId] ?? 0;
   }
   
-  // --- SYNC MANUAL: Validar estado local sin fetch ---
+  /// Update local lives without backend sync.
   void updateLocalLives(int newLives) {
     if (_currentPlayer != null) {
       _currentPlayer = _currentPlayer!.copyWith(lives: newLives);
@@ -74,14 +83,12 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  /// Establece el contexto del evento actual para asegurar que el perfil
-  /// se mantenga sincronizado con la competencia que el usuario está jugando.
+  /// Set current event context for profile sync.
   Future<void> setCurrentEventContext(String eventId) async {
     if (_currentPlayer == null) return;
     
     debugPrint('PlayerProvider: Setting current event context to $eventId');
     
-    // Si el evento ya es el mismo, no hacemos fetch completo pero aseguramos el ID
     if (_currentPlayer!.currentEventId == eventId) {
       return;
     }
@@ -89,23 +96,20 @@ class PlayerProvider extends ChangeNotifier {
     await _fetchProfile(_currentPlayer!.userId, eventId: eventId);
   }
 
-  /// Carga la configuración de items de la tienda desde el servicio
+  /// Load shop items configuration from service.
   Future<void> loadShopItems() async {
     try {
       final configs = await _powerService.getPowerConfigs();
       
       _shopItems = _shopItems.map((item) {
-          // Buscar configuración en DB
           final matches = configs.where((d) => d['slug'] == item.id);
           final config = matches.isNotEmpty ? matches.first : null;
 
           if (config != null) {
             final int duration = (config['duration'] as num?)?.toInt() ?? 0;
             
-            // Actualizar descripción dinámica si tiene duración > 0
             String newDesc = item.description;
             if (duration > 0) {
-              // Reemplazar patrones como "25s", "30s" por el valor real
               newDesc = newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
             }
 
@@ -123,9 +127,9 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- AUTHENTICATION ---
-
-  // --- AUTHENTICATION (delegado a AuthService) ---
+  // ============================================================
+  // AUTHENTICATION (delegated to AuthService)
+  // ============================================================
 
   Future<void> login(String email, String password) async {
     try {
@@ -168,15 +172,15 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> updateAvatar(String avatarId) async {
     if (_currentPlayer == null) return;
     try {
-      // 1. Guardar en SharedPreferences para acceso inmediato y offline
+      // 1. Cache locally for immediate and offline access
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cached_avatar_${_currentPlayer!.userId}', avatarId);
-      debugPrint('PlayerProvider: Avatar $avatarId guardado en cache local');
+      debugPrint('PlayerProvider: Avatar $avatarId cached locally');
 
-      // 2. Actualizar DB
+      // 2. Update DB
       await _authService.updateAvatar(_currentPlayer!.userId, avatarId);
       
-      // 3. Actualizar memoria y notificar
+      // 3. Update memory and notify
       _currentPlayer = _currentPlayer!.copyWith(avatarId: avatarId);
       notifyListeners();
     } catch (e) {
@@ -207,30 +211,11 @@ class PlayerProvider extends ChangeNotifier {
     _isLoggingOut = false;
   }
 
-  Future<void> _checkPendingPenalties(String userId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('pending_life_loss') == true) {
-        final eventId = prefs.getString('pending_life_loss_event');
-        debugPrint('PlayerProvider: Procesando penalización pendiente para $userId');
-        
-        await loseLife(eventId: eventId);
-        
-        // Limpiar para no cobrar doble
-        await prefs.remove('pending_life_loss');
-        await prefs.remove('pending_life_loss_event');
-        debugPrint('PlayerProvider: Penalización pendiente aplicada con éxito');
-      }
-    } catch (e) {
-      debugPrint('Error consumiendo penalización: $e');
-    }
-  }
+  // ============================================================
+  // INVENTORY OPERATIONS (delegated to InventoryService)
+  // ============================================================
 
-  // --- PROFILE MANAGEMENT ---
-
-  StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
-
-  /// Obtiene el inventario del usuario para un evento (delegado a InventoryService).
+  /// Fetch inventory for user in an event.
   Future<void> fetchInventory(String userId, String eventId) async {
     try {
       final result = await _inventoryService.fetchInventoryByEvent(
@@ -238,10 +223,8 @@ class PlayerProvider extends ChangeNotifier {
         eventId: eventId,
       );
 
-      // Guardamos la relación cantidad/item para validaciones de la tienda
       _eventInventories[eventId] = result.eventItems;
 
-      // Actualizamos el inventario del jugador actual
       if (_currentPlayer != null) {
         _currentPlayer!.inventory = result.inventoryList;
       }
@@ -252,13 +235,12 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- LÓGICA DE TIENDA (delegada a InventoryService) ---
-
+  /// Purchase item from store.
   Future<bool> purchaseItem(String itemId, String eventId, int cost,
       {bool isPower = true}) async {
     if (_currentPlayer == null) return false;
 
-    // MANEJO ESPECIAL PARA VIDAS
+    // Special handling for extra lives
     if (itemId == 'extra_life') {
       return _purchaseLifeManual(eventId, cost);
     }
@@ -305,7 +287,71 @@ class PlayerProvider extends ChangeNotifier {
     return result.success;
   }
 
-// --- LÓGICA DE USO DE PODERES (delegada a PowerService) ---
+  /// Sync real inventory from backend.
+  Future<void> syncRealInventory({PowerEffectProvider? effectProvider}) async {
+    if (_currentPlayer == null) {
+      debugPrint('[DEBUG] ❌ syncRealInventory: _currentPlayer is NULL');
+      return;
+    }
+
+    try {
+      debugPrint('[DEBUG] 🔄 syncRealInventory START');
+      debugPrint('[DEBUG]    userId: ${_currentPlayer!.userId}');
+      debugPrint('[DEBUG]    effectProvider is null? ${effectProvider == null}');
+
+      final result = await _inventoryService.syncRealInventory(
+        userId: _currentPlayer!.userId,
+      );
+
+      debugPrint('[DEBUG] 📦 syncRealInventory result:');
+      debugPrint('[DEBUG]    success: ${result.success}');
+      debugPrint('[DEBUG]    gamePlayerId: ${result.gamePlayerId}');
+      debugPrint('[DEBUG]    lives: ${result.lives}');
+
+      if (!result.success) {
+        debugPrint('[DEBUG] ⚠️ No active game_player found');
+        _currentPlayer!.inventory.clear();
+        _currentPlayer!.gamePlayerId = null;
+        effectProvider?.startListening(null);
+        notifyListeners();
+        return;
+      }
+
+      if (result.lives != null) {
+        _currentPlayer!.lives = result.lives!;
+      }
+      
+      _currentPlayer!.gamePlayerId = result.gamePlayerId;
+      
+      // Configure PowerEffectProvider
+      debugPrint('[DEBUG] 🎯 Configuring PowerEffectProvider...');
+      effectProvider?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
+      effectProvider?.configureReturnHandler((slug, casterId) async {
+        final powerResult = await usePower(
+          powerSlug: slug,
+          targetGamePlayerId: casterId,
+          effectProvider: effectProvider,
+          allowReturnForward: false,
+        );
+        return powerResult != PowerUseResult.error;
+      });
+      
+      debugPrint('[DEBUG] 📡 Calling startListening with gamePlayerId: ${result.gamePlayerId}');
+      effectProvider?.startListening(result.gamePlayerId);
+      
+      debugPrint("GamePlayer found: ${result.gamePlayerId}");
+
+      _currentPlayer!.inventory.clear();
+      _currentPlayer!.inventory.addAll(result.inventory);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('CRITICAL Error syncing real inventory: $e');
+    }
+  }
+
+  // ============================================================
+  // POWER USAGE (delegated to PowerService)
+  // ============================================================
 
   Future<PowerUseResult> usePower({
     required String powerSlug,
@@ -325,10 +371,9 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     try {
-      // Configurar estado de lanzamiento manual
       effectProvider.setManualCasting(true);
 
-      // Preparar lista de rivales para blur_screen
+      // Prepare rivals list for blur_screen
       List<RivalInfo>? rivals;
       String? eventId;
       if (powerSlug == 'blur_screen' && gameProvider != null) {
@@ -344,7 +389,6 @@ class PlayerProvider extends ChangeNotifier {
             .toList();
       }
 
-      // Ejecutar poder a través del servicio
       final response = await _powerService.executePower(
         casterGamePlayerId: casterGamePlayerId,
         targetGamePlayerId: targetGamePlayerId,
@@ -353,10 +397,8 @@ class PlayerProvider extends ChangeNotifier {
         eventId: eventId,
       );
 
-      // Manejar respuesta basada en el resultado
       switch (response.result) {
         case PowerUseResultType.reflected:
-          // Notificar devolución solo si no tenemos return armado
           if (powerSlug != 'return' && !effectProvider.isReturnArmed) {
             effectProvider.notifyPowerReturned(response.returnedByName ?? 'Un rival');
           }
@@ -364,7 +406,6 @@ class PlayerProvider extends ChangeNotifier {
           return PowerUseResult.reflected;
 
         case PowerUseResultType.success:
-          // Manejar efectos especiales
           if (response.stealFailed) {
             effectProvider.notifyStealFailed();
           }
@@ -378,13 +419,17 @@ class PlayerProvider extends ChangeNotifier {
           return PowerUseResult.error;
       }
     } catch (e) {
-      debugPrint('Error usando poder: $e');
+      debugPrint('Error using power: $e');
       rethrow;
     } finally {
       effectProvider.setManualCasting(false);
       _isProcessing = false;
     }
   }
+
+  // ============================================================
+  // PROFILE MANAGEMENT
+  // ============================================================
 
   Future<void> refreshProfile({String? eventId}) async {
     if (_currentPlayer != null) {
@@ -394,13 +439,12 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> _fetchProfile(String userId, {String? eventId}) async {
     try {
-      // 1. Obtener perfil básico
+      // 1. Fetch basic profile
       final profileData =
           await _supabase.from('profiles').select().eq('id', userId).single();
       debugPrint('PlayerProvider: Raw profile data from DB: $profileData');
 
-      // 2. Obtener GamePlayer y Vidas
-      // Si tenemos eventId explícito, úsalo. Si no, usa el currentEventId almacenado
+      // 2. Fetch GamePlayer and Lives
       final targetEventId = eventId ?? _currentPlayer?.currentEventId;
       
       final baseQuery = _supabase
@@ -411,19 +455,16 @@ class PlayerProvider extends ChangeNotifier {
       Map<String, dynamic>? gpData;
       
       if (targetEventId != null) {
-        // A. Buscar específicamente para este evento
         debugPrint("PlayerProvider: Fetching profile for TARGET event: $targetEventId");
         gpData = await baseQuery.eq('event_id', targetEventId).maybeSingle();
       } else if (_currentPlayer?.gamePlayerId != null) {
-        // B. Fallback inteligente: Usar el ID de sesión actual para mantener contexto
         debugPrint("PlayerProvider: No target event, maintaining SESSION: ${_currentPlayer!.gamePlayerId}");
         gpData = await _supabase
             .from('game_players')
-            .select('id, lives, status, event_id') // No filtramos por user_id, id es PK
+            .select('id, lives, status, event_id')
             .eq('id', _currentPlayer!.gamePlayerId!)
             .maybeSingle();
       } else {
-        // C. Fallback final: tomar el más reciente
         debugPrint("PlayerProvider: No context. Fetching LATEST joined event.");
         gpData = await baseQuery.order('joined_at', ascending: false).limit(1).maybeSingle();
       }
@@ -436,13 +477,11 @@ class PlayerProvider extends ChangeNotifier {
       if (gpData != null) {
         fetchedEventId = gpData['event_id'] as String?;
         
-        // Check if user is suspended/banned from THIS SPECIFIC event
         final status = gpData['status'] as String?;
-        debugPrint("[PlayerProvider] DEBUG PROFILE FETCH: Profile Status='${profileData['status']}', GamePlayer Status='$status', EventId='$fetchedEventId'");
+        debugPrint("[PlayerProvider] Profile Status='${profileData['status']}', GamePlayer Status='$status', EventId='$fetchedEventId'");
         
         if (status == 'suspended' || status == 'banned') {
           debugPrint('PlayerProvider: User is $status from event $fetchedEventId. Invalidating session.');
-          // Don't set gamePlayerId - this will trigger GameSessionMonitor to kick the user
           gpData = null;
           fetchedEventId = null;
         } else {
@@ -452,10 +491,8 @@ class PlayerProvider extends ChangeNotifier {
         }
       }
 
-      // Only fetch inventory if we have a valid, non-suspended game player
+      // Fetch inventory if we have a valid, non-suspended game player
       if (gpData != null && gamePlayerId != null) {
-
-        // 3. Obtener Inventario real de player_powers
         final List<dynamic> powersData = await _supabase
             .from('player_powers')
             .select('quantity, powers!inner(slug)')
@@ -474,15 +511,15 @@ class PlayerProvider extends ChangeNotifier {
         }
       }
 
-      // 4. Construir jugador de forma atómica
+      // 4. Build player atomically
       final Player newPlayer = Player.fromJson(profileData);
       
-      // RECUPERACIÓN DE CACHE LOCAL: Si el servidor no envió avatar, busca en cache
+      // Local cache recovery for avatar
       if (newPlayer.avatarId == null || newPlayer.avatarId!.isEmpty) {
         final prefs = await SharedPreferences.getInstance();
         final localAvatar = prefs.getString('cached_avatar_$userId');
         if (localAvatar != null && localAvatar.isNotEmpty) {
-           debugPrint('PlayerProvider: Recuperando avatar $localAvatar de cache local (DB retornó null)');
+           debugPrint('PlayerProvider: Recovering avatar $localAvatar from local cache');
            newPlayer.avatarId = localAvatar;
         }
       }
@@ -490,53 +527,61 @@ class PlayerProvider extends ChangeNotifier {
       newPlayer.lives = actualLives;
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;
-      newPlayer.currentEventId = fetchedEventId; // Store the event ID
+      newPlayer.currentEventId = fetchedEventId;
 
-      // --- CAMBIO: Verificar baneo ANTES de notificar un estado "válido" ---
+      // Check ban BEFORE notifying a "valid" state
       if (newPlayer.status == PlayerStatus.banned) {
-         debugPrint("Usuario BANEADO detectado en tiempo real. Cerrando sesión...");
+         debugPrint("BANNED user detected in realtime. Logging out...");
          _banMessage = 'Has sido baneado por un administrador.';
-         // No actualizamos _currentPlayer para evitar "flicker" de isLoggedIn=true si ya estaba fallando
          await logout(clearBanMessage: false);
          return; 
       }
 
       _currentPlayer = newPlayer;
-      debugPrint('🔍 PlayerProvider: notifyListeners() called. gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}');
+      debugPrint('🔍 PlayerProvider: notifyListeners(). gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}');
       notifyListeners();
 
-      // --- NUEVO: Verificar penalizaciones pendientes de desconexiones previas ---
+      // Check pending penalties from previous disconnections
       unawaited(_checkPendingPenalties(userId));
 
-      // ASEGURAR que los listeners estén corriendo pero SOLAMENTE UNA VEZ
+      // Ensure listeners are running (only once)
       _startListeners(userId);
-
-      // --- NUEVO: Suscripción en tiempo real (STREAM) para el jugador actual ---
       _subscribeToGamePlayers(userId);
     } catch (e) {
       debugPrint('Error fetching profile: $e');
     }
   }
 
-  Timer? _pollingTimer;
+  Future<void> _checkPendingPenalties(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('pending_life_loss') == true) {
+        final eventId = prefs.getString('pending_life_loss_event');
+        debugPrint('PlayerProvider: Processing pending penalty for $userId');
+        
+        await loseLife(eventId: eventId);
+        
+        await prefs.remove('pending_life_loss');
+        await prefs.remove('pending_life_loss_event');
+        debugPrint('PlayerProvider: Pending penalty applied successfully');
+      }
+    } catch (e) {
+      debugPrint('Error consuming penalty: $e');
+    }
+  }
 
   void _startListeners(String userId) {
-    // Siempre reiniciamos el timer para asegurar que esté activo
     _startPolling(userId);
-    
-    // El stream solo lo iniciamos si no existe
     if (_profileSubscription == null) _subscribeToProfile(userId);
   }
 
   void _startPolling(String userId) {
-    // Aumentamos el tiempo a 5 segundos para reducir el LAG pero ser más reactivos si Realtime falla.
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       if (_currentPlayer != null && _currentPlayer!.userId == userId) {
         try {
-          // OPTIMIZACION: Solo verificamos el estatus, no todo el perfil ni inventario
           await _checkPlayerStatus(userId);
         } catch (e) {
-           // debugPrint("Polling error: $e");
+          // Ignore polling errors
         }
       } else {
         timer.cancel();
@@ -547,7 +592,6 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> _checkPlayerStatus(String userId) async {
     try {
-      // 1. Verificar estatus del perfil
       final response = await _supabase
           .from('profiles')
           .select('status')
@@ -557,13 +601,13 @@ class PlayerProvider extends ChangeNotifier {
       if (response != null) {
         final String statusStr = response['status'] ?? 'active';
         if (statusStr == 'banned' && _currentPlayer?.status != PlayerStatus.banned) {
-           debugPrint("Polling detectó BAN. Forzando actualización...");
+           debugPrint("Polling detected BAN. Forcing update...");
            await refreshProfile();
            return;
         }
       }
 
-      // 2. DETECTAR REINICIO (Pérdida de inscripción al evento)
+      // Detect reset (lost event registration)
       if (_currentPlayer?.gamePlayerId != null) {
         final gpRes = await _supabase
             .from('game_players')
@@ -572,17 +616,17 @@ class PlayerProvider extends ChangeNotifier {
             .maybeSingle();
         
         if (gpRes == null) {
-          debugPrint("Polling detectó REINICIO (Inscripción desaparecida).");
+          debugPrint("Polling detected RESET (registration disappeared).");
           await refreshProfile();
         }
       }
     } catch (e) {
-      // debugPrint("Error checking player status: $e");
+      // Ignore status check errors
     }
   }
 
   void _subscribeToProfile(String userId) {
-    if (_profileSubscription != null) return; // Ya suscrito
+    if (_profileSubscription != null) return;
 
     _profileSubscription = _supabase
         .from('profiles')
@@ -591,7 +635,6 @@ class PlayerProvider extends ChangeNotifier {
         .listen((data) {
           if (data.isNotEmpty) {
             debugPrint("Stream Profile Update: ${data.first['status']}");
-            // Si el status cambió a banned, se detectará en _fetchProfile
             _fetchProfile(userId);
           }
         }, onError: (e) {
@@ -601,17 +644,16 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void _subscribeToGamePlayers(String userId) {
-    // Si ya estamos suscritos, no hacemos nada.
     if (_gamePlayersSubscription != null) return;
 
-    debugPrint('🔊 PlayerProvider: Suscribiendo STREAM de game_players para usuario $userId');
+    debugPrint('🔊 PlayerProvider: Subscribing to game_players STREAM for user $userId');
     
     _gamePlayersSubscription = _supabase
         .from('game_players')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .listen((data) {
-          debugPrint('🔊 PlayerProvider: ⚡ STREAM UPDATE recibida en game_players! (${data.length} filas)');
+          debugPrint('🔊 PlayerProvider: ⚡ STREAM UPDATE received in game_players! (${data.length} rows)');
           
           bool banDetectedForCurrentEvent = false;
           final currentEventId = _currentPlayer?.currentEventId;
@@ -621,7 +663,7 @@ class PlayerProvider extends ChangeNotifier {
             final String? eventId = gp['event_id'];
             
             if (eventId == currentEventId && (status == 'suspended' || status == 'banned')) {
-               debugPrint('🚫 PlayerProvider: BAN detectado para el evento actual ($eventId) via Stream!');
+               debugPrint('🚫 PlayerProvider: BAN detected for current event ($eventId) via Stream!');
                banDetectedForCurrentEvent = true;
                break;
             }
@@ -629,90 +671,29 @@ class PlayerProvider extends ChangeNotifier {
 
           if (!_isDisposed && _currentPlayer != null) {
             if (banDetectedForCurrentEvent) {
-              // ACCIÓN INMEDIATA: Invalidar el ID de sesión localmente para disparar el GameSessionMonitor
               _currentPlayer!.gamePlayerId = null;
-              _currentPlayer!.status = PlayerStatus.banned; // Asegurar consistencia total del estado
-              debugPrint('🔍 PlayerProvider: Invalidadando sesión local (BAN INSTANTÁNEO).');
+              _currentPlayer!.status = PlayerStatus.banned;
+              debugPrint('🔍 PlayerProvider: Invalidating local session (INSTANT BAN).');
               notifyListeners();
             } else {
-              // Para cualquier otro cambio (vidas, unban, etc.), refrescamos normalmente
               refreshProfile();
             }
           }
         }, onError: (error) {
-          debugPrint('❌ PlayerProvider: Error en STREAM game_players: $error');
+          debugPrint('❌ PlayerProvider: Error in game_players STREAM: $error');
           _gamePlayersSubscription = null;
         });
   }
 
-  // --- LOGICA DE INVENTARIO (delegada a InventoryService) ---
-  
-  Future<void> syncRealInventory({PowerEffectProvider? effectProvider}) async {
-    if (_currentPlayer == null) return;
-
-    try {
-      debugPrint("Sincronizando inventario para user: ${_currentPlayer!.userId}");
-
-      final result = await _inventoryService.syncRealInventory(
-        userId: _currentPlayer!.userId,
-      );
-
-      if (!result.success) {
-        debugPrint("Usuario no tiene game_player activo.");
-        _currentPlayer!.inventory.clear();
-        _currentPlayer!.gamePlayerId = null;
-        effectProvider?.startListening(null);
-        notifyListeners();
-        return;
-      }
-
-      // Actualizar estado local
-      if (result.lives != null) {
-        _currentPlayer!.lives = result.lives!;
-      }
-      
-      _currentPlayer!.gamePlayerId = result.gamePlayerId;
-      
-      // Configurar PowerEffectProvider
-      effectProvider?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
-      effectProvider?.configureReturnHandler((slug, casterId) async {
-        final powerResult = await usePower(
-          powerSlug: slug,
-          targetGamePlayerId: casterId,
-          effectProvider: effectProvider,
-          allowReturnForward: false,
-        );
-        return powerResult != PowerUseResult.error;
-      });
-      effectProvider?.startListening(result.gamePlayerId);
-      
-      debugPrint("GamePlayer encontrado: ${result.gamePlayerId}");
-
-      // Actualizar inventario
-      _currentPlayer!.inventory.clear();
-      _currentPlayer!.inventory.addAll(result.inventory);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error CRITICO syncing real inventory: $e');
-    }
-  }
-
-  // --- LÓGICA DE TIENDA ---
-
-  // player_provider.dart
-
-  // --- MINIGAME LIFE MANAGEMENT (OPTIMIZED RPC) ---
+  // ============================================================
+  // LIVES MANAGEMENT
+  // ============================================================
 
   Future<void> loseLife({String? eventId}) async {
     if (_currentPlayer == null) return;
-
-    // Evitamos llamada si ya está en 0 localmente para ahorrar red,
-    // aunque el backend es la fuente de verdad.
     if (_currentPlayer!.lives <= 0) return;
 
     try {
-      // Llamada RPC atómica: la base de datos resta y nos devuelve el valor final.
-      // Importante: en el contexto del juego por evento, necesitamos p_event_id.
       final params = <String, dynamic>{
         'p_user_id': _currentPlayer!.userId,
       };
@@ -723,12 +704,10 @@ class PlayerProvider extends ChangeNotifier {
       final int newLives = await _supabase.rpc('lose_life', params: params);
       debugPrint("DEBUG: lose_life RPC result: newLives=$newLives");
 
-      // Actualizamos estado local inmediatamente con la respuesta real del servidor
       _currentPlayer!.lives = newLives;
       notifyListeners();
     } catch (e) {
-      debugPrint("Error perdiendo vida: $e");
-      // Opcional: Revertir UI o mostrar error
+      debugPrint("Error losing life: $e");
     }
   }
 
@@ -743,11 +722,13 @@ class PlayerProvider extends ChangeNotifier {
       _currentPlayer!.lives = newLives;
       notifyListeners();
     } catch (e) {
-      debugPrint("Error reseteando vidas: $e");
+      debugPrint("Error resetting lives: $e");
     }
   }
 
-  // --- SOCIAL & ADMIN (delegado a AdminService) ---
+  // ============================================================
+  // ADMIN FUNCTIONS (delegated to AdminService)
+  // ============================================================
 
   Future<void> fetchAllPlayers() async {
     try {
@@ -779,8 +760,6 @@ class PlayerProvider extends ChangeNotifier {
     try {
       await _adminService.toggleGameBanUser(userId, eventId, ban);
       debugPrint('PlayerProvider: toggleGameBanUser completed successfully');
-      // No actualizamos _allPlayers porque ese es global. 
-      // El estado de juego se recarga al entrar a la competencia.
     } catch (e) {
       debugPrint('PlayerProvider: Error toggling game ban: $e');
       rethrow;
@@ -798,7 +777,10 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  // --- DEBUG ONLY ---
+  // ============================================================
+  // DEBUG FUNCTIONS
+  // ============================================================
+
   Future<void> debugAddPower(String powerSlug) async {
     if (_currentPlayer == null) return;
     try {
@@ -833,9 +815,9 @@ class PlayerProvider extends ChangeNotifier {
             {'game_player_id': gpId, 'power_id': powerUuid, 'quantity': 1});
       }
       await refreshProfile();
-      debugPrint("DEBUG: Poder $powerSlug añadido.");
+      debugPrint("DEBUG: Power $powerSlug added.");
     } catch (e) {
-      debugPrint("Error en debugAddPower: $e");
+      debugPrint("Error in debugAddPower: $e");
     }
   }
 
@@ -845,15 +827,14 @@ class PlayerProvider extends ChangeNotifier {
       final newStatus =
           _currentPlayer!.status.name == status ? 'active' : status;
 
-      // ✅ CORRECCIÓN: Eliminamos 'frozen_until' porque no existe en tu tabla 'profiles'
       await _supabase.from('profiles').update({
         'status': newStatus,
       }).eq('id', _currentPlayer!.userId);
 
       await refreshProfile();
-      debugPrint("DEBUG: Status cambiado a $newStatus");
+      debugPrint("DEBUG: Status changed to $newStatus");
     } catch (e) {
-      debugPrint("Error en debugToggleStatus: $e");
+      debugPrint("Error in debugToggleStatus: $e");
     }
   }
 

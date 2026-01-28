@@ -46,13 +46,19 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
+      debugPrint('[DEBUG] 🎭 SabotageOverlay.initState() - PostFrameCallback START');
+      
       final powerProvider =
           Provider.of<PowerEffectProvider>(context, listen: false);
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       final playerProvider =
           Provider.of<PlayerProvider>(context, listen: false);
 
+      debugPrint('[DEBUG]    powerProvider.listeningForId: ${powerProvider.listeningForId}');
+      debugPrint('[DEBUG]    playerProvider.gamePlayerId: ${playerProvider.currentPlayer?.gamePlayerId}');
+
       // Configuramos el handler que se dispara cuando detectamos un robo de vida
+      debugPrint('[DEBUG] 🔧 Configuring LifeStealVictimHandler...');
       powerProvider.configureLifeStealVictimHandler((effectId, casterId, targetId) async {        
         // 1. Obtener IDs locales
         final myUserId = playerProvider.currentPlayer?.userId;

@@ -112,6 +112,25 @@ class PlayerStatsProvider extends ChangeNotifier {
     }
   }
 
+  /// Update local lives without backend sync.
+  /// Used for optimistic updates from other providers.
+  void updateLocalLives(int newLives) {
+    _lives = newLives;
+    debugPrint('[StatsProvider] Lives updated locally to $newLives');
+    notifyListeners();
+  }
+
+  /// Update context without full re-initialization.
+  void updateContext({required String userId, required String eventId}) {
+    final contextChanged = _currentUserId != userId || _currentEventId != eventId;
+    _currentUserId = userId;
+    _currentEventId = eventId;
+    
+    if (contextChanged) {
+      debugPrint('[StatsProvider] Context updated: userId=$userId, eventId=$eventId');
+    }
+  }
+
   /// Update experience.
   void addExperience(int xp) {
     _experience += xp;

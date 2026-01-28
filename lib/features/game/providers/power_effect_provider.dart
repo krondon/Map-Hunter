@@ -160,8 +160,14 @@ class PowerEffectProvider extends ChangeNotifier {
   ///
   /// [myGamePlayerId] ID de la sesión de juego del usuario actual (no el UUID de perfil).
   void startListening(String? myGamePlayerId) {
+    debugPrint('[DEBUG] 📡 PowerEffectProvider.startListening() CALLED');
+    debugPrint('[DEBUG]    myGamePlayerId: $myGamePlayerId');
+    debugPrint('[DEBUG]    current _listeningForId: $_listeningForId');
+    debugPrint('[DEBUG]    _subscription is null? ${_subscription == null}');
+    
     final supabase = _supabaseClient;
     if (supabase == null) {
+      debugPrint('[DEBUG] ❌ Supabase client is NULL - aborting');
       _clearEffect();
       _subscription?.cancel();
       _casterSubscription?.cancel();
@@ -169,6 +175,7 @@ class PowerEffectProvider extends ChangeNotifier {
     }
 
     if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
+      debugPrint('[DEBUG] ⚠️ gamePlayerId is null/empty - clearing subscriptions');
       _clearEffect();
       _subscription?.cancel();
       _casterSubscription?.cancel();
@@ -177,16 +184,18 @@ class PowerEffectProvider extends ChangeNotifier {
 
     // [FIX 3] Evitar reinicio destructivo si ya escuchamos al mismo ID
     if (myGamePlayerId == _listeningForId && _subscription != null) {
-      debugPrint('PowerEffectProvider: Ya escuchando para $myGamePlayerId, omitiendo reinicio.');
+      debugPrint('[DEBUG] ⏭️ Already listening for $myGamePlayerId, skipping restart.');
       return;
     }
 
+    debugPrint('[DEBUG] ✅ Starting NEW subscription for: $myGamePlayerId');
     _subscription?.cancel();
     _casterSubscription?.cancel();
     _expiryTimer?.cancel();
     _listeningForId = myGamePlayerId;
     _sessionStartTime = DateTime.now().toUtc();
     _processedEffectIds.clear();
+    debugPrint('[DEBUG]    Session start time: $_sessionStartTime');
 
     // 1. Escuchar ataques ENTRANTES (Target = YO)
     _subscription = supabase

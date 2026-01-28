@@ -5,3 +5,4 @@ library;
 
 export 'i_payment_repository.dart';
 export 'i_lives_repository.dart';
+export 'i_player_repository.dart';
