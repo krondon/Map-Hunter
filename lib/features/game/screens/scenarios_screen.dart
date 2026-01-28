@@ -359,20 +359,8 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg.withOpacity(0.95),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.2),
-            blurRadius: 15,
-            spreadRadius: -5,
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -445,7 +433,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
           vertical: 8,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.accentGold.withOpacity(0.2) : Colors.transparent,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -527,6 +515,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         }
       },
       child: Scaffold(
+      extendBody: true,
       bottomNavigationBar: _buildBottomNavBar(),
       body: AnimatedCyberBackground(
         child: SafeArea(
@@ -547,18 +536,18 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Custom AppBar with Game Title
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
-                          child: Row(
-                            children: [
-                              // Left Spacer for Symmetry (Button width 48 + Spacing 16 = 64)
-                              const SizedBox(width: 64),
-                              
-                              // Game Title with Glitch Effect in Header
-                              Expanded(
-                                child: Center(
-                                  child: AnimatedBuilder(
+                          // Custom AppBar with Game Title and Logout
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.center,
+                              children: [
+                                // Game Title with Glitch Effect
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 30.0),
+                                  child: Center(
+                                    child: AnimatedBuilder(
                                     animation: _glitchController,
                                       builder: (context, child) {
                                         final double value = _glitchController.value;
@@ -589,10 +578,11 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                             child: Text(
                                               "MapHunter",
                                               style: TextStyle(
-                                                fontSize: 32,
+                                                fontSize: 46, // Increased size
                                                 fontWeight: FontWeight.w900,
                                                 color: const Color(0xFF00FFFF).withOpacity(0.6),
                                                 letterSpacing: 1,
+                                                height: 1.0,
                                               ),
                                             ),
                                           ),
@@ -602,10 +592,11 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                             child: Text(
                                               "MapHunter",
                                               style: TextStyle(
-                                                fontSize: 32,
+                                                fontSize: 46, // Increased size
                                                 fontWeight: FontWeight.w900,
                                                 color: const Color(0xFFFF00FF).withOpacity(0.6),
                                                 letterSpacing: 1,
+                                                height: 1.0,
                                               ),
                                             ),
                                           ),
@@ -615,10 +606,11 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                             child: Text(
                                               "MapHunter",
                                               style: TextStyle(
-                                                fontSize: 32,
+                                                fontSize: 46, // Increased size
                                                 fontWeight: FontWeight.w900,
                                                 color: value > 0.98 ? Colors.white : primaryColor,
                                                 letterSpacing: 1,
+                                                height: 1.0,
                                               ),
                                             ),
                                           ),
@@ -626,37 +618,35 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                       );
                                     },
                                   ),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.logout,
-                                      color: Colors.white),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        backgroundColor: AppTheme.cardBg,
-                                        title: const Text('Cerrar Sesión',
+                                // Logout Button (Top Right, Icon Only)
+                                Positioned(
+                                  right: 0,
+                                  top: -24,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.logout,
+                                        color: Colors.white, size: 28),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          backgroundColor: AppTheme.cardBg,
+                                          title: const Text('Cerrar Sesión',
+                                              style:
+                                                  TextStyle(color: Colors.white)),
+                                          content: const Text(
+                                            '¿Estás seguro que deseas cerrar sesión?',
                                             style:
-                                                TextStyle(color: Colors.white)),
-                                        content: const Text(
-                                          '¿Estás seguro que deseas cerrar sesión?',
-                                          style:
-                                              TextStyle(color: Colors.white70),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Cancelar',
-                                                style: TextStyle(
-                                                    color: Colors.white54)),
+                                                TextStyle(color: Colors.white70),
                                           ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx),
+                                              child: const Text('Cancelar',
+                                                  style: TextStyle(
+                                                      color: Colors.white54)),
+                                            ),
                                           TextButton(
                                             onPressed: () async {
                                               Navigator.pop(ctx);
@@ -682,7 +672,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                         // Description Text
                         // Description Text with Enhanced Style
                         const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                          padding: EdgeInsets.fromLTRB(40, 80, 40, 24),
                           child: Text(
                             '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
                             textAlign: TextAlign.center,
@@ -697,25 +687,25 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                           ),
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 30),
 
                         // Title for Selection
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24.0),
                           child: const Center(
                             child: Text(
-                              "Elige tu campo de batalla",
+                              "ELIGE TU AVENTURA",
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                letterSpacing: 0.5,
-                                fontWeight: FontWeight.w600,
+                                color: AppTheme.accentGold,
+                                fontSize: 22,
+                                letterSpacing: -1.5,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 8),
 
                         // Scenarios Carousel - Expanded to fit remaining space
                         Expanded(
@@ -767,10 +757,10 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                 child: SizedBox(
                                                   height: Curves.easeOut
                                                           .transform(value) *
-                                                      400, // Reduced base height
+                                                      550, // Maximized size
                                                   width: Curves.easeOut
                                                           .transform(value) *
-                                                      350,
+                                                      340, // Maximized width
                                                   child: child,
                                                 ),
                                               );
@@ -985,24 +975,19 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                               child:
                                                                   ElevatedButton(
                                                                 onPressed: () {
-                                                                  _onScenarioSelected(
-                                                                      scenario);
+                                                                  _onScenarioSelected(scenario);
                                                                 },
-                                                                style: ElevatedButton
-                                                                    .styleFrom(
-                                                                  backgroundColor:
-                                                                      AppTheme
-                                                                          .accentGold,
-                                                                  foregroundColor:
-                                                                      Colors
-                                                                          .black,
+                                                                style: ElevatedButton.styleFrom(
+                                                                  backgroundColor: AppTheme.accentGold,
+                                                                  foregroundColor: Colors.black,
                                                                   elevation: 8,
+                                                                  shape: RoundedRectangleBorder(
+                                                                    borderRadius: BorderRadius.circular(20),
+                                                                  ),
                                                                 ),
                                                                 child: Text(
                                                                     scenario.isCompleted ? "VER PODIO" : "SELECCIONAR",
-                                                                    style: const TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold)),
+                                                                    style: const TextStyle(fontWeight: FontWeight.bold)),
                                                               ),
                                                             ),
                                                           ],

@@ -29,6 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
+      extendBody: true,
       bottomNavigationBar: _buildBottomNavBar(),
       body: AnimatedCyberBackground(
         child: CustomScrollView(
@@ -529,20 +530,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg.withOpacity(0.95),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.2),
-            blurRadius: 15,
-            spreadRadius: -5,
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -595,7 +584,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           vertical: 8,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.accentGold.withOpacity(0.2) : Colors.transparent,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(

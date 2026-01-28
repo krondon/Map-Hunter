@@ -81,7 +81,7 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.accentGold.withOpacity(0.5)),
       ),
       child: Row(

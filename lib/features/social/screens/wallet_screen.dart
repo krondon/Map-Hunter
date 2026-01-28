@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import 'profile_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
+import '../../../shared/widgets/glitch_text.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -23,6 +24,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
+      extendBody: true,
       bottomNavigationBar: _buildBottomNavBar(),
       body: AnimatedCyberBackground(
         child: SafeArea(
@@ -44,16 +46,9 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
-                      child: Text(
-                        'WALLET',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 3,
-                        ),
-                      ),
+                    const GlitchText(
+                      text: "MapHunter",
+                      fontSize: 22,
                     ),
                   ],
                 ),
@@ -484,20 +479,8 @@ class _WalletScreenState extends State<WalletScreen> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.2),
-            blurRadius: 15,
-            spreadRadius: -5,
-          ),
-        ],
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -550,7 +533,7 @@ class _WalletScreenState extends State<WalletScreen> {
           vertical: 8,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.accentGold.withOpacity(0.2) : Colors.transparent,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
