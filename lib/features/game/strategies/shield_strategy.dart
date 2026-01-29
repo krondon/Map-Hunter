@@ -9,35 +9,23 @@ class ShieldStrategy implements PowerStrategy {
 
   @override
   void onActivate(PowerEffectProvider provider) {
-    debugPrint("🛡️ Escudo desplegado - Duración: Infinita");
+    debugPrint("🛡️ Escudo desplegado - Armando defensa de un solo uso");
     HapticFeedback.mediumImpact();
 
-    // provider.setShielded llama a setShieldState y limpia.
-    // Para evitar recursion si setShielded llama a la estrategia, debemos llamar a setShieldState directamente 
-    // o el caller de strategy debe ser distinto.
-    // La lógica original 'setShielded' tiene side effects (clearEffect).
-    // Si movemos esa lógica aquí:
-    
-    // provider.setShieldState(true);
-    // provider.clearActiveEffect();
-    
-    // PERO setShielded es público y usado por la UI.
-    // Modificaremos setShielded para usar la estrategia.
-    // Entonces aquí solo ponemos la lógica interna.
-    
-    provider.setShieldState(true);
-    provider.clearActiveEffect();
+    // REFACTOR: Shield now uses boolean flag pattern like Return.
+    // Single-use defense that consumes on first incoming attack.
+    provider.armShield();
   }
 
   @override
   void onTick(PowerEffectProvider provider) {
-    // Escudo no tiene tick específico, es un estado
+    // Escudo no tiene tick específico, es un estado pasivo
   }
 
   @override
   void onDeactivate(PowerEffectProvider provider) {
     debugPrint("ShieldStrategy.onDeactivate");
-    provider.setShieldState(false);
-    provider.notifyListeners(); // Originalmente en el else de setShielded
+    // No necesitamos setear state false explicitamente, el timer en provider lo remueve.
+    provider.notifyListeners();
   }
 }

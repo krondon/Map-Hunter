@@ -18,6 +18,7 @@ import '../widgets/minigames/hangman_minigame.dart';
 
 // --- Imports de NUEVOS Minijuegos ---
 import '../widgets/minigames/tetris_minigame.dart';
+import '../widgets/effects/shield_badge.dart'; // NEW IMPORT
 import '../widgets/minigames/find_difference_minigame.dart';
 import '../widgets/minigames/flags_minigame.dart';
 import '../widgets/minigames/minesweeper_minigame.dart';
@@ -1063,6 +1064,7 @@ Widget _buildMinigameScaffold(
                             const Spacer(),
 
                             // INDICADOR DE VIDAS CON ANIMACIÓN
+                            const ShieldBadge(), // NEW SHIELD WIDGET
                             AnimatedLivesWidget(),
                             const SizedBox(width: 10),
 

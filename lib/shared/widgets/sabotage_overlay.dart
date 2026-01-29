@@ -12,6 +12,7 @@ import '../../features/game/widgets/effects/return_success_effect.dart';
 import '../../features/game/widgets/effects/return_rejection_effect.dart';
 import '../../features/game/widgets/effects/invisibility_effect.dart';
 import '../../features/game/widgets/effects/steal_failed_effect.dart';
+import '../../features/game/widgets/effects/shield_break_effect.dart'; // NEW IMPORT
 import '../models/player.dart';
 import '../../features/auth/providers/player_provider.dart';
 import '../../features/mall/models/power_item.dart'; // Required for PowerType
@@ -345,8 +346,14 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         if (isPlayerInvisible || isInvisible)
           InvisibilityEffect(expiresAt: powerProvider.getPowerExpiration('invisibility')),
 
-        if (defenseAction == DefenseAction.shieldBlocked)
+        if (defenseAction == DefenseAction.shieldBlocked || 
+            defenseAction == DefenseAction.attackBlockedByEnemy)
           _DefenseFeedbackToast(action: defenseAction),
+
+        if (defenseAction == DefenseAction.shieldBroken) ...[
+             const ShieldBreakEffect(),
+             _DefenseFeedbackToast(action: defenseAction), // Optional text feedback
+        ],
 
         if (defenseAction == DefenseAction.stealFailed)
           StealFailedEffect(
@@ -454,8 +461,18 @@ class _DefenseFeedbackToast extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Aquí solo llegamos si action == DefenseAction.shieldBlocked
-    const String message = '🛡️ ¡ATAQUE BLOQUEADO POR ESCUDO!';
+    // Aquí solo llegamos si action == DefenseAction.shieldBlocked o shieldBroken, O attackBlockedByEnemy
+    String message = '🛡️ ¡ATAQUE BLOQUEADO!';
+    Color bgColor = Colors.black.withOpacity(0.9);
+    
+    if (action == DefenseAction.shieldBroken) {
+        message = '🛡️💔 ¡ESCUDO ROTO!';
+    } else if (action == DefenseAction.shieldBlocked) {
+        message = '🛡️ ¡ATAQUE BLOQUEADO!';
+    } else if (action == DefenseAction.attackBlockedByEnemy) {
+        message = '⛔ ¡TU ATAQUE FUE BLOQUEADO!';
+        bgColor = Colors.red.withOpacity(0.9);
+    }
 
     return Positioned(
       top: 16,
@@ -478,7 +495,7 @@ class _DefenseFeedbackToast extends StatelessWidget {
             key: ValueKey(action),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.9),
+              color: bgColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white24, width: 1.2),
               boxShadow: const [

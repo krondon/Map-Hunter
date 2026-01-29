@@ -18,12 +18,13 @@ class PowerEffectProvider extends ChangeNotifier {
   StreamSubscription? _casterSubscription; // Nueva suscripción para detectar reflejos salientes
   Timer? _expiryTimer;
   Timer? _defenseFeedbackTimer;
-  bool _shieldActive = false;
+  // bool _shieldActive = false; // REMOVED: Legacy state
   String? _listeningForId;
   String? get listeningForId => _listeningForId;
   
   bool _isManualCasting = false; // Flag para distinguir casting manual vs automático (reflejo)
   bool _returnArmed = false;
+  bool _shieldArmed = false; // Flag para escudo de un solo uso (igual que Return)
   
   // FILTRO DE TIEMPO: Solo procesar eventos ocurridos después de iniciar la sesión
   DateTime? _sessionStartTime; 
@@ -74,6 +75,8 @@ class PowerEffectProvider extends ChangeNotifier {
         return isEffectActive('life_steal');
       case PowerType.stealth:
         return isEffectActive('invisibility');
+      case PowerType.shield:
+        return isEffectActive('shield');
       default:
         return false;
     }
@@ -93,6 +96,8 @@ class PowerEffectProvider extends ChangeNotifier {
         return getPowerExpiration('life_steal');
       case PowerType.stealth:
         return getPowerExpiration('invisibility');
+      case PowerType.shield:
+        return getPowerExpiration('shield');
       default:
         return null;
     }
@@ -123,12 +128,8 @@ class PowerEffectProvider extends ChangeNotifier {
     return _processedEffectIds.contains(id);
   }
 
-  void setShieldState(bool value) {
-    _shieldActive = value;
-    if (_shieldActive) {
-      _clearAllEffects();
-    }
-  }
+  // REMOVED: Legacy setShieldState
+  // void setShieldState(bool value) { ... }
 
   void setActiveEffectCasterId(String? id) {
     // Deprecated setter, kept if needed but effects manage their own caster now
@@ -144,33 +145,56 @@ class PowerEffectProvider extends ChangeNotifier {
   }
 
   bool get isReturnArmed => _returnArmed;
+  bool get isShieldArmed => _shieldArmed;
 
   void setManualCasting(bool value) {
     _isManualCasting = value;
   }
 
   void setShielded(bool value, {String? sourceSlug}) {
-    final shouldEnable = value || _isShieldSlug(sourceSlug);
-    
-    final strategy = PowerStrategyFactory.get('shield');
-    if (strategy != null) {
-      if (shouldEnable) {
-        strategy.onActivate(this);
-      } else {
-        strategy.onDeactivate(this);
-      }
-    } else {
-        _shieldActive = shouldEnable;
-        if (_shieldActive) {
-           _clearAllEffects();
-        } else {
-           notifyListeners();
-        }
-    }
+     // Legacy method - now redirects to armShield() for unified defense pattern.
+     if (value) {
+        armShield();
+     } else {
+        _shieldArmed = false;
+        notifyListeners();
+     }
   }
 
   void armReturn() {
     _returnArmed = true;
+    notifyListeners();
+  }
+
+  /// Arma el escudo defensivo (un solo uso).
+  /// Similar a armReturn(), el escudo se consumirá al interceptar un ataque.
+  /// También registra el efecto en _activeEffects para que la UI pueda mostrar el badge.
+  Future<void> armShield() async {
+    _shieldArmed = true;
+    debugPrint('🛡️ Shield ARMED - Ready to block one attack');
+    
+    // Registrar en _activeEffects para que isPowerActive(shield) sea true
+    // y la UI pueda mostrar el badge del escudo activo
+    try {
+      final duration = await _getPowerDurationFromDb(powerSlug: 'shield');
+      final expiresAt = DateTime.now().toUtc().add(duration);
+      applyEffect(
+        slug: 'shield',
+        duration: duration,
+        expiresAt: expiresAt,
+      );
+    } catch (e) {
+      // Fallback: 2 minutos si falla la consulta
+      debugPrint('🛡️ Shield duration fetch failed, using fallback: $e');
+      final duration = const Duration(minutes: 2);
+      applyEffect(
+        slug: 'shield',
+        duration: duration,
+        expiresAt: DateTime.now().toUtc().add(duration),
+      );
+    }
+    
+    notifyListeners();
   }
 
   void configureReturnHandler(
@@ -334,16 +358,14 @@ class PowerEffectProvider extends ChangeNotifier {
       return true;
     }).toList();
 
-    // Shield Check
-    if (_shieldActive) {
-      _clearAllEffects();
-      // Only register block if we actually blocked something new? 
-      // Or keeps behavior: Block everything.
-      if (filtered.isNotEmpty) {
-          _registerDefenseAction(DefenseAction.shieldBlocked);
-      }
-      return;
-    }
+    // Shield Check (Concurrent/One-Shot Logic)
+    // We check if 'shield' is active in _activeEffects.
+    // If so, and we receive an OFFENSIVE effect, we block it and break the shield.
+    
+    final isShieldUp = isPowerActive(PowerType.shield);
+    
+    // We need to identify if ANY of the incoming valid effects is offensive.
+    // AND if we haven't processed it yet (though Filtered list implies they are relevant).
     
     // Return Logic (Priority)
     // We look for ONE offensive effect to return.
@@ -423,10 +445,62 @@ class PowerEffectProvider extends ChangeNotifier {
       }
     }
 
-    // --- APPLY RED EFFECT ---
+    // --- APPLY RED EFFECT (AND SHIELD INTERCEPTION) ---
     for (final effect in validEffects) {
        final slug = await _resolveEffectSlug(effect);
-       if (slug == null || slug == 'life_steal') continue; // Life steal is instant, no duration state
+       if (slug == null || slug == 'life_steal') continue; 
+
+       // --- INTERCEPTION LOGIC ---
+       final bool isOffensive = slug == 'black_screen' || 
+                                slug == 'freeze' || 
+                                slug == 'blur_screen' ||
+                                slug == 'life_steal'; // Life steal handled above usually, but just in case
+       
+       if (isOffensive && _shieldArmed) {
+           debugPrint('[SHIELD] 🛡️ Intercepting attack: $slug');
+           
+           // 1. Break Shield (consume the boolean flag)
+           _shieldArmed = false;
+           
+           // 2. Remove from _activeEffects map to update UI (badge disappears)
+           _removeEffect('shield');
+           
+           // 3. Feedback
+           _registerDefenseAction(DefenseAction.shieldBroken);
+           
+           // 3. Consume the attack (Delete from DB so it doesn't re-trigger)
+           final effectId = effect['id']?.toString();
+           if (effectId != null) {
+              try {
+                await supabase.from('active_powers').delete().eq('id', effectId);
+                debugPrint('[SHIELD] 🛡️ Attack effect $slug ($effectId) consumed (deleted from DB).');
+                
+                // SEND FEEDBACK TO ATTACKER
+                final attackerId = effect['caster_id']?.toString();
+                if (attackerId != null) {
+                   _sendShieldFeedback(attackerId);
+                }
+
+              } catch (e) {
+                debugPrint('[SHIELD] ❌ Failed to consume attack effect: $e');
+              }
+           }
+           
+           notifyListeners();
+           return; // Stop processing
+       }
+
+       // --- HANDLE INCOMING FEEDBACK (As Attacker) ---
+       if (slug == 'shield_feedback') {
+           _registerDefenseAction(DefenseAction.attackBlockedByEnemy);
+           // We can remove it locally or let it expire (short duration)
+           // ideally we remove it so it doesn't re-trigger?
+           // The timer logic in applyEffect will invoke _removeEffect eventually.
+           // But since this is a notification, one-shot is better.
+           // However, _processEffects runs on stream updates.
+           // We'll rely on _registerDefenseAction's internal timer/state to avoid spam.
+           continue; 
+       }
 
        final effectId = effect['id']?.toString();
        final casterId = effect['caster_id']?.toString();
@@ -434,11 +508,6 @@ class PowerEffectProvider extends ChangeNotifier {
        final duration = expiresAt.difference(now);
 
        if (duration > Duration.zero) {
-           // Apply concurrently
-           // Side effects (Strategy onActivate) should only trigger if it wasn't already active?
-           // Or every time it refreshes? 
-           // Existing logic: "if (_activePowerSlug != latestSlug)..."
-           
            if (!isEffectActive(slug)) {
               final strategy = PowerStrategyFactory.get(slug);
               strategy?.onActivate(this); 
@@ -557,6 +626,41 @@ class PowerEffectProvider extends ChangeNotifier {
     _registerDefenseAction(DefenseAction.stealFailed);
   }
 
+  Future<void> _sendShieldFeedback(String targetId) async {
+     final supabase = _supabaseClient;
+     if (supabase == null) return;
+     
+     try {
+       // Insert a short-lived effect for feedback
+       final duration = const Duration(seconds: 3);
+       final expiresAt = DateTime.now().toUtc().add(duration).toIso8601String();
+       
+       // Need a power_id for foreign key constraints?
+       // Ideally specific power 'shield_feedback' exists in DB.
+       // If not, we might need to use a fallback or ensure it exists.
+       // Assuming we can use 'shield' power_id but with different slug?
+       // Or better: Use 'shield' power_id but add metadata?
+       // The table constraints usually require valid power_id.
+       // Let's resolve 'shield' power_id.
+       
+       final powerRes = await supabase.from('powers').select('id').eq('slug', 'shield').maybeSingle();
+       final powerId = powerRes?['id'];
+       
+       if (powerId != null) {
+          await supabase.from('active_powers').insert({
+            'target_id': targetId, // Attacker is now target of feedback
+            'caster_id': _listeningForId, // Me
+            'power_id': powerId,
+            'power_slug': 'shield_feedback', // Special slug
+            'expires_at': expiresAt,
+          });
+          debugPrint('[SHIELD] 📨 Feedback sent to attacker $targetId');
+       }
+     } catch (e) {
+       debugPrint('[SHIELD] ⚠️ Failed to send feedback: $e');
+     }
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
@@ -583,4 +687,4 @@ class _ActiveEffect {
   });
 }
 
-enum DefenseAction { shieldBlocked, returned, stealFailed }
+enum DefenseAction { shieldBlocked, returned, stealFailed, shieldBroken, attackBlockedByEnemy }
