@@ -1003,7 +1003,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                       ),
                                     ),
                         ),
-                        // Bottom spacing
+                        // Bottom spacing restored
                         const SizedBox(height: 20),
                       ],
                     ),
