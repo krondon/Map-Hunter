@@ -8,6 +8,7 @@ import '../../auth/screens/login_screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import 'wallet_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
+import '../../../core/utils/input_sanitizer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,7 +25,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final player = playerProvider.currentPlayer;
     
     if (player == null) {
-      return const Center(child: Text('No player data', style: TextStyle(color: Colors.white)));
+      return const Scaffold(
+        backgroundColor: AppTheme.darkBg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.accentGold),
+        ),
+      );
     }
     
     return Scaffold(
@@ -292,42 +298,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showEditProfileSheet(dynamic player) {
+    final nameController = TextEditingController(text: player.name);
+    final emailController = TextEditingController(text: player.email);
+    bool isSaving = false;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppTheme.cardBg,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              "Editar Perfil",
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.face, color: AppTheme.accentGold),
-              title: const Text("Cambiar Avatar", style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Podrás cambiar tu avatar al ingresar a una nueva competencia"),
-                    backgroundColor: AppTheme.primaryPurple,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                "EDITAR PERFIL",
+                style: TextStyle(
+                  color: AppTheme.accentGold,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              
+              // Nombre
+              const Text("NOMBRE DE USUARIO", 
+                style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
                   ),
-                );
-              },
-            ),
-            const Divider(color: Colors.white10),
-            ListTile(
-              leading: const Icon(Icons.close, color: Colors.white54),
-              title: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
-              onTap: () => Navigator.pop(ctx),
-            ),
-          ],
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.accentGold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Correo
+              const Text("CORREO ELECTRÓNICO", 
+                style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emailController,
+                style: const TextStyle(color: Colors.white),
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.accentGold),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              ElevatedButton(
+                onPressed: isSaving ? null : () async {
+                  final newName = nameController.text.trim();
+                  final newEmail = emailController.text.trim();
+                  
+                  if (newName.isEmpty || newEmail.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Todos los campos son obligatorios")),
+                    );
+                    return;
+                  }
+                  
+                  // Validar palabras inadecuadas
+                  if (InputSanitizer.hasInappropriateContent(newName)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("El nombre contiene palabras no permitidas"),
+                        backgroundColor: AppTheme.dangerRed,
+                      ),
+                    );
+                    return;
+                  }
+                  
+                  setModalState(() => isSaving = true);
+                  
+                  try {
+                    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                    await playerProvider.updateProfile(
+                      name: newName != player.name ? newName : null,
+                      email: newEmail != player.email ? newEmail : null,
+                    );
+                    
+                    if (mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Perfil actualizado correctamente"),
+                          backgroundColor: AppTheme.successGreen,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      setModalState(() => isSaving = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Error: $e"), backgroundColor: AppTheme.dangerRed),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentGold,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: isSaving 
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Text("GUARDAR CAMBIOS", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("CANCELAR", style: TextStyle(color: Colors.white54)),
+              ),
+              
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

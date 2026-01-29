@@ -977,7 +977,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                                   ),
                                                                 ),
                                                                 child: Text(
-                                                                    scenario.isCompleted ? "VER PODIO" : "SELECCIONAR",
+                                                                    scenario.isCompleted ? "VER PODIO" : "INSCRIBETE",
                                                                     style: const TextStyle(fontWeight: FontWeight.bold)),
                                                               ),
                                                             ),

@@ -189,6 +189,26 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateProfile({String? name, String? email}) async {
+    if (_currentPlayer == null) return;
+    try {
+      await _authService.updateProfile(_currentPlayer!.userId, name: name, email: email);
+      
+      // Actualizar localmente
+      if (name != null) {
+        _currentPlayer = _currentPlayer!.copyWith(name: name);
+      }
+      if (email != null) {
+        _currentPlayer = _currentPlayer!.copyWith(email: email);
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating profile in provider: $e');
+      rethrow;
+    }
+  }
+
   Future<void> logout({bool clearBanMessage = true}) async {
     if (_isLoggingOut) return;
     _isLoggingOut = true;

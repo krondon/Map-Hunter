@@ -127,6 +127,28 @@ class AuthService {
     }
   }
 
+  /// Actualiza la información del perfil del usuario.
+  Future<void> updateProfile(String userId, {String? name, String? email}) async {
+    try {
+      // 1. Actualizar nombre en la tabla profiles si se provee
+      if (name != null) {
+        await _supabase.from('profiles').update({
+          'name': name.trim(),
+        }).eq('id', userId);
+      }
+
+      // 2. Actualizar email en Supabase Auth si se provee
+      if (email != null) {
+        await _supabase.auth.updateUser(
+          UserAttributes(email: email.trim()),
+        );
+      }
+    } catch (e) {
+      debugPrint('AuthService: Error updating profile: $e');
+      throw _handleAuthError(e);
+    }
+  }
+
   /// Convierte errores de autenticación en mensajes legibles para el usuario.
   String _handleAuthError(dynamic e) {
     String errorMsg = e.toString().toLowerCase();

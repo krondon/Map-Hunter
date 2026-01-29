@@ -43,6 +43,27 @@ class InputSanitizer {
     return sanitized;
   }
 
+  /// Verifica si el texto contiene palabras inadecuadas.
+  static bool hasInappropriateContent(String text) {
+    if (text.isEmpty) return false;
+    
+    // Lista básica de palabras inadecuadas (puedes expandirla)
+    final bannedWords = [
+      'puto', 'puta', 'mierda', 'gonorrea', 'malparido', 'hijueputa', 
+      'culero', 'pendejo', 'zorra', 'maricon', 'verga', 'chupa', 'idiota'
+    ];
+    
+    final lowerText = text.toLowerCase();
+    
+    for (var word in bannedWords) {
+      if (lowerText.contains(word)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   /// Verifica si un código QR sanitizado es válido (no vacío).
   static bool isValidQRCode(String sanitizedCode) {
     return sanitizedCode.isNotEmpty;

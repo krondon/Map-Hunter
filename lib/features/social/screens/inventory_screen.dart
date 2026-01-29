@@ -58,7 +58,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final player = playerProvider.currentPlayer;
 
     if (player == null) {
-      return const Center(child: Text('No player data'));
+      return const Scaffold(
+        backgroundColor: AppTheme.darkBg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.accentGold),
+        ),
+      );
     }
 
     // Agrupar items repetidos
