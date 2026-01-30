@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/player_provider.dart';
@@ -71,6 +72,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
+      // Hide keyboard first to trigger any pending commits
+      FocusScope.of(context).unfocus();
+      // Force autofill save before processing login
+      TextInput.finishAutofillContext(shouldSave: true);
+
       try {
         final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
         final gameProvider = Provider.of<GameProvider>(context, listen: false);
