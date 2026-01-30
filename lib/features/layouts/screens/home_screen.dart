@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -39,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // Sincronizar contexto del evento actual
       playerProvider.setCurrentEventContext(widget.eventId);
+
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     });
     _screens = [
       CluesScreen(
@@ -66,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _gameProviderRef.resetState();
         debugPrint("HomeScreen disposed: Game Set Reset (Safe)");
     });
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 

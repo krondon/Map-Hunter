@@ -88,6 +88,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       _loadEvents();
       // Empezar a precargar el video del primer avatar para que sea instantáneo
       VideoPreloadService().preloadVideo('assets/escenarios.avatar/explorer_m_scene.mp4');
@@ -111,6 +112,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     _hoverController.dispose();
     _shimmerController.dispose();
     _glitchController.dispose();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
@@ -516,7 +518,10 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
       },
       child: Scaffold(
       extendBody: true,
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: SafeArea(
+        bottom: true,
+        child: _buildBottomNavBar(),
+      ),
       body: AnimatedCyberBackground(
         child: SafeArea(
           child: Stack(
@@ -531,14 +536,16 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  child: SizedBox(
-                    height: constraints.maxHeight,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                           // Custom AppBar with Game Title and Logout
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 50, 20, 0),
+                            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 0),
                             child: Stack(
                               clipBehavior: Clip.none,
                               alignment: Alignment.center,
@@ -672,7 +679,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                         // Description Text
                         // Description Text with Enhanced Style
                         const Padding(
-                          padding: EdgeInsets.fromLTRB(40, 80, 40, 24),
+                          padding: EdgeInsets.fromLTRB(40, 60, 40, 24),
                           child: Text(
                             '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
                             textAlign: TextAlign.center,
@@ -687,7 +694,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                           ),
                         ),
 
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 10),
 
                         // Title for Selection
                         Padding(
@@ -708,7 +715,8 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
 
                         // Scenarios Carousel - Expanded to fit remaining space
-                        Expanded(
+                        SizedBox(
+                          height: constraints.maxHeight * 0.6, // Responsive height
                           child: _isLoading
                               ? const Center(
                                   child: CircularProgressIndicator(
@@ -757,7 +765,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                 child: SizedBox(
                                                   height: Curves.easeOut
                                                           .transform(value) *
-                                                      550, // Maximized size
+                                                      constraints.maxHeight * 0.55, // Responsive item height
                                                   width: Curves.easeOut
                                                           .transform(value) *
                                                       340, // Maximized width
@@ -1004,7 +1012,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                     ),
                         ),
                         // Bottom spacing restored
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 120),
                       ],
                     ),
                   ),
