@@ -312,6 +312,72 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
+  /// Developer Method: Purchase all powers up to max limit (3)
+  /// Returns a summary string of what was bought or if failed.
+  Future<String> purchaseFullStock(String eventId) async {
+    if (_currentPlayer == null) return "No player";
+    
+    int totalCost = 0;
+    Map<PowerItem, int> toBuy = {};
+    const int maxPerItem = 3;
+
+    // 1. Calculate what is needed
+    for (final item in _shopItems) {
+      // Skip utility/non-powers if needed, but user said "all powers"
+      // Assuming 'extra_life' is also desirable, or filter if strictly powers.
+      // Based on ShopScreen logic: bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
+      // But let's buy EVERYTHING that is displayed in the shop.
+      
+      // Get current count
+      int currentCount = 0;
+      bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
+      
+      if (isPower) {
+        currentCount = getPowerCount(item.id, eventId);
+      } else if (item.id == 'extra_life') {
+        currentCount = _currentPlayer!.lives;
+      }
+      
+      // Calculate needed
+      int needed = maxPerItem - currentCount;
+      if (needed > 0) {
+        toBuy[item] = needed;
+        totalCost += (item.cost * needed);
+      }
+    }
+
+    if (toBuy.isEmpty) {
+      return "¡Ya tienes todo al máximo!";
+    }
+
+    // 2. Check funds
+    if ((_currentPlayer!.coins) < totalCost) {
+      return "Faltan monedas. Costo: $totalCost, Tienes: ${_currentPlayer!.coins}";
+    }
+
+    // 3. Execute purchases
+    // We do this sequentially to ensure stability, though parallel could work if DB handles it.
+    // For safety and simpler error handling, sequential.
+    int successCount = 0;
+    
+    try {
+      for (final entry in toBuy.entries) {
+        final item = entry.key;
+        final qty = entry.value;
+        final bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
+
+        for (int i = 0; i < qty; i++) {
+           final success = await purchaseItem(item.id, eventId, item.cost, isPower: isPower);
+           if (success) successCount++;
+        }
+      }
+      
+      return "Compra masiva completada. Items comprados: $successCount por $totalCost monedas.";
+    } catch (e) {
+      return "Error durante la compra masiva: $e";
+    }
+  }
+
   Future<bool> _purchaseLifeManual(String eventId, int cost) async {
     if ((_currentPlayer?.coins ?? 0) < cost) {
       return false;

@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../strategies/power_strategy_factory.dart';
 import '../../mall/models/power_item.dart';
 
-enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess }
+enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess, returned }
 
 class PowerFeedbackEvent {
   final PowerFeedbackType type;
@@ -414,114 +414,97 @@ class PowerEffectProvider extends ChangeNotifier {
        return;
     }
     
+    // We iterate over ALL filtered events (not just valid/future ones)
+    // This allows us to catch "Life Steal" events that might be slightly expired 
+    // due to network lag, but should still trigger if not processed yet.
+    // Standard durational effects (blind/freeze) will still be skipped if expired.
+    
     final now = DateTime.now().toUtc();
-    final validEffects = filtered.where((effect) {
-      final expiresAt = DateTime.parse(effect['expires_at']);
-      return expiresAt.isAfter(now);
-    }).toList();
 
-    // --- LIFE STEAL HANDLING (Instant) ---
     for (final effect in filtered) {
-      final slug = await _resolveEffectSlug(effect);
-      final effectId = effect['id']?.toString();
-      final casterId = effect['caster_id']?.toString();
-      
-      if (slug == 'life_steal') {
-          setPendingEffectContext(effectId, casterId);
-          final strategy = PowerStrategyFactory.get('life_steal');
-          strategy?.onActivate(this);
-          setPendingEffectContext(null, null);
-          
-          // EVENTO DE FEEDBACK INMEDIATO (No depende de _activeEffects)
-          // Resolvemos nombre si es posible, o mandamos ID
-           _feedbackStreamController.add(PowerFeedbackEvent(
-              PowerFeedbackType.lifeStolen,
-              relatedPlayerName: casterId, // SabotageOverlay resolverá el nombre
-          ));
-      }
-    }
-    // -------------------------------------
-
-    // --- RETURN MECANISM ---
-    if (_returnArmed) {
-      for (final eff in validEffects) {
-        final slug = await _resolveEffectSlug(eff);
-        final casterId = eff['caster_id']?.toString();
-        final bool isOffensive = slug == 'black_screen' || slug == 'freeze' || slug == 'life_steal' || slug == 'blur_screen';
-        final bool isSelf = casterId == _listeningForId;
-
-        if (isOffensive && !isSelf && casterId != null) {
-          // FOUND TARGET TO RETURN
-          _returnArmed = false;
-          _registerDefenseAction(DefenseAction.returned);
-          
-          _returnedAgainstCasterId = casterId;
-          _returnedPowerSlug = slug;
-
-          // Delete incoming
-          try {
-             await supabase.from('active_powers').delete().eq('id', eff['id']);
-          } catch (_) {}
-
-          // Reflect
-          try {
-             final duration = await _getPowerDurationFromDb(powerSlug: slug!);
-             final exp = DateTime.now().toUtc().add(duration).toIso8601String();
-             final payload = {
-                'target_id': casterId,
-                'caster_id': _listeningForId,
-                'power_slug': slug,
-                'expires_at': exp,
-             };
-             if (eff['event_id'] != null) payload['event_id'] = eff['event_id'];
-             await supabase.from('active_powers').insert(payload);
-          } catch (_) {}
-
-          notifyListeners();
-          return; // Stop processing other effects if we returned one (simplification)
-        }
-      }
-    }
-
-    // --- APPLY RED EFFECT (AND SHIELD INTERCEPTION) ---
-    for (final effect in validEffects) {
        final slug = await _resolveEffectSlug(effect);
-       if (slug == null || slug == 'life_steal') continue; 
+       if (slug == null) continue;
+       
+       final effectId = effect['id']?.toString();
+       final casterId = effect['caster_id']?.toString();
+       final expiresAt = DateTime.parse(effect['expires_at']);
+       final duration = expiresAt.difference(now);
+       final bool isExpired = duration <= Duration.zero;
+       
+       final bool isLifeSteal = slug == 'life_steal';
+       
+       // Validity check for defenses:
+       // Must be active OR be life_steal (which we verify via idempotency later, but for defense it counts as "incoming")
+       // If it's a standard effect and it's expired, we ignore it completely (ghost effect).
+       if (isExpired && !isLifeSteal) continue;
 
-       // --- INTERCEPTION LOGIC ---
        final bool isOffensive = slug == 'black_screen' || 
                                 slug == 'freeze' || 
                                 slug == 'blur_screen' ||
-                                slug == 'life_steal'; // Life steal handled above usually, but just in case
-       
-       if (isOffensive && _shieldArmed) {
+                                isLifeSteal;
+                                
+       // --- 1. RETURN MECHANISM (Highest Priority) ---
+       if (_returnArmed && isOffensive) {
+          final bool isSelf = casterId == _listeningForId;
+          
+          if (!isSelf && casterId != null) {
+            // Check if we should ignore this specific processed life steal? 
+            // Return consumes it, so it shouldn't be processed.
+            // If it's life steal, we reflect the "attempt".
+            
+            _returnArmed = false;
+            _registerDefenseAction(DefenseAction.returned);
+            
+            _returnedAgainstCasterId = casterId;
+            _returnedPowerSlug = slug;
+
+            // Delete incoming
+            if (effectId != null) {
+               try {
+                  await supabase.from('active_powers').delete().eq('id', effectId);
+               } catch (_) {}
+            }
+
+            // Reflect
+            try {
+               final reflectDuration = await _getPowerDurationFromDb(powerSlug: slug);
+               final exp = DateTime.now().toUtc().add(reflectDuration).toIso8601String();
+               final payload = {
+                  'target_id': casterId,
+                  'caster_id': _listeningForId,
+                  'power_slug': slug,
+                  'expires_at': exp,
+               };
+               if (effect['event_id'] != null) payload['event_id'] = effect['event_id'];
+               await supabase.from('active_powers').insert(payload);
+            } catch (_) {}
+
+            notifyListeners();
+            return; // Stop processing any other effects if we returned one
+          }
+       }
+
+       // --- 2. SHIELD MECHANISM (Medium Priority) ---
+       if (_shieldArmed && isOffensive) {
            debugPrint('[SHIELD] 🛡️ Intercepting attack: $slug');
            
-           // 1. Break Shield (consume the boolean flag)
            _shieldArmed = false;
+           _removeEffect('shield'); // Update UI
            
-           // 2. Remove from _activeEffects map to update UI (badge disappears)
-           _removeEffect('shield');
-           
-           // 3. Feedback
            _registerDefenseAction(DefenseAction.shieldBroken);
            _feedbackStreamController.add(PowerFeedbackEvent(
                PowerFeedbackType.shieldBroken
            ));
            
-           // 3. Consume the attack (Delete from DB so it doesn't re-trigger)
-           final effectId = effect['id']?.toString();
            if (effectId != null) {
               try {
                 await supabase.from('active_powers').delete().eq('id', effectId);
-                debugPrint('[SHIELD] 🛡️ Attack effect $slug ($effectId) consumed (deleted from DB).');
+                debugPrint('[SHIELD] 🛡️ Attack effect $slug ($effectId) consumed.');
                 
-                // SEND FEEDBACK TO ATTACKER
                 final attackerId = effect['caster_id']?.toString();
                 if (attackerId != null) {
                    _sendShieldFeedback(attackerId);
                 }
-
               } catch (e) {
                 debugPrint('[SHIELD] ❌ Failed to consume attack effect: $e');
               }
@@ -531,40 +514,50 @@ class PowerEffectProvider extends ChangeNotifier {
            return; // Stop processing
        }
 
-       // --- HANDLE INCOMING FEEDBACK (As Attacker) ---
+       // --- 3. HANDLE INCOMING FEEDBACK (As Attacker) ---
        if (slug == 'shield_feedback') {
            _registerDefenseAction(DefenseAction.attackBlockedByEnemy);
            _feedbackStreamController.add(PowerFeedbackEvent(
               PowerFeedbackType.attackBlocked
            ));
-           // We can remove it locally or let it expire (short duration)
-           // ideally we remove it so it doesn't re-trigger?
-           // The timer logic in applyEffect will invoke _removeEffect eventually.
-           // But since this is a notification, one-shot is better.
-           // However, _processEffects runs on stream updates.
-           // We'll rely on _registerDefenseAction's internal timer/state to avoid spam.
            continue; 
        }
-
-       final effectId = effect['id']?.toString();
-       final casterId = effect['caster_id']?.toString();
-       final expiresAt = DateTime.parse(effect['expires_at']);
-       final duration = expiresAt.difference(now);
-
-       if (duration > Duration.zero) {
-           if (!isEffectActive(slug)) {
-              final strategy = PowerStrategyFactory.get(slug);
-              strategy?.onActivate(this); 
-           }
-
-           applyEffect(
-             slug: slug,
-             duration: duration,
-             effectId: effectId,
-             casterId: casterId,
-             expiresAt: expiresAt
-           );
+       
+       // --- 4. LIFE STEAL PROCESSING (If not blocked/returned) ---
+       if (isLifeSteal) {
+          if (effectId != null) {
+             if (isEffectProcessed(effectId)) continue; // Idempotencia
+             markEffectAsProcessed(effectId);
+          }
+          
+          setPendingEffectContext(effectId, casterId);
+          final strategy = PowerStrategyFactory.get('life_steal');
+          strategy?.onActivate(this);
+          setPendingEffectContext(null, null);
+          
+          _feedbackStreamController.add(PowerFeedbackEvent(
+              PowerFeedbackType.lifeStolen,
+              relatedPlayerName: casterId,
+          ));
+          continue; 
        }
+
+       // --- 5. STANDARD EFFECT APPLICATION ---
+       // Only if !isExpired (checked at top)
+       if (isExpired) continue; // Redundant but safe
+
+       if (!isEffectActive(slug)) {
+          final strategy = PowerStrategyFactory.get(slug);
+          strategy?.onActivate(this); 
+       }
+
+       applyEffect(
+         slug: slug,
+         duration: duration,
+         effectId: effectId,
+         casterId: casterId,
+         expiresAt: expiresAt
+       );
     }
   }
 
@@ -663,6 +656,10 @@ class PowerEffectProvider extends ChangeNotifier {
   void notifyPowerReturned(String byPlayerName) {
     _returnedByPlayerName = byPlayerName;
     _registerDefenseAction(DefenseAction.returned);
+    _feedbackStreamController.add(PowerFeedbackEvent(
+      PowerFeedbackType.returned,
+      relatedPlayerName: byPlayerName,
+    ));
     notifyListeners();
   }
 

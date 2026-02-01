@@ -146,6 +146,10 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         case PowerFeedbackType.defenseSuccess:
              // Generic success
              break;
+             
+        case PowerFeedbackType.returned:
+             _triggerLocalDefenseAction(DefenseAction.returned);
+             break;
       }
   }
 

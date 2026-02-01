@@ -157,6 +157,34 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                           Row(
                             children: [
 
+                          IconButton(
+                            icon: const Icon(Icons.rocket_launch, color: AppTheme.accentGold),
+                            tooltip: 'Comprar Todo (DEV)',
+                            onPressed: () async {
+                              final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                              final gameProvider = Provider.of<GameProvider>(context, listen: false);
+                              final eventId = gameProvider.currentEventId;
+
+                              if (eventId == null) return;
+                              setState(() => _isLoading = true);
+                              try {
+                                final message = await playerProvider.purchaseFullStock(eventId);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(message),
+                                      backgroundColor: message.contains('Error') || message.contains('Faltan') 
+                                        ? AppTheme.dangerRed 
+                                        : AppTheme.successGreen,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) setState(() => _isLoading = false);
+                              }
+                            },
+                          ),
+
                               const SizedBox(width: 8),
                               // Monedas
                               Container(

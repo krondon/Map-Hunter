@@ -66,13 +66,11 @@ lib/generated_plugin_registrant.dart
 .settings/
 
 
-**.sql
-
 # Simbolización crashlytics
 **/ios/**/Flutter/flutter_*.app.dSYM.zip
 
 .env
 
-supabase/funciones.md
 .github/copilot-instructions.md
 docs/reports/
+supabase/schem_BD.sql
