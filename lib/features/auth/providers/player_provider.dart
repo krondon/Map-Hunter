@@ -504,12 +504,18 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             .toList();
       }
 
+      
+      // Determine if this power is a self-buff that is already active
+      final isDefensive = ['shield', 'invisibility', 'return'].contains(powerSlug);
+      final isAlreadyActive = isDefensive && effectProvider.isEffectActive(powerSlug);
+
       final response = await _powerService.executePower(
         casterGamePlayerId: casterGamePlayerId,
         targetGamePlayerId: targetGamePlayerId,
         powerSlug: powerSlug,
         rivals: rivals,
         eventId: eventId,
+        isAlreadyActive: isAlreadyActive, 
       );
       
       if (response.blockedByShield) {

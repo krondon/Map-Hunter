@@ -71,7 +71,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     for (var itemId in player.inventory) {
       inventoryCounts[itemId] = (inventoryCounts[itemId] ?? 0) + 1;
     }
-    final uniqueItems = inventoryCounts.keys.toList();
+    final uniqueItems = inventoryCounts.keys.toList()..sort();
 
     return Scaffold(
       body: Stack(
@@ -189,9 +189,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 ),
                               );
 
+                              final effectProvider = Provider.of<PowerEffectProvider>(context);
+                              // Solo verificamos estado activo para poderes defensivos personales
+                              final isDefensive = ['shield', 'invisibility', 'return'].contains(itemDef.id);
+                              final isActive = isDefensive && effectProvider.isEffectActive(itemDef.id);
+                              
+                              if (isDefensive) {
+                                debugPrint('🔘 [UI-SYNC] Estado del botón para ${itemDef.id}: ${isActive ? "ACTIVO" : "DISPONIBLE"}');
+                              }
+
                               return InventoryItemCard(
                                 item: itemDef,
                                 count: count,
+                                isActive: isActive,
                                 onUse: () =>
                                     _handleItemUse(context, itemDef, player.id),
                               );

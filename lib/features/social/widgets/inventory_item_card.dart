@@ -6,12 +6,14 @@ class InventoryItemCard extends StatelessWidget {
   final PowerItem item;
   final VoidCallback onUse;
   final int count;
+  final bool isActive;
   
   const InventoryItemCard({
     super.key,
     required this.item,
     required this.onUse,
     this.count = 1,
+    this.isActive = false,
   });
 
   @override
@@ -84,15 +86,17 @@ class InventoryItemCard extends StatelessWidget {
                 width: double.infinity,
                 height: 30, // Even smaller height
                 child: ElevatedButton(
-                  onPressed: onUse,
+                  onPressed: isActive ? null : onUse,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.secondaryPink,
+                    backgroundColor: isActive 
+                        ? Colors.grey.withOpacity(0.5) 
+                        : AppTheme.secondaryPink,
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text(
-                    'Usar',
-                    style: TextStyle(fontSize: 12),
+                  child: Text(
+                    isActive ? 'Activo' : 'Usar',
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),

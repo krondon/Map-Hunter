@@ -80,8 +80,13 @@ class PowerService {
     required String powerSlug,
     List<RivalInfo>? rivals,
     String? eventId,
+    bool isAlreadyActive = false,
   }) async {
     try {
+      if (isAlreadyActive) {
+         debugPrint('PowerService: 🛑 Power $powerSlug is already active locally. Aborting RPC.');
+         return PowerUseResponse.error('already_active_locally');
+      }
       // [FIX] GUARDIA DE AUTO-ATAQUE: Poderes ofensivos no pueden targetear al caster
       // blur_screen es especial: se usa contra TODOS los rivales simultáneamente (broadcast)
       const selfTargetingPowers = {'invisibility', 'shield', 'return', 'blur_screen'};
