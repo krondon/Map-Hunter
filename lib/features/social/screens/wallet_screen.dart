@@ -6,6 +6,12 @@ import '../../../shared/widgets/animated_cyber_background.dart';
 import 'profile_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../../shared/widgets/glitch_text.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/pago_a_pago_service.dart';
+import '../../../core/models/pago_a_pago_models.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -15,6 +21,14 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
+  final TextEditingController _amountController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -404,74 +418,394 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _showRechargeDialog() {
+    _amountController.clear();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.add_circle, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            const Text(
-              'Recargar Tréboles',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
             ),
-          ],
-        ),
-        content: const Text(
-          'La funcionalidad de recarga estará disponible próximamente. Podrás comprar tréboles para usar en el juego.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Entendido',
-              style: TextStyle(color: AppTheme.accentGold),
+            title: Row(
+              children: [
+                Icon(Icons.add_circle, color: AppTheme.accentGold),
+                const SizedBox(width: 12),
+                const Text(
+                  'Comprar Tréboles',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-          ),
-        ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   const Text(
+                    'Ingresa la cantidad de tréboles que deseas comprar. (1 🍀 = 1\$)',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Only allow integers
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (val) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Cantidad (Enteros)',
+                      labelStyle: const TextStyle(color: Colors.white60),
+                      prefixIcon: const Icon(Icons.star, color: Colors.white60),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                   // Calculation Display
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Estimado en Bolívares (Tasa Ref: 370.25):",
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _amountController.text.isEmpty 
+                              ? "0.00 VES"
+                              : "${(int.tryParse(_amountController.text) ?? 0) * 370.25} VES",
+                          style: const TextStyle(
+                            color: AppTheme.accentGold, 
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isLoading)
+                   const Padding(
+                     padding: EdgeInsets.only(top: 20.0),
+                     child: CircularProgressIndicator(color: AppTheme.accentGold),
+                   ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+              ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : () async {
+                  final amount = int.tryParse(_amountController.text); // Validate Integer
+                  if (amount == null || amount <= 0) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ingresa un monto entero válido > 0')),
+                    );
+                    return;
+                  }
+
+                  setState(() => _isLoading = true);
+                  
+                  // Iniciar proceso de pago (cast to double for compatibility)
+                  await _initiatePayment(context, amount.toDouble());
+
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                    Navigator.pop(ctx);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentGold,
+                  foregroundColor: Colors.black,
+                ),
+                child: const Text('Pagar'),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
 
+  Future<void> _initiatePayment(BuildContext context, double amount) async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final user = playerProvider.currentPlayer;
+    
+    if (user == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: No hay usuario autenticado.')),
+      );
+      return;
+    }
+
+    try {
+      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+      if (token == null) throw Exception("No hay sesión activa");
+
+      // Instanciar servicio
+      // La API KEY ya no es necesaria para llamar al Edge Function, pero el constructor la pide.
+      // Podemos pasar un string vacío o el valor del env si se quisiera.
+      final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? ''; 
+      final service = PagoAPagoService(apiKey: apiKey);
+
+      // Crear request
+      final request = PaymentOrderRequest(
+        amount: amount, 
+        currency: 'VES', 
+        email: user.email,
+        phone: user.phone ?? '0000000000',
+        dni: user.cedula ?? 'V00000000',
+        motive: 'Recarga de ${amount.toInt()} Tréboles - MapHunter', // Display as int
+        expiresAt: DateTime.now().add(const Duration(hours: 1)).toIso8601String(),
+        typeOrder: 'EXTERNAL',
+        convertFromUsd: true,
+        extraData: {
+          'user_id': user.userId,
+        },
+      );
+
+      final response = await service.createPaymentOrder(request, token);
+
+      if (!mounted) return;
+
+      if (response.success && response.paymentUrl != null) {
+        final url = Uri.parse(response.paymentUrl!);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(
+               content: Text('Abriendo pasarela de pago...'),
+               backgroundColor: AppTheme.successGreen,
+             ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('No se pudo abrir el link: ${response.paymentUrl}')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+             content: Text('Error al crear orden: ${response.message}'),
+             backgroundColor: AppTheme.dangerRed,
+           ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.dangerRed,
+        )
+      );
+    }
+  }
+
   void _showWithdrawDialog() {
+    final amountController = TextEditingController();
+    final bankController = TextEditingController(); // Código banco (ej: 0102)
+    final phoneController = TextEditingController(); // 0424...
+    final dniController = TextEditingController(); // V12345678
+    
+    // Prefill data if available
+    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
+    if (player != null) {
+      phoneController.text = player.phone ?? '';
+      dniController.text = player.cedula ?? '';
+    }
+
+    bool isLoading = false;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.secondaryPink.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.remove_circle, color: AppTheme.secondaryPink),
-            const SizedBox(width: 12),
-            const Text(
-              'Retirar Tréboles',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: AppTheme.secondaryPink.withOpacity(0.3)),
             ),
-          ],
-        ),
-        content: const Text(
-          'La funcionalidad de retiro estará disponible próximamente. Podrás convertir tus tréboles en recompensas reales.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Entendido',
-              style: TextStyle(color: AppTheme.secondaryPink),
+            title: Row(
+              children: [
+                Icon(Icons.remove_circle, color: AppTheme.secondaryPink),
+                const SizedBox(width: 12),
+                const Text(
+                  'Retirar Fondos (Pago Móvil)',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
             ),
-          ),
-        ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Retira tus tréboles a tu cuenta bancaria vía Pago Móvil.',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Amount
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Only Digits
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDecoration('Monto Exacto (Tréboles)', Icons.monetization_on),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Bank Code
+                  TextField(
+                    controller: bankController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDecoration('Código Banco (ej: 0102)', Icons.account_balance),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Phone
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDecoration('Teléfono (0414...)', Icons.phone_android),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // DNI
+                  TextField(
+                    controller: dniController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: _inputDecoration('Cédula (V123...)', Icons.badge),
+                  ),
+
+                  if (isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 16.0),
+                      child: CircularProgressIndicator(color: AppTheme.secondaryPink),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+              ),
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  final amount = int.tryParse(amountController.text); // Validate Integer
+                  if (amount == null || amount <= 0) {
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Monto inválido (Solo enteros)')));
+                     return;
+                  }
+                  if (bankController.text.isEmpty || phoneController.text.isEmpty || dniController.text.isEmpty) {
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Todos los campos son obligatorios')));
+                     return;
+                  }
+
+                  setState(() => isLoading = true);
+
+                  try {
+                    // Check Balance first (client side check)
+                    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                    final balance = playerProvider.currentPlayer?.clovers ?? 0;
+                    if (balance < amount) {
+                       throw Exception("Saldo insuficiente");
+                    }
+
+                    final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? '';
+                    final service = PagoAPagoService(apiKey: apiKey);
+                    
+                    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+                    if (token == null) throw Exception("No hay sesión activa");
+
+                    final request = WithdrawalRequest(
+                      amount: amount.toDouble(),
+                      bank: bankController.text,
+                      dni: dniController.text,
+                      phone: phoneController.text,
+                    );
+
+                    final response = await service.withdrawFunds(request, token);
+
+                    if (!mounted) return;
+
+                    if (response.success) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('¡Retiro exitoso!'),
+                          backgroundColor: AppTheme.successGreen,
+                        )
+                      );
+                      // Trigger refresh of profile/balance
+                      // This depends on how PlayerProvider refreshes. 
+                      // Ideally we reload the user profile.
+                      // playerProvider.reloadProfile(); (Assuming something like this exists or happens auto)
+                    } else {
+                      throw Exception(response.message);
+                    }
+
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: AppTheme.dangerRed,
+                        )
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => isLoading = false);
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondaryPink),
+                child: const Text('Retirar', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        }
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white60),
+      prefixIcon: Icon(icon, color: Colors.white60),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: AppTheme.secondaryPink),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
 

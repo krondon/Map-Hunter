@@ -23,6 +23,8 @@ class Player implements ITargetable {
   List<String>? eventsCompleted;
   int lives;
   int clovers; // New currency - tréboles
+  String? cedula;
+  String? phone;
   Map<String, dynamic> stats;
 
   Player({
@@ -48,6 +50,8 @@ class Player implements ITargetable {
     this.avatarId,
     this.gamePlayerId,
     this.currentEventId,
+    this.cedula,
+    this.phone,
   })  : _avatarUrl = avatarUrl ?? '',
         inventory = inventory ?? [],
         stats = stats ??
@@ -129,6 +133,8 @@ class Player implements ITargetable {
       gamePlayerId: json['player_id'] ?? json['game_player_id'],
       avatarId: avatarId,
       clovers: json['clovers'] ?? 0,
+      cedula: json['cedula'],
+      phone: json['phone'],
     );
   }
 
@@ -250,6 +256,8 @@ class Player implements ITargetable {
     String? gamePlayerId,
     String? avatarId,
     String? currentEventId,
+    String? cedula,
+    String? phone,
   }) {
     return Player(
       userId: userId ?? this.userId,
@@ -274,6 +282,8 @@ class Player implements ITargetable {
       gamePlayerId: gamePlayerId ?? this.gamePlayerId,
       avatarId: avatarId ?? this.avatarId,
       currentEventId: currentEventId ?? this.currentEventId,
+      cedula: cedula ?? this.cedula,
+      phone: phone ?? this.phone,
     );
   }
 }

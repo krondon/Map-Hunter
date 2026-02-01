@@ -70,6 +70,7 @@ Future<void> main() async {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
   
   runApp(const TreasureHuntApp());

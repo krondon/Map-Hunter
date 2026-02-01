@@ -142,9 +142,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<void> register(String name, String email, String password) async {
+  Future<void> register(String name, String email, String password, {String? cedula, String? phone}) async {
     try {
-      final userId = await _authService.register(name, email, password);
+      final userId = await _authService.register(name, email, password, cedula: cedula, phone: phone);
       await _fetchProfile(userId);
     } catch (e) {
       debugPrint('Error registering: $e');

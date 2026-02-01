@@ -62,5 +62,10 @@
 	<string>Esta aplicación necesita acceder a tu ubicación incluso cuando está en segundo plano para funcionalidades de geolocalización.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Esta aplicación necesita acceder a tu cámara para escanear códigos QR de eventos y pistas.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
 </dict>
 </plist>

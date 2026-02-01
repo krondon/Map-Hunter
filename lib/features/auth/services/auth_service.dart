@@ -57,11 +57,17 @@ class AuthService {
   /// 
   /// Retorna el ID del usuario creado en caso de éxito.
   /// Lanza una excepción con mensaje legible si falla.
-  Future<String> register(String name, String email, String password) async {
+  Future<String> register(String name, String email, String password, {String? cedula, String? phone}) async {
     try {
       final response = await _supabase.functions.invoke(
         'auth-service/register',
-        body: {'email': email, 'password': password, 'name': name},
+        body: {
+          'email': email, 
+          'password': password, 
+          'name': name,
+          'cedula': cedula,
+          'phone': phone,
+        },
         method: HttpMethod.post,
       );
 
@@ -78,6 +84,19 @@ class AuthService {
         if (data['user'] != null) {
           // Delay para permitir que la BD sincronice el perfil
           await Future.delayed(const Duration(seconds: 1));
+          
+          // Actualización explícita de datos extra en perfil
+          if (cedula != null || phone != null) {
+            try {
+              await _supabase.from('profiles').update({
+                if (cedula != null) 'cedula': cedula,
+                if (phone != null) 'phone': phone,
+              }).eq('id', data['user']['id']);
+            } catch (e) {
+              debugPrint('Warning: Could not update extra profile fields: $e');
+            }
+          }
+
           return data['user']['id'] as String;
         }
         throw 'No se recibió información del usuario';
@@ -146,12 +165,14 @@ class AuthService {
   }
 
   /// Actualiza la información del perfil del usuario.
-  Future<void> updateProfile(String userId, {String? name, String? email}) async {
+  Future<void> updateProfile(String userId, {String? name, String? email, String? cedula, String? phone}) async {
     try {
       // 1. Actualizar nombre en la tabla profiles si se provee
-      if (name != null) {
+      if (name != null || cedula != null || phone != null) {
         await _supabase.from('profiles').update({
-          'name': name.trim(),
+          if (name != null) 'name': name.trim(),
+          if (cedula != null) 'cedula': cedula,
+          if (phone != null) 'phone': phone,
         }).eq('id', userId);
       }
 

@@ -19,6 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _cedulaController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptedTerms = false;
@@ -32,6 +34,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _cedulaController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -62,6 +66,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _nameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
+          cedula: _cedulaController.text.trim(),
+          phone: _phoneController.text.trim(),
         );
         
         if (!mounted) return;
@@ -158,6 +164,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           const SizedBox(height: 40),
+
+                          // ==========================================
+                          // CAMPO CÉDULA / RIF
+                          // ==========================================
+                          TextFormField(
+                            controller: _cedulaController,
+                            style: const TextStyle(color: Colors.white),
+                            keyboardType: TextInputType.text,
+                            decoration: const InputDecoration(
+                              labelText: 'Cédula / RIF',
+                              labelStyle: TextStyle(color: Colors.white60),
+                              prefixIcon: Icon(Icons.badge_outlined, color: Colors.white60),
+                              hintText: 'V12345678',
+                              hintStyle: TextStyle(color: Colors.white24),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Ingresa tu cédula o RIF';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ==========================================
+                          // CAMPO TELÉFONO
+                          // ==========================================
+                          TextFormField(
+                            controller: _phoneController,
+                            style: const TextStyle(color: Colors.white),
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              labelText: 'Teléfono',
+                              labelStyle: TextStyle(color: Colors.white60),
+                              prefixIcon: Icon(Icons.phone_android_outlined, color: Colors.white60),
+                              hintText: '04121234567',
+                              hintStyle: TextStyle(color: Colors.white24),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Ingresa tu teléfono';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
                           
                           // ==========================================
                           // CAMPO NOMBRE
