@@ -346,10 +346,16 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       _lastBlurEffectId = effectId;
       final attackerName =
           _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+      
+      // FIX: Mensaje diferente si el jugador era invisible (el ataque falló visualmente)
+      final bool isProtected = isPlayerInvisible || isInvisible;
+      final String msg = isProtected
+          ? '🌫️ ¡$attackerName intentó nublarte!'
+          : '🌫️ ¡$attackerName te nubló la vista!';
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _showLifeStealBanner('🌫️ ¡$attackerName te nubló la vista!');
+        _showLifeStealBanner(msg);
       });
     }
 
@@ -365,7 +371,8 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
             FreezeEffect(expiresAt: powerProvider.getPowerExpiration('freeze')),
             
         // blur_screen reutiliza el efecto visual de invisibility para los rivales.
-         if (isBlur)
+         // FIX: Si el jugador es invisible, NO debe verse afectado por la pantalla borrosa.
+         if (isBlur && !isPlayerInvisible && !isInvisible)
            BlurScreenEffect(expiresAt: powerProvider.getPowerExpirationByType(PowerType.blur) ?? DateTime.now().add(const Duration(seconds: 5))), 
 
         if (defenseAction == DefenseAction.returned) ...[
