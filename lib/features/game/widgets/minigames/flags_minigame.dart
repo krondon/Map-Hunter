@@ -389,6 +389,9 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
                 );
                 // Check lives upon return
                 if (!context.mounted) return;
+                // Force sync
+                await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+                
                 final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
                 if ((player?.lives ?? 0) > 0) {
                   setState(() {

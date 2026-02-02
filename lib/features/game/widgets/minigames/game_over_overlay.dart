@@ -78,25 +78,7 @@ class GameOverOverlay extends StatelessWidget {
                 const SizedBox(height: 24),
                 
                 // Lives info wrapper if retrying
-                if (onRetry != null && !isVictory)
-                 Consumer<GameProvider>(
-                   builder: (context, game, _) {
-                     return Padding(
-                       padding: const EdgeInsets.only(bottom: 16.0),
-                       child: Row(
-                         mainAxisAlignment: MainAxisAlignment.center,
-                         children: [
-                           const Icon(Icons.favorite, color: AppTheme.dangerRed, size: 20),
-                           const SizedBox(width: 8),
-                           Text(
-                             "Vidas restantes: ${game.lives}", 
-                             style: const TextStyle(color: Colors.white70),
-                           ),
-                         ],
-                       ),
-                     );
-                   }
-                 ),
+                // (Lives info removed to prevent overflow and redundancy)
                 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,

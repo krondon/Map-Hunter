@@ -332,6 +332,7 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
+              isVictory: false, // Sliding puzzle failure is always loss here
               onRetry: _canRetry ? () {
                 setState(() {
                   _showOverlay = false;
@@ -348,6 +349,10 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                 );
                 // Check lives upon return
                 if (!context.mounted) return;
+                
+                // Force Sync
+                await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+                
                 final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
                 if ((player?.lives ?? 0) > 0) {
                   setState(() {

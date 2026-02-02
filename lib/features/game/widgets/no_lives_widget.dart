@@ -35,26 +35,44 @@ class NoLivesWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // If this widget is shown as a screen, we pop it when going to mall?
-                // Or we push mall on top.
-                // The user code: Navigator.of(context).pop(); then push MallScreen.
-                // If we use this inside a screen (like PuzzleScreen) that replaces the body,
-                // pop() might pop the PuzzleScreen itself.
-                // If we use it as a standalone route, pop() pops the NoLivesScreen.
-                // This seems consistent with the user's provided snippet.
-                Navigator.of(context).pop();
-                Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => const MallScreen()));
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accentGold,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-              ),
-              child: const Text("Comprar Vidas",
-                  style: TextStyle(color: Colors.black)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Botón Salir
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: const Text("SALIR"),
+                ),
+                const SizedBox(width: 16),
+                // Botón Comprar Vidas
+                ElevatedButton(
+                  onPressed: () async {
+                    // Ir a la tienda
+                    await Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => const MallScreen()));
+                    
+                    // Al regresar, verificar si el contexto sigue montado
+                    if (!context.mounted) return;
+                    
+                    // El puzzle_screen volverá a verificar las vidas
+                    // y mostrará el minijuego si ahora tiene vidas
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentGold,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: const Text("COMPRAR VIDAS",
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
           ],
         ),

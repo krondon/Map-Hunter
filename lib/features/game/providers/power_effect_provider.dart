@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../strategies/power_strategy_factory.dart';
 import '../../mall/models/power_item.dart';
 
-enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess, returned }
+enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess, returned, stealFailed }
 
 class PowerFeedbackEvent {
   final PowerFeedbackType type;
@@ -633,6 +633,10 @@ class PowerEffectProvider extends ChangeNotifier {
 
   void notifyStealFailed() {
     _registerDefenseAction(DefenseAction.stealFailed);
+    _feedbackStreamController.add(PowerFeedbackEvent(
+      PowerFeedbackType.stealFailed,
+    ));
+    notifyListeners();
   }
 
   Future<void> _sendShieldFeedback(String targetId) async {

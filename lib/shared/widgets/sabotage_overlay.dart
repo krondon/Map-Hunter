@@ -19,6 +19,8 @@ import '../../features/auth/providers/player_provider.dart';
 import '../../features/mall/models/power_item.dart'; // Required for PowerType
 
 import '../utils/global_keys.dart'; // Importar para navegación
+import '../../features/game/widgets/minigames/game_over_overlay.dart';
+import '../../features/mall/screens/mall_screen.dart';
 
 class SabotageOverlay extends StatefulWidget {
   final Widget child;
@@ -48,6 +50,13 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   Timer? _localDefenseActionTimer;
   bool _showShieldBreakAnimation = false;
   bool _showAttackBlockedAnimation = false;
+  
+  // Estado para bloquear pantalla si roban la última vida
+  bool _showNoLivesFromSteal = false; 
+  String _noLivesTitle = '¡SIN VIDAS!';
+  String _noLivesMessage = '¡Te han robado tu última vida!\nNecesitas comprar más vidas para continuar.';
+  bool _noLivesCanRetry = false;
+  bool _noLivesShowShop = true;
 
   // Cached provider references to avoid context access in callbacks
   PowerEffectProvider? _powerProviderRef;
@@ -119,16 +128,34 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
             
             _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
             
+            // Actualizar vidas del jugador y del GameProvider
+            // para que puzzle_screen detecte el cambio
+            _playerProviderRef?.refreshProfile();
+            final userId = _playerProviderRef?.currentPlayer?.userId;
+            if (userId != null) {
+              _gameProviderRef?.fetchLives(userId);
+            }
+            
             _lifeStealAnimationTimer = Timer(const Duration(seconds: 4), () {
               if (mounted) {
                 setState(() {
                   _showLifeStealAnimation = false;
                   _lifeStealCasterName = null;
                 });
+                
+                // Verificar VIDAS después de actualizar
+                final lives = _playerProviderRef?.currentPlayer?.lives ?? 0;
+                if (lives <= 0) {
+                   setState(() {
+                     _showNoLivesFromSteal = true;
+                     _noLivesTitle = '¡SIN VIDAS!';
+                     _noLivesMessage = '¡Te han robado tu última vida!\nNecesitas comprar más vidas para continuar.';
+                     _noLivesCanRetry = false;
+                     _noLivesShowShop = true;
+                   });
+                }
               }
             });
-            // Haptic
-            // HapticFeedback.heavyImpact(); // Opcional si ya se hace en strategy
             break;
             
         case PowerFeedbackType.shieldBroken:
@@ -154,6 +181,10 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
              
         case PowerFeedbackType.returned:
              _triggerLocalDefenseAction(DefenseAction.returned);
+             break;
+             
+        case PowerFeedbackType.stealFailed:
+             _triggerLocalDefenseAction(DefenseAction.stealFailed);
              break;
       }
   }
@@ -437,6 +468,66 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
           ),
 
         // Feedback rápido para el atacante cuando su acción fue bloqueada o falló.
+        
+        if (_showNoLivesFromSteal)
+          GameOverOverlay(
+            title: _noLivesTitle,
+            message: _noLivesMessage,
+            onRetry: _noLivesCanRetry ? () {
+              setState(() {
+                _showNoLivesFromSteal = false;
+              });
+              // El usuario sigue en pantalla y puede continuar
+            } : null,
+            onExit: () {
+              setState(() {
+                _showNoLivesFromSteal = false;
+              });
+              rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+            },
+            onGoToShop: _noLivesShowShop ? () async {
+              // 1. Ocultar el overlay
+              setState(() {
+                _showNoLivesFromSteal = false;
+              });
+              
+              // 2. Navegar a la tienda
+              await rootNavigatorKey.currentState?.push(
+                MaterialPageRoute(builder: (_) => const MallScreen()),
+              );
+              
+              if (!mounted) return;
+
+              // 3. Verificar vidas al regresar (Sincronizar ambos providers)
+              await _playerProviderRef?.refreshProfile();
+              final userId = _playerProviderRef?.currentPlayer?.userId;
+              if (userId != null) {
+                await _gameProviderRef?.fetchLives(userId);
+              }
+
+              final lives = _playerProviderRef?.currentPlayer?.lives ?? 0;
+              
+              if (lives > 0) {
+                 // TIENE VIDAS! -> Mostrar Retry
+                 setState(() {
+                   _showNoLivesFromSteal = true;
+                   _noLivesTitle = '¡VIDAS OBTENIDAS!';
+                   _noLivesMessage = 'Ahora tienes $lives vidas.\nPuedes continuar jugando.';
+                   _noLivesCanRetry = true;
+                   _noLivesShowShop = false;
+                 });
+              } else {
+                 // SEGUIMOS SIN VIDAS -> Mostrar popup original
+                 setState(() {
+                   _showNoLivesFromSteal = true;
+                   _noLivesTitle = '¡SIN VIDAS!';
+                   _noLivesMessage = 'Aún no tienes vidas.\nNecesitas comprar más vidas para continuar.';
+                   _noLivesCanRetry = false;
+                   _noLivesShowShop = true;
+                 });
+              }
+            } : null,
+          ),
       ],
     );
   }

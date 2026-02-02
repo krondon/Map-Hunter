@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class StealFailedEffect extends StatefulWidget {
-  const StealFailedEffect({super.key});
+  final String message;
+  
+  const StealFailedEffect({
+    super.key,
+    this.message = '¡No tiene vidas que robar!',
+  });
 
   @override
   State<StealFailedEffect> createState() => _StealFailedEffectState();
@@ -84,7 +89,31 @@ class _StealFailedEffectState extends State<StealFailedEffect>
                     offset: Offset(_shake.value, 0),
                     child: Transform.scale(
                       scale: _iconScale.value,
-                      child: const Text('💔', style: TextStyle(fontSize: 84)),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('💔', style: TextStyle(fontSize: 84)),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.redAccent, width: 2),
+                            ),
+                            child: Text(
+                              widget.message,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
