@@ -58,6 +58,7 @@ class PaymentService {
           'expires_at': expiresAt,
           'extra_data': {
             'user_id': userId,
+            'clovers_amount': amount,
           }
         },
       );
@@ -117,6 +118,7 @@ class PaymentService {
             'initiated_at': DateTime.now().toIso8601String(),
             'original_url': rawPaymentUrl, 
             'client_device': 'mobile',
+            'clovers_amount': amount,
           }
         });
         

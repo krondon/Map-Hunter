@@ -140,7 +140,8 @@ serve(async (req) => {
                 original_amount: amount,
                 initiated_at: new Date().toISOString(),
                 api_response: data,
-                function_version: "v2-diagnostics"
+                function_version: "v2-diagnostics",
+                clovers_amount: amount
             }
         })
 

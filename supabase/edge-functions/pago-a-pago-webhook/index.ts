@@ -86,6 +86,7 @@ serve(async (req) => {
             const updateData: any = {
                 status: newStatus,
                 updated_at: new Date().toISOString(),
+                extra_data: data.extra_data,
             }
 
             if (data.transaction_id) {
