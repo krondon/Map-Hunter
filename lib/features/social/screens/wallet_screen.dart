@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import '../../wallet/widgets/payment_webview_modal.dart'; // Added
 import 'profile_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../../shared/widgets/glitch_text.dart';
@@ -657,16 +658,54 @@ class _WalletScreenState extends State<WalletScreen> {
       if (!mounted) return;
 
       if (response.success && response.paymentUrl != null) {
-        final url = Uri.parse(response.paymentUrl!);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+        if (response.success && response.paymentUrl != null) {
           
-          ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Text('Abriendo pasarela de pago...'),
-               backgroundColor: AppTheme.successGreen,
-             ),
+          if (!mounted) return;
+
+          // Open WebView as a Modal Bottom Sheet (Google Style)
+          // "se tiene que quedar un espacio de la app" -> Top padding / limited height
+          // "hasta que no se quite sola... no se pueda cambiar de vista" -> isDismissible: false
+          
+          final bool? result = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            isDismissible: false, // User cannot tap outside to dismiss
+            enableDrag: false,    // User cannot drag down to dismiss (unless we implement handle)
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => Padding(
+              // Leave top space (Status bar + some margin) - e.g. top 10% visible
+              padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.1),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: PaymentWebViewModal(paymentUrl: response.paymentUrl!),
+              ),
+            ),
           );
+
+          if (result == true) {
+             // Payment Successful!
+             if (!mounted) return;
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(
+                 content: Text('¡Pago Exitoso! Verificando saldo...'),
+                 backgroundColor: AppTheme.successGreen,
+               ),
+             );
+             
+             // Refresh User Balance logic (Wait a bit for backend to process webhook if any, or just fetch)
+             // Ideally we should poll or listen to realtime, but a simple refresh helps.
+             await Future.delayed(const Duration(seconds: 2));
+             if (mounted) {
+                await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+             }
+
+          } else {
+             // User closed modal without success or cancelled
+             if (!mounted) return;
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('Operación cancelada o pendiente.')),
+             );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
              SnackBar(content: Text('No se pudo abrir el link: ${response.paymentUrl}')),
