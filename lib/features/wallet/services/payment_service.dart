@@ -161,4 +161,21 @@ class PaymentService {
       throw Exception('No se pudo abrir el enlace de pago: $url');
     }
   }
+
+  /// Fetches pending or failed orders for a user.
+  Future<List<Map<String, dynamic>>> getPendingOrders(String userId) async {
+    try {
+      final response = await _supabase
+          .from('clover_orders')
+          .select()
+          .eq('user_id', userId)
+          .inFilter('status', ['pending', 'failed'])
+          .order('created_at', ascending: false);
+      
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('[PaymentService] Error fetching pending orders: $e');
+      return [];
+    }
+  }
 }

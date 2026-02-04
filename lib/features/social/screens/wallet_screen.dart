@@ -17,6 +17,7 @@ import '../widgets/payment_profile_dialog.dart';
 import '../widgets/payment_method_selector.dart';
 import '../widgets/add_payment_method_dialog.dart';
 import '../../wallet/widgets/withdrawal_method_selector.dart';
+import '../../wallet/screens/transaction_history_screen.dart';
 
 final bcv_dolar = 1;
 
@@ -198,50 +199,70 @@ class _WalletScreenState extends State<WalletScreen> {
 
                       const SizedBox(height: 40),
 
-                      // Transaction History Section (Placeholder)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardBg.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                      // Transaction History Section (Placeholder -> Entry Point)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TransactionHistoryScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardBg.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.history,
-                                  color: AppTheme.accentGold,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'HISTORIAL DE TRANSACCIONES',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.history,
+                                        color: AppTheme.accentGold,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'HISTORIAL DE TRANSACCIONES',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.white.withOpacity(0.3),
+                                    size: 14,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              const Center(
+                                child: Text(
+                                  'Ver historial completo y pendientes',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1,
+                                    color: Colors.white38,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            const Center(
-                              child: Text(
-                                'No hay transacciones recientes',
-                                style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 14,
-                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],

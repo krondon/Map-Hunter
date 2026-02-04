@@ -63,11 +63,17 @@ serve(async (req) => {
         const pagoApiKey = Deno.env.get('PAGO_PAGO_API_KEY')!
         const PAGO_PAGO_WITHDRAW_URL = Deno.env.get('PAGO_PAGO_WITHDRAW_URL')!
 
+        // Sanitize Data
+        const cleanDni = dni.replace(/\D/g, ''); // Remove 'V', 'E', '-' etc. return only numbers
+        const cleanPhone = phone ? phone.replace(/\D/g, '') : null;
+
+        console.log(`Sending Withdrawal: DNI=${cleanDni} (Raw: ${dni}), Phone=${cleanPhone}, Bank=${bank}, Amount=${amount}`)
+
         const payload = {
             amount: amount,
             bank: bank,
-            dni: dni,
-            phone: phone,
+            dni: cleanDni,
+            phone: cleanPhone,
             cta: cta
             // Add other mandatory fields if any from docs, e.g. bank_account_type if needed
         }
@@ -124,7 +130,10 @@ serve(async (req) => {
                 }
             }
 
-            throw new Error(apiResponseData?.message || "Withdrawal failed at payment provider. Funds refunded.")
+            const failureMsg = apiResponseData?.message ?? 
+                             JSON.stringify(apiResponseData) ?? 
+                             "Withdrawal failed at payment provider (No detail).";
+            throw new Error(`Withdrawal failed: ${failureMsg}. Funds refunded.`)
         }
 
         // 4. LOG SUCCESSFUL TRANSACTION

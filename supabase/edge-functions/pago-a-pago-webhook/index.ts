@@ -14,8 +14,6 @@ serve(async (req) => {
 
     try {
         // 1. Validación de Seguridad Adaptativa
-        // Documentación dice 'x-webhook-source', pero los logs muestran que no llega.
-        // Logs muestran 'user-agent': 'PagoAPago-Webhook-Dispatcher/1.0'
         const webhookSource = req.headers.get('x-webhook-source')
         const userAgent = req.headers.get('user-agent')
         
@@ -32,7 +30,7 @@ serve(async (req) => {
             })
         }
 
-        // Inicializamos Supabase con Service Role Key para saltar RLS
+        // Inicializamos Supabase con Service Role Key para saltar RLS y poder leer/escribir clover_orders
         const supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -46,7 +44,6 @@ serve(async (req) => {
 
         if (!orderId) {
             console.warn("Payload missing order_id, cannot process.")
-            // Retornamos 200 para evitar reintentos de la pasarela en payloads mal formados
             return new Response(JSON.stringify({ error: "Missing order_id" }), {
                 status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -55,6 +52,7 @@ serve(async (req) => {
 
         // 2. Mapeo de Eventos (Switch Logic)
         let newStatus = 'pending'
+        let failureReason = null
 
         switch (event) {
             case 'payment.completed':
@@ -64,6 +62,11 @@ serve(async (req) => {
             case 'payment.failed':
             case 'payment.error':
                 newStatus = 'error'
+                if (data.error_message) {
+                    failureReason = data.error_message
+                } else if (data.message) {
+                    failureReason = data.message
+                }
                 break
             case 'payment.cancelled':
                 newStatus = 'cancelled'
@@ -73,62 +76,90 @@ serve(async (req) => {
                 break
             default:
                 console.warn(`Unknown event type: ${event}`)
-                newStatus = 'unknown' // Opcional: mantener el estado anterior o marcar como desconocido
+                newStatus = 'unknown' 
         }
 
         // 3. Persistencia en clover_orders
-        if (newStatus !== 'unknown' && newStatus !== 'pending') {
-            console.log(`Updating order ${orderId} to status: ${newStatus}`)
-            
-            // data.transaction_id -> columna transaction_id (si existe en payload)
-            // data.reference -> columna bank_reference (si existe en payload)
-            
-            const updateData: any = {
-                status: newStatus,
-                updated_at: new Date().toISOString(),
-                extra_data: data.extra_data,
-            }
+        // Se ejecuta para cualquier estado conocido excepto 'unknown' y 'pending' (si no cambia nada)
+        // Ojo: 'pending' podría ser útil si queremos actualizar metadata, pero por ahora nos centramos en cambios de estado.
+        if (newStatus !== 'unknown') {
+            console.log(`Processing update for order ${orderId}. New Status: ${newStatus}`)
 
-            if (data.transaction_id) {
-                updateData.transaction_id = data.transaction_id
-            }
-            if (data.reference) {
-                updateData.bank_reference = data.reference
-            }
-
-            // Actualizamos la tabla clover_orders usando el pago_pago_order_id
-            // Usamos select() para verificar si realmente se actualizó alguna fila
-            const { data: updatedRows, error: updateError } = await supabaseClient
+            // Paso A: Obtener la orden existente para preservar extra_data
+            const { data: existingOrder, error: fetchError } = await supabaseClient
                 .from('clover_orders')
-                .update(updateData)
+                .select('id, status, extra_data')
                 .eq('pago_pago_order_id', orderId)
-                .select()
+                .single()
 
-            if (updateError) {
-                console.error(`Failed to update DB for order ${orderId}:`, updateError)
-            } else if (!updatedRows || updatedRows.length === 0) {
-                console.error(`CRITICAL: Order ${orderId} NOT FOUND in clover_orders. Update failed silently (0 rows affected).`)
+            if (fetchError) {
+                console.error(`Error fetching existing order ${orderId}:`, fetchError)
+                // Si no existe, no podemos actualizar. Retornamos 200 para no bloquear la pasarela.
+                // A menos que sea un error de conexión, pero asumiremos que si no lo encuentra es grave.
+            } else if (existingOrder) {
+                // Paso B: Preparar updateData
+                // Preservamos el existingOrder.extra_data y hacemos merge con lo nuevo
+                let finalExtraData = existingOrder.extra_data || {}
+                
+                // Si el payload trae new extra_data, lo mezclamos (prioridad al payload o al existente? 
+                // Usualmente el payload trae menos datos en error. Mejor mergeamos con cuidado).
+                if (data.extra_data) {
+                    finalExtraData = { ...finalExtraData, ...data.extra_data }
+                }
+
+                // Inyectar failure_reason si existe
+                if (failureReason) {
+                    finalExtraData.failure_reason = failureReason
+                }
+
+                // Inject entire payload snapshot for debugging trace (optional but useful)
+                finalExtraData.last_webhook_event = {
+                    event: event,
+                    received_at: new Date().toISOString(),
+                    payload_subset: { ...data, extra_data: 'omitted_recursion' } 
+                }
+
+                const updateData: any = {
+                    status: newStatus,
+                    updated_at: new Date().toISOString(),
+                    extra_data: finalExtraData,
+                }
+
+                if (data.transaction_id) {
+                    updateData.transaction_id = data.transaction_id
+                }
+                if (data.reference) {
+                    updateData.bank_reference = data.reference
+                }
+
+                // Paso C: Update
+                const { data: updatedRows, error: updateError } = await supabaseClient
+                    .from('clover_orders')
+                    .update(updateData)
+                    .eq('pago_pago_order_id', orderId)
+                    .select()
+
+                if (updateError) {
+                    console.error(`Failed to update DB for order ${orderId}:`, updateError)
+                } else {
+                    console.log(`Order ${orderId} successfully updated to ${newStatus}.`)
+                }
             } else {
-                console.log(`Order ${orderId} successfully updated. Rows affected: ${updatedRows.length}`)
+                console.warn(`Order ${orderId} not found in DB. Skipping update.`)
             }
         }
 
         // 4. Protocolo de Respuesta
-        // Responder siempre con 200 OK para confirmar recepción
         return new Response(JSON.stringify({ success: true }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         })
 
     } catch (error) {
-        // Manejo de errores global
         console.error("Critical Webhook Error:", error)
-        
-        // Retornamos 200 OK incluso en error crítico para evitar bucle de reintentos
-        // según buenas prácticas de webhooks si el error es interno nuestro.
         return new Response(JSON.stringify({ error: "Internal Server Error handled" }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
+            status: 200, // Always 200 to acknowledge receipt
         })
     }
 })
