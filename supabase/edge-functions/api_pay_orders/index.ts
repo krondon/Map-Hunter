@@ -95,7 +95,8 @@ serve(async (req) => {
             
             if (!response.ok) {
                 const errText = await response.text();
-                throw new Error(`Pago a Pago API Error (${response.status}): ${errText}`);
+                // Mask the URL for safety if needed, but usually the path is what matters
+                throw new Error(`Pago a Pago API Error (${response.status}) at ${PAGO_PAGO_URL}: ${errText}`);
             }
             
             data = await response.json();
@@ -121,7 +122,7 @@ serve(async (req) => {
 
         if (!orderId || !paymentUrl) {
              console.error("Invalid Response Data for Persistence:", data);
-             if (data.success === false) throw new Error(data.message || "Unknown API Error");
+             if (data.success === false) throw new Error(`${data.message || "Unknown API Error"} (Endpoint: ${PAGO_PAGO_URL})`);
              throw new Error("Missing order_id or payment_url in response");
         }
 
