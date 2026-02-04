@@ -84,6 +84,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
+  // Flag to prevent auto-reconnection after explicit exit
+  bool _suppressAutoJoin = false;
+  
   /// Set current event context for profile sync.
   Future<void> setCurrentEventContext(String eventId) async {
     if (_currentPlayer == null) return;
@@ -135,7 +138,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Future<void> login(String email, String password) async {
     try {
       final userId = await _authService.login(email, password);
-      await _fetchProfile(userId);
+      await restoreSession(userId);
     } catch (e) {
       debugPrint('Error logging in: $e');
       rethrow;
@@ -145,7 +148,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Future<void> register(String name, String email, String password, {String? cedula, String? phone}) async {
     try {
       final userId = await _authService.register(name, email, password, cedula: cedula, phone: phone);
-      await _fetchProfile(userId);
+      await restoreSession(userId);
     } catch (e) {
       debugPrint('Error registering: $e');
       rethrow;
@@ -269,6 +272,18 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     if (_currentPlayer != null) {
       _currentPlayer!.inventory = [];
       debugPrint('PlayerProvider: Inventory cleared for context switch.');
+      notifyListeners();
+    }
+  }
+
+  /// Explicitly clears the game context (gamePlayerId and currentEventId).
+  /// This signals that the player has exited any active competition.
+  void clearGameContext() {
+    if (_currentPlayer != null) {
+      debugPrint('PlayerProvider: 🧹 Clearing Game Context (Exiting Event)...');
+      _currentPlayer!.gamePlayerId = null;
+      _currentPlayer!.currentEventId = null; 
+      _currentPlayer!.lives = 3; // Reset lives visual to default/safe state
       notifyListeners();
     }
   }
@@ -467,8 +482,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
         return powerResult != PowerUseResult.error;
       });
       
-      debugPrint('[DEBUG] 📡 Calling startListening with gamePlayerId: ${result.gamePlayerId}');
-      effectProvider?.startListening(result.gamePlayerId);
+      debugPrint('[DEBUG] 📡 Calling startListening with gamePlayerId: ${result.gamePlayerId} and eventId: $eventId');
+      effectProvider?.startListening(result.gamePlayerId, eventId: eventId);
       
       debugPrint("GamePlayer found: ${result.gamePlayerId}");
 
@@ -582,16 +597,28 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<void> _fetchProfile(String userId, {String? eventId}) async {
+  /// Restores session by fetching profile AND auto-joining the user's latest event if applicable.
+  /// This should ONLY be called on explicit Login or App Start.
+  Future<void> restoreSession(String userId) async {
+    await _fetchProfile(userId, restoreSessionContext: true);
+  }
+
+  /// Internal fetch method.
+  /// [restoreSessionContext] : If true, it attempts to find any active game participation to auto-join.
+  /// If false (default), it strictly refreshes the CURRENT known context (or none).
+  Future<void> _fetchProfile(String userId, {String? eventId, bool restoreSessionContext = false}) async {
     try {
       // 1. Fetch basic profile
       final profileData =
           await _supabase.from('profiles').select().eq('id', userId).single();
       debugPrint('PlayerProvider: Raw profile data from DB: $profileData');
 
-      // 2. Fetch GamePlayer and Lives
-      final targetEventId = eventId ?? _currentPlayer?.currentEventId;
+      // 2. Determine which GamePlayer context to fetch (if any)
+      //    We do NOT auto-guess unless restoreSessionContext is true
       
+      final targetEventId = eventId ?? _currentPlayer?.currentEventId;
+      final currentGpId = _currentPlayer?.gamePlayerId;
+
       final baseQuery = _supabase
           .from('game_players')
           .select('id, lives, status, event_id')
@@ -600,18 +627,29 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       Map<String, dynamic>? gpData;
       
       if (targetEventId != null) {
-        debugPrint("PlayerProvider: Fetching profile for TARGET event: $targetEventId");
+        // Option A: Specific Event requested or already Active
+        debugPrint("PlayerProvider: Fetching profile for TARGET/CURRENT event: $targetEventId");
         gpData = await baseQuery.eq('event_id', targetEventId).maybeSingle();
-      } else if (_currentPlayer?.gamePlayerId != null) {
-        debugPrint("PlayerProvider: No target event, maintaining SESSION: ${_currentPlayer!.gamePlayerId}");
+      
+      } else if (currentGpId != null) {
+        // Option B: No event ID, but we have a GamePlayer ID session
+        debugPrint("PlayerProvider: Maintaining SESSION GP ID: $currentGpId");
         gpData = await _supabase
             .from('game_players')
             .select('id, lives, status, event_id')
-            .eq('id', _currentPlayer!.gamePlayerId!)
+            .eq('id', currentGpId)
             .maybeSingle();
-      } else {
-        debugPrint("PlayerProvider: No context. Fetching LATEST joined event.");
+
+      } else if (restoreSessionContext) {
+        // Option C: No context, but explicit restoration requested (Auto-Join latest)
+        debugPrint("PlayerProvider: RESTORING SESSION. Fetching LATEST joined event.");
         gpData = await baseQuery.order('joined_at', ascending: false).limit(1).maybeSingle();
+      
+      } else {
+        // Option D: No context, no specific request. (e.g. background polling while in Lobby)
+        // Do NOT fetch GamePlayer data. Stay in Lobby mode.
+        debugPrint("PlayerProvider: No active context. Skipping GamePlayer fetch (Lobby Mode).");
+        gpData = null;
       }
 
       List<String> realInventory = [];
@@ -950,6 +988,165 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           .eq('game_player_id', gpId)
           .eq('power_id', powerUuid)
           .maybeSingle();
+     /// Load shop items configuration from service.
+  Future<void> loadShopItems() async {
+    try {
+      final configs = await _powerService.getPowerConfigs();
+      
+      _shopItems = _shopItems.map((item) {
+          final matches = configs.where((d) => d['slug'] == item.id);
+          final config = matches.isNotEmpty ? matches.first : null;
+
+          if (config != null) {
+            final int duration = (config['duration'] as num?)?.toInt() ?? 0;
+            
+            String newDesc = item.description;
+            if (duration > 0) {
+              newDesc = newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
+            }
+
+            return item.copyWith(
+              durationSeconds: duration,
+              description: newDesc,
+            );
+          }
+          return item;
+        }).toList();
+        
+        notifyListeners();
+    } catch (e) {
+      debugPrint("PlayerProvider: Error loading shop items: $e");
+    }
+  }
+
+  // ============================================================
+  // AUTHENTICATION (delegated to AuthService)
+  // ============================================================
+
+  Future<void> login(String email, String password) async {
+    try {
+      final userId = await _authService.login(email, password);
+      await _fetchProfile(userId);
+    } catch (e) {
+      debugPrint('Error logging in: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> register(String name, String email, String password, {String? cedula, String? phone}) async {
+    try {
+      final userId = await _authService.register(name, email, password, cedula: cedula, phone: phone);
+      await _fetchProfile(userId);
+    } catch (e) {
+      debugPrint('Error registering: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> resetPassword(String email) async {
+    try {
+      await _authService.resetPassword(email);
+    } catch (e) {
+      debugPrint('Error resetting password: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _authService.updatePassword(newPassword);
+    } catch (e) {
+      debugPrint('Error updating password: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateAvatar(String avatarId) async {
+    if (_currentPlayer == null) return;
+    try {
+      // 1. Cache locally for immediate and offline access
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_avatar_${_currentPlayer!.userId}', avatarId);
+      debugPrint('PlayerProvider: Avatar $avatarId cached locally');
+
+      // 2. Update DB
+      await _authService.updateAvatar(_currentPlayer!.userId, avatarId);
+      
+      // 3. Update memory and notify
+      _currentPlayer = _currentPlayer!.copyWith(avatarId: avatarId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating avatar: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateProfile({String? name, String? email}) async {
+    if (_currentPlayer == null) return;
+    try {
+      await _authService.updateProfile(_currentPlayer!.userId, name: name, email: email);
+      
+      // Actualizar localmente
+      if (name != null) {
+        _currentPlayer = _currentPlayer!.copyWith(name: name);
+      }
+      if (email != null) {
+        _currentPlayer = _currentPlayer!.copyWith(email: email);
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating profile in provider: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> logout({bool clearBanMessage = true}) async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
+
+    // Use centralized AuthService logout which triggers callbacks
+    await _authService.logout();
+    
+    // Note: Local reset() will be called via callback registered in main.dart
+    // But we keep basic cleanup locally for safety if not registered
+    
+    if (clearBanMessage) {
+      _banMessage = null;
+    }
+    
+    _isLoggingOut = false;
+  }
+
+  /// Global Reset: Clears all user session data
+  /// Implementación de IResettable
+  @override
+  void resetState() {
+    _pollingTimer?.cancel();
+    _profileSubscription?.cancel();
+    _profileSubscription = null;
+    _gamePlayersSubscription?.cancel();
+    _gamePlayersSubscription = null;
+
+    _currentPlayer = null;
+    _eventInventories.clear();
+    // _banMessage is optional to clear depending on UX, usually yes on logout
+    // But we might want to show WHY they were logged out. 
+    // For now, clear it.
+    _banMessage = null;
+    
+    notifyListeners();
+  }
+
+  /// Clears the current player's inventory list explicitly.
+  /// Used to prevent ghost data when switching events.
+  void clearCurrentInventory() {
+    if (_currentPlayer != null) {
+      _currentPlayer!.inventory = [];
+      debugPrint('PlayerProvider: Inventory cleared for context switch.');
+      notifyListeners();
+    }
+  }
       if (existing != null) {
         await _supabase
             .from('player_powers')

@@ -169,9 +169,13 @@ class PowerEffectProvider extends ChangeNotifier {
     _lifeStealVictimHandler = handler;
   }
 
-  void startListening(String? myGamePlayerId, {bool forceRestart = false}) {
+  String? _listeningForEventId;
+  String? get listeningForEventId => _listeningForEventId;
+
+  void startListening(String? myGamePlayerId, {String? eventId, bool forceRestart = false}) {
     debugPrint('[DEBUG] 📡 PowerEffectProvider.startListening() CALLED');
     debugPrint('[DEBUG]    myGamePlayerId: $myGamePlayerId');
+    debugPrint('[DEBUG]    eventId: $eventId');
     
     final supabase = _supabaseClient;
     if (supabase == null) {
@@ -190,18 +194,20 @@ class PowerEffectProvider extends ChangeNotifier {
       return;
     }
 
-    if (myGamePlayerId == _listeningForId && _subscription != null && !forceRestart) {
-      debugPrint('[DEBUG] ⏭️ Already listening for $myGamePlayerId, skipping restart.');
+    if (myGamePlayerId == _listeningForId && eventId == _listeningForEventId && _subscription != null && !forceRestart) {
+      debugPrint('[DEBUG] ⏭️ Already listening for $myGamePlayerId (Event: $eventId), skipping restart.');
       return;
     }
     
     _clearAllEffects(); 
 
     _listeningForId = myGamePlayerId;
+    _listeningForEventId = eventId;
     _sessionStartTime = DateTime.now().toUtc();
     _processedEffectIds.clear();
 
-    // 1. Listen for Active Powers (Duration Effects)
+    // 1. Listen for Active Powers
+    // NOTE: We filter event_id client-side to avoid SupabaseStreamBuilder typing issues
     _subscription = supabase
         .from('active_powers')
         .stream(primaryKey: ['id'])
@@ -212,7 +218,7 @@ class PowerEffectProvider extends ChangeNotifier {
           debugPrint('PowerEffectProvider active_powers stream error: $e');
         });
 
-    // 2. Listen for Outgoing Powers (Reflections)
+    // 2. Listen for Outgoing Powers
     _casterSubscription = supabase
         .from('active_powers')
         .stream(primaryKey: ['id'])
@@ -223,7 +229,7 @@ class PowerEffectProvider extends ChangeNotifier {
           debugPrint('PowerEffectProvider outgoing stream error: $e');
         });
 
-    // 3. Listen for Combat Events (Instant Results like Blocked Attacks)
+    // 3. Listen for Combat Events
     _combatEventsSubscription = supabase
         .from('combat_events')
         .stream(primaryKey: ['id'])
@@ -244,6 +250,16 @@ class PowerEffectProvider extends ChangeNotifier {
     final event = data.first;
     final createdAtStr = event['created_at'];
     if (createdAtStr == null) return;
+    
+    // FILTER: Event ID
+    if (_listeningForEventId != null) {
+      final eventId = event['event_id']?.toString();
+      // If event has an ID and it doesn't match our context, ignore it.
+      if (eventId != null && eventId != _listeningForEventId) {
+         debugPrint('[COMBAT] 🛑 Ignoring event from different event_id: $eventId (Expected: $_listeningForEventId)');
+         return;
+      }
+    }
     
     final createdAt = DateTime.parse(createdAtStr);
     if (_sessionStartTime != null && createdAt.isBefore(_sessionStartTime!)) return;
@@ -280,6 +296,12 @@ class PowerEffectProvider extends ChangeNotifier {
 
     final now = DateTime.now().toUtc();
     for (final effect in data) {
+      // FILTER: Event ID
+      if (_listeningForEventId != null) {
+        final evId = effect['event_id']?.toString();
+        if (evId != null && evId != _listeningForEventId) continue;
+      }
+
       final createdAtStr = effect['created_at'];
       final createdAt = DateTime.parse(createdAtStr);
       final ageSeconds = now.difference(createdAt).inSeconds;
@@ -305,6 +327,14 @@ class PowerEffectProvider extends ChangeNotifier {
     String? casterId,
     required DateTime expiresAt,
   }) {
+    // 🛡️ RACE CONDITION FIX:
+    // If we stopped listening (user left game), do NOT apply new effects.
+    // This prevents async packets from "zombie" streams applying effects after exit.
+    if (_listeningForId == null) {
+       debugPrint('[DEBUG] 🛑 applyEffect BLOCKED: Not listening for any player.');
+       return;
+    }
+
     // Si ya existe, cancelamos su timer anterior (reset duration logic)
     _activeEffects[slug]?.timer.cancel();
 
@@ -351,6 +381,18 @@ class PowerEffectProvider extends ChangeNotifier {
       final targetId = effect['target_id'];
       final createdAtStr = effect['created_at'];
       if (_listeningForId == null || targetId != _listeningForId) return false;
+      
+       // 2. Event ID Check (New)
+      if (_listeningForEventId != null) {
+        final effectEventId = effect['event_id']?.toString();
+        // Strict filtering: If listening for specific event, effect must match.
+        // If effect has 'null' event_id, we might accept it? Or reject?
+        // Assuming offensive powers always have event_id.
+        if (effectEventId != null && effectEventId != _listeningForEventId) {
+             return false;
+        }
+      }
+
       if (_sessionStartTime != null && createdAtStr != null) {
          final createdAt = DateTime.parse(createdAtStr);
          final adjustedSessionStart = _sessionStartTime!.subtract(const Duration(seconds: 5));

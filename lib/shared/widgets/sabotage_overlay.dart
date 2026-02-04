@@ -102,13 +102,19 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     if (!mounted) return;
     final newGamePlayerId = _playerProviderRef?.currentPlayer?.gamePlayerId;
     
-    // Solo reconfigurar si el ID cambió a un valor válido
-    if (newGamePlayerId != null && 
-        newGamePlayerId.isNotEmpty && 
-        newGamePlayerId != _lastKnownGamePlayerId) {
-      debugPrint('[DEBUG] 🔄 SabotageOverlay: gamePlayerId CHANGED: $_lastKnownGamePlayerId -> $newGamePlayerId');
-      _lastKnownGamePlayerId = newGamePlayerId;
-      _tryStartListening();
+    // Detectar cualquier cambio de ID
+    if (newGamePlayerId != _lastKnownGamePlayerId) {
+       debugPrint('[DEBUG] 🔄 SabotageOverlay: gamePlayerId CHANGED: $_lastKnownGamePlayerId -> $newGamePlayerId');
+       _lastKnownGamePlayerId = newGamePlayerId;
+
+       // Si el nuevo ID es válido, iniciamos escucha.
+       // Si es null/vacío (salió del juego), detenemos la escucha explícitamente.
+       if (newGamePlayerId != null && newGamePlayerId.isNotEmpty) {
+         _tryStartListening();
+       } else {
+         debugPrint('[DEBUG] 🛑 SabotageOverlay: Stopping listener (User left game)');
+         _powerProviderRef?.startListening(null, forceRestart: true);
+       }
     }
   }
 
@@ -212,10 +218,12 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     if (powerProvider == null || playerProvider == null) return;
 
     final currentGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
+    final currentEventId = playerProvider.currentPlayer?.currentEventId;
+    
     if (currentGamePlayerId != null && currentGamePlayerId.isNotEmpty) {
-      debugPrint('[DEBUG] 🔄 SabotageOverlay: Iniciando listener con gamePlayerId: $currentGamePlayerId');
+      debugPrint('[DEBUG] 🔄 SabotageOverlay: Iniciando listener con gamePlayerId: $currentGamePlayerId, eventId: $currentEventId');
       _lastKnownGamePlayerId = currentGamePlayerId;
-      powerProvider.startListening(currentGamePlayerId, forceRestart: true);
+      powerProvider.startListening(currentGamePlayerId, eventId: currentEventId, forceRestart: true);
     } else {
       debugPrint('[DEBUG] ⚠️ SabotageOverlay: gamePlayerId aún es NULL, esperando cambio...');
     }
@@ -241,7 +249,21 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     // Use cached refs instead of context access
     final powerProvider = _powerProviderRef;
     final gameProvider = _gameProviderRef;
-    if (powerProvider == null || gameProvider == null) return;
+    final playerProvider = _playerProviderRef;
+    
+    if (powerProvider == null || gameProvider == null || playerProvider == null) return;
+    
+    // ⚡ HARD GATE: Si no hay gamePlayerId, NO BLOQUEAMOS NADA.
+    // Esto previene que efectos "fantasma" que llegan justo al salir bloqueen la UI.
+    final gpId = playerProvider.currentPlayer?.gamePlayerId;
+    if (gpId == null || gpId.isEmpty) {
+        if (_isBlockingActive) {
+            debugPrint("✅ DESBLOQUEANDO NAVEGACIÓN (Hard Gate triggered) ✅");
+            rootNavigatorKey.currentState?.pop();
+            _isBlockingActive = false;
+        }
+        return;
+    }
     
     // Check concurrent blocking effects
     final isFreezeActive = powerProvider.isEffectActive('freeze');
@@ -312,231 +334,204 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final powerProvider = Provider.of<PowerEffectProvider>(context);
-    // Usamos _localDefenseAction en lugar de activeDefenseAction del provider
-    final defenseAction = _localDefenseAction;
-    final playerProvider = Provider.of<PlayerProvider>(context);
-    // Detectamos si el usuario actual es invisible según el PlayerProvider
-    final isPlayerInvisible =
-        playerProvider.currentPlayer?.isInvisible ?? false;
-    
-    // Concurrent Effect Checks
-    final isBlackScreen = powerProvider.isEffectActive('black_screen');
-    final isFreeze = powerProvider.isEffectActive('freeze');
-    final isBlur = powerProvider.isEffectActive('blur_screen');
-    final isInvisible = powerProvider.isEffectActive('invisibility');
-    
-    // RESTORED: Variables needed for legacy Blur check
-    final activeSlug = powerProvider.activePowerSlug;
-    final effectId = powerProvider.activeEffectId;
-
-    // Banner blur_screen: Notificar quién te saboteó con visión borrosa
-    // Mantenemos la lógica de estado persistente para BLUR ya que tiene duración
-    // Pero la notificación podría moverse a evento también. Por ahora lo dejamos como estaba.
-    // O mejor, eliminamos la lógica compleja de detección de cambio de ID si es posible.
-    // El request pedía "Elimina comprobaciones de activePowerSlug".
-    // Blur es un efecto de duración, así que 'isBlur' (line 265) sigue siendo válido para el efecto visual.
-    // La notificación "XXX te nubló la vista" debería ser un evento, pero no tenemos evento 'blurApplied' todavía en el provider.
-    // Dejaremos Blur como está por ahora, limpiando solo LifeSteal.
-    
-    final isNewBlur =
-        activeSlug == 'blur_screen' && effectId != _lastBlurEffectId;
-
-    if (isNewBlur) {
-      _lastBlurEffectId = effectId;
-      final attackerName =
-          _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
-      
-      // FIX: Mensaje diferente si el jugador era invisible (el ataque falló visualmente)
-      final bool isProtected = isPlayerInvisible || isInvisible;
-      final String msg = isProtected
-          ? '🌫️ ¡$attackerName intentó nublarte!'
-          : '🌫️ ¡$attackerName te nubló la vista!';
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _showLifeStealBanner(msg);
-      });
-    }
-
-    return Stack(
-      children: [
-        widget.child, // El juego base siempre debajo
-
-        // Capas de sabotaje (se activan concurrente)
-        if (isBlackScreen) 
-            BlindEffect(expiresAt: powerProvider.getPowerExpiration('black_screen')),
+    // Usamos Consumer para escuchar cambios de forma segura en el árbol de widgets
+    // Esto evita problemas de assertions durante reclasificación de ancestros (reparanting)
+    return Consumer3<PowerEffectProvider, PlayerProvider, GameProvider>(
+      builder: (context, powerProvider, playerProvider, gameProvider, child) {
         
-        if (isFreeze) 
-            FreezeEffect(expiresAt: powerProvider.getPowerExpiration('freeze')),
+        // Usamos _localDefenseAction en lugar de activeDefenseAction del provider
+        final defenseAction = _localDefenseAction;
+        
+        // Detectamos si el usuario actual es invisible según el PlayerProvider
+        final isPlayerInvisible = playerProvider.currentPlayer?.isInvisible ?? false;
+        
+        // ⚡ HARD GATE: Si no hay gamePlayerId, NO mostramos NADA de sabotaje.
+        final gpId = playerProvider.currentPlayer?.gamePlayerId;
+        if (gpId == null) {
+          return child ?? const SizedBox();
+        }
+        
+        // Concurrent Effect Checks
+        final isBlackScreen = powerProvider.isEffectActive('black_screen');
+        final isFreeze = powerProvider.isEffectActive('freeze');
+        final isBlur = powerProvider.isEffectActive('blur_screen');
+        final isInvisible = powerProvider.isEffectActive('invisibility');
+        
+        final activeSlug = powerProvider.activePowerSlug;
+        final effectId = powerProvider.activeEffectId;
+
+        // Blur Notification Logic
+        final isNewBlur = activeSlug == 'blur_screen' && effectId != _lastBlurEffectId;
+
+        if (isNewBlur) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+             _lastBlurEffectId = effectId;
+             final attackerName = _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+             final bool isProtected = isPlayerInvisible || isInvisible;
+             final String msg = isProtected
+                ? '🌫️ ¡$attackerName intentó nublarte!'
+                : '🌫️ ¡$attackerName te nubló la vista!';
+             _showLifeStealBanner(msg);
+          });
+        }
+
+        return Stack(
+          children: [
+            child ?? const SizedBox(),
             
-        // blur_screen reutiliza el efecto visual de invisibility para los rivales.
-         // FIX: Si el jugador es invisible, NO debe verse afectado por la pantalla borrosa.
-         if (isBlur && !isPlayerInvisible && !isInvisible)
-           BlurScreenEffect(expiresAt: powerProvider.getPowerExpirationByType(PowerType.blur) ?? DateTime.now().add(const Duration(seconds: 5))), 
+            // ... resto de efectos usando las variables locales
+            if (isBlackScreen) 
+                BlindEffect(expiresAt: powerProvider.getPowerExpiration('black_screen')),
+            
+            if (isFreeze) 
+                FreezeEffect(expiresAt: powerProvider.getPowerExpiration('freeze')),
+                
+             if (isBlur && !isPlayerInvisible && !isInvisible)
+               BlurScreenEffect(expiresAt: powerProvider.getPowerExpirationByType(PowerType.blur) ?? DateTime.now().add(const Duration(seconds: 5))), 
 
-        if (defenseAction == DefenseAction.returned) ...[
-          if (powerProvider.returnedByPlayerName != null)
-             ReturnRejectionEffect(
-              returnedBy: powerProvider.returnedByPlayerName!,
-            ),
-          
-          if (powerProvider.returnedAgainstCasterId != null)
-            ReturnSuccessEffect(
-              attackerName: _resolvePlayerNameFromLeaderboard(
-                  powerProvider.returnedAgainstCasterId),
-              powerSlug: powerProvider.returnedPowerSlug,
-            ),
-        ],
-        
-        // LIFESTEAL: Usa estado local (desacoplado de expiración BD)
-        if (_showLifeStealAnimation && _lifeStealCasterName != null)
-          LifeStealEffect(
-            key: ValueKey(_lifeStealCasterName),
-            casterName: _lifeStealCasterName!,
-          ),
+            if (defenseAction == DefenseAction.returned) ...[
+              if (powerProvider.returnedByPlayerName != null)
+                 ReturnRejectionEffect(
+                  returnedBy: powerProvider.returnedByPlayerName!,
+                ),
+              
+              if (powerProvider.returnedAgainstCasterId != null)
+                ReturnSuccessEffect(
+                  attackerName: _resolvePlayerNameFromLeaderboard(
+                      powerProvider.returnedAgainstCasterId),
+                  powerSlug: powerProvider.returnedPowerSlug,
+                ),
+            ],
+            
+            if (_showLifeStealAnimation && _lifeStealCasterName != null)
+              LifeStealEffect(
+                key: ValueKey(_lifeStealCasterName),
+                casterName: _lifeStealCasterName!,
+              ),
 
+            if (isPlayerInvisible || isInvisible)
+              InvisibilityEffect(expiresAt: powerProvider.getPowerExpiration('invisibility')),
 
+            if (defenseAction == DefenseAction.shieldBlocked || 
+                defenseAction == DefenseAction.attackBlockedByEnemy)
+              _DefenseFeedbackToast(action: defenseAction),
 
-        // --- ESTADOS BENEFICIOSOS (BUFFS) ---
-        if (isPlayerInvisible || isInvisible)
-          InvisibilityEffect(expiresAt: powerProvider.getPowerExpiration('invisibility')),
+            if (_showShieldBreakAnimation) ...[
+                 ShieldBreakEffect(),
+                 _DefenseFeedbackToast(action: defenseAction),
+            ],
 
-        if (defenseAction == DefenseAction.shieldBlocked || 
-            defenseAction == DefenseAction.attackBlockedByEnemy)
-          _DefenseFeedbackToast(action: defenseAction),
+            if (_showAttackBlockedAnimation) ...[
+                 ShieldBreakingEffect(
+                    title: '¡ATAQUE BLOQUEADO!',
+                    subtitle: 'El objetivo tenía un escudo activo',
+                 ),
+                 _DefenseFeedbackToast(action: defenseAction),
+            ],
 
-        if (_showShieldBreakAnimation) ...[
-             ShieldBreakEffect(
-               onComplete: () {
-                  // Opcional: resetear estado si queremos, pero el timer lo hará.
-               },
-             ),
-             _DefenseFeedbackToast(action: defenseAction),
-        ],
+            if (defenseAction == DefenseAction.stealFailed)
+              StealFailedEffect(
+                key: ValueKey(
+                  powerProvider.lastDefenseActionAt?.millisecondsSinceEpoch ?? 0,
+                ),
+              ),
 
-        if (_showAttackBlockedAnimation) ...[
-             ShieldBreakingEffect(
-                title: '¡ATAQUE BLOQUEADO!',
-                subtitle: 'El objetivo tenía un escudo activo',
-             ),
-             _DefenseFeedbackToast(action: defenseAction),
-        ],
-
-        if (defenseAction == DefenseAction.stealFailed)
-          StealFailedEffect(
-            key: ValueKey(
-              powerProvider.lastDefenseActionAt?.millisecondsSinceEpoch ?? 0,
-            ),
-          ),
-
-        if (_lifeStealBannerText != null)
-          Positioned(
-            top: 50, // Bajado para evitar overlap con barra de estado
-            left: 12,
-            right: 12,
-            child: Material(
-              color: Colors.transparent,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Container(
-                  key: ValueKey(_lifeStealBannerText),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade900.withOpacity(0.92),
-                    borderRadius: BorderRadius.circular(14),
-                    border:
-                        Border.all(color: Colors.redAccent.withOpacity(0.6)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: Colors.white),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _lifeStealBannerText!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                            decoration: TextDecoration.none,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+            if (_lifeStealBannerText != null)
+              Positioned(
+                top: 50,
+                left: 12,
+                right: 12,
+                child: Material(
+                  color: Colors.transparent,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      key: ValueKey(_lifeStealBannerText),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade900.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
                       ),
-                    ],
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _lifeStealBannerText!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                decoration: TextDecoration.none,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-
-        // Feedback rápido para el atacante cuando su acción fue bloqueada o falló.
-        
-        if (_showNoLivesFromSteal)
-          GameOverOverlay(
-            title: _noLivesTitle,
-            message: _noLivesMessage,
-            onRetry: _noLivesCanRetry ? () {
-              setState(() {
-                _showNoLivesFromSteal = false;
-              });
-              // El usuario sigue en pantalla y puede continuar
-            } : null,
-            onExit: () {
-              setState(() {
-                _showNoLivesFromSteal = false;
-              });
-              rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-            },
-            onGoToShop: _noLivesShowShop ? () async {
-              // 1. Ocultar el overlay
-              setState(() {
-                _showNoLivesFromSteal = false;
-              });
               
-              // 2. Navegar a la tienda
-              await rootNavigatorKey.currentState?.push(
-                MaterialPageRoute(builder: (_) => const MallScreen()),
-              );
-              
-              if (!mounted) return;
-
-              // 3. Verificar vidas al regresar (Sincronizar ambos providers)
-              await _playerProviderRef?.refreshProfile();
-              final userId = _playerProviderRef?.currentPlayer?.userId;
-              if (userId != null) {
-                await _gameProviderRef?.fetchLives(userId);
-              }
-
-              final lives = _playerProviderRef?.currentPlayer?.lives ?? 0;
-              
-              if (lives > 0) {
-                 // TIENE VIDAS! -> Mostrar Retry
-                 setState(() {
-                   _showNoLivesFromSteal = true;
-                   _noLivesTitle = '¡VIDAS OBTENIDAS!';
-                   _noLivesMessage = 'Ahora tienes $lives vidas.\nPuedes continuar jugando.';
-                   _noLivesCanRetry = true;
-                   _noLivesShowShop = false;
-                 });
-              } else {
-                 // SEGUIMOS SIN VIDAS -> Mostrar popup original
-                 setState(() {
-                   _showNoLivesFromSteal = true;
-                   _noLivesTitle = '¡SIN VIDAS!';
-                   _noLivesMessage = 'Aún no tienes vidas.\nNecesitas comprar más vidas para continuar.';
-                   _noLivesCanRetry = false;
-                   _noLivesShowShop = true;
-                 });
-              }
-            } : null,
-          ),
-      ],
+            if (_showNoLivesFromSteal)
+               _buildGameOverOverlay(),
+          ],
+        );
+      },
+      child: widget.child,
     );
+  }
+
+  Widget _buildGameOverOverlay() {
+      return GameOverOverlay(
+        title: _noLivesTitle,
+        message: _noLivesMessage,
+        onRetry: _noLivesCanRetry ? () {
+          setState(() {
+            _showNoLivesFromSteal = false;
+          });
+        } : null,
+        onExit: () {
+          setState(() {
+            _showNoLivesFromSteal = false;
+          });
+          rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+        },
+        onGoToShop: _noLivesShowShop ? () async {
+          setState(() {
+            _showNoLivesFromSteal = false;
+          });
+          await rootNavigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => const MallScreen()),
+          );
+          if (!mounted) return;
+          await _playerProviderRef?.refreshProfile();
+          final userId = _playerProviderRef?.currentPlayer?.userId;
+          if (userId != null) {
+            await _gameProviderRef?.fetchLives(userId);
+          }
+          final lives = _playerProviderRef?.currentPlayer?.lives ?? 0;
+          setState(() {
+             _showNoLivesFromSteal = true;
+             if (lives > 0) {
+               _noLivesTitle = '¡VIDAS OBTENIDAS!';
+               _noLivesMessage = 'Ahora tienes $lives vidas.\nPuedes continuar jugando.';
+               _noLivesCanRetry = true;
+               _noLivesShowShop = false;
+             } else {
+               _noLivesTitle = '¡SIN VIDAS!';
+               _noLivesMessage = 'Aún no tienes vidas.\nNecesitas comprar más vidas para continuar.';
+               _noLivesCanRetry = false;
+               _noLivesShowShop = true;
+             }
+          });
+        } : null,
+      );
   }
 }
 

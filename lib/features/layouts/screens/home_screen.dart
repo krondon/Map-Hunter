@@ -55,12 +55,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Cache provider to avoid context usage in dispose
   late GameProvider _gameProviderRef;
+  late PlayerProvider _playerProviderRef;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Guardamos la referencia segura mientras el widget está activo
     _gameProviderRef = Provider.of<GameProvider>(context, listen: false);
+    _playerProviderRef = Provider.of<PlayerProvider>(context, listen: false);
   }
 
   @override
@@ -68,7 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Usamos la referencia guardada, no el context
     WidgetsBinding.instance.addPostFrameCallback((_) {
         _gameProviderRef.resetState();
-        debugPrint("HomeScreen disposed: Game Set Reset (Safe)");
+        _playerProviderRef.clearGameContext(); // ⚡ CRITICAL: Stops SabotageOverlay
+        debugPrint("HomeScreen disposed: Game Set Reset & Player Context Cleared");
     });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();

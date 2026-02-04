@@ -12,6 +12,7 @@ import '../providers/event_provider.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../auth/providers/player_inventory_provider.dart'; // NEW
+import '../providers/power_effect_provider.dart';
 import '../../../core/providers/app_mode_provider.dart';
 import '../providers/game_request_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -89,10 +90,36 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      
+      // CLEANUP: Ensure we are disconnected from any previous game
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final powerProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+      
+      debugPrint("🧹 ScenariosScreen: Forcing Game State Cleanup...");
+      _cleanupGameState();
+      
       _loadEvents();
       // Empezar a precargar el video del primer avatar para que sea instantáneo
       VideoPreloadService().preloadVideo('assets/escenarios.avatar/explorer_m_scene.mp4');
     });
+  }
+
+  /// Cleans up any active game session data to prevent ghost effects or state leaks.
+  void _cleanupGameState() {
+      if (!mounted) return;
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final powerProvider = Provider.of<PowerEffectProvider>(context, listen: false);
+      
+      debugPrint("🧹 ScenariosScreen: Forcing Game State Cleanup...");
+      
+      // Schedule to avoid frame collision during navigation pop
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+          gameProvider.resetState(); 
+          playerProvider.clearGameContext(); 
+          powerProvider.startListening(null, forceRestart: true);
+      });
   }
 
   Future<void> _loadEvents() async {
@@ -205,7 +232,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => HomeScreen(eventId: scenario.id)));
+                          builder: (_) => HomeScreen(eventId: scenario.id))).then((_) {
+                            _cleanupGameState();
+                          });
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
