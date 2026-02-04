@@ -206,35 +206,41 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   void _updateGame() {
     if (!_isPlaying || _isGameOver) return;
     
+    // 1. Calculate Next Head based on current/next direction
+    // We update _direction here temporarily for calculation, committed in setState later if valid
+    Direction currentMoveDir = _nextDirection;
+    
+    Point<int> newHead;
+    switch (currentMoveDir) {
+        case Direction.up:    newHead = Point(_snake.first.x, _snake.first.y - 1); break;
+        case Direction.down:  newHead = Point(_snake.first.x, _snake.first.y + 1); break;
+        case Direction.left:  newHead = Point(_snake.first.x - 1, _snake.first.y); break;
+        case Direction.right: newHead = Point(_snake.first.x + 1, _snake.first.y); break;
+    }
+
+    // 2. Check Collisions (Pure Logic)
+    
+    // Colisión Paredes
+    if (newHead.x < 0 || newHead.x >= cols || newHead.y < 0 || newHead.y >= rows) {
+        _handleCrash("¡Chocaste con la pared!");
+        return;
+    }
+
+    // Colisión a sí mismo
+    if (_snake.contains(newHead)) {
+         _handleCrash("¡Te mordiste la cola!");
+         return;
+    }
+
+    // Colisión Obstáculos
+    if (_obstacles.contains(newHead)) {
+         _handleCrash("¡Chocaste con una roca!");
+         return; 
+    }
+
+    // 3. Commit Valid Move
     setState(() {
-        _direction = _nextDirection;
-        
-        Point<int> newHead;
-        switch (_direction) {
-            case Direction.up:    newHead = Point(_snake.first.x, _snake.first.y - 1); break;
-            case Direction.down:  newHead = Point(_snake.first.x, _snake.first.y + 1); break;
-            case Direction.left:  newHead = Point(_snake.first.x - 1, _snake.first.y); break;
-            case Direction.right: newHead = Point(_snake.first.x + 1, _snake.first.y); break;
-        }
-
-        // Colisión Paredes
-        if (newHead.x < 0 || newHead.x >= cols || newHead.y < 0 || newHead.y >= rows) {
-            _handleCrash("¡Chocaste con la pared!");
-            return;
-        }
-
-        // Colisión a sí mismo
-        if (_snake.contains(newHead)) {
-             _handleCrash("¡Te mordiste la cola!");
-             return;
-        }
-
-        // Colisión Obstáculos
-        if (_obstacles.contains(newHead)) {
-             _handleCrash("¡Chocaste con una roca!");
-             return; 
-        }
-
+        _direction = currentMoveDir;
         _snake.insert(0, newHead);
 
         // Comer
@@ -273,37 +279,68 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   }
 
   void _handleCrash(String reason) {
-    setState(() {
-      _crashAllowance--;
-    });
+    try {
+      debugPrint("💥 CRASH DETECTED START: $reason");
+      
+      // Stop game loop immediately to prevent multiple calls
+      _gameLoop?.cancel();
+      debugPrint("Timer cancelled successfully.");
 
-    if (_crashAllowance <= 0) {
-       _loseGlobalLife("¡Agotaste tus intentos!"); 
-    } else {
-       // Pausar y Feedback
-       _gameLoop?.cancel();
+      // Show Feedback (Wrap in try-catch in case Context is invalid, though unlikely)
+      try {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Hide previous if any
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("¡Choque! Intentos restantes: ${_crashAllowance - 1}. Reiniciando..."), 
+              duration: const Duration(milliseconds: 1000),
+              backgroundColor: AppTheme.warningOrange,
+            )
+        );
+      } catch (e) {
+        debugPrint("Error showing SnackBar: $e");
+      }
 
-       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("¡Choque! Intentos: $_crashAllowance. Reiniciando posición..."), 
-            duration: const Duration(milliseconds: 1200),
-            backgroundColor: AppTheme.warningOrange,
-          )
-       );
-       
-       setState(() {
-          // Resetear solo la serpiente, mantener score y tiempo
-          _snake = [const Point(7, 7), const Point(6, 7), const Point(5, 7)];
-          _direction = Direction.right;
-          _nextDirection = Direction.right;
-       });
-       
-       // Reanudar
-       Future.delayed(const Duration(seconds: 1), () {
-         if (!_isGameOver && mounted) {
-             _startGameLoop();
-         }
-       });
+      // State Update
+      setState(() {
+        debugPrint("Decreasing crash allowance. Current: $_crashAllowance");
+        _crashAllowance--;
+        
+        if (_crashAllowance > 0) {
+            // 1. Reset Snake
+            _snake = [const Point(7, 7), const Point(6, 7), const Point(5, 7)];
+            _direction = Direction.right;
+            _nextDirection = Direction.right;
+            
+            // 2. Clear Safe Zone
+            final safeZone = [
+              const Point(7, 7), const Point(6, 7), const Point(5, 7), 
+              const Point(8, 7)
+            ];
+            _obstacles.removeWhere((obs) => safeZone.contains(obs));
+            
+            // 3. FORCE REBUILD OF BOARD
+            _boardKey = UniqueKey();
+            debugPrint("Board Reset Key: $_boardKey");
+        }
+      });
+
+      if (_crashAllowance <= 0) {
+         _loseGlobalLife("¡Agotaste tus intentos!"); 
+      } else {
+         debugPrint("Scheduling restart...");
+         // Resume loop after delay
+         Future.delayed(const Duration(milliseconds: 1200), () {
+           if (mounted && !_isGameOver) {
+               debugPrint("RESUMING GAME LOOP NOW (Future).");
+               _startGameLoop();
+           } else {
+               debugPrint("Restart aborted: mounted=$mounted, gameOver=$_isGameOver");
+           }
+         });
+      }
+    } catch (e, stack) {
+      debugPrint("CRITICAL ERROR IN HANDLE_CRASH: $e");
+      debugPrint(stack.toString());
     }
   }
 
@@ -353,6 +390,9 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
       if (_direction == Direction.right && newDir == Direction.left) return;
       _nextDirection = newDir;
   }
+
+  // Force Rebuild Key
+  Key _boardKey = UniqueKey();
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +491,6 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                 onPanEnd: (details) {
                                     final velocity = details.velocity.pixelsPerSecond;
                                     if (velocity.distance < 100) return; 
-
                                     if (velocity.dx.abs() > velocity.dy.abs()) {
                                         if (velocity.dx > 0) _onChangeDirection(Direction.right);
                                         else _onChangeDirection(Direction.left);
@@ -461,6 +500,7 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                     }
                                 },
                                 child: AspectRatio(
+                                    key: _boardKey, // FORCE REBUILD ON CRASH
                                     aspectRatio: cols / rows,
                                     child: Container(
                                         decoration: BoxDecoration(
@@ -504,12 +544,11 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                                             final index = entry.key;
                                                             final part = entry.value;
                                                             final isHead = index == 0;
-                                                            
-                                                            // Logic COLOR: Green usually, Orange if Turbo Mode
                                                             Color bodyColor = _isOrangeMode ? Colors.orange : Colors.greenAccent[700]!;
                                                             Color headColor = _isOrangeMode ? Colors.deepOrange : AppTheme.successGreen;
 
                                                             return Positioned(
+                                                                key: ValueKey('snake_${index}_${part.x}_${part.y}'),
                                                                 left: part.x * cellSize,
                                                                 top: part.y * cellSize,
                                                                 child: Container(
@@ -539,8 +578,6 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                                                     ),
                                                                 ),
                                                             ),
-                                                        
-
 
                                                         if (_showingPreStart)
                                                           _buildPreStartOverlay(cellSize),
