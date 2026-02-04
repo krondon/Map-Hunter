@@ -15,6 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/payment_profile_dialog.dart';
 import '../widgets/payment_method_selector.dart';
 import '../widgets/add_payment_method_dialog.dart';
+import '../../wallet/widgets/withdrawal_method_selector.dart';
 
 final bcv_dolar = 1;
 
@@ -690,19 +691,27 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _showWithdrawDialog() {
-    final amountController = TextEditingController();
-    final bankController = TextEditingController(); // Código banco (ej: 0102)
-    final phoneController = TextEditingController(); // 0424...
-    final dniController = TextEditingController(); // V12345678
-    
-    // Prefill data if available
-    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-    if (player != null) {
-      phoneController.text = player.phone ?? '';
-      dniController.text = player.cedula ?? '';
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => WithdrawalMethodSelector(
+        onMethodSelected: (method) {
+          Navigator.pop(ctx);
+          // Allow bottom sheet animation to finish
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) _showWithdrawAmountDialog(method);
+          });
+        },
+      ),
+    );
+  }
 
+  void _showWithdrawAmountDialog(Map<String, dynamic> method) {
+    final amountController = TextEditingController();
     bool isLoading = false;
+    final bankCode = method['bank_code'] ?? '???';
+    final phone = method['phone_number'] ?? '???';
 
     showDialog(
       context: context,
@@ -716,148 +725,121 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
             title: Row(
               children: [
-                Icon(Icons.remove_circle, color: AppTheme.secondaryPink),
+                const Icon(Icons.monetization_on, color: AppTheme.secondaryPink),
                 const SizedBox(width: 12),
-                const Text(
-                  'Retirar Fondos (Pago Móvil)',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                Expanded(
+                  child: Text(
+                    'Retirar a Banco $bankCode\n$phone',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  ),
                 ),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Retira tus tréboles a tu cuenta bancaria vía Pago Móvil.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'El retiro se procesará con los datos de tu identidad verificada.',
+                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration(
+                      'Monto a Retirar (Tréboles)', Icons.attach_money),
+                ),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: CircularProgressIndicator(color: AppTheme.secondaryPink),
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // Amount
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Only Digits
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Monto Exacto (Tréboles)', Icons.monetization_on),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Bank Code
-                  TextField(
-                    controller: bankController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Código Banco (ej: 0102)', Icons.account_balance),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Phone
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Teléfono (0414...)', Icons.phone_android),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // DNI
-                  TextField(
-                    controller: dniController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Cédula (V123...)', Icons.badge),
-                  ),
-
-                  if (isLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 16.0),
-                      child: CircularProgressIndicator(color: AppTheme.secondaryPink),
-                    ),
-                ],
-              ),
+              ],
             ),
             actions: [
               TextButton(
                 onPressed: isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+                child: const Text('Cancelar',
+                    style: TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
-                onPressed: isLoading ? null : () async {
-                  final amount = int.tryParse(amountController.text); // Validate Integer
-                  if (amount == null || amount <= 0) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Monto inválido (Solo enteros)')));
-                     return;
-                  }
-                  if (bankController.text.isEmpty || phoneController.text.isEmpty || dniController.text.isEmpty) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Todos los campos son obligatorios')));
-                     return;
-                  }
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final amount = int.tryParse(amountController.text);
+                        if (amount == null || amount <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Monto inválido')));
+                          return;
+                        }
 
-                  setState(() => isLoading = true);
-
-                  try {
-                    // Check Balance first (client side check)
-                    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                    final balance = playerProvider.currentPlayer?.clovers ?? 0;
-                    if (balance < amount) {
-                       throw Exception("Saldo insuficiente");
-                    }
-
-                    final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? '';
-                    final service = PagoAPagoService(apiKey: apiKey);
-                    
-                    final token = Supabase.instance.client.auth.currentSession?.accessToken;
-                    if (token == null) throw Exception("No hay sesión activa");
-
-                    final request = WithdrawalRequest(
-                      amount: amount.toDouble(),
-                      bank: bankController.text,
-                      dni: dniController.text,
-                      phone: phoneController.text,
-                    );
-
-                    final response = await service.withdrawFunds(request, token);
-
-                    if (!mounted) return;
-
-                    if (response.success) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('¡Retiro exitoso!'),
-                          backgroundColor: AppTheme.successGreen,
-                        )
-                      );
-                      // Trigger refresh of profile/balance
-                      // This depends on how PlayerProvider refreshes. 
-                      // Ideally we reload the user profile.
-                      // playerProvider.reloadProfile(); (Assuming something like this exists or happens auto)
-                    } else {
-                      throw Exception(response.message);
-                    }
-
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: AppTheme.dangerRed,
-                        )
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => isLoading = false);
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondaryPink),
-                child: const Text('Retirar', style: TextStyle(color: Colors.white)),
+                        setState(() => isLoading = true);
+                        await _processWithdrawal(
+                            context, amount.toDouble(), method);
+                        if (mounted) {
+                          setState(() => isLoading = false);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.secondaryPink),
+                child: const Text('Confirmar Retiro',
+                    style: TextStyle(color: Colors.white)),
               ),
             ],
           );
-        }
+        },
       ),
     );
+  }
+
+  Future<void> _processWithdrawal(BuildContext context, double amount,
+      Map<String, dynamic> method) async {
+    try {
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
+      final balance = playerProvider.currentPlayer?.clovers ?? 0;
+
+      if (balance < amount) throw Exception("Saldo insuficiente");
+
+      final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? '';
+      final service = PagoAPagoService(apiKey: apiKey);
+      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+
+      if (token == null) throw Exception("No hay sesión activa");
+
+      // Construct STRICT Request based on User Payment Method
+      final request = WithdrawalRequest(
+        amount: amount,
+        bank: method['bank_code'],
+        dni: method['dni'], // From saved method (which came from profile)
+        phone: method['phone_number'], // From saved method
+        cta: null, // Mobile Payment only
+      );
+
+      final response = await service.withdrawFunds(request, token);
+
+      if (!mounted) return;
+
+      if (response.success) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('¡Retiro exitoso!'),
+            backgroundColor: AppTheme.successGreen));
+        // Refresh logic would go here
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'), backgroundColor: AppTheme.dangerRed));
+      }
+    }
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {
