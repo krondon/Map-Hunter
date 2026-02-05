@@ -139,14 +139,32 @@ class InventoryService {
   }) async {
     try {
       // 1. Obtener GamePlayer ID del espectador
-      final gp = await _supabase
+      var gp = await _supabase
           .from('game_players')
           .select('id')
           .eq('user_id', userId)
           .eq('event_id', eventId)
           .maybeSingle();
       
-      if (gp == null) throw 'No estás inscrito en este evento (Espectador)';
+      if (gp == null) {
+        // Auto-fix: Registrar como espectador si no existe
+        await _supabase.from('game_players').insert({
+          'user_id': userId,
+          'event_id': eventId,
+          'status': 'spectator',
+          'lives': 0,
+        });
+        
+        // Re-fetch después de insertar
+        gp = await _supabase
+            .from('game_players')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('event_id', eventId)
+            .maybeSingle();
+
+        if (gp == null) throw 'Error al registrar como espectador. Intenta de nuevo.';
+      }
       final String gpId = gp['id'];
 
       // 2. Obtener Power ID desde el slug

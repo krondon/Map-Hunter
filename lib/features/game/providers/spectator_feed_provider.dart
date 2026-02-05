@@ -63,7 +63,7 @@ class SpectatorFeedProvider extends ChangeNotifier {
           id: p['id'].toString(),
           playerName: casterName,
           action: 'USÓ UN PODER',
-          detail: '$casterName lanzó ${slug.toUpperCase()} contra $targetName',
+          detail: '$casterName lanzó ${_getTranslatedPowerName(slug)} contra $targetName',
           timestamp: DateTime.parse(p['created_at']),
           type: 'power',
           icon: _getPowerIcon(slug),
@@ -101,7 +101,7 @@ class SpectatorFeedProvider extends ChangeNotifier {
               id: record['id'].toString(),
               playerName: casterName,
               action: 'USÓ UN PODER',
-              detail: '$casterName activó ${slug.toUpperCase()} sobre $targetName',
+              detail: '$casterName activó ${_getTranslatedPowerName(slug)} sobre $targetName',
               timestamp: DateTime.now(),
               type: 'power',
               icon: _getPowerIcon(slug),
@@ -109,6 +109,19 @@ class SpectatorFeedProvider extends ChangeNotifier {
           },
         )
         .subscribe();
+  }
+
+  Future<int> _calculateRank(int cluesCompleted) async {
+    try {
+      final res = await _supabase
+          .from('game_players')
+          .count()
+          .eq('event_id', _eventId)
+          .gt('completed_clues_count', cluesCompleted);
+      return res + 1;
+    } catch (_) {
+      return 0;
+    }
   }
 
   void _subscribeToPlayerProgress() {
@@ -127,21 +140,24 @@ class SpectatorFeedProvider extends ChangeNotifier {
             final oldRecord = payload.oldRecord;
             final newRecord = payload.newRecord;
             
-            final oldClues = oldRecord['clues_completed'] as int? ?? 0;
-            final newClues = newRecord['clues_completed'] as int? ?? 0;
+            final oldClues = oldRecord['completed_clues_count'] as int? ?? 0;
+            final newClues = newRecord['completed_clues_count'] as int? ?? 0;
             final oldLives = oldRecord['lives'] as int? ?? 0;
             final newLives = newRecord['lives'] as int? ?? 0;
 
             if (newClues > oldClues) {
               final playerName = await _getPlayerName(newRecord['user_id']?.toString());
+              final rank = await _calculateRank(newClues);
+              final rankStr = rank > 0 ? ' (Va $rankº)' : '';
+              
               _addEvent(GameFeedEvent(
                 id: 'clue_${newRecord['id']}_$newClues',
                 playerName: playerName,
-                action: '¡PISTA ENCONTRADA!',
-                detail: '$playerName ha completado la pista #$newClues',
+                action: '¡AVANCE DE CARRERA!',
+                detail: '$playerName completó la pista #$newClues$rankStr',
                 timestamp: DateTime.now(),
                 type: 'clue',
-                icon: '🧩',
+                icon: '🚀',
               ));
             }
 
@@ -150,8 +166,8 @@ class SpectatorFeedProvider extends ChangeNotifier {
                _addEvent(GameFeedEvent(
                 id: 'life_${newRecord['id']}_$newLives',
                 playerName: playerName,
-                action: 'VIDA PERDIDA',
-                detail: '$playerName ahora tiene $newLives vidas',
+                action: '¡DAÑO RECIBIDO!',
+                detail: '$playerName perdió una vida (Le quedan $newLives)',
                 timestamp: DateTime.now(),
                 type: 'life',
                 icon: '💔',
@@ -187,7 +203,7 @@ class SpectatorFeedProvider extends ChangeNotifier {
               final playerName = await _getPlayerName(userId);
               
               final powerId = record['power_id']?.toString();
-              final powerName = await _getPowerNameFromId(powerId);
+              final powerName = await _getPowerNameTranslatedFromId(powerId);
 
               _addEvent(GameFeedEvent(
                 id: 'buy_${record['id']}_${DateTime.now().millisecondsSinceEpoch}',
@@ -227,14 +243,27 @@ class SpectatorFeedProvider extends ChangeNotifier {
   }
 
   final Map<String, String> _powerNameCache = {};
-  Future<String> _getPowerNameFromId(String? powerId) async {
+  Future<String> _getPowerNameTranslatedFromId(String? powerId) async {
     if (powerId == null) return 'un objeto';
     if (_powerNameCache.containsKey(powerId)) return _powerNameCache[powerId]!;
     try {
-      final res = await _supabase.from('powers').select('name').eq('id', powerId).maybeSingle();
-      final name = res?['name']?.toString() ?? 'un objeto';
-      _powerNameCache[powerId] = name;
-      return name;
+      final res = await _supabase.from('powers').select('slug, name').eq('id', powerId).maybeSingle();
+      if (res == null) return 'un objeto';
+      
+      final slug = res['slug']?.toString();
+      final dbName = res['name']?.toString() ?? 'un objeto';
+      
+      String finalName = dbName;
+      if (slug != null) {
+        final translated = _getTranslatedPowerName(slug);
+        // Only use translation if it's one of our known Spanish terms, otherwise fallback to DB name
+        if (translated != slug.toUpperCase()) {
+           finalName = translated;
+        }
+      }
+      
+      _powerNameCache[powerId] = finalName;
+      return finalName;
     } catch (_) { return 'un objeto'; }
   }
 
@@ -267,7 +296,21 @@ class SpectatorFeedProvider extends ChangeNotifier {
       case 'life_steal': return '🧛';
       case 'blur_screen': return '🌫️';
       case 'return': return '🔄';
+      case 'black_screen': return '🕶️';
       default: return '⚡';
+    }
+  }
+  
+  String _getTranslatedPowerName(String slug) {
+    switch (slug) {
+      case 'freeze': return 'Congelar';
+      case 'shield': return 'Escudo';
+      case 'invisibility': return 'Invisible';
+      case 'life_steal': return 'Robar Vida';
+      case 'blur_screen': return 'Difuminar';
+      case 'return': return 'Retornar';
+      case 'black_screen': return 'Pantalla Negra';
+      default: return slug.toUpperCase();
     }
   }
 

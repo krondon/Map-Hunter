@@ -243,7 +243,6 @@ class PlayerProvider extends ChangeNotifier {
           'event_id': eventId,
           'status': 'spectator',
           'lives': 0, // No juega, no tiene vidas
-          'clues_completed': 0,
         });
         debugPrint('PlayerProvider: Ghost player created for spectator $userId');
       } else if (existing['status'] == 'pending' || existing['status'] == 'rejected') {
@@ -438,9 +437,14 @@ class PlayerProvider extends ChangeNotifier {
 
       // Prepare rivals list for blur_screen
       List<RivalInfo>? rivals;
-      String? eventId;
+      
+      // Determine Event ID (Critical for Spectators and Broadcasts)
+      String? eventId = _currentPlayer?.currentEventId;
+      if (eventId == null && gameProvider != null) {
+         eventId = gameProvider.currentEventId;
+      }
+
       if (powerSlug == 'blur_screen' && gameProvider != null) {
-        eventId = gameProvider.currentEventId;
         if (eventId != null && gameProvider.leaderboard.isEmpty) {
           try {
             await gameProvider.fetchLeaderboard();

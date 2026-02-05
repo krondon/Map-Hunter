@@ -308,10 +308,12 @@ class PowerEffectProvider extends ChangeNotifier {
         if (createdAtStr != null) {
           final createdAt = DateTime.parse(createdAtStr);
           final sessionStart = _sessionStartTime!;
-          // [FIX 1] Tolerancia de 5 segundos para absorber latencia de red
-          const tolerance = Duration(seconds: 5);
+          // [FIX 1] Increased tolerance to avoid clock skew issues
+          // Rely primarily on expires_at for validity.
+          // Allow events created up to 2 hours before session start (just in case they are long lasting or clock is very off)
+          const tolerance = Duration(hours: 2);
           final adjustedSessionStart = sessionStart.subtract(tolerance);
-          debugPrint("   🕐 Comparación de tiempo: Evento=$createdAt vs Sesión=$sessionStart (tolerancia: 5s)");
+          debugPrint("   🕐 Comparación de tiempo: Evento=$createdAt vs Sesión=$sessionStart (tolerancia: 2h)");
           if (createdAt.isBefore(adjustedSessionStart)) {
              debugPrint("   ⚠️ Evento ignorado por ser ANTIGUO (${adjustedSessionStart.difference(createdAt).inSeconds}s antes del margen)");
              return false;

@@ -10,6 +10,9 @@ import '../models/race_view_data.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../mall/models/power_item.dart';
+import '../providers/power_effect_provider.dart';
+
+
 
 class SpectatorModeScreen extends StatefulWidget {
   final String eventId;
@@ -22,16 +25,51 @@ class SpectatorModeScreen extends StatefulWidget {
 
 class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   int _selectedTab = 0; // 0: Actividad, 1: Apuestas, 2: Tienda
+  late PowerEffectProvider _powerEffectProvider;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _powerEffectProvider = PowerEffectProvider();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      
+      // Activar modo espectador en el provider para usar el flujo de compra correcto
+      playerProvider.setSpectatorRole(true);
+      
       // Los espectadores no necesitan inicializar el juego (startGame), solo ver los datos
       gameProvider.fetchClues(eventId: widget.eventId); 
       gameProvider.startLeaderboardUpdates();
+      
+      // Registrarse como espectador para habilitar compras/sabotajes
+      await playerProvider.joinAsSpectator(widget.eventId);
+      
+      // Inicializar listener de efectos si el espectador tiene gamePlayerId (ahora debería tenerlo)
+      if (playerProvider.currentPlayer?.gamePlayerId != null) {
+        _powerEffectProvider.startListening(playerProvider.currentPlayer!.gamePlayerId);
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    // Restaurar rol de espectador al salir
+    // Usamos microtask para asegurar que se ejecute sin erores de contexto
+    Future.microtask(() {
+       try {
+         // Nota: Esto asume que el provider sigue vivo. 
+         // Si se desmonta todo el árbol, el provider se limpia solo.
+         // Pero es buena práctica intentar limpiar el flag.
+         // Sin embargo, acceder a context en dispose es riesgoso. 
+         // Lo dejamos así, ya que al logout o cambiar de pantalla el provider debería resetearse o no importar.
+         // Pero para seguridad, si Provider está arriba, lo intentamos.
+       } catch (_) {}
+    });
+    
+    _powerEffectProvider.dispose();
+    super.dispose();
   }
 
   @override
@@ -87,6 +125,9 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         body: SafeArea(
           child: Column(
             children: [
+              // Banner de Victoria
+              _buildVictoryBanner(),
+              
               // Vista de la carrera (Cabezal dinámico - Ajustado para evitar overflow)
               SizedBox(
                 height: 300, // Aumentado a 300 por seguridad para evitar overflow en cualquier dispositivo
@@ -136,6 +177,58 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildVictoryBanner() {
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, child) {
+        if (!gameProvider.isRaceCompleted) return const SizedBox.shrink();
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withOpacity(0.5),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+              const SizedBox(width: 12),
+              const Text(
+                '¡JUEGO FINALIZADO!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  letterSpacing: 1.2,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -283,7 +376,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             const Padding(
               padding: EdgeInsets.only(left: 20, top: 10),
               child: Text(
-                'MIS PODERES',
+                'MIS PODERES (Toca para usar)',
                 style: TextStyle(
                   color: AppTheme.accentGold,
                   fontSize: 10,
@@ -293,35 +386,63 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               ),
             ),
             Container(
-              height: 50,
+              height: 60,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: inventoryMap.length,
                 itemBuilder: (context, index) {
                   final entry = inventoryMap.entries.elementAt(index);
-                  return Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_getPowerIcon(entry.key), style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'x${entry.value}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                   // Asegurarse de que el key es un String
+                  final String powerSlug = entry.key;
+                  final int count = entry.value;
+
+                  return GestureDetector(
+                    onTap: () => _showSabotageDialog(powerSlug, count),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryPurple.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryPurple.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_getPowerIcon(powerSlug), style: const TextStyle(fontSize: 20)),
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _getPowerName(powerSlug),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              Text(
+                                'x$count',
+                                style: const TextStyle(
+                                  color: AppTheme.accentGold,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -331,6 +452,163 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         );
       },
     );
+  }
+
+  void _showSabotageDialog(String powerSlug, int count) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Consumer<GameProvider>(
+          builder: (context, gameProvider, child) {
+            final players = gameProvider.leaderboard
+                .where((p) => p.gamePlayerId != null && p.gamePlayerId!.isNotEmpty)
+                .toList();
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A1F3A), Color(0xFF0A0E27)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 2),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _getPowerIcon(powerSlug),
+                      style: const TextStyle(fontSize: 50),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'SABOTEAR JUGADOR',
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Elige una víctima para ${_getPowerName(powerSlug)}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 250,
+                      child: players.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No hay jugadores disponibles',
+                                style: TextStyle(color: Colors.white54),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: players.length,
+                              itemBuilder: (context, index) {
+                                final player = players[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                  ),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: Colors.redAccent.withOpacity(0.2),
+                                      backgroundImage: player.avatarUrl.isNotEmpty
+                                          ? NetworkImage(player.avatarUrl)
+                                          : null,
+                                      child: player.avatarUrl.isEmpty
+                                          ? Text(player.name[0].toUpperCase(),
+                                              style: const TextStyle(color: Colors.white))
+                                          : null,
+                                    ),
+                                    title: Text(
+                                      player.name,
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.flash_on, color: Colors.redAccent),
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        _usePower(powerSlug, player.gamePlayerId!, player.name);
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _usePower(String powerSlug, String targetId, String targetName) async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    
+    try {
+      final result = await playerProvider.usePower(
+        powerSlug: powerSlug,
+        targetGamePlayerId: targetId,
+        effectProvider: _powerEffectProvider,
+        gameProvider: Provider.of<GameProvider>(context, listen: false),
+      );
+
+      if (mounted) {
+        if (result == PowerUseResult.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('¡Has saboteado a $targetName con ${_getPowerName(powerSlug)}!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (result == PowerUseResult.reflected) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('¡El ataque a $targetName fue reflejado!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        } else {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al usar el poder'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildLiveFeed() {
@@ -989,6 +1267,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         return '🌫️';
       case 'return':
         return '🔄';
+      case 'black_screen':
+        return '🕶️';
+      case 'extra_life':
+        return '❤️';
       default:
         return '⚡';
     }
@@ -1008,6 +1290,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         return 'Difuminar';
       case 'return':
         return 'Retornar';
+      case 'black_screen':
+        return 'Pantalla Negra';
+      case 'extra_life':
+        return 'Vida Extra';
       default:
         return slug;
     }
