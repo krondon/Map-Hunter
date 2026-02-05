@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -128,6 +129,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     }
+  }
+
+  void _showTermsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text("Términos y Condiciones", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: const Text(
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n"
+            "1. Uso del servicio...\n"
+            "2. Privacidad de datos...\n"
+            "3. Responsabilidades...",
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cerrar"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -352,9 +378,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           // TÉRMINOS Y CONDICIONES
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              "Acepto los términos y condiciones de uso.",
-                              style: TextStyle(color: Colors.white70, fontSize: 14),
+                            title: RichText(
+                              text: TextSpan(
+                                children: [
+                                  const TextSpan(
+                                    text: "Acepto los ",
+                                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                                  ),
+                                  TextSpan(
+                                    text: "términos y condiciones de uso.",
+                                    style: const TextStyle(
+                                      color: AppTheme.accentGold, 
+                                      fontSize: 14,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = _showTermsDialog,
+                                  ),
+                                ],
+                              ),
                             ),
                             value: _acceptedTerms,
                             activeColor: AppTheme.accentGold,
