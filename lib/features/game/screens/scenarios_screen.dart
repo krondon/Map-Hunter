@@ -28,6 +28,7 @@ import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/services/video_preload_service.dart';
 import 'winner_celebration_screen.dart';
 import '../services/game_access_service.dart'; // NEW
+import 'game_mode_selector_screen.dart';
 import '../mappers/scenario_mapper.dart'; // NEW
 import '../../social/screens/profile_screen.dart'; // For navigation
 import '../../social/screens/wallet_screen.dart'; // For wallet navigation
@@ -141,6 +142,139 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     _glitchController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        elevation: 20,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppTheme.primaryPurple, width: 2),
+        ),
+        title: Column(
+          children: [
+            const Icon(Icons.logout, size: 40, color: AppTheme.accentGold),
+            const SizedBox(height: 12),
+            const Text(
+              'OPCIONES DE SALIDA',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white, 
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '¿Deseas cambiar de modo de juego o cerrar sesión completamente?',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        actions: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: const Text('CAMBIAR MODO'),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.accentGold),
+                  foregroundColor: AppTheme.accentGold,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pushReplacement(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const GameModeSelectorScreen())
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.power_settings_new, size: 18, color: Colors.white),
+                label: const Text('CERRAR SESIÓN'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.dangerRed,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 5,
+                ),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await Provider.of<PlayerProvider>(context, listen: false).logout();
+                },
+              ),
+               const SizedBox(height: 16),
+              TextButton(
+                 onPressed: () => Navigator.pop(ctx),
+                 style: TextButton.styleFrom(foregroundColor: Colors.white38),
+                 child: const Text('CANCELAR', style: TextStyle(letterSpacing: 2)),
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Acerca de MapHunter', style: TextStyle(color: Colors.white)),
+        content: const SingleChildScrollView(
+          child: Text(
+            "MapHunter es una experiencia de juego inmersiva que combina la realidad con el mundo digital.\n\n"
+            "Conócenos:\n"
+            "Somos un equipo apasionado por la tecnología y la aventura. Nuestra misión es transformar espacios cotidianos en escenarios de juego emocionantes.\n\n"
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTermsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Términos y Condiciones', style: TextStyle(color: Colors.white)),
+        content: const SingleChildScrollView(
+          child: Text(
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\n"
+            "1. Reglas del Juego...\n"
+            "2. Conducta del Jugador...\n"
+            "3. Privacidad...",
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
 
@@ -584,7 +718,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                   padding: const EdgeInsets.only(top: 30.0),
                                   child: Center(
                                     child: AnimatedBuilder(
-                                    animation: _glitchController,
+                                      animation: _glitchController,
                                       builder: (context, child) {
                                         final double value = _glitchController.value;
                                         const Color primaryColor = Color(0xFFFAE500); // Cyberpunk bright yellow
@@ -606,54 +740,56 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                         }
                                         offsetX += spike;
 
-                                      return Stack(
-                                        children: [
-                                          // Cyan Shadow (Rhythmic vibration)
-                                          Transform.translate(
-                                            offset: Offset(cyanX, offsetY),
-                                            child: Text(
-                                              "MapHunter",
-                                              style: TextStyle(
-                                                fontSize: 46, // Increased size
-                                                fontWeight: FontWeight.w900,
-                                                color: const Color(0xFF00FFFF).withOpacity(0.6),
-                                                letterSpacing: 1,
-                                                height: 1.0,
+                                        return Stack(
+                                          clipBehavior: Clip.none,
+                                          alignment: Alignment.center,
+                                          children: [
+                                            // Cyan Shadow
+                                            Transform.translate(
+                                              offset: Offset(cyanX, offsetY),
+                                              child: Text(
+                                                "MapHunter",
+                                                style: TextStyle(
+                                                  fontSize: 46,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: const Color(0xFF00FFFF).withOpacity(0.6),
+                                                  letterSpacing: 1,
+                                                  height: 1.0,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          // Magenta Shadow (Rhythmic vibration)
-                                          Transform.translate(
-                                            offset: Offset(magX, offsetY),
-                                            child: Text(
-                                              "MapHunter",
-                                              style: TextStyle(
-                                                fontSize: 46, // Increased size
-                                                fontWeight: FontWeight.w900,
-                                                color: const Color(0xFFFF00FF).withOpacity(0.6),
-                                                letterSpacing: 1,
-                                                height: 1.0,
+                                            // Magenta Shadow
+                                            Transform.translate(
+                                              offset: Offset(magX, offsetY),
+                                              child: Text(
+                                                "MapHunter",
+                                                style: TextStyle(
+                                                  fontSize: 46,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: const Color(0xFFFF00FF).withOpacity(0.6),
+                                                  letterSpacing: 1,
+                                                  height: 1.0,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          // Primary Yellow Text
-                                          Transform.translate(
-                                            offset: Offset(offsetX, offsetY),
-                                            child: Text(
-                                              "MapHunter",
-                                              style: TextStyle(
-                                                fontSize: 46, // Increased size
-                                                fontWeight: FontWeight.w900,
-                                                color: value > 0.98 ? Colors.white : primaryColor,
-                                                letterSpacing: 1,
-                                                height: 1.0,
+                                            // Primary Yellow Text
+                                            Transform.translate(
+                                              offset: Offset(offsetX, offsetY),
+                                              child: Text(
+                                                "MapHunter",
+                                                style: TextStyle(
+                                                  fontSize: 46,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: value > 0.98 ? Colors.white : primaryColor,
+                                                  letterSpacing: 1,
+                                                  height: 1.0,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
+                                          ],
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                                 // Subtitle
@@ -669,52 +805,102 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                     ),
                                   ),
                                 ),
-                                // Logout Button (Top Right, Icon Only)
+                                
+                                // --- LEFT: EXIT BUTTON ---
+                                Positioned(
+                                  left: 0,
+                                  top: -24,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.logout, color: Colors.white, size: 28),
+                                    onPressed: _showLogoutDialog,
+                                  ),
+                                ),
+
+                                // --- RIGHT: HAMBURGER MENU ---
                                 Positioned(
                                   right: 0,
                                   top: -24,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.logout,
-                                        color: Colors.white, size: 28),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: AppTheme.cardBg,
-                                          title: const Text('Cerrar Sesión',
-                                              style:
-                                                  TextStyle(color: Colors.white)),
-                                          content: const Text(
-                                            '¿Estás seguro que deseas cerrar sesión?',
-                                            style:
-                                                TextStyle(color: Colors.white70),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(ctx),
-                                              child: const Text('Cancelar',
-                                                  style: TextStyle(
-                                                      color: Colors.white54)),
-                                            ),
-                                          TextButton(
-                                            onPressed: () async {
-                                              Navigator.pop(ctx);
-                                              await Provider.of<PlayerProvider>(
-                                                      context,
-                                                      listen: false)
-                                                  .logout();
-                                            },
-                                            child: const Text('Salir',
-                                                style: TextStyle(
-                                                    color: AppTheme.dangerRed)),
-                                          ),
-                                        ],
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dividerTheme: const DividerThemeData(
+                                        color: Colors.white24,
+                                        thickness: 1,
                                       ),
-                                    );
-                                  },
+                                    ),
+                                    child: PopupMenuButton<String>(
+                                      icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+                                      color: AppTheme.cardBg.withOpacity(0.95),
+                                      elevation: 15,
+                                      offset: const Offset(0, 45),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        side: const BorderSide(color: AppTheme.accentGold, width: 1.5),
+                                      ),
+                                      onSelected: (value) {
+                                        switch (value) {
+                                          case 'profile':
+                                            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                                            break;
+                                          case 'about':
+                                            _showAboutDialog();
+                                            break;
+                                          case 'terms':
+                                            _showTermsDialog();
+                                            break;
+                                          case 'support':
+                                            _showSupportDialog();
+                                            break;
+                                          case 'logout':
+                                            _showLogoutDialog();
+                                            break;
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                        PopupMenuItem<String>(
+                                          value: 'profile',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.person, color: AppTheme.accentGold), 
+                                              SizedBox(width: 12), 
+                                              Text('Perfil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500))
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: 'about',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.info_outline, color: AppTheme.accentGold), 
+                                              SizedBox(width: 12), 
+                                              Text('Conócenos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500))
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: 'terms',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.description_outlined, color: AppTheme.accentGold), 
+                                              SizedBox(width: 12), 
+                                              Text('Términos y Condiciones', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500))
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem<String>(
+                                          value: 'support',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.support_agent_outlined, color: AppTheme.accentGold), 
+                                              SizedBox(width: 12), 
+                                              Text('Soporte y Mantenimiento', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500))
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
                           ),
                         ),
 
@@ -1067,6 +1253,30 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         ),
       ),
     ),
+      ),
+    );
+  }
+  void _showSupportDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Soporte y Mantenimiento', style: TextStyle(color: Colors.white)),
+        content: const SingleChildScrollView(
+          child: Text(
+            "Si tienes algún problema o sugerencia, contáctanos:\n\n"
+            "📧 Email: soporte@maphunter.com\n"
+            "📞 Teléfono: +58 xxx xxx xxx\n\n"
+            "Estamos disponibles de Lunes a Viernes, 9:00 AM - 5:00 PM.",
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }

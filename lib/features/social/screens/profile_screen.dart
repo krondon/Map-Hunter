@@ -258,6 +258,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+          
+          const SizedBox(height: 12),
+          
+          // Support Button
+          Row(
+            children: [
+              Expanded(
+                child: _buildProfileButton(
+                  icon: Icons.support_agent,
+                  label: "Ayuda y Soporte",
+                  color: AppTheme.accentGold,
+                  onTap: _showSupportDialog,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -738,6 +754,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSupportDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Soporte y Mantenimiento', style: TextStyle(color: Colors.white)),
+        content: const SingleChildScrollView(
+          child: Text(
+            "Si tienes algún problema o sugerencia, contáctanos:\n\n"
+            "📧 Email: soporte@maphunter.com\n"
+            "📞 Teléfono: +58 xxx xxx xxx\n\n"
+            "Estamos disponibles de Lunes a Viernes, 9:00 AM - 5:00 PM.",
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }
