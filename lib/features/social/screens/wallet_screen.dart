@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import '../../wallet/widgets/payment_webview_modal.dart'; // Added
 import 'profile_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../../shared/widgets/glitch_text.dart';
@@ -15,8 +16,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/payment_profile_dialog.dart';
 import '../widgets/payment_method_selector.dart';
 import '../widgets/add_payment_method_dialog.dart';
-
-final bcv_dolar = 1;
+import '../../wallet/widgets/withdrawal_method_selector.dart';
+import '../../wallet/screens/transaction_history_screen.dart';
+import '../../wallet/models/clover_plan.dart';
+import '../../wallet/services/clover_plan_service.dart';
+import '../../wallet/widgets/clover_plan_card.dart';
+import '../../wallet/models/withdrawal_plan.dart';
+import '../../wallet/services/withdrawal_plan_service.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -196,50 +202,70 @@ class _WalletScreenState extends State<WalletScreen> {
 
                       const SizedBox(height: 40),
 
-                      // Transaction History Section (Placeholder)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardBg.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                      // Transaction History Section (Placeholder -> Entry Point)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TransactionHistoryScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardBg.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.history,
-                                  color: AppTheme.accentGold,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'HISTORIAL DE TRANSACCIONES',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.history,
+                                        color: AppTheme.accentGold,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'HISTORIAL DE TRANSACCIONES',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.white.withOpacity(0.3),
+                                    size: 14,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              const Center(
+                                child: Text(
+                                  'Ver historial completo y pendientes',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1,
+                                    color: Colors.white38,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            const Center(
-                              child: Text(
-                                'No hay transacciones recientes',
-                                style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 14,
-                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -479,10 +505,10 @@ class _WalletScreenState extends State<WalletScreen> {
                 );
                 
                 if (success == true) {
-                   _showAmountDialog();
+                   _showPlanSelectorDialog();
                 }
               } else {
-                 _showAmountDialog();
+                 _showPlanSelectorDialog();
               }
             } catch (e) {
               if (mounted) setState(() => _isLoading = false);
@@ -501,8 +527,9 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  void _showAmountDialog() {
-    _amountController.clear();
+  void _showPlanSelectorDialog() {
+    String? selectedPlanId;
+    
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -523,73 +550,83 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   const Text(
-                    'Ingresa la cantidad de tréboles que deseas comprar. (1 🍀 = 1\$)',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Only allow integers
-                    style: const TextStyle(color: Colors.white),
-                    onChanged: (val) => setState(() {}),
-                    decoration: InputDecoration(
-                      labelText: 'Cantidad (Enteros)',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.star, color: Colors.white60),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-                        borderRadius: BorderRadius.circular(10),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: FutureBuilder<List<CloverPlan>>(
+                future: CloverPlanService(
+                  supabaseClient: Supabase.instance.client,
+                ).fetchActivePlans(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppTheme.accentGold),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: AppTheme.accentGold),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                   // Calculation Display
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black26,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Estimado en Bolívares (Tasa Ref: $bcv_dolar):",
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                    );
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: Text(
+                          'Error cargando planes: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.redAccent),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _amountController.text.isEmpty 
-                              ? "0.00 VES"
-                              : "${(int.tryParse(_amountController.text) ?? 0) * bcv_dolar} VES",
-                          style: const TextStyle(
-                            color: AppTheme.accentGold, 
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16
+                      ),
+                    );
+                  }
+                  
+                  final plans = snapshot.data ?? [];
+                  if (plans.isEmpty) {
+                    return const SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: Text(
+                          'No hay planes disponibles',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selecciona un plan de tréboles:',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 16),
+                      // Plan Cards Grid
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: plans.map((plan) {
+                          return SizedBox(
+                            width: (MediaQuery.of(context).size.width - 140) / 2,
+                            child: CloverPlanCard(
+                              plan: plan,
+                              isSelected: selectedPlanId == plan.id,
+                              onTap: () {
+                                setState(() => selectedPlanId = plan.id);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20.0),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppTheme.accentGold),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  if (_isLoading)
-                   const Padding(
-                     padding: EdgeInsets.only(top: 20.0),
-                     child: CircularProgressIndicator(color: AppTheme.accentGold),
-                   ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
             actions: [
@@ -598,19 +635,10 @@ class _WalletScreenState extends State<WalletScreen> {
                 child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
-                onPressed: _isLoading ? null : () async {
-                  final amount = int.tryParse(_amountController.text); // Validate Integer
-                  if (amount == null || amount <= 0) {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ingresa un monto entero válido > 0')),
-                    );
-                    return;
-                  }
-
+                onPressed: (_isLoading || selectedPlanId == null) ? null : () async {
                   setState(() => _isLoading = true);
                   
-                  // Iniciar proceso de pago (cast to double for compatibility)
-                  await _initiatePayment(context, amount.toDouble());
+                  await _initiatePayment(context, selectedPlanId!);
 
                   if (mounted) {
                     setState(() => _isLoading = false);
@@ -620,6 +648,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentGold,
                   foregroundColor: Colors.black,
+                  disabledBackgroundColor: Colors.grey.withOpacity(0.3),
                 ),
                 child: const Text('Pagar'),
               ),
@@ -630,7 +659,10 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Future<void> _initiatePayment(BuildContext context, double amount) async {
+  /// Initiates payment with selected plan ID.
+  /// 
+  /// The Edge Function validates the plan and retrieves the true price from the database.
+  Future<void> _initiatePayment(BuildContext context, String planId) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final user = playerProvider.currentPlayer;
     
@@ -642,67 +674,112 @@ class _WalletScreenState extends State<WalletScreen> {
     }
 
     try {
-      // Instanciar servicio
-      final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? ''; 
-      final service = PagoAPagoService(apiKey: apiKey);
-
-      // Calcular monto en Bolívares
+      debugPrint('[WalletScreen] Initiating payment for plan: $planId');
       
-      final double amountBs = amount * bcv_dolar;
-
-      // Llamar al nuevo método simplificado
-      final response = await service.createSimplePaymentOrder(amountBs: amountBs);
+      // Call Edge Function directly with plan_id only (security: price validated server-side)
+      final response = await Supabase.instance.client.functions.invoke(
+        'api_pay_orders',
+        body: {
+          'plan_id': planId,
+        },
+      );
 
       if (!mounted) return;
 
-      if (response.success && response.paymentUrl != null) {
-        final url = Uri.parse(response.paymentUrl!);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Text('Abriendo pasarela de pago...'),
-               backgroundColor: AppTheme.successGreen,
-             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('No se pudo abrir el link: ${response.paymentUrl}')),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-             content: Text('Error al crear orden: ${response.message}'),
-             backgroundColor: AppTheme.dangerRed,
+      if (response.status != 200) {
+        throw Exception('Error en servicio de pagos (${response.status}): ${response.data}');
+      }
+
+      final responseData = response.data;
+      debugPrint('[WalletScreen] RAW RESPONSE: $responseData');
+
+      if (responseData == null) {
+         throw Exception('Respuesta vacía del servicio de pagos');
+      }
+      
+      if (responseData['success'] == false) {
+         throw Exception('API Error: ${responseData['message'] ?? responseData['error'] ?? "Unknown error"}');
+      }
+
+      // Parse response
+      final Map<String, dynamic> dataObj = responseData['data'] ?? responseData['result'] ?? responseData;
+      final String? paymentUrl = dataObj['payment_url']?.toString() ?? dataObj['url']?.toString();
+
+      if (paymentUrl == null || paymentUrl.isEmpty) {
+        throw Exception('URL de pago no recibida');
+      }
+
+      if (!mounted) return;
+
+      // Open WebView as a Modal Bottom Sheet
+      final bool? result = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.1),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: PaymentWebViewModal(paymentUrl: paymentUrl),
+          ),
+        ),
+      );
+
+      if (result == true) {
+         if (!mounted) return;
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(
+             content: Text('¡Pago Exitoso! Verificando saldo...'),
+             backgroundColor: AppTheme.successGreen,
            ),
-        );
+         );
+         
+         await Future.delayed(const Duration(seconds: 2));
+         if (mounted) {
+            await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+         }
+      } else {
+         if (!mounted) return;
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('Operación cancelada o pendiente.')),
+         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppTheme.dangerRed,
-        )
-      );
+      debugPrint('[WalletScreen] Payment error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppTheme.dangerRed,
+          )
+        );
+      }
     }
   }
 
   void _showWithdrawDialog() {
-    final amountController = TextEditingController();
-    final bankController = TextEditingController(); // Código banco (ej: 0102)
-    final phoneController = TextEditingController(); // 0424...
-    final dniController = TextEditingController(); // V12345678
-    
-    // Prefill data if available
-    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-    if (player != null) {
-      phoneController.text = player.phone ?? '';
-      dniController.text = player.cedula ?? '';
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => WithdrawalMethodSelector(
+        onMethodSelected: (method) {
+          Navigator.pop(ctx);
+          // Allow bottom sheet animation to finish
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) _showWithdrawPlanDialog(method);
+          });
+        },
+      ),
+    );
+  }
 
-    bool isLoading = false;
+  void _showWithdrawPlanDialog(Map<String, dynamic> method) {
+    String? selectedPlanId;
+    final bankCode = method['bank_code'] ?? '???';
+    final phone = method['phone_number'] ?? '???';
 
     showDialog(
       context: context,
@@ -716,148 +793,298 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
             title: Row(
               children: [
-                Icon(Icons.remove_circle, color: AppTheme.secondaryPink),
+                const Icon(Icons.monetization_on, color: AppTheme.secondaryPink),
                 const SizedBox(width: 12),
-                const Text(
-                  'Retirar Fondos (Pago Móvil)',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Retirar Tréboles',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        'A: $bankCode - $phone',
+                        style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Retira tus tréboles a tu cuenta bancaria vía Pago Móvil.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Amount
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Only Digits
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Monto Exacto (Tréboles)', Icons.monetization_on),
-                  ),
-                  const SizedBox(height: 12),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: FutureBuilder<List<WithdrawalPlan>>(
+                future: WithdrawalPlanService(
+                  supabaseClient: Supabase.instance.client,
+                ).fetchActivePlans(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppTheme.secondaryPink),
+                      ),
+                    );
+                  }
 
-                  // Bank Code
-                  TextField(
-                    controller: bankController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Código Banco (ej: 0102)', Icons.account_balance),
-                  ),
-                  const SizedBox(height: 12),
+                  if (snapshot.hasError) {
+                    return SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                    );
+                  }
 
-                  // Phone
-                  TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Teléfono (0414...)', Icons.phone_android),
-                  ),
-                  const SizedBox(height: 12),
+                  final plans = snapshot.data ?? [];
+                  if (plans.isEmpty) {
+                    return const SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: Text(
+                          'No hay planes de retiro disponibles',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    );
+                  }
 
-                  // DNI
-                  TextField(
-                    controller: dniController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration('Cédula (V123...)', Icons.badge),
-                  ),
-
-                  if (isLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 16.0),
-                      child: CircularProgressIndicator(color: AppTheme.secondaryPink),
-                    ),
-                ],
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selecciona cuántos tréboles quieres retirar:',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 16),
+                      // Plan Cards
+                      ...plans.map((plan) {
+                        final isSelected = selectedPlanId == plan.id;
+                        return GestureDetector(
+                          onTap: () => setState(() => selectedPlanId = plan.id),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppTheme.secondaryPink.withOpacity(0.2)
+                                  : Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppTheme.secondaryPink
+                                    : Colors.white.withOpacity(0.1),
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                // Icon
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondaryPink.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      plan.icon ?? '💸',
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Info
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        plan.name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Costo: ${plan.cloversCost} 🍀',
+                                        style: const TextStyle(
+                                          color: Colors.white60,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Amount
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      plan.formattedAmountUsd,
+                                      style: TextStyle(
+                                        color: isSelected ? AppTheme.secondaryPink : Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'USD',
+                                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                                // Check
+                                if (isSelected) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.check_circle, color: AppTheme.secondaryPink),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 16),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppTheme.secondaryPink),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
             actions: [
               TextButton(
-                onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                onPressed: _isLoading ? null : () => Navigator.pop(ctx),
                 child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
-                onPressed: isLoading ? null : () async {
-                  final amount = int.tryParse(amountController.text); // Validate Integer
-                  if (amount == null || amount <= 0) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Monto inválido (Solo enteros)')));
-                     return;
-                  }
-                  if (bankController.text.isEmpty || phoneController.text.isEmpty || dniController.text.isEmpty) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Todos los campos son obligatorios')));
-                     return;
-                  }
-
-                  setState(() => isLoading = true);
-
-                  try {
-                    // Check Balance first (client side check)
-                    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                    final balance = playerProvider.currentPlayer?.clovers ?? 0;
-                    if (balance < amount) {
-                       throw Exception("Saldo insuficiente");
-                    }
-
-                    final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? '';
-                    final service = PagoAPagoService(apiKey: apiKey);
-                    
-                    final token = Supabase.instance.client.auth.currentSession?.accessToken;
-                    if (token == null) throw Exception("No hay sesión activa");
-
-                    final request = WithdrawalRequest(
-                      amount: amount.toDouble(),
-                      bank: bankController.text,
-                      dni: dniController.text,
-                      phone: phoneController.text,
-                    );
-
-                    final response = await service.withdrawFunds(request, token);
-
-                    if (!mounted) return;
-
-                    if (response.success) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('¡Retiro exitoso!'),
-                          backgroundColor: AppTheme.successGreen,
-                        )
-                      );
-                      // Trigger refresh of profile/balance
-                      // This depends on how PlayerProvider refreshes. 
-                      // Ideally we reload the user profile.
-                      // playerProvider.reloadProfile(); (Assuming something like this exists or happens auto)
-                    } else {
-                      throw Exception(response.message);
-                    }
-
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: AppTheme.dangerRed,
-                        )
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => isLoading = false);
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondaryPink),
-                child: const Text('Retirar', style: TextStyle(color: Colors.white)),
+                onPressed: (_isLoading || selectedPlanId == null)
+                    ? null
+                    : () async {
+                        setState(() => _isLoading = true);
+                        await _processWithdrawalWithPlan(context, selectedPlanId!, method);
+                        if (mounted) {
+                          setState(() => _isLoading = false);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.secondaryPink,
+                  disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                ),
+                child: const Text('Confirmar Retiro', style: TextStyle(color: Colors.white)),
               ),
             ],
           );
-        }
+        },
       ),
     );
+  }
+
+  Future<void> _processWithdrawal(BuildContext context, double amount,
+      Map<String, dynamic> method) async {
+    try {
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
+      final balance = playerProvider.currentPlayer?.clovers ?? 0;
+
+      if (balance < amount) throw Exception("Saldo insuficiente");
+
+      final apiKey = dotenv.env['PAGO_PAGO_API_KEY'] ?? '';
+      final service = PagoAPagoService(apiKey: apiKey);
+      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+
+      if (token == null) throw Exception("No hay sesión activa");
+
+      // Construct STRICT Request based on User Payment Method
+      final request = WithdrawalRequest(
+        amount: amount,
+        bank: method['bank_code'],
+        dni: method['dni'], // From saved method (which came from profile)
+        phone: method['phone_number'], // From saved method
+        cta: null, // Mobile Payment only
+      );
+
+      final response = await service.withdrawFunds(request, token);
+
+      if (!mounted) return;
+
+      if (response.success) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('¡Retiro exitoso!'),
+            backgroundColor: AppTheme.successGreen));
+        // Refresh logic would go here
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'), backgroundColor: AppTheme.dangerRed));
+      }
+    }
+  }
+
+  /// Process withdrawal using a withdrawal plan ID.
+  /// 
+  /// Sends plan_id to api_withdraw_funds Edge Function which handles:
+  /// - Fetching plan details from withdrawal_plans table
+  /// - Converting USD to VES using exchange rate from app_config
+  /// - Validating clover balance
+  /// - Processing the payment
+  Future<void> _processWithdrawalWithPlan(
+      BuildContext context, String planId, Map<String, dynamic> method) async {
+    try {
+      debugPrint('[WalletScreen] Processing withdrawal with plan: $planId');
+
+      final response = await Supabase.instance.client.functions.invoke(
+        'api_withdraw_funds',
+        body: {
+          'plan_id': planId,
+          'bank': method['bank_code'],
+          'dni': method['dni'],
+          'phone': method['phone_number'],
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.status != 200) {
+        final errorData = response.data;
+        throw Exception(errorData?['error'] ?? 'Error en el servidor (${response.status})');
+      }
+
+      final data = response.data;
+      if (data?['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('¡Retiro procesado exitosamente!'),
+          backgroundColor: AppTheme.successGreen,
+        ));
+        // Refresh balance
+        await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+      } else {
+        throw Exception(data?['error'] ?? 'Error desconocido');
+      }
+    } catch (e) {
+      debugPrint('[WalletScreen] Withdrawal error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.dangerRed,
+        ));
+      }
+    }
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {

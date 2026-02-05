@@ -70,23 +70,26 @@ class PaymentOrderResponse {
 }
 
 class WithdrawalRequest {
-  final double amount;
+  final String? planId;   // New: plan-based withdrawal
+  final double? amount;   // Legacy: direct amount
   final String bank;
   final String dni;
   final String? phone;
   final String? cta;
 
   WithdrawalRequest({
-    required this.amount,
+    this.planId,
+    this.amount,
     required this.bank,
     required this.dni,
     this.phone,
     this.cta,
-  });
+  }) : assert(planId != null || amount != null, 'Either planId or amount must be provided');
 
   Map<String, dynamic> toJson() {
     return {
-      'amount': amount,
+      if (planId != null) 'plan_id': planId,
+      if (amount != null) 'amount': amount,
       'bank': bank,
       'dni': dni,
       if (phone != null) 'phone': phone,

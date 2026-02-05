@@ -63,11 +63,17 @@ serve(async (req) => {
         const pagoApiKey = Deno.env.get('PAGO_PAGO_API_KEY')!
         const PAGO_PAGO_WITHDRAW_URL = Deno.env.get('PAGO_PAGO_WITHDRAW_URL')!
 
+        // Sanitize Data
+        const cleanDni = dni.replace(/\D/g, ''); // Remove 'V', 'E', '-' etc. return only numbers
+        const cleanPhone = phone ? phone.replace(/\D/g, '') : null;
+
+        console.log(`Sending Withdrawal: DNI=${cleanDni} (Raw: ${dni}), Phone=${cleanPhone}, Bank=${bank}, Amount=${amount}`)
+
         const payload = {
             amount: amount,
             bank: bank,
-            dni: dni,
-            phone: phone,
+            dni: cleanDni,
+            phone: cleanPhone,
             cta: cta
             // Add other mandatory fields if any from docs, e.g. bank_account_type if needed
         }
@@ -109,9 +115,25 @@ serve(async (req) => {
                     .from('profiles')
                     .update({ clovers: currentProfile.clovers + amount })
                     .eq('id', user.id)
+
+                // Log Refund in Wallet Ledger
+                const { error: refundLedgerError } = await supabaseAdmin.from('wallet_ledger').insert({
+                    user_id: user.id,
+                    amount: amount, // Positive for refund
+                    description: "Reembolso por fallo en retiro",
+                    order_id: null,
+                    metadata: apiResponseData
+                })
+                
+                if (refundLedgerError) {
+                    console.error("CRITICAL: Failed to log refund in wallet_ledger:", refundLedgerError)
+                }
             }
 
-            throw new Error(apiResponseData?.message || "Withdrawal failed at payment provider. Funds refunded.")
+            const failureMsg = apiResponseData?.message ?? 
+                             JSON.stringify(apiResponseData) ?? 
+                             "Withdrawal failed at payment provider (No detail).";
+            throw new Error(`Withdrawal failed: ${failureMsg}. Funds refunded.`)
         }
 
         // 4. LOG SUCCESSFUL TRANSACTION
@@ -123,6 +145,34 @@ serve(async (req) => {
             provider_data: apiResponseData,
             order_id: apiResponseData.data?.transaction_id || `WD-${Date.now()}`
         })
+
+        // 5. LOG IN WALLET LEDGER
+        const referenceInfo = apiResponseData.data?.details?.external_reference || apiResponseData.data?.reference || 'N/A';
+        const transactionId = apiResponseData.data?.transaction_id;
+        
+        // Ensure we don't pass a text ID if the DB expects UUID for order_id. 
+        // We'll store the transaction ID in the description/metadata to be safe.
+        const { error: ledgerError } = await supabaseAdmin.from('wallet_ledger').insert({
+            user_id: user.id,
+            amount: -amount, // Negative for withdrawal
+            description: `Retiro de Fondos - Ref: ${referenceInfo} (ID: ${transactionId})`,
+            order_id: null, // Safest option without knowing schema. Metadata has the details.
+            metadata: apiResponseData
+        })
+
+        if (ledgerError) {
+            console.error("CRITICAL: Failed to log withdrawal in wallet_ledger:", ledgerError)
+            // Optional: return warning or part of the error? 
+            // For now, we just log it so we don't fail the client response since the money is already moved.
+            return new Response(JSON.stringify({ 
+                success: true, 
+                data: apiResponseData,
+                warning: "Transaction completed but ledger update failed. Contact support."
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200, // Still 200 because money was moved
+            })
+        }
 
         return new Response(JSON.stringify({ success: true, data: apiResponseData }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
