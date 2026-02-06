@@ -14,36 +14,48 @@ class AddPaymentMethodDialog extends StatefulWidget {
 
 class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _bankController = TextEditingController(); // Just bank name/code
+  String? _selectedBankCode;
   bool _isLoading = false;
+
+  final List<Map<String, String>> _banks = [
+    {'code': '0102', 'name': 'Banco de Venezuela'},
+    {'code': '0105', 'name': 'Banco Mercantil'},
+    {'code': '0108', 'name': 'Banco Provincial'},
+    {'code': '0134', 'name': 'Banesco'},
+    {'code': '0114', 'name': 'Bancaribe'},
+    {'code': '0115', 'name': 'Banco Exterior'},
+    {'code': '0137', 'name': 'Banco Sofitasa'},
+    {'code': '0151', 'name': 'BFC Fondo Común'},
+    {'code': '0163', 'name': 'Banco del Tesoro'},
+    {'code': '0128', 'name': 'Banco Caroní'},
+    {'code': '0175', 'name': 'Banco Bicentenario'},
+    {'code': '0191', 'name': 'Banco Nacional de Crédito'},
+    {'code': '0172', 'name': 'Bancamiga'},
+    {'code': '0171', 'name': 'Banco Activo'},
+  ];
 
   @override
   void dispose() {
-    _bankController.dispose();
     super.dispose();
   }
 
   Future<void> _saveMethod() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedBankCode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor selecciona un banco')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      // Access AuthService directly or via provider if available. 
-      // Assuming AuthService is accessible via Provider or direct instance.
-      // Usually PlayerProvider wraps AuthService, but for simplicity let's see if we can use PlayerProvider or need to instantiate/get AuthService.
-      // Based on previous code, PlayerProvider uses _authService internally.
-      // We should probably add `addPaymentMethod` to PlayerProvider to keep consistency, 
-      // OR just use AuthService directly here if we can get it.
-      // Let's use the Provider pattern if possible.
-      
       final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-      // Wait, I haven't added `addPaymentMethod` to PlayerProvider yet. 
-      // I should do that. But for now, I can access AuthService if I update PlayerProvider later.
-      // Let's mock the call via AuthService directly for now within the widget or assume PlayerProvider has it.
-      // I will update PlayerProvider in the next step.
       
-      await playerProvider.addPaymentMethod(bankCode: _bankController.text.trim());
+      // We pass the selected bank code here
+      await playerProvider.addPaymentMethod(bankCode: _selectedBankCode!);
 
       if (mounted) {
         Navigator.pop(context, true); // Return true on success
@@ -110,12 +122,23 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
               
               const SizedBox(height: 20),
               
-              // Bank Input
-              TextFormField(
-                controller: _bankController,
+              // Bank Dropdown
+              DropdownButtonFormField<String>(
+                dropdownColor: AppTheme.cardBg,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Banco (Ej: 0102 - Venezuela)'),
-                validator: (value) {
+                decoration: _inputDecoration('Banco'),
+                value: _selectedBankCode,
+                items: _banks.map((bank) {
+                  return DropdownMenuItem(
+                    value: bank['code'],
+                    child: Text(
+                      '${bank['code']} - ${bank['name']}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) => setState(() => _selectedBankCode = val),
+                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Requerido';
                   return null;
                 },
