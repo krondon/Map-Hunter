@@ -159,8 +159,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedCyberBackground(
-        child: SafeArea(
+      resizeToAvoidBottomInset: true, // Permitir que el teclado empuje
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(), // Tap para ocultar teclado
+        child: AnimatedCyberBackground(
+          child: SafeArea(
           child: Column(
             children: [
               Align(
@@ -457,6 +460,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }
