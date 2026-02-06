@@ -9,6 +9,7 @@ class TransactionItem {
   final String status; // 'completed', 'pending', 'expired', 'failed', 'error'
   final String type; // 'deposit', 'withdrawal', 'purchase_order'
   final String? paymentUrl;
+  final double? fiatAmount;
 
   const TransactionItem({
     required this.id,
@@ -18,17 +19,20 @@ class TransactionItem {
     required this.status,
     required this.type,
     this.paymentUrl,
+    this.fiatAmount,
   });
 
   factory TransactionItem.fromMap(Map<String, dynamic> map) {
     return TransactionItem(
       id: map['id']?.toString() ?? '',
       date: DateTime.parse(map['created_at']),
-      amount: (map['amount'] as num).toDouble(),
+      // Map 'clover_quantity' from V2 view to 'amount' (primary display unit)
+      amount: ((map['clover_quantity'] ?? map['amount']) as num).toDouble(),
       description: map['description'] ?? 'Transacción',
       status: map['status'] ?? 'unknown',
       type: map['type'] ?? 'unknown',
       paymentUrl: map['payment_url'],
+      fiatAmount: map['fiat_amount'] != null ? (map['fiat_amount'] as num).toDouble() : null,
     );
   }
 

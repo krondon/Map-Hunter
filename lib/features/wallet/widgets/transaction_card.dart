@@ -99,14 +99,29 @@ class TransactionCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // Clover Amount (Primary)
                     Text(
-                      '${item.isCredit ? '+' : '-'}${item.amount.toStringAsFixed(2)}',
+                      '${item.isCredit ? '+' : ''}${item.amount.toInt()} 🍀',
                       style: TextStyle(
-                        color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed, // Override status color for amount sign
+                        color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed, 
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 18,
                       ),
                     ),
+                    // Fiat Amount (Secondary) - Show ONLY if present AND successful
+                    if (item.fiatAmount != null && 
+                        item.fiatAmount! > 0 && 
+                        ['completed', 'success', 'paid'].contains(item.status.toLowerCase()))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '${item.isCredit ? 'Pagado' : 'Recibido'}: \$${item.fiatAmount!.toStringAsFixed(2)}', 
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
