@@ -113,6 +113,10 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
     });
   }
 
+  // Feedback State
+  Offset? _foundPosition; // Stores the relative position of the found target
+  bool _foundInTop = false;
+
   void _handleTap(bool isTop, TapDownDetails? details, double panelWidth, double panelHeight) {
     if (_isGameOver) return;
     
@@ -124,11 +128,6 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
         // 2. Exact Hit Detection
         if (details != null) {
             // Re-calculate target position in pixels exactly as rendered
-            // Logic must match the Positioned widgets below
-            // Width used for rendering was (MediaQuery - 80) ?? 
-            // Let's verify exactly what width is used in buildCompactPanel.
-            // It uses: d.position.dx * (MediaQuery.of(context).size.width - 80)
-            
             final double renderWidth = MediaQuery.of(context).size.width - 80;
             final double renderHeight = panelHeight;
             
@@ -145,18 +144,35 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
             // Euclidean distance
             final double dist = sqrt(pow(tapX - centerX, 2) + pow(tapY - centerY, 2));
             
-            // Threshold: 28px radius (more precise to avoid random click wins)
+            // Threshold: 28px radius
             if (dist < 28.0) {
-               _winGame();
+               _winGame(Offset(targetX, targetY), isTop);
                return; 
             }
         }
     }
     
-    // If we reached here, it's a miss (wrong panel OR missed the icon)
+    // If we reached here, it's a miss
     _handleMiss();
   }
 
+  void _winGame(Offset pixelPosition, bool isTop) {
+    _timer?.cancel();
+    _isGameOver = true;
+    
+    // Show visual feedback
+    setState(() {
+      _foundPosition = pixelPosition;
+      _foundInTop = isTop;
+    });
+
+    // Wait so user sees the box
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) widget.onSuccess();
+    });
+  }
+
+  // ... (existing _handleMiss, _handleFailure methods) ...
   void _handleMiss() {
       if (_isGameOver) return;
       setState(() {
@@ -171,12 +187,6 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
       if (_localAttempts <= 0) {
         _handleFailure("Demasiados errores");
       }
-  }
-
-  void _winGame() {
-    _timer?.cancel();
-    _isGameOver = true;
-    widget.onSuccess();
   }
 
   void _handleFailure(String reason) async {
@@ -208,7 +218,6 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
     }
   }
 
-  // DIALOGS REMOVED
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +311,7 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
                   _secondsRemaining = 40;
                   _localAttempts = 3;
                   _isGameOver = false;
+                  _foundPosition = null; // Reset found state
                   _generateGame();
                   _startTimer();
                 });
@@ -334,6 +344,7 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
 
   Widget _buildCompactPanel({required bool isTop, required double maxHeight}) {
     bool hasTarget = isTop == _targetInTopImage;
+    bool showHighlight = _foundPosition != null && _foundInTop == isTop;
     
     return Expanded(
       child: GestureDetector(
@@ -342,9 +353,12 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withOpacity(0.03), 
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(
+               color: hasTarget ? AppTheme.neonGreen.withOpacity(0.8) : Colors.white.withOpacity(0.05), // Highlight target block always
+               width: hasTarget ? 2 : 1 
+            ), 
           ),
           child: Stack(
             children: [
@@ -372,6 +386,26 @@ class _FindDifferenceMinigameState extends State<FindDifferenceMinigame> {
                   ),
                 ),
                 
+              // HIGHLIGHT BOX (Success Feedback)
+              if (showHighlight && _foundPosition != null)
+                 Positioned(
+                    left: _foundPosition!.dx - 9, // Centered over 22px icon (40-22)/2 = 9
+                    top: _foundPosition!.dy - 9,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                         color: AppTheme.neonGreen.withOpacity(0.5), // More visible
+                         border: Border.all(color: AppTheme.neonGreen, width: 3), // Thicker
+                         borderRadius: BorderRadius.circular(8),
+                         boxShadow: [
+                           BoxShadow(color: AppTheme.neonGreen.withOpacity(0.6), blurRadius: 15, spreadRadius: 2)
+                         ]
+                      ),
+                      child: const Icon(Icons.check, color: Colors.white, size: 24), // Added check icon
+                    ),
+                 ),
+
               // Label sutil
               Positioned(
                 top: 12,
