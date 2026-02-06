@@ -448,8 +448,34 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                 );
 
                             if (provider.eventType == 'online') {
-                                // If Online, only show Players field
-                                return playersField;
+                                // If Online, show Players field AND Price field (no location)
+                                return Column(
+                                  children: [
+                                    playersField,
+                                    const SizedBox(height: 20),
+                                    TextFormField(
+                                      initialValue: provider.entryFee?.toString() ?? '',
+                                      decoration: inputDecoration.copyWith(
+                                        labelText: 'Precio Entrada (Tréboles)',
+                                        suffixText: '🍀',
+                                        helperText: '0 para GRATIS',
+                                      ),
+                                      style: const TextStyle(color: Colors.white),
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(4),
+                                      ],
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) return 'Requerido';
+                                        return null;
+                                      },
+                                      onChanged: (v) {
+                                        provider.setEntryFee(v.isEmpty ? null : (int.tryParse(v)));
+                                      },
+                                    ),
+                                  ],
+                                );
                             }
 
                             if (constraints.maxWidth < 600) {

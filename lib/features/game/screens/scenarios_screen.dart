@@ -57,6 +57,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
   bool _isLoading = true;
   bool _isProcessing = false; // Prevents double taps
   int _navIndex = 1; // Default to Escenarios (index 1)
+  
+  // Cache for participant status to show "Entering..." vs "Request Access"
+  Map<String, bool> _participantStatusMap = {};
 
   // The default user role for scenario selection
   UserRole get role => UserRole.player;
@@ -272,7 +275,31 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
   Future<void> _loadEvents() async {
     print("DEBUG: _loadEvents start");
-    await Provider.of<EventProvider>(context, listen: false).fetchEvents();
+    final eventProvider = Provider.of<EventProvider>(context, listen: false);
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
+    
+    await eventProvider.fetchEvents();
+    
+    // Load participation status for each event
+    final userId = playerProvider.currentPlayer?.userId;
+    if (userId != null) {
+      final Map<String, bool> statusMap = {};
+      for (final event in eventProvider.events) {
+        try {
+          final data = await requestProvider.isPlayerParticipant(userId, event.id);
+          statusMap[event.id] = data['isParticipant'] as bool? ?? false;
+        } catch (e) {
+          statusMap[event.id] = false;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _participantStatusMap = statusMap;
+        });
+      }
+    }
+    
     print("DEBUG: _loadEvents end. Mounted: $mounted");
     if (mounted) {
       setState(() {
@@ -335,8 +362,12 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         scenario: scenario,
         playerProvider: playerProvider,
         requestProvider: requestProvider,
+        entryFee: (scenario.entryFee > 0) ? scenario.entryFee.toDouble() : null,
         role: role,
       );
+
+      // Artificial delay for better UX (so loading doesn't flicker)
+      await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading
@@ -424,10 +455,107 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
           break;
 
         case AccessResultType.needsCode:
-          Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => CodeFinderScreen(scenario: scenario)),
-          );
+          if (scenario.type == 'online') {
+            // Online event: Skip CodeFinderScreen entirely
+            if (scenario.entryFee > 0) {
+              // Online PAID: Handle payment first
+              final userClovers = playerProvider.currentPlayer?.clovers ?? 0;
+              if (userClovers >= scenario.entryFee) {
+                // Has enough -> Confirm payment
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppTheme.cardBg,
+                    title: const Text('💰 Evento de Pago', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    content: Text('Este evento cuesta ${scenario.entryFee} 🍀.\n\nTu saldo: $userClovers 🍀', style: const TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar', style: TextStyle(color: Colors.white54))),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentGold, foregroundColor: Colors.black),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('PAGAR Y ENTRAR'),
+                      ),
+                    ],
+                  ),
+                );
+                
+                if (confirm == true) {
+                   setState(() => _isProcessing = true);
+                   showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+                   
+                   final success = await requestProvider.joinOnlinePaidEvent(
+                      playerProvider.currentPlayer!.userId, scenario.id, scenario.entryFee
+                   );
+
+                   // Artificial delay for specific online join action
+                   await Future.delayed(const Duration(seconds: 2));
+                   
+                   if (!mounted) return;
+                   Navigator.pop(context);
+                   
+                   if (success) {
+                     playerProvider.updateLocalClovers(userClovers - scenario.entryFee);
+                     await playerProvider.refreshProfile();
+                     setState(() { _participantStatusMap[scenario.id] = true; });
+                     
+                     await gameProvider.fetchClues(eventId: scenario.id);
+                     if (mounted) {
+                       Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+                     }
+                   } else {
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error procesando el pago.')));
+                   }
+                   setState(() => _isProcessing = false);
+                }
+              } else {
+                // Insufficient funds
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppTheme.cardBg,
+                    title: const Text('Saldo Insuficiente', style: TextStyle(color: AppTheme.dangerRed, fontWeight: FontWeight.bold)),
+                    content: Text('Este evento cuesta ${scenario.entryFee} 🍀.\nSolo tienes $userClovers 🍀.', style: const TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple),
+                        icon: const Icon(Icons.account_balance_wallet),
+                        label: const Text('IR A BILLETERA'),
+                        onPressed: () { Navigator.pop(ctx); Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletScreen())); },
+                      ),
+                    ],
+                  ),
+                );
+              }
+            } else {
+              // Online FREE: Join directly and enter game
+              showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+              
+              try {
+                // Create game_player record for free online event
+                await requestProvider.joinFreeOnlineEvent(playerProvider.currentPlayer!.userId, scenario.id);
+                
+                // Artificial delay for specific online join action
+                await Future.delayed(const Duration(seconds: 2));
+                
+                setState(() { _participantStatusMap[scenario.id] = true; });
+                
+                await gameProvider.fetchClues(eventId: scenario.id);
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
+                }
+              } catch (e) {
+                if (mounted) Navigator.pop(context); // Close loading despite error so we can show snackbar
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al ingresar: $e')));
+              }
+            }
+          } else {
+            // Presencial event: Show CodeFinderScreen (thermometer + QR)
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CodeFinderScreen(scenario: scenario)),
+            );
+          }
           break;
           
         case AccessResultType.needsAvatar:
@@ -439,14 +567,143 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
            break;
 
         case AccessResultType.needsPayment:
-          // User needs to pay entry fee before joining
-          final entryFee = result.data?['entryFee'] ?? 0.0;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Se requiere inscripción de ${entryFee.toStringAsFixed(2)} 🍀'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          final entryFee = (result.data?['entryFee'] as num?)?.toInt() ?? 0;
+          final userClovers = playerProvider.currentPlayer?.clovers ?? 0;
+
+          if (userClovers >= entryFee) {
+            // Caso 1: Tiene saldo suficiente -> Confirmar y Pagar
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: AppTheme.cardBg,
+                title: const Text('Confirmar Inscripción', 
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                content: Text(
+                  'Este evento tiene un costo de $entryFee 🍀.\n\n'
+                  'Tu saldo: $userClovers 🍀\n'
+                  'Despues del pago: ${userClovers - entryFee} 🍀',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentGold, 
+                      foregroundColor: Colors.black,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('PAGAR Y ENTRAR'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true) {
+              // Procesar Pago
+               setState(() => _isProcessing = true);
+               showDialog(
+                 context: context,
+                 barrierDismissible: false,
+                 builder: (_) => const Center(child: CircularProgressIndicator()),
+               );
+               
+               // Usar función apropiada según tipo de evento
+               final bool success;
+               if (scenario.type == 'online') {
+                  // Online: Pago + inscripción directa (sin esperar admin)
+                  success = await requestProvider.joinOnlinePaidEvent(
+                     playerProvider.currentPlayer!.userId, 
+                     scenario.id, 
+                     entryFee
+                  );
+               } else {
+                  // Presencial: Solo pago (luego pasa por flujo de solicitud)
+                  success = await requestProvider.processEventPayment(
+                     playerProvider.currentPlayer!.userId, 
+                     scenario.id, 
+                     entryFee
+                  );
+               }
+               
+               if (!mounted) return;
+               Navigator.pop(context); // Close loading overlay
+               
+               if (success) {
+                 // Actualizar saldo localmente para reflejar cambio inmediato
+                 playerProvider.updateLocalClovers(userClovers - entryFee);
+                 await playerProvider.refreshProfile();
+                 
+                 // Actualizar mapa de participación
+                 setState(() {
+                    _participantStatusMap[scenario.id] = (scenario.type == 'online');
+                 });
+                 
+                 // Navegar al flujo correcto según tipo de evento
+                 if (mounted) {
+                    if (scenario.type == 'online') {
+                       // Online: Ir directo a la carrera (ya está inscrito)
+                       final gameProvider = Provider.of<GameProvider>(context, listen: false);
+                       await gameProvider.fetchClues(eventId: scenario.id);
+                       Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)),
+                       );
+                    } else {
+                       // Presencial: Mostrar termómetro primero -> QR -> Solicitar Acceso
+                       Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => CodeFinderScreen(scenario: scenario)),
+                       );
+                    }
+                 }
+               } else {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(content: Text('Error procesando el pago. Intenta de nuevo.')),
+                 );
+               }
+               setState(() => _isProcessing = false);
+            }
+
+          } else {
+            // Caso 2: Saldo Insuficiente -> Redirigir Wallet
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: AppTheme.cardBg,
+                title: const Text('Saldo Insuficiente', 
+                    style: TextStyle(color: AppTheme.dangerRed, fontWeight: FontWeight.bold)),
+                content: Text(
+                  'Este evento cuesta $entryFee 🍀.\n'
+                  'Solo tienes $userClovers 🍀 disponibles.',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.account_balance_wallet),
+                    label: const Text('IR A BILLETERA'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const WalletScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          }
           break;
 
         case AccessResultType.spectatorAllowed:
@@ -1415,21 +1672,30 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                                   ),
                                                                   child: scenario.isCompleted 
                                                                     ? const Text("VER PODIO", style: TextStyle(fontWeight: FontWeight.bold))
-                                                                    : Row(
-                                                                        mainAxisSize: MainAxisSize.min,
-                                                                        children: [
-                                                                          Text(
-                                                                              scenario.entryFee == 0 
-                                                                                  ? "INSCRIBETE (GRATIS)" 
-                                                                                  : "INSCRIBETE (${scenario.entryFee} 🍀)",
-                                                                              style: const TextStyle(fontWeight: FontWeight.bold)
-                                                                          ),
-                                                                          if (scenario.entryFee == 0) ...[
-                                                                             const SizedBox(width: 6),
-                                                                             const Icon(Icons.card_giftcard, size: 18),
+                                                                    : _participantStatusMap[scenario.id] == true
+                                                                      ? const Row(
+                                                                          mainAxisSize: MainAxisSize.min,
+                                                                          children: [
+                                                                            Icon(Icons.play_arrow, size: 20),
+                                                                            SizedBox(width: 6),
+                                                                            Text("ENTRAR", style: TextStyle(fontWeight: FontWeight.bold)),
                                                                           ],
-                                                                        ],
-                                                                      ),
+                                                                        )
+                                                                      : Row(
+                                                                          mainAxisSize: MainAxisSize.min,
+                                                                          children: [
+                                                                            Text(
+                                                                                scenario.entryFee == 0 
+                                                                                    ? "INSCRIBETE (GRATIS)" 
+                                                                                    : "INSCRIBETE (${scenario.entryFee} 🍀)",
+                                                                                style: const TextStyle(fontWeight: FontWeight.bold)
+                                                                            ),
+                                                                            if (scenario.entryFee == 0) ...[
+                                                                               const SizedBox(width: 6),
+                                                                               const Icon(Icons.card_giftcard, size: 18),
+                                                                            ],
+                                                                          ],
+                                                                        ),
                                                                 ),
                                                               ),
                                                               const SizedBox(height: 12),

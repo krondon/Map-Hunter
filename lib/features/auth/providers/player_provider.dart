@@ -85,6 +85,22 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
+  /// Update local coins without backend sync (Optimistic UI).
+  void updateLocalCoins(int newCoins) {
+    if (_currentPlayer != null) {
+      _currentPlayer = _currentPlayer!.copyWith(coins: newCoins);
+      notifyListeners();
+    }
+  }
+
+  /// Update local clovers without backend sync (Optimistic UI).
+  void updateLocalClovers(int newClovers) {
+    if (_currentPlayer != null) {
+      _currentPlayer = _currentPlayer!.copyWith(clovers: newClovers);
+      notifyListeners();
+    }
+  }
+
   // Flag to prevent auto-reconnection after explicit exit
   bool _suppressAutoJoin = false;
   

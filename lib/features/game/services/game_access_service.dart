@@ -131,18 +131,7 @@ class GameAccessService {
     
     final String userId = playerProvider.currentPlayer!.userId;
 
-    // 3. Payment Check (if event requires entry fee)
-    if (entryFee != null && entryFee > 0) {
-      // For now, we return needsPayment - WalletProvider will handle actual check
-      // This is a placeholder until wallet integration is complete
-      return GameAccessResult(
-        AccessResultType.needsPayment,
-        message: 'Este evento requiere una inscripción de ${entryFee.toStringAsFixed(2)} 🍀',
-        data: {'entryFee': entryFee},
-      );
-    }
-
-    // 4. Participant Status (Gatekeeper)
+    // 3. Participant Status (Gatekeeper) - CHECK FIRST
     try {
       final participantData = await requestProvider.isPlayerParticipant(userId, scenario.id);
       final isGamePlayer = participantData['isParticipant'] as bool;
@@ -175,18 +164,30 @@ class GameAccessService {
         
         if (request != null) {
           if (request.isApproved) {
+            // Request is Approved - Allow entry (skip payment check as usually approval implies payment/permission)
             return GameAccessResult.player(data: {'isParticipant': false, 'isApproved': true});
           } else {
             return GameAccessResult(AccessResultType.requestPendingOrRejected);
           }
-        } else {
-          return GameAccessResult(AccessResultType.needsCode);
         }
+        // If no request exists, proceed to payment check or code check
       }
 
     } catch (e) {
        return GameAccessResult(AccessResultType.sessionInvalid, message: 'Error verificando estado: $e');
     }
+
+    // 4. Payment Check (if event requires entry fee AND user is not a participant)
+    if (entryFee != null && entryFee > 0) {
+      return GameAccessResult(
+        AccessResultType.needsPayment,
+        message: 'Este evento requiere una inscripción de ${entryFee.toStringAsFixed(2)} 🍀',
+        data: {'entryFee': entryFee},
+      );
+    }
+    
+    // 5. If no payment needed, but no request found -> Needs Code (or just explicit join for free events)
+    return GameAccessResult(AccessResultType.needsCode);
   }
 
   /// Spectator-specific access check.

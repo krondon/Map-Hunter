@@ -10,6 +10,7 @@ class AppTheme {
   static const Color successGreen = Color(0xFF00D9A3);
   static const Color dangerRed = Color(0xFFFF4757);
   static const Color warningOrange = Color(0xFFFFB142);
+  static const Color neonGreen = Color(0xFF39FF14); // Added for minigame feedback
   
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
