@@ -68,6 +68,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   late String _clue;
   late String _pin;
   late int _maxParticipants;
+  late int _entryFee; // NEW: State for price
   late DateTime _selectedDate;
   
   XFile? _selectedImage;
@@ -137,6 +138,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     _clue = widget.event.clue;
     _pin = widget.event.pin;
     _maxParticipants = widget.event.maxParticipants;
+    _entryFee = widget.event.entryFee; // NEW: Init
     _selectedDate = widget.event.date;
 
     // Load requests for this event
@@ -516,6 +518,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         clue: _clue,
         maxParticipants: _maxParticipants,
         pin: _pin,
+        entryFee: _entryFee, // NEW: Save
       );
 
       await Provider.of<EventProvider>(context, listen: false)
@@ -810,6 +813,21 @@ Future<bool> _showConfirmDialog() async {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+             // NEW: Entry Fee Field
+            TextFormField(
+              initialValue: _entryFee == 0 ? '' : _entryFee.toString(),
+              readOnly: _isEventActive,
+              style: TextStyle(color: _isEventActive ? Colors.white70 : Colors.white),
+              decoration: inputDecoration.copyWith(
+                labelText: 'Precio Entrada (Tréboles)',
+                suffixText: '🍀',
+                helperText: 'Deja vacío o 0 para GRATIS',
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onSaved: (v) => _entryFee = (v == null || v.isEmpty) ? 0 : int.parse(v),
             ),
             const SizedBox(height: 16),
             TextFormField(

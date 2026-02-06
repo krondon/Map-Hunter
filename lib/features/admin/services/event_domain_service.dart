@@ -94,7 +94,7 @@ class EventDomainService {
   /// Validates entry fee amount.
   /// 
   /// Returns an error message if invalid, null if valid.
-  static String? validateEntryFee(double? amount, EntryType entryType) {
+  static String? validateEntryFee(int? amount, EntryType entryType) {
     if (entryType == EntryType.free) return null;
     
     if (amount == null || amount <= 0) {
@@ -129,7 +129,7 @@ class EventDomainService {
     required String imageFileName,
     // --- NEW: Wallet Support ---
     EntryType entryType = EntryType.free,
-    double? entryFee,
+    int? entryFee, // Changed to int to match GameEvent
     CurrencyType currency = CurrencyType.treboles,
   }) {
     final isOnline = eventType == 'online';
@@ -157,8 +157,7 @@ class EventDomainService {
       maxParticipants: maxParticipants,
       pin: finalPin,
       type: eventType,
-      // Note: entryType, entryFee, currency will be stored in event metadata
-      // once the database schema supports it
+      entryFee: entryFee ?? 0,
     );
   }
 

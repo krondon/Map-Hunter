@@ -430,14 +430,18 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                   decoration: inputDecoration.copyWith(labelText: 'Max. Jugadores'),
                                   style: const TextStyle(color: Colors.white),
                                   keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(2),
+                                  ],
                                   validator: (v) {
                                       if (v == null || v.isEmpty) return 'Requerido';
                                       int? val = int.tryParse(v);
                                       if (val == null) return 'Inválido';
-                                      if (val <= 0) return 'Mín 1';
-                                      return null;
-                                  },
+                                    if (val <= 0) return 'Mín 1';
+                                    if (val > 99) return 'Max 99';
+                                    return null;
+                                },
                                   onChanged: (v) {
                                     if (v.isNotEmpty) provider.setMaxParticipants(int.tryParse(v) ?? 0);
                                   },
@@ -455,6 +459,25 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                   SizedBox(width: double.infinity, child: locationWidget),
                                   const SizedBox(height: 20),
                                   playersField, 
+                                  const SizedBox(height: 20),
+                                  TextFormField(
+                                    initialValue: provider.entryFee?.toString() ?? '',
+                                    decoration: inputDecoration.copyWith(
+                                      labelText: 'Precio Entrada (Tréboles)',
+                                      suffixText: '🍀',
+                                      helperText: '0 para GRATIS',
+                                    ),
+                                    style: const TextStyle(color: Colors.white),
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty) return 'Requerido'; // Forces explicit '0' or value
+                                      return null;
+                                    },
+                                    onChanged: (v) {
+                                        provider.setEntryFee(v.isEmpty ? null : (int.tryParse(v)));
+                                    },
+                                  ),
                                 ],
                               );
                             } else {
@@ -464,6 +487,27 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                   Expanded(flex: 2, child: locationWidget),
                                   const SizedBox(width: 20),
                                   Expanded(child: playersField), 
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: TextFormField(
+                                      initialValue: provider.entryFee?.toString() ?? '',
+                                      decoration: inputDecoration.copyWith(
+                                        labelText: 'Precio Entrada (Tréboles)',
+                                        suffixText: '🍀',
+                                        helperText: '0 para GRATIS',
+                                      ),
+                                      style: const TextStyle(color: Colors.white),
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                      validator: (v) {
+                                        if (v == null || v.isEmpty) return 'Requerido'; // Forces explicit '0' or value
+                                        return null;
+                                      },
+                                      onChanged: (v) {
+                                        provider.setEntryFee(v.isEmpty ? null : (int.tryParse(v)));
+                                      },
+                                    ),
+                                  ),
                                 ],
                               );
                             }

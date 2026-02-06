@@ -691,19 +691,17 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
             children: [
               // Dark overlay for better text readability
               // Dark overlay removed for lighter background
-             RefreshIndicator(
-            onRefresh: _loadEvents,
-            color: AppTheme.accentGold,
-            backgroundColor: AppTheme.cardBg,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Column(
+             LayoutBuilder(
+              builder: (context, viewportConstraints) {
+                return RefreshIndicator(
+                  onRefresh: _loadEvents,
+                  color: AppTheme.accentGold,
+                  backgroundColor: AppTheme.cardBg,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: viewportConstraints.maxHeight,
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                           // Custom AppBar with Game Title and Logout
@@ -907,7 +905,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                         // Description Text
                         // Description Text with Enhanced Style
                         const Padding(
-                          padding: EdgeInsets.fromLTRB(40, 60, 40, 24),
+                          padding: EdgeInsets.fromLTRB(40, 40, 40, 20),
                           child: Text(
                             '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
                             textAlign: TextAlign.center,
@@ -943,9 +941,10 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
 
                         // Scenarios Carousel - Expanded to fit remaining space
-                        SizedBox(
-                          height: constraints.maxHeight * 0.6, // Responsive height
-                          child: _isLoading
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return _isLoading
                               ? const Center(
                                   child: CircularProgressIndicator(
                                       color: AppTheme.accentGold))
@@ -993,7 +992,8 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                                 child: SizedBox(
                                                   height: Curves.easeOut
                                                           .transform(value) *
-                                                      constraints.maxHeight * 0.55, // Responsive item height
+                                                      constraints.maxHeight, // Full height
+
                                                   width: Curves.easeOut
                                                           .transform(value) *
                                                       340, // Maximized width
@@ -1110,123 +1110,116 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
                                                       // Content
                                                       Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(24.0),
-                                                        child: Column(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .end,
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            // State Tag
-                                                            Row(
-                                                              children: [
-                                                                Container(
-                                                                  padding: const EdgeInsets.symmetric(
-                                                                      horizontal: 12, vertical: 6),
-                                                                  decoration: BoxDecoration(
-                                                                    color: scenario.isCompleted 
-                                                                        ? AppTheme.dangerRed.withOpacity(0.9)
-                                                                        : Colors.black54,
-                                                                    borderRadius: BorderRadius.circular(20),
-                                                                    border: Border.all(
-                                                                        color: Colors.white24),
-                                                                  ),
-                                                                  child: Row(
-                                                                    mainAxisSize: MainAxisSize.min,
-                                                                    children: [
-                                                                      Icon(
+                                                        padding: const EdgeInsets.all(24.0),
+                                                        child: FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          alignment: Alignment.bottomCenter,
+                                                          child: Column(
+                                                            mainAxisAlignment: MainAxisAlignment.end,
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              // State Tag
+                                                              Row(
+                                                                children: [
+                                                                  Container(
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                        horizontal: 12, vertical: 6),
+                                                                    decoration: BoxDecoration(
+                                                                      color: scenario.isCompleted 
+                                                                          ? AppTheme.dangerRed.withOpacity(0.9)
+                                                                          : Colors.black54,
+                                                                      borderRadius: BorderRadius.circular(20),
+                                                                      border: Border.all(
+                                                                          color: Colors.white24),
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisSize: MainAxisSize.min,
+                                                                      children: [
+                                                                        Icon(
+                                                                            scenario.isCompleted 
+                                                                                ? Icons.emoji_events
+                                                                                : Icons.people,
+                                                                            color: Colors.white,
+                                                                            size: 14),
+                                                                        const SizedBox(width: 6),
+                                                                        Text(
                                                                           scenario.isCompleted 
-                                                                              ? Icons.emoji_events
-                                                                              : Icons.people,
-                                                                          color: Colors.white,
-                                                                          size: 14),
-                                                                      const SizedBox(
-                                                                          width:
-                                                                              6),
-                                                                      Text(
-                                                                        scenario.isCompleted 
-                                                                            ? 'FINALIZADA'
-                                                                            : 'MAX ${scenario.maxPlayers}',
-                                                                        style: const TextStyle(
-                                                                          color: Colors.white,
-                                                                          fontWeight: FontWeight.bold,
-                                                                          fontSize: 12,
+                                                                              ? 'FINALIZADA'
+                                                                              : 'MAX ${scenario.maxPlayers}',
+                                                                          style: const TextStyle(
+                                                                            color: Colors.white,
+                                                                            fontWeight: FontWeight.bold,
+                                                                            fontSize: 12,
+                                                                          ),
                                                                         ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              const SizedBox(height: 12),
+
+                                                              Text(
+                                                                scenario.name,
+                                                                style: const TextStyle(
+                                                                  color: Colors.white,
+                                                                  fontSize: 24,
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 4),
+                                                              Text(
+                                                                scenario.description,
+                                                                style: const TextStyle(
+                                                                  color: Colors.white70,
+                                                                  fontSize: 12,
+                                                                ),
+                                                                maxLines: 2,
+                                                                overflow: TextOverflow.ellipsis,
+                                                              ),
+                                                              const SizedBox(height: 10),
+
+                                                              if (scenario.date != null && !scenario.isCompleted)
+                                                                Center(
+                                                                    child: ScenarioCountdown(
+                                                                        targetDate: scenario.date!)),
+
+                                                              const SizedBox(height: 10),
+                                                              SizedBox(
+                                                                width: 250, // Fixed width for button within FittedBox context
+                                                                child: ElevatedButton(
+                                                                  onPressed: () {
+                                                                    _onScenarioSelected(scenario);
+                                                                  },
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: AppTheme.accentGold,
+                                                                    foregroundColor: Colors.black,
+                                                                    elevation: 8,
+                                                                    shape: RoundedRectangleBorder(
+                                                                      borderRadius: BorderRadius.circular(20),
+                                                                    ),
+                                                                  ),
+                                                                  child: scenario.isCompleted 
+                                                                    ? const Text("VER PODIO", style: TextStyle(fontWeight: FontWeight.bold))
+                                                                    : Row(
+                                                                        mainAxisSize: MainAxisSize.min,
+                                                                        children: [
+                                                                          Text(
+                                                                              scenario.entryFee == 0 
+                                                                                  ? "INSCRIBETE (GRATIS)" 
+                                                                                  : "INSCRIBETE (${scenario.entryFee} 🍀)",
+                                                                              style: const TextStyle(fontWeight: FontWeight.bold)
+                                                                          ),
+                                                                          if (scenario.entryFee == 0) ...[
+                                                                             const SizedBox(width: 6),
+                                                                             const Icon(Icons.card_giftcard, size: 18),
+                                                                          ],
+                                                                        ],
                                                                       ),
-                                                                    ],
-                                                                  ),
                                                                 ),
-                                                              ],
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 12),
-
-                                                            Text(
-                                                              scenario.name,
-                                                              style: const TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontSize: 24,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
                                                               ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 4),
-                                                            Text(
-                                                              scenario
-                                                                  .description,
-                                                              style: const TextStyle(
-                                                                color: Colors
-                                                                    .white70,
-                                                                fontSize: 12,
-                                                              ),
-                                                              maxLines: 2,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 10),
-
-                                                            if (scenario.date !=
-                                                                    null &&
-                                                                !scenario
-                                                                    .isCompleted)
-                                                              Center(
-                                                                  child: ScenarioCountdown(
-                                                                      targetDate:
-                                                                          scenario.date!)),
-
-                                                            const SizedBox(
-                                                                height: 10),
-                                                            SizedBox(
-                                                              width: double
-                                                                  .infinity,
-                                                              child:
-                                                                  ElevatedButton(
-                                                                onPressed: () {
-                                                                  _onScenarioSelected(scenario);
-                                                                },
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: AppTheme.accentGold,
-                                                                  foregroundColor: Colors.black,
-                                                                  elevation: 8,
-                                                                  shape: RoundedRectangleBorder(
-                                                                    borderRadius: BorderRadius.circular(20),
-                                                                  ),
-                                                                ),
-                                                                child: Text(
-                                                                    scenario.isCompleted ? "VER PODIO" : "INSCRIBETE",
-                                                                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                                                              ),
-                                                            ),
-                                                          ],
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -1236,19 +1229,21 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                                             ),
                                           );
                                         },
+
                                       ),
-                                    ),
-                        ),
+                                    );
+                                  } 
+                                ),
+                              ),
                         // Bottom spacing restored
-                        const SizedBox(height: 120),
+                        const SizedBox(height: 30),
                       ],
+                    ),
                     ),
                   ),
                 );
-              },
-             ),
-            ),
-
+            }
+          ),
           ],
         ),
       ),

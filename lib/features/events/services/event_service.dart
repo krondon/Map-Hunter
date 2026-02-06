@@ -58,6 +58,7 @@ class EventService {
             'pin': event.pin,
             'created_by_admin_id': _supabase.auth.currentUser?.id ?? 'admin_1',
             'type': event.type,
+            'entry_fee': event.entryFee, // NEW: Persistence fix
           })
           .select()
           .single();
@@ -151,6 +152,7 @@ class EventService {
             'max_participants': event.maxParticipants,
             'pin': event.pin,
             'type': event.type,
+            'entry_fee': event.entryFee, // NEW: Persistence fix
           })
           .eq('id', event.id)
           .select()
@@ -220,8 +222,10 @@ class EventService {
       clue: (data['clue'] ?? '¡Pista desbloqueada!') as String, 
       maxParticipants: (data['max_participants'] ?? 0) as int,
       pin: (data['pin'] ?? '') as String,
+ 
       winnerId: data['winner_id'] as String?, 
       type: data['type'] ?? 'on_site',
+      entryFee: (data['entry_fee'] as num?)?.toInt() ?? 0, // NEW: Read persistence fix
     );
   }
 

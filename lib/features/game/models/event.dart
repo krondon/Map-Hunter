@@ -17,6 +17,7 @@ class GameEvent {
   final DateTime? completedAt;
   final String? winnerId;
   final String type;
+  final int entryFee;
 
   GameEvent({
     required this.id,
@@ -35,6 +36,7 @@ class GameEvent {
     this.completedAt,
     this.winnerId,
     this.type = 'on_site',
+    this.entryFee = 0,
   });
 
   LatLng get location => LatLng(latitude, longitude);
@@ -61,6 +63,7 @@ class GameEvent {
       completedAt: json['completed_at'] != null ? DateTime.parse(json['completed_at']) : null,
       winnerId: json['winner_id'],
       type: json['type'] ?? 'on_site',
+      entryFee: (json['entry_fee'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -82,6 +85,7 @@ class GameEvent {
       'completed_at': completedAt?.toIso8601String(),
       'winner_id': winnerId,
       'type': type,
+      'entry_fee': entryFee,
     };
   }
 }

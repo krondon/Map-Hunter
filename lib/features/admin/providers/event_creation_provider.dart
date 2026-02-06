@@ -23,7 +23,8 @@ class EventCreationProvider extends ChangeNotifier {
   String _clue = '';
   String _pin = '';
   int _maxParticipants = 0;
-    DateTime _selectedDate = DateTime.now();
+  int? _entryFee; // NEW: Nullable to enforce explicit input
+  DateTime _selectedDate = DateTime.now();
   String _eventType = 'on_site'; // 'on_site' or 'online'
 
   // Imágenes
@@ -33,8 +34,7 @@ class EventCreationProvider extends ChangeNotifier {
   int _numberOfClues = 0;
   List<Map<String, dynamic>> _clueForms = [];
   int _currentClueIndex = 0;
-
-  // Tiendas
+  
   // Tiendas
   List<Map<String, dynamic>> _pendingStores = [];
   
@@ -55,6 +55,7 @@ class EventCreationProvider extends ChangeNotifier {
   String get clue => _clue;
   String get pin => _pin;
   int get maxParticipants => _maxParticipants;
+  int? get entryFee => _entryFee;
   DateTime get selectedDate => _selectedDate;
   XFile? get selectedImage => _selectedImage;
   int get numberOfClues => _numberOfClues;
@@ -80,6 +81,7 @@ class EventCreationProvider extends ChangeNotifier {
       _clue = event.clue;
       _pin = event.pin;
       _maxParticipants = event.maxParticipants;
+      _entryFee = event.entryFee;
       _selectedDate = event.date;
       _eventType = event.type;
       // Note: Image and Clues are not fully loaded here in original code either
@@ -98,6 +100,7 @@ class EventCreationProvider extends ChangeNotifier {
     _clue = '';
     _pin = '';
     _maxParticipants = 0;
+    _entryFee = null; // Reset to null
     _selectedDate = DateTime.now();
     _selectedImage = null;
     _numberOfClues = 0;
@@ -106,7 +109,6 @@ class EventCreationProvider extends ChangeNotifier {
     _pendingStores = [];
     _isLoading = false;
     _eventId = const Uuid().v4();
-    _isFormValid = false;
     _isFormValid = false;
     _eventType = 'on_site';
     
@@ -153,6 +155,13 @@ class EventCreationProvider extends ChangeNotifier {
   void setMaxParticipants(int value) { 
     _maxParticipants = value; 
     checkFormValidity(); 
+  }
+
+  void setEntryFee(int? value) {
+    if (value != null && value < 0) value = 0;
+    _entryFee = value;
+    checkFormValidity(); // If future validation depends on fee
+    notifyListeners();
   }
   
   void setNumberOfClues(int value) {
@@ -355,6 +364,10 @@ class EventCreationProvider extends ChangeNotifier {
       if (_pin.length != 6) isValid = false;
       if (_latitude == null || _longitude == null) isValid = false;
     } 
+    
+    // Validate key fields for all modes
+    if (_entryFee == null) isValid = false;
+
     // Online mode: PIN is auto-generated, location is 0.0
 
     if (isValid != _isFormValid) {
@@ -400,6 +413,7 @@ class EventCreationProvider extends ChangeNotifier {
         pin: _pin,
         eventType: _eventType,
         imageFileName: _selectedImage!.name,
+        entryFee: _entryFee ?? 0, // Validated to be non-null above
       );
 
       // Update PIN state for UI feedback (domain service may have auto-generated it)

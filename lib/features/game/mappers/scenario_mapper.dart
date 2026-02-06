@@ -23,6 +23,7 @@ class ScenarioMapper {
       date: event.date,
       isCompleted: event.winnerId != null && event.winnerId!.isNotEmpty,
       type: event.type,
+      entryFee: event.entryFee,
     );
   }
 
