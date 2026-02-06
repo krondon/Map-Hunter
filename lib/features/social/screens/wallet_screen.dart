@@ -853,9 +853,12 @@ class _WalletScreenState extends State<WalletScreen> {
          await Future.delayed(const Duration(seconds: 2));
          if (mounted) {
             await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+            await _loadRecentTransactions(); // Refresh history to show success/pending
          }
       } else {
          if (!mounted) return;
+         // Refresh anyway to show the pending order if it was created
+         _loadRecentTransactions();
          ScaffoldMessenger.of(context).showSnackBar(
            const SnackBar(content: Text('Operación cancelada o pendiente.')),
          );
@@ -1185,8 +1188,9 @@ class _WalletScreenState extends State<WalletScreen> {
           content: Text('¡Retiro procesado exitosamente!'),
           backgroundColor: AppTheme.successGreen,
         ));
-        // Refresh balance
+        // Refresh balance and history
         await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
+        _loadRecentTransactions();
       } else {
         throw Exception(data?['error'] ?? 'Error desconocido');
       }
