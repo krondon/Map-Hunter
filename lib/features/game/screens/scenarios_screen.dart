@@ -350,6 +350,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
         entryFee: (scenario.entryFee > 0) ? scenario.entryFee.toDouble() : null,
       );
 
+      // Artificial delay for better UX (so loading doesn't flicker)
+      await Future.delayed(const Duration(seconds: 2));
+
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading
 
@@ -467,6 +470,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                    final success = await requestProvider.joinOnlinePaidEvent(
                       playerProvider.currentPlayer!.userId, scenario.id, scenario.entryFee
                    );
+
+                   // Artificial delay for specific online join action
+                   await Future.delayed(const Duration(seconds: 2));
                    
                    if (!mounted) return;
                    Navigator.pop(context);
@@ -512,6 +518,10 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
               try {
                 // Create game_player record for free online event
                 await requestProvider.joinFreeOnlineEvent(playerProvider.currentPlayer!.userId, scenario.id);
+                
+                // Artificial delay for specific online join action
+                await Future.delayed(const Duration(seconds: 2));
+                
                 setState(() { _participantStatusMap[scenario.id] = true; });
                 
                 await gameProvider.fetchClues(eventId: scenario.id);
@@ -520,7 +530,7 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
                   Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen(eventId: scenario.id)));
                 }
               } catch (e) {
-                if (mounted) Navigator.pop(context);
+                if (mounted) Navigator.pop(context); // Close loading despite error so we can show snackbar
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al ingresar: $e')));
               }
             }
