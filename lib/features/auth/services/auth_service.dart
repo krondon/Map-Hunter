@@ -54,6 +54,39 @@ class AuthService {
     }
   }
 
+  /// Inicia sesión como ADMINISTRADOR.
+  /// 
+  /// Verificas credenciales y ADEMÁS verifica que el usuario tenga rol 'admin'.
+  /// Si no es admin, cierra sesión automáticamente y lanza excepción.
+  Future<String> loginAdmin(String email, String password) async {
+    try {
+      // 1. Login normal
+      final userId = await login(email, password);
+
+      // 2. Verificar rol
+      final profile = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+
+      final role = profile['role'] as String?;
+
+      if (role != 'admin') {
+        debugPrint('AuthService: Access denied for $email (Role: $role)');
+        await logout(); // Limpiar sesión inmediatamente
+        throw 'Acceso denegado: No tienes permisos de administrador.';
+      }
+
+      return userId;
+    } catch (e) {
+      // Re-lanzar errores ya procesados o procesar nuevos
+      debugPrint('AuthService: Error logging in as admin: $e');
+      if (e is String) rethrow;
+      throw _handleAuthError(e);
+    }
+  }
+
   /// Registra un nuevo usuario con nombre, email y password.
   /// 
   /// Retorna el ID del usuario creado en caso de éxito.

@@ -136,7 +136,12 @@ class TreasureHuntApp extends StatelessWidget {
             final supabase = Supabase.instance.client;
             return StoreProvider(storeService: StoreService(supabase));
         }),
-        ChangeNotifierProvider(create: (_) => PowerEffectProvider()),
+        ChangeNotifierProvider(create: (context) {
+           final provider = PowerEffectProvider();
+           final authService = Provider.of<AuthService>(context, listen: false);
+           authService.onLogout(() async => provider.resetState());
+           return provider;
+        }),
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => AppModeProvider()),
         

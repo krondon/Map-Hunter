@@ -712,6 +712,18 @@ class PowerEffectProvider extends ChangeNotifier {
      }
   }
 
+  /// Resets the provider state, stopping all listeners and clearing effects.
+  void resetState() {
+    debugPrint('[PowerEffectProvider] 🧹 Resetting State (Logout/Cleanup)');
+    startListening(null, forceRestart: true);
+    _clearAllEffects();
+    _lastDefenseAction = null;
+    _returnedByPlayerName = null;
+    _returnedAgainstCasterId = null;
+    _listeningForEventId = null;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();

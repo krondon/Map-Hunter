@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/splash_screen.dart';
 import 'dashboard-screen.dart';
+import 'package:provider/provider.dart';
+import '../../auth/services/auth_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -51,91 +53,28 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       setState(() => _isLoading = true);
 
       try {
-        // Intentar iniciar sesión con Supabase usando Edge Function
-        final supabase = Supabase.instance.client;
-
-        final response = await supabase.functions.invoke(
-          'auth-service/login',
-          body: {
-            'email': _emailController.text.trim(),
-            'password': _passwordController.text,
-          },
-          method: HttpMethod.post,
+        final authService = context.read<AuthService>();
+        
+        await authService.loginAdmin(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
 
-        if (response.status != 200) {
-          throw Exception(response.data['error'] ?? 'Error al iniciar sesión');
-        }
-
-        final data = response.data;
-        
-        if (data['session'] != null) {
-          // IMPORTANTE: setSession espera el refresh_token para restaurar la sesión
-          // Asegúrate de que tu Edge Function devuelva el refresh_token correcto.
-          await supabase.auth.setSession(data['session']['refresh_token']);
-          
-          // Forzar persistencia si es necesario (aunque setSession debería hacerlo)
-          // En web, esto guarda en localStorage.
-        } else {
-           throw Exception('No se recibió una sesión válida');
-        }
-
-        final user = supabase.auth.currentUser;
-
-        if (user != null) {
-          // Verificar el rol del usuario en la tabla profiles
-          final profile = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', user.id)
-              .single();
-
-          final role = profile['role'] as String?;
-
-          if (role != 'admin') {
-            // Si no es admin, cerrar sesión y mostrar error
-            await supabase.auth.signOut();
-            if (mounted) {
-              setState(() => _isLoading = false);
-              _showErrorSnackBar('⛔ Acceso denegado: No tienes permisos de administrador.');
-            }
-            return;
-          }
-
-          if (mounted) {
-            setState(() => _isLoading = false);
-            // Navegar al Dashboard
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const DashboardScreen()),
-            );
-          }
-        }
-      } catch (e) {
-        // Otros errores
         if (mounted) {
           setState(() => _isLoading = false);
-          _showErrorSnackBar(_handleAuthError(e));
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar(e.toString());
         }
       }
     }
   }
 
-  String _handleAuthError(dynamic e) {
-    String errorMsg = e.toString().toLowerCase();
-
-    if (errorMsg.contains('invalid login credentials') || 
-        errorMsg.contains('invalid credentials')) {
-      return 'Credenciales de administrador incorrectas.';
-    }
-    if (errorMsg.contains('network') || errorMsg.contains('connection')) {
-      return 'Error de red. Verifica tu conexión.';
-    }
-    if (errorMsg.contains('too many requests')) {
-      return 'Demasiados intentos. Intenta más tarde.';
-    }
-    
-    return e.toString().replaceAll('Exception: ', '').replaceAll('exception: ', '');
-  }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
