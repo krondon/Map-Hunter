@@ -99,53 +99,64 @@ class _HomeScreenState extends State<HomeScreen> {
       // Fallback
     }
     
-    return SabotageOverlay(
-      child: Scaffold(
-        body: _screens[_currentIndex],
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (index) {
-                if (player == null || (!player.isFrozen && !player.isBlinded)) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                }
-              },
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: AppTheme.cardBg,
-              selectedItemColor: AppTheme.secondaryPink,
-              unselectedItemColor: Colors.white54,
-              showUnselectedLabels: true,
-              elevation: 0,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.map),
-                  activeIcon: Icon(Icons.map, size: 28),
-                  label: 'Pistas',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory_2_outlined),
-                  activeIcon: Icon(Icons.inventory_2, size: 28),
-                  label: 'Inventario',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.leaderboard_outlined),
-                  activeIcon: Icon(Icons.leaderboard, size: 28),
-                  label: 'Ranking',
+    return PopScope(
+      canPop: _currentIndex == 0, // Solo permitir salir si estamos en la pestaña 0 (Pistas)
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // Si estamos aquí, es porque _currentIndex != 0.
+        // Interceptamos "Atrás" para volver a la pestaña principal.
+        setState(() {
+          _currentIndex = 0;
+        });
+      },
+      child: SabotageOverlay(
+        child: Scaffold(
+          body: _screens[_currentIndex],
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
                 ),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: (index) {
+                  if (player == null || (!player.isFrozen && !player.isBlinded)) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  }
+                },
+                type: BottomNavigationBarType.fixed,
+                backgroundColor: AppTheme.cardBg,
+                selectedItemColor: AppTheme.secondaryPink,
+                unselectedItemColor: Colors.white54,
+                showUnselectedLabels: true,
+                elevation: 0,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.map),
+                    activeIcon: Icon(Icons.map, size: 28),
+                    label: 'Pistas',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.inventory_2_outlined),
+                    activeIcon: Icon(Icons.inventory_2, size: 28),
+                    label: 'Inventario',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.leaderboard_outlined),
+                    activeIcon: Icon(Icons.leaderboard, size: 28),
+                    label: 'Ranking',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
