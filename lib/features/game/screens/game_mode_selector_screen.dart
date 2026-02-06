@@ -4,6 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/providers/app_mode_provider.dart';
 import 'scenarios_screen.dart';
+import '../../auth/providers/player_provider.dart';
+import '../../auth/screens/login_screen.dart';
 
 class GameModeSelectorScreen extends StatelessWidget {
   const GameModeSelectorScreen({super.key});
@@ -80,8 +82,20 @@ class GameModeSelectorScreen extends StatelessWidget {
                 
                 // Logout button for convenience
                 TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context); // Go back to login or handle logout properly
+                  onPressed: () async {
+                    // Logout and navigate to login
+                    try {
+                      await context.read<PlayerProvider>().logout();
+                    } catch (e) {
+                      debugPrint('Error logging out: $e');
+                    }
+                    
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      );
+                    }
                   },
                   icon: const Icon(Icons.arrow_back, color: Colors.white54),
                   label: const Text('Volver', style: TextStyle(color: Colors.white54)),

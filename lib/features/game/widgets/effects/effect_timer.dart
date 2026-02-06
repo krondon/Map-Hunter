@@ -99,12 +99,12 @@ class _EffectTimerState extends State<EffectTimer> {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: (widget.iconColor ?? Colors.amberAccent).withOpacity(0.15),
+                color: (widget.iconColor ?? Colors.white70).withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.timer_outlined,
-                color: widget.iconColor ?? Colors.amberAccent,
+                color: widget.iconColor ?? Colors.white70,
                 size: 16,
               ),
             ),
