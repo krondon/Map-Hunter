@@ -49,14 +49,21 @@ class GameRequestProvider extends ChangeNotifier {
       debugPrint('[REQUEST_SUBMIT] 🔍 Step 1: Checking if already game_player...');
       final existingPlayer = await _supabase
           .from('game_players')
-          .select('id')
+          .select('id, status') // Selected status
           .eq('user_id', userId)
           .eq('event_id', eventId)
           .maybeSingle();
 
       if (existingPlayer != null) {
-        debugPrint('[REQUEST_SUBMIT] ⚠️ RESULT: User is already a game_player. Aborting.');
-        return SubmitRequestResult.alreadyPlayer;
+        final status = existingPlayer['status'];
+        if (status == 'spectator') {
+           debugPrint('[REQUEST_SUBMIT] ⚠️ User is spectator. Deleting spectator record to allow player upgrade...');
+           await _supabase.from('game_players').delete().eq('id', existingPlayer['id']);
+           // Proceed to create request
+        } else {
+           debugPrint('[REQUEST_SUBMIT] ⚠️ RESULT: User is already a game_player (Status: $status). Aborting.');
+           return SubmitRequestResult.alreadyPlayer;
+        }
       }
 
       // PASO 2: Verificar si ya tiene una solicitud para este evento
@@ -327,16 +334,35 @@ void clearLocalRequests() {
       bool joinSuccess = false;
       
       try {
-        // Opción A: Usar RPC existente
-        debugPrint('[ONLINE_JOIN] 🔄 Trying RPC initialize_game_for_user...');
-        await _supabase.rpc('initialize_game_for_user', params: {
-          'target_user_id': userId,
-          'target_event_id': eventId,
-        });
-        joinSuccess = true;
-        debugPrint('[ONLINE_JOIN] ✅ RPC Join Success');
+        // [SPECTATOR UPGRADE CHECK]
+        final existing = await _supabase.from('game_players')
+            .select('id, status')
+            .eq('user_id', userId)
+            .eq('event_id', eventId)
+            .maybeSingle();
+
+        if (existing != null && existing['status'] == 'spectator') {
+           debugPrint('[ONLINE_JOIN] 🔄 Upgrading spectator to player...');
+           await _supabase.from('game_players').update({
+             'status': 'active',
+             'lives': 3,
+             'role': 'player',
+             'joined_at': DateTime.now().toIso8601String(),
+           }).eq('id', existing['id']);
+           joinSuccess = true;
+           debugPrint('[ONLINE_JOIN] ✅ Spectator Upgrade Success');
+        } else {
+            // Opción A: Usar RPC existente
+            debugPrint('[ONLINE_JOIN] 🔄 Trying RPC initialize_game_for_user...');
+            await _supabase.rpc('initialize_game_for_user', params: {
+              'target_user_id': userId,
+              'target_event_id': eventId,
+            });
+            joinSuccess = true;
+            debugPrint('[ONLINE_JOIN] ✅ RPC Join Success');
+        }
       } catch (e) {
-        debugPrint('[ONLINE_JOIN] ⚠️ RPC Join failed: $e. Trying direct insert...');
+        debugPrint('[ONLINE_JOIN] ⚠️ Primary Join failed: $e. Trying direct insert...');
         
         // Opción B: Insert directo (Fallback)
         try {
@@ -379,6 +405,25 @@ void clearLocalRequests() {
     debugPrint('[FREE_ONLINE] 🎮 Joining free online event...');
     
     try {
+      // [SPECTATOR UPGRADE CHECK]
+      final existing = await _supabase.from('game_players')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+
+      if (existing != null && existing['status'] == 'spectator') {
+          debugPrint('[FREE_ONLINE] 🔄 Upgrading spectator to player...');
+          await _supabase.from('game_players').update({
+            'status': 'active',
+            'lives': 3,
+            'role': 'player',
+            'joined_at': DateTime.now().toIso8601String(),
+          }).eq('id', existing['id']);
+          debugPrint('[FREE_ONLINE] ✅ Spectator Upgrade Success');
+          return;
+      }
+
       // Opción A: Usar RPC existente
       await _supabase.rpc('initialize_game_for_user', params: {
         'target_user_id': userId,

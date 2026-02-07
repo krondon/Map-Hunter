@@ -44,6 +44,8 @@ import 'features/auth/providers/player_stats_provider.dart';
 import 'features/game/services/game_stream_service.dart';
 import 'features/wallet/services/payment_service.dart';
 import 'core/services/effect_timer_service.dart';
+import 'features/game/repositories/power_repository_impl.dart';
+import 'features/game/strategies/power_strategy_factory.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,9 +143,13 @@ class TreasureHuntApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) {
            final supabase = Supabase.instance.client;
            final timerService = EffectTimerService();
+           final repository = PowerRepositoryImpl(supabaseClient: supabase);
+           final strategyFactory = PowerStrategyFactory(supabase);
+           
            final provider = PowerEffectProvider(
-             supabaseClient: supabase,
+             repository: repository,
              timerService: timerService,
+             strategyFactory: strategyFactory,
            );
            final authService = Provider.of<AuthService>(context, listen: false);
            authService.onLogout(() async => provider.resetState());

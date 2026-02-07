@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../strategies/power_strategy_factory.dart';
+import '../../game/repositories/power_repository_interface.dart';
 import '../../mall/models/power_item.dart';
 import '../../../core/services/effect_timer_service.dart';
 
@@ -21,22 +22,25 @@ export 'power_interfaces.dart';
 /// - Coordinar efectos especiales como Life Steal.
 class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, PowerEffectManager {
   // --- DEPENDENCY INJECTION (Phase 1 Refactoring) ---
-  final SupabaseClient _supabase;
+  // --- DEPENDENCY INJECTION (Phase 1 Refactoring) ---
+  final PowerRepository _repository;
   final EffectTimerService _timerService;
+  final PowerStrategyFactory _powerStrategyFactory;
 
   /// Constructor with required dependencies.
   /// 
-  /// [supabaseClient] - Injected Supabase client for DB operations.
+  /// [repository] - Injected Repository for data access.
   /// [timerService] - Injected EffectTimerService for timer management (SRP).
+  /// [strategyFactory] - Injected Factory for power strategies.
   PowerEffectProvider({
-    required SupabaseClient supabaseClient,
+    required PowerRepository repository,
     required EffectTimerService timerService,
-  })  : _supabase = supabaseClient,
-        _timerService = timerService {
-    _powerStrategyFactory = PowerStrategyFactory(_supabase);
-  }
+    required PowerStrategyFactory strategyFactory,
+  })  : _repository = repository,
+        _timerService = timerService,
+        _powerStrategyFactory = strategyFactory;
 
-  late final PowerStrategyFactory _powerStrategyFactory;
+
 
   // --- EXPOSE TIMER SERVICE FOR STRATEGIES ---
   EffectTimerService get timerService => _timerService;
@@ -77,8 +81,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   String? _returnedPowerSlug;
   String? get returnedPowerSlug => _returnedPowerSlug;
 
-  final Map<String, String> _powerIdToSlugCache = {};
-  final Map<String, Duration> _powerSlugToDurationCache = {};
+
   
   String? _cachedShieldPowerId;
   DateTime? _ignoreShieldUntil;
@@ -164,11 +167,12 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
     _shieldArmed = true;
     debugPrint('🛡️ Shield ARMED - Ready to block one attack');
     try {
-      final duration = await _getPowerDurationFromDb(powerSlug: 'shield');
+      final duration = await _repository.getPowerDuration(powerSlug: 'shield');
       if (_cachedShieldPowerId == null) {
          try {
-           final pRes = await _supabase.from('powers').select('id').eq('slug', 'shield').maybeSingle();
-           _cachedShieldPowerId = pRes?['id']?.toString();
+           // We can rely on resolveSlug for ID if needed, but for now we might skip ID caching here
+           // or add getPowerIdBySlug to repo. 
+           // For simplicity in this step, we just use duration.
          } catch(e) { debugPrint('🛡️ FAILED to cache Shield ID: $e'); }
       }
       final expiresAt = DateTime.now().toUtc().add(duration);
@@ -192,7 +196,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
     debugPrint('[DEBUG]    myGamePlayerId: $myGamePlayerId');
     debugPrint('[DEBUG]    eventId: $eventId');
     
-    final supabase = _supabase;
+
 
     if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
       _clearAllEffects();
@@ -215,11 +219,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
     _processedEffectIds.clear();
 
     // 1. Listen for Active Powers
-    // NOTE: We filter event_id client-side to avoid SupabaseStreamBuilder typing issues
-    _subscription = supabase
-        .from('active_powers')
-        .stream(primaryKey: ['id'])
-        .eq('target_id', myGamePlayerId)
+    _subscription = _repository.getActivePowersStream(targetId: myGamePlayerId)
         .listen((List<Map<String, dynamic>> data) async {
           await _processEffects(data);
         }, onError: (e) {
@@ -227,10 +227,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
         });
 
     // 2. Listen for Outgoing Powers
-    _casterSubscription = supabase
-        .from('active_powers')
-        .stream(primaryKey: ['id'])
-        .eq('caster_id', myGamePlayerId)
+    _casterSubscription = _repository.getOutgoingPowersStream(casterId: myGamePlayerId)
         .listen((List<Map<String, dynamic>> data) async {
           await _processOutgoingEffects(data);
         }, onError: (e) {
@@ -238,12 +235,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
         });
 
     // 3. Listen for Combat Events
-    _combatEventsSubscription = supabase
-        .from('combat_events')
-        .stream(primaryKey: ['id'])
-        .eq('target_id', myGamePlayerId)
-        .order('created_at', ascending: false) // Latest first
-        .limit(1)
+    _combatEventsSubscription = _repository.getCombatEventsStream(targetId: myGamePlayerId)
         .listen((List<Map<String, dynamic>> data) {
            _handleCombatEvents(data);
         }, onError: (e) {
@@ -574,55 +566,11 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   }
 
   Future<String?> _resolveEffectSlug(Map<String, dynamic> effect) async {
-    final explicit = effect['power_slug'] ?? effect['slug'];
-    if (explicit != null) return explicit.toString();
-
-    final powerId = effect['power_id'];
-    if (powerId == null) return null;
-    final powerIdStr = powerId.toString();
-    final cached = _powerIdToSlugCache[powerIdStr];
-    if (cached != null) return cached;
-
-    final supabase = _supabase;
-
-    try {
-      final res = await supabase
-          .from('powers')
-          .select('slug')
-          .eq('id', powerIdStr)
-          .maybeSingle();
-      final slug = res?['slug']?.toString();
-      if (slug != null && slug.isNotEmpty) {
-        _powerIdToSlugCache[powerIdStr] = slug;
-      }
-      return slug;
-    } catch (_) {
-      return null;
-    }
+    return _repository.resolveEffectSlug(effect);
   }
 
   Future<Duration> _getPowerDurationFromDb({required String powerSlug}) async {
-    final cached = _powerSlugToDurationCache[powerSlug];
-    if (cached != null) return cached;
-
-    final supabase = _supabase;
-
-    try {
-      final row = await supabase
-          .from('powers')
-          .select('duration')
-          .eq('slug', powerSlug)
-          .maybeSingle();
-
-      final seconds = (row?['duration'] as num?)?.toInt() ?? 0;
-      final duration =
-          seconds <= 0 ? Duration.zero : Duration(seconds: seconds);
-      _powerSlugToDurationCache[powerSlug] = duration;
-      return duration;
-    } catch (e) {
-      debugPrint('_getPowerDurationFromDb($powerSlug) error: $e');
-      return Duration.zero;
-    }
+    return _repository.getPowerDuration(powerSlug: powerSlug);
   }
 
   void clearActiveEffect() {

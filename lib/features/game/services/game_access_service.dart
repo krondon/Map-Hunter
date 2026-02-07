@@ -137,6 +137,8 @@ class GameAccessService {
       final isGamePlayer = participantData['isParticipant'] as bool;
       final playerStatus = participantData['status'] as String?;
 
+      bool shouldCheckJoin = !isGamePlayer;
+
       if (isGamePlayer) {
         // User is ALREADY in the event
         if (playerStatus == 'suspended' || playerStatus == 'banned') {
@@ -144,22 +146,34 @@ class GameAccessService {
         }
 
         if (playerStatus == 'spectator') {
-          return GameAccessResult.spectator(message: 'Continuando como espectador');
+          // Si el usuario es espectador pero quiere entrar como JUGADOR (role == player),
+          // permitimos que continúe hacia la validación de cupo (upgrade).
+          if (role == UserRole.spectator) {
+             return GameAccessResult.spectator(message: 'Continuando como espectador');
+          }
+          // Intencional: Fallthrough para permitir upgrade
+          shouldCheckJoin = true; 
+        } else {
+          // Allowed to enter as a player (active, pending, etc handled here or elsewhere?)
+          // Usually 'active' or 'pending' (pending might be restricted but checking here implies access if returning player)
+          // Wait, if pending, do we allow 'player' result? 
+          // The old logic returned 'player' for anything not spectator/banned/suspended.
+          return GameAccessResult.player(data: {'isParticipant': true});
         }
-        
-        // Allowed to enter as a player
-        return GameAccessResult.player(data: {'isParticipant': true});
-      } else {
+      } 
+      
+      if (shouldCheckJoin) {
         // --- LIMITE DE PARTICIPANTES ---
         // Verificamos el conteo real en DB para evitar inconsistencias si el usuario no ha refrescado la pantalla
         final realCount = await requestProvider.getParticipantCount(scenario.id);
         if (realCount >= scenario.maxPlayers) {
+          // Si ya era espectador, vuelve a espectador. Si es nuevo, va a espectador.
           return GameAccessResult.spectator(
             message: 'El máximo de jugadores (${scenario.maxPlayers}) ya fue alcanzado. Entrando como espectador.'
           );
         }
 
-        // User is NOT a participant yet
+        // User is NOT a participant yet (or upgrading from spectator)
         final request = await requestProvider.getRequestForPlayer(userId, scenario.id);
         
         if (request != null) {
