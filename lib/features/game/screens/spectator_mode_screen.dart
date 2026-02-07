@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../mall/models/power_item.dart';
 import '../providers/power_effect_provider.dart';
+import '../../../core/services/effect_timer_service.dart';
 
 
 
@@ -30,7 +31,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   @override
   void initState() {
     super.initState();
-    _powerEffectProvider = PowerEffectProvider();
+    _powerEffectProvider = PowerEffectProvider(
+      supabaseClient: Supabase.instance.client,
+      timerService: EffectTimerService(),
+    );
     
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../strategies/power_strategy_factory.dart';
 import '../../mall/models/power_item.dart';
+import '../../../core/services/effect_timer_service.dart';
 
 enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess, returned, stealFailed }
 
@@ -24,6 +25,23 @@ class PowerFeedbackEvent {
 /// - Lógica de defensa (Escudos y Reflejo/Return).
 /// - Coordinar efectos especiales como Life Steal.
 class PowerEffectProvider extends ChangeNotifier {
+  // --- DEPENDENCY INJECTION (Phase 1 Refactoring) ---
+  final SupabaseClient _supabase;
+  final EffectTimerService _timerService;
+
+  /// Constructor with required dependencies.
+  /// 
+  /// [supabaseClient] - Injected Supabase client for DB operations.
+  /// [timerService] - Injected EffectTimerService for timer management (SRP).
+  PowerEffectProvider({
+    required SupabaseClient supabaseClient,
+    required EffectTimerService timerService,
+  })  : _supabase = supabaseClient,
+        _timerService = timerService;
+
+  // --- EXPOSE TIMER SERVICE FOR STRATEGIES ---
+  EffectTimerService get timerService => _timerService;
+
   StreamSubscription? _subscription;
   StreamSubscription? _casterSubscription; 
   StreamSubscription? _combatEventsSubscription; 
@@ -65,14 +83,13 @@ class PowerEffectProvider extends ChangeNotifier {
   final StreamController<PowerFeedbackEvent> _feedbackStreamController = StreamController<PowerFeedbackEvent>.broadcast();
   Stream<PowerFeedbackEvent> get feedbackStream => _feedbackStreamController.stream;
 
-  final Map<String, _ActiveEffect> _activeEffects = {};
+  // --- DELEGATED TO EffectTimerService ---
+  String? get activePowerSlug => _timerService.activeEffectSlugs.isNotEmpty ? _timerService.activeEffectSlugs.last : null;
+  String? get activeEffectId => activePowerSlug != null ? _timerService.getEffectId(activePowerSlug!) : null;
+  String? get activeEffectCasterId => activePowerSlug != null ? _timerService.getCasterId(activePowerSlug!) : null;
+  DateTime? get activePowerExpiresAt => activePowerSlug != null ? _timerService.getExpiration(activePowerSlug!) : null;
 
-  String? get activePowerSlug => _activeEffects.isNotEmpty ? _activeEffects.keys.last : null;
-  String? get activeEffectId => _activeEffects.isNotEmpty ? _activeEffects.values.last.effectId : null;
-  String? get activeEffectCasterId => _activeEffects.isNotEmpty ? _activeEffects.values.last.casterId : null;
-  DateTime? get activePowerExpiresAt => _activeEffects.isNotEmpty ? _activeEffects.values.last.expiresAt : null;
-
-  bool isEffectActive(String slug) => _activeEffects.containsKey(slug);
+  bool isEffectActive(String slug) => _timerService.isActive(slug);
   
   bool isPowerActive(PowerType type) {
     switch (type) {
@@ -86,7 +103,7 @@ class PowerEffectProvider extends ChangeNotifier {
     }
   }
   
-  DateTime? getPowerExpiration(String slug) => _activeEffects[slug]?.expiresAt;
+  DateTime? getPowerExpiration(String slug) => _timerService.getExpiration(slug);
   
   DateTime? getPowerExpirationByType(PowerType type) {
     switch (type) {
@@ -120,9 +137,7 @@ class PowerEffectProvider extends ChangeNotifier {
 
   void setActiveEffectCasterId(String? id) {}
 
-  SupabaseClient? get _supabaseClient {
-    try { return Supabase.instance.client; } catch (_) { return null; }
-  }
+  // REMOVED: _supabaseClient getter - now using injected _supabase (DIP compliance)
 
   bool get isReturnArmed => _returnArmed;
   bool get isShieldArmed => _shieldArmed;
@@ -149,7 +164,7 @@ class PowerEffectProvider extends ChangeNotifier {
       final duration = await _getPowerDurationFromDb(powerSlug: 'shield');
       if (_cachedShieldPowerId == null) {
          try {
-           final pRes = await _supabaseClient?.from('powers').select('id').eq('slug', 'shield').maybeSingle();
+           final pRes = await _supabase.from('powers').select('id').eq('slug', 'shield').maybeSingle();
            _cachedShieldPowerId = pRes?['id']?.toString();
          } catch(e) { debugPrint('🛡️ FAILED to cache Shield ID: $e'); }
       }
@@ -178,14 +193,7 @@ class PowerEffectProvider extends ChangeNotifier {
     debugPrint('[DEBUG]    myGamePlayerId: $myGamePlayerId');
     debugPrint('[DEBUG]    eventId: $eventId');
     
-    final supabase = _supabaseClient;
-    if (supabase == null) {
-      _clearAllEffects();
-      _subscription?.cancel();
-      _casterSubscription?.cancel();
-      _combatEventsSubscription?.cancel();
-      return;
-    }
+    final supabase = _supabase;
 
     if (myGamePlayerId == null || myGamePlayerId.isEmpty) {
       _clearAllEffects();
@@ -331,62 +339,49 @@ class PowerEffectProvider extends ChangeNotifier {
     }
   }
 
-  /// Aplica un efecto y gestiona su temporizador
+  /// Aplica un efecto y gestiona su temporizador.
+  /// 
+  /// DELEGATED to EffectTimerService (SRP compliance).
   void applyEffect({
     required String slug,
     required Duration duration,
     String? effectId,
     String? casterId,
     required DateTime expiresAt,
+    Duration? dbDuration, // Optional: authoritative duration from database
   }) {
     // 🛡️ RACE CONDITION FIX:
     // If we stopped listening (user left game), do NOT apply new effects.
-    // This prevents async packets from "zombie" streams applying effects after exit.
     if (_listeningForId == null) {
        debugPrint('[DEBUG] 🛑 applyEffect BLOCKED: Not listening for any player.');
        return;
     }
 
-    // Si ya existe, cancelamos su timer anterior (reset duration logic)
-    _activeEffects[slug]?.timer.cancel();
-
-    // Nueva variable timer
-    final timer = Timer(duration, () {
-      _removeEffect(slug);
-    });
-
-    _activeEffects[slug] = _ActiveEffect(
+    // Delegate to EffectTimerService
+    _timerService.applyEffect(
       slug: slug,
+      localDuration: duration,
+      dbDuration: dbDuration,
+      expiresAt: expiresAt,
       effectId: effectId,
       casterId: casterId,
-      expiresAt: expiresAt,
-      timer: timer
     );
     
-    debugPrint('[DEBUG] ✨ Effect Applied/Renewed: $slug (expires in ${duration.inSeconds}s)');
     notifyListeners();
   }
 
   void _removeEffect(String slug) {
-    if (_activeEffects.containsKey(slug)) {
-      _activeEffects[slug]?.timer.cancel();
-      _activeEffects.remove(slug);
-      debugPrint('[DEBUG] 🗑️ Effect Removed: $slug');
-      notifyListeners();
-    }
+    _timerService.removeEffect(slug);
+    notifyListeners();
   }
 
   void _clearAllEffects() {
-    for (var effect in _activeEffects.values) {
-      effect.timer.cancel();
-    }
-    _activeEffects.clear();
+    _timerService.clearAll();
     notifyListeners();
   }
 
   Future<void> _processEffects(List<Map<String, dynamic>> data) async {
-    final supabase = _supabaseClient;
-    if (supabase == null) return;
+    final supabase = _supabase;
 
     // Filter logic (same as before)
     final filtered = data.where((effect) {
@@ -498,6 +493,9 @@ class PowerEffectProvider extends ChangeNotifier {
        }
 
        // --- 1. RETURN MECHANISM (Highest Priority) ---
+       // TODO: MOVE TO BACKEND - Client-side arbitration for Return power.
+       // This logic decides locally whether to reflect an attack.
+       // Should be handled by a database trigger or RPC for anti-cheat.
        if (_returnArmed && isOffensive) {
           final bool isSelf = casterId == _listeningForId;
           
@@ -535,6 +533,9 @@ class PowerEffectProvider extends ChangeNotifier {
        }
 
         // --- CLIENT-SIDE SHIELD FALLBACK ---
+        // TODO: MOVE TO BACKEND - Client-side shield interception.
+        // This logic blocks attacks locally when server fails to enforce shield.
+        // Should be handled entirely by database triggers for anti-cheat.
         // If server failed to block and we see an offensive power + we have shield
         // Note: 'shield_feedback' is just a notification, not an attack, so ignore it here.
         debugPrint('[SHIELD-CHECK] Checking client-side shield interception for: $slug');
@@ -684,8 +685,7 @@ class PowerEffectProvider extends ChangeNotifier {
     final cached = _powerIdToSlugCache[powerIdStr];
     if (cached != null) return cached;
 
-    final supabase = _supabaseClient;
-    if (supabase == null) return null;
+    final supabase = _supabase;
 
     try {
       final res = await supabase
@@ -707,8 +707,7 @@ class PowerEffectProvider extends ChangeNotifier {
     final cached = _powerSlugToDurationCache[powerSlug];
     if (cached != null) return cached;
 
-    final supabase = _supabaseClient;
-    if (supabase == null) return Duration.zero;
+    final supabase = _supabase;
 
     try {
       final row = await supabase
@@ -802,8 +801,7 @@ class PowerEffectProvider extends ChangeNotifier {
   }
 
   Future<void> _sendShieldFeedback(String targetId) async {
-     final supabase = _supabaseClient;
-     if (supabase == null) return;
+     final supabase = _supabase;
      
      // USAR ID CACHEADO O FAIL LOUDLY
      final powerId = _cachedShieldPowerId;
@@ -855,20 +853,6 @@ class PowerEffectProvider extends ChangeNotifier {
   }
 }
 
-class _ActiveEffect {
-  final String slug;
-  final String? effectId;
-  final String? casterId;
-  final DateTime expiresAt;
-  final Timer timer;
-
-  _ActiveEffect({
-    required this.slug,
-    required this.effectId,
-    required this.casterId,
-    required this.expiresAt,
-    required this.timer,
-  });
-}
+// REMOVED: _ActiveEffect class - moved to EffectTimerService (SRP compliance)
 
 enum DefenseAction { shieldBlocked, returned, stealFailed, shieldBroken, attackBlockedByEnemy }
