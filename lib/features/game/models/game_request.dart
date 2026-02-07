@@ -2,43 +2,51 @@ import 'package:flutter/material.dart';
 
 class GameRequest {
   final String id;
-  final String playerId;
+  final String userId;
   final String eventId;
   final String status;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   
   // Optional fields for UI display (joined data)
-  final String? playerName;
-  final String? playerEmail;
-  final String? eventTitle;
+  final String? userName;
+  final String? userEmail;
+  final String? eventName;
 
   GameRequest({
     required this.id,
-    required this.playerId,
+    required this.userId,
     required this.eventId,
     required this.status,
-    required this.createdAt,
-    this.playerName,
-    this.playerEmail,
-    this.eventTitle,
+    this.createdAt,
+    this.userName,
+    this.userEmail,
+    this.eventName,
   });
+
+  // Backward compatibility getters
+  String get playerId => userId;
+  String? get playerName => userName;
+  String? get playerEmail => userEmail;
+  String? get eventTitle => eventName;
 
   factory GameRequest.fromJson(Map<String, dynamic> json) {
     return GameRequest(
       id: json['id'] as String,
-      playerId: json['user_id'] as String,
+      userId: json['user_id'] as String,
       eventId: json['event_id'] as String,
       status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      playerName: json['profiles']?['name'] as String?,
-      playerEmail: json['profiles']?['email'] as String?,
-      eventTitle: json['events']?['title'] as String?,
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      userName: json['profiles']?['name'] as String?,
+      userEmail: json['profiles']?['email'] as String?,
+      eventName: json['events']?['name'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'user_id': playerId,
+      'user_id': userId,
       'event_id': eventId,
       'status': status,
     };

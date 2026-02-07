@@ -48,6 +48,7 @@ import 'features/wallet/services/payment_service.dart';
 import 'core/services/effect_timer_service.dart';
 import 'features/game/repositories/power_repository_impl.dart';
 import 'features/game/strategies/power_strategy_factory.dart';
+import 'features/game/repositories/game_request_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -122,7 +123,14 @@ class TreasureHuntApp extends StatelessWidget {
            final supabase = Supabase.instance.client;
            return EventProvider(eventService: EventService(supabase));
         }),
-        ChangeNotifierProvider(create: (_) => GameRequestProvider()),
+        // --- NEW: Phase 2 - Game Request Repository ---
+        Provider<GameRequestRepository>(
+          create: (_) => GameRequestRepository(supabaseClient: Supabase.instance.client),
+        ),
+        ChangeNotifierProvider(create: (context) {
+          final repository = Provider.of<GameRequestRepository>(context, listen: false);
+          return GameRequestProvider(repository: repository);
+        }),
         ChangeNotifierProvider(create: (context) {
            final supabase = Supabase.instance.client;
            final authService = Provider.of<AuthService>(context, listen: false);

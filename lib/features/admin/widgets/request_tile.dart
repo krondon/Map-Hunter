@@ -135,10 +135,11 @@ class RequestTile extends StatelessWidget {
               children: [
                 Text(request.playerEmail ?? 'No email', style: const TextStyle(color: Colors.white54)),
                 // Fecha de creación de la solicitud
-                Text(
-                  'Solicitud: ${_formatDate(request.createdAt)}',
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
+                if (request.createdAt != null)
+                  Text(
+                    'Solicitud: ${_formatDate(request.createdAt!)}',
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
                 if (isReadOnly && progress != null)
                    Text("Pistas completadas: $progress", style: const TextStyle(color: AppTheme.accentGold, fontSize: 12)),
               ],
