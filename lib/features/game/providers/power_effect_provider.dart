@@ -525,6 +525,30 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
        
        // --- 4. LIFE STEAL PROCESSING (If not blocked/returned) ---
        if (isLifeSteal) {
+          // --- VALIDATION: Fix for persistence bug ---
+          final eventId = effect['event_id']?.toString();
+          
+          // 1. Strict Listening Check: Must be in the correct Event context (not Lobby)
+          if (_listeningForEventId == null || (eventId != null && eventId != _listeningForEventId)) {
+             debugPrint('[LifeSteal] 🛑 Ignored: Context mismatch (Listening: $_listeningForEventId, Effect: $eventId)');
+             continue;
+          }
+
+          // 2. Combat Event Check: Verify against authoritative log
+          if (eventId != null && casterId != null && _listeningForId != null) {
+             final isValid = await _repository.validateCombatEvent(
+                eventId: eventId,
+                casterId: casterId,
+                targetId: _listeningForId!,
+                powerSlug: slug!,
+             );
+             
+             if (!isValid) {
+                debugPrint('[LifeSteal] 🛑 Ignored: No recent combat event found (stale record?)');
+                continue;
+             }
+          }
+
           if (effectId != null) {
              if (isEffectProcessed(effectId)) continue; // Idempotencia
              markEffectAsProcessed(effectId);

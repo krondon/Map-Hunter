@@ -15,4 +15,12 @@ abstract class PowerRepository {
 
   /// Gets the duration of a specific power from the database configuration
   Future<Duration> getPowerDuration({required String powerSlug});
+
+  /// Validates if a specific combat event exists (used for Life Steal validation)
+  Future<bool> validateCombatEvent({
+    required String eventId,
+    required String casterId,
+    required String targetId,
+    required String powerSlug,
+  });
 }

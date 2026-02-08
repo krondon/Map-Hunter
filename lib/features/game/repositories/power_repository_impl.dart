@@ -90,4 +90,31 @@ class PowerRepositoryImpl implements PowerRepository {
       return Duration.zero;
     }
   }
+
+  @override
+  Future<bool> validateCombatEvent({
+    required String eventId,
+    required String casterId,
+    required String targetId,
+    required String powerSlug,
+  }) async {
+    try {
+      final res = await _supabase
+          .from('combat_events')
+          .select('id')
+          .eq('event_id', eventId)
+          .eq('caster_id', casterId)
+          .eq('target_id', targetId)
+          .eq('power_slug', powerSlug)
+          // Ensure we only look for recent events (e.g., last 2 minutes) to prevent replay of old events
+          .gt('created_at', DateTime.now().toUtc().subtract(const Duration(minutes: 2)).toIso8601String())
+          .limit(1)
+          .maybeSingle();
+
+      return res != null;
+    } catch (e) {
+      debugPrint('[PowerRepository] validateCombatEvent error: $e');
+      return false; // Fail safe
+    }
+  }
 }
