@@ -311,6 +311,32 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
         ));
         
         debugPrint('[COMBAT] 🛡️ Shield broken feedback emitted');
+    } else if (resultType == 'reflected') {
+        final targetId = event['target_id']?.toString();
+        // If I am the target, it means *I* reflected the attack (I was the intended victim of the original attack)
+        if (targetId == _listeningForId) {
+            debugPrint('[COMBAT] ↩️ RETURN ACTIVATED! Syncing local state.');
+            
+            _returnArmed = false;
+            _removeEffect('return');
+            
+            // EXTRACT DATA FOR FEEDBACK
+            final attackerId = event['attacker_id']?.toString();
+            final powerSlug = event['power_slug']?.toString();
+
+            _returnedAgainstCasterId = attackerId;
+            _returnedPowerSlug = powerSlug;
+            
+            // Trigger visual feedback (SabotageOverlay listens to DefenseAction.returned)
+            _registerDefenseAction(DefenseAction.returned);
+            
+            // Emit positive feedback event (for toasts or other listeners)
+            _feedbackStreamController.add(PowerFeedbackEvent(
+                PowerFeedbackType.returned,
+                message: '¡Ataque devuelto exitosamente!',
+                relatedPlayerName: attackerId,
+            ));
+        }
     }
   }
 

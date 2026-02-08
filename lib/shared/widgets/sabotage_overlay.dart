@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/game/providers/game_provider.dart';
 import '../../features/game/providers/game_provider.dart';
+import '../../features/game/providers/game_provider.dart';
+import '../../features/game/providers/power_effect_provider.dart'; // Needed for casting references
 import '../../features/game/providers/power_interfaces.dart';
 import '../../features/game/widgets/effects/blind_effect.dart';
 import '../../features/game/widgets/effects/freeze_effect.dart';
@@ -56,6 +58,11 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   
   // Estado para bloquear pantalla si roban la última vida
   bool _showNoLivesFromSteal = false; 
+  
+  // RETURN FEEDBACK STATE (Autonomous)
+  bool _showReturnSuccessAnimation = false;
+  String? _returnSuccessAttackerName;
+  String? _returnSuccessPowerSlug; 
   String _noLivesTitle = '¡SIN VIDAS!';
   String _noLivesMessage = '¡Te han robado tu última vida!\nNecesitas comprar más vidas para continuar.';
   bool _noLivesCanRetry = false;
@@ -222,7 +229,41 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
              break;
              
         case PowerFeedbackType.returned:
+             // Autonomous feedback logic (like Shield)
+             final attackerId = event.relatedPlayerName;
+             final attackerName = _resolvePlayerNameFromLeaderboard(attackerId);
+             
+             // We can assume slug might be passed via message or we fetch it? 
+             // Actually PowerFeedbackEvent doesn't have slug. We can update provider to send it or just use generic.
+             // Or rely on provider state just for capturing the slug momentarily?
+             // Best approach: provider sends event AFTER setting public getters.
+             // We capture them NOW into our local state.
+             
+             final pProvider = Provider.of<PowerEffectReader>(context, listen: false);
+             final slug = pProvider is PowerEffectProvider 
+                  ? (pProvider as PowerEffectProvider).returnedPowerSlug 
+                  : null;
+
              _triggerLocalDefenseAction(DefenseAction.returned);
+             
+             if (mounted) {
+                setState(() {
+                  _showReturnSuccessAnimation = true;
+                  _returnSuccessAttackerName = attackerName;
+                  _returnSuccessPowerSlug = slug;
+                });
+                
+                // Set timer to hide return success card
+                Timer(const Duration(seconds: 4), () {
+                    if (mounted) {
+                        setState(() {
+                            _showReturnSuccessAnimation = false;
+                            _returnSuccessAttackerName = null;
+                            _returnSuccessPowerSlug = null;
+                        });
+                    }
+                });
+             }
              break;
              
         case PowerFeedbackType.stealFailed:
@@ -448,14 +489,14 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                  ReturnRejectionEffect(
                   returnedBy: powerProvider.returnedByPlayerName!,
                 ),
-              
-              if (powerProvider.returnedAgainstCasterId != null)
-                ReturnSuccessEffect(
-                  attackerName: _resolvePlayerNameFromLeaderboard(
-                      powerProvider.returnedAgainstCasterId),
-                  powerSlug: powerProvider.returnedPowerSlug,
-                ),
             ],
+            
+            // INDEPENDENT RETURN SUCCESS FEEDBACK
+             if (_showReturnSuccessAnimation)
+                ReturnSuccessEffect(
+                  attackerName: _returnSuccessAttackerName ?? _resolvePlayerNameFromLeaderboard(_lastKnownGamePlayerId),
+                  powerSlug: _returnSuccessPowerSlug,
+                ),
             
             if (_showLifeStealAnimation && _lifeStealCasterName != null)
               LifeStealEffect(
