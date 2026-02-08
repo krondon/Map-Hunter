@@ -315,7 +315,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
         final targetId = event['target_id']?.toString();
         // If I am the target, it means *I* reflected the attack (I was the intended victim of the original attack)
         if (targetId == _listeningForId) {
-            debugPrint('[COMBAT] ↩️ RETURN ACTIVATED! Syncing local state.');
+             debugPrint('[COMBAT] ↩️ RETURN ACTIVATED! Syncing local state.');
             
             _returnArmed = false;
             _removeEffect('return');
@@ -337,6 +337,25 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
                 relatedPlayerName: attackerId,
             ));
         }
+    } else if (resultType == 'success' && powerSlug == 'life_steal') {
+         final targetId = event['target_id']?.toString();
+         // Check if I am the victim
+         if (targetId == _listeningForId) {
+             debugPrint('[COMBAT] 🩸 LIFE STEAL detected via Combat Event!');
+             final attackerId = event['attacker_id']?.toString();
+             final eventId = event['id']?.toString(); // Use combat event ID as reference
+
+             // Trigger Visual Strategy
+             setPendingEffectContext(eventId, attackerId); 
+             _powerStrategyFactory.get('life_steal').onActivate(this);
+             setPendingEffectContext(null, null);
+             
+             // Emit Feedback Event
+             _feedbackStreamController.add(PowerFeedbackEvent(
+                 PowerFeedbackType.lifeStolen,
+                 relatedPlayerName: attackerId,
+             ));
+         }
     }
   }
 
@@ -497,6 +516,9 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
        
        final bool isLifeSteal = slug == 'life_steal';
        
+       // HANDLED VIA COMBAT EVENTS (To ensure correct timing)
+       if (isLifeSteal) continue;
+       
        // Validity check for defenses:
        // Must be active OR be life_steal (which we verify via idempotency later, but for defense it counts as "incoming")
        // If it's a standard effect and it's expired, we ignore it completely (ghost effect).
@@ -554,45 +576,7 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
            continue; 
        }
        
-       // --- 4. LIFE STEAL PROCESSING ---
-       if (isLifeSteal) {
-          final eventId = effect['event_id']?.toString();
-          final targetId = effect['target_id']?.toString();
-          
-          // 1. Target Security Check (Paranoid)
-          // Ensure strictly that this is for ME.
-          if (targetId != _listeningForId) {
-              debugPrint('[LifeSteal] 🛑 Ignored: Target mismatch (Target: $targetId, Me: $_listeningForId)');
-              continue;
-          }
 
-          // 2. Event Context Check (Relaxed)
-          // Only block if we explicitly know we are in a DIFFERENT event.
-          // If _listeningForEventId is null (unknown/loading/lobby), we permit it 
-          // to avoid race conditions blocking the effect.
-          if (_listeningForEventId != null && eventId != null && eventId != _listeningForEventId) {
-             debugPrint('[LifeSteal] 🛑 Ignored: Event ID mismatch (Listening: $_listeningForEventId, Effect: $eventId)');
-             continue;
-          }
-
-          if (effectId != null) {
-             if (isEffectProcessed(effectId)) continue; // Idempotencia
-             markEffectAsProcessed(effectId);
-          }
-          
-          debugPrint('[LifeSteal] ✅ Processing life steal effect from $casterId (Source: active_powers)');
-
-          setPendingEffectContext(effectId, casterId);
-          final strategy = _powerStrategyFactory.get('life_steal');
-          strategy.onActivate(this);
-          setPendingEffectContext(null, null);
-          
-          _feedbackStreamController.add(PowerFeedbackEvent(
-              PowerFeedbackType.lifeStolen,
-              relatedPlayerName: casterId,
-          ));
-          continue; 
-       }
 
        // --- 5. STANDARD EFFECT APPLICATION ---
        // Only if !isExpired (checked at top)
