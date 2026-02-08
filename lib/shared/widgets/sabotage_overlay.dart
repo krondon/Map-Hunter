@@ -153,6 +153,13 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
       
       switch (event.type) {
         case PowerFeedbackType.lifeStolen:
+            // 🛡️ User Constraint: Solo mostrar efecto si tiene vidas
+            final currentLives = _playerProviderRef?.currentPlayer?.lives ?? 0;
+            if (currentLives <= 0) {
+              debugPrint('[SabotageOverlay] 💀 Life Steal visual ignored (Lives: $currentLives)');
+              return;
+            }
+
             final attackerName = _resolvePlayerNameFromLeaderboard(event.relatedPlayerName);
             _lifeStealAnimationTimer?.cancel();
             setState(() {

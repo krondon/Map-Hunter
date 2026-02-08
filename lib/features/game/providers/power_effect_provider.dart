@@ -211,12 +211,19 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
       return;
     }
     
+    
     _clearAllEffects(); 
+
+    // FIX: Only clear processed IDs if the USER changes. 
+    // If we just switch events or restart listeners for the same user, 
+    // we must remember what we already processed (like LifeSteal) to avoid re-triggering.
+    if (_listeningForId != myGamePlayerId) {
+       _processedEffectIds.clear();
+    }
 
     _listeningForId = myGamePlayerId;
     _listeningForEventId = eventId;
     _sessionStartTime = DateTime.now().toUtc();
-    _processedEffectIds.clear();
 
     // 1. Listen for Active Powers
     _subscription = _repository.getActivePowersStream(targetId: myGamePlayerId)
@@ -523,30 +530,25 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
            continue; 
        }
        
-       // --- 4. LIFE STEAL PROCESSING (If not blocked/returned) ---
+       // --- 4. LIFE STEAL PROCESSING ---
        if (isLifeSteal) {
-          // --- VALIDATION: Fix for persistence bug ---
           final eventId = effect['event_id']?.toString();
+          final targetId = effect['target_id']?.toString();
           
-          // 1. Strict Listening Check: Must be in the correct Event context (not Lobby)
-          if (_listeningForEventId == null || (eventId != null && eventId != _listeningForEventId)) {
-             debugPrint('[LifeSteal] 🛑 Ignored: Context mismatch (Listening: $_listeningForEventId, Effect: $eventId)');
-             continue;
+          // 1. Target Security Check (Paranoid)
+          // Ensure strictly that this is for ME.
+          if (targetId != _listeningForId) {
+              debugPrint('[LifeSteal] 🛑 Ignored: Target mismatch (Target: $targetId, Me: $_listeningForId)');
+              continue;
           }
 
-          // 2. Combat Event Check: Verify against authoritative log
-          if (eventId != null && casterId != null && _listeningForId != null) {
-             final isValid = await _repository.validateCombatEvent(
-                eventId: eventId,
-                casterId: casterId,
-                targetId: _listeningForId!,
-                powerSlug: slug!,
-             );
-             
-             if (!isValid) {
-                debugPrint('[LifeSteal] 🛑 Ignored: No recent combat event found (stale record?)');
-                continue;
-             }
+          // 2. Event Context Check (Relaxed)
+          // Only block if we explicitly know we are in a DIFFERENT event.
+          // If _listeningForEventId is null (unknown/loading/lobby), we permit it 
+          // to avoid race conditions blocking the effect.
+          if (_listeningForEventId != null && eventId != null && eventId != _listeningForEventId) {
+             debugPrint('[LifeSteal] 🛑 Ignored: Event ID mismatch (Listening: $_listeningForEventId, Effect: $eventId)');
+             continue;
           }
 
           if (effectId != null) {
@@ -554,6 +556,8 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
              markEffectAsProcessed(effectId);
           }
           
+          debugPrint('[LifeSteal] ✅ Processing life steal effect from $casterId (Source: active_powers)');
+
           setPendingEffectContext(effectId, casterId);
           final strategy = _powerStrategyFactory.get('life_steal');
           strategy.onActivate(this);
