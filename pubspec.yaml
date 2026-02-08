@@ -11,9 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
-  supabase_flutter: ^2.5.0
+  supabase_flutter: ^2.12.0
   audioplayers: ^6.1.0
-  confetti: ^0.7.0
+  confetti: ^0.8.0
   video_player: ^2.8.1
 
   # UI & Icons
@@ -23,19 +23,19 @@ dependencies:
   provider: ^6.1.5+1
 
   # Utilities
-  intl: ^0.18.1
+  intl: ^0.20.2
   image_picker: ^1.2.1
-  file_picker: ^8.0.0 # For Windows compatibility
+  file_picker: ^10.3.10 # For Windows compatibility
   flutter_dotenv: ^6.0.0
   google_maps_flutter: ^2.14.0
   geolocator: ^14.0.2
-  flutter_map: ^6.1.0
+  flutter_map: ^8.2.2
   latlong2: ^0.9.0
   http: ^1.1.0
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.1.4
   uuid: ^4.5.2
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.5.4
 
   # PDF & Printing
   pdf: ^3.10.4
@@ -47,8 +47,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
   android: "launcher_icon"

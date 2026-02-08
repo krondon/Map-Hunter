@@ -258,8 +258,8 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
                             FlutterMap(
                               mapController: _mapController,
                               options: MapOptions(
-                                center: temp, // Use temp which tracks marker
-                                zoom: 14,
+                                initialCenter: temp, // Use temp which tracks marker
+                                initialZoom: 14,
                                 cameraConstraint: CameraConstraint.contain(
                                   bounds: LatLngBounds(
                                     const latlng.LatLng(

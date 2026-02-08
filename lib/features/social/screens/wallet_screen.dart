@@ -195,20 +195,26 @@ class _WalletScreenState extends State<WalletScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: _buildActionButton(
-                              icon: Icons.add_circle_outline,
-                              label: 'RECARGAR',
-                              color: AppTheme.accentGold,
-                              onTap: () => _showRechargeDialog(),
+                            child: Opacity(
+                              opacity: _isLoading ? 0.5 : 1.0,
+                              child: _buildActionButton(
+                                icon: Icons.add_circle_outline,
+                                label: 'RECARGAR',
+                                color: AppTheme.accentGold,
+                                onTap: _isLoading ? () {} : () => _showRechargeDialog(),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: _buildActionButton(
-                              icon: Icons.remove_circle_outline,
-                              label: 'RETIRAR',
-                              color: AppTheme.secondaryPink,
-                              onTap: () => _showWithdrawDialog(),
+                            child: Opacity(
+                              opacity: _isLoading ? 0.5 : 1.0,
+                              child: _buildActionButton(
+                                icon: Icons.remove_circle_outline,
+                                label: 'RETIRAR',
+                                color: AppTheme.secondaryPink,
+                                onTap: _isLoading ? () {} : () => _showWithdrawDialog(),
+                              ),
                             ),
                           ),
                         ],
@@ -550,6 +556,7 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _showRechargeDialog() async {
+    if (_isLoading) return; // Debounce prevention
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     
     // Refresh profile to ensure we have the latest DNI/Phone data from DB
@@ -697,48 +704,50 @@ class _WalletScreenState extends State<WalletScreen> {
                     );
                   }
                   
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Selecciona un plan de tréboles:',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      if (gatewayFee > 0) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Nota: La pasarela cobra +${gatewayFee.toStringAsFixed(1)}% de comisión',
-                          style: TextStyle(color: Colors.amber.withOpacity(0.8), fontSize: 11),
+                  return SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Selecciona un plan de tréboles:',
+                          style: TextStyle(color: Colors.white70),
                         ),
-                      ],
-                      const SizedBox(height: 16),
-                      // Plan Cards Grid
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: plans.map((plan) {
-                          return SizedBox(
-                            width: (MediaQuery.of(context).size.width - 140) / 2,
-                            child: CloverPlanCard(
-                              plan: plan,
-                              isSelected: selectedPlanId == plan.id,
-                              feePercentage: gatewayFee,
-                              onTap: () {
-                                setState(() => selectedPlanId = plan.id);
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      if (_isLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20.0),
-                          child: Center(
-                            child: CircularProgressIndicator(color: AppTheme.accentGold),
+                        if (gatewayFee > 0) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Nota: La pasarela cobra +${gatewayFee.toStringAsFixed(1)}% de comisión',
+                            style: TextStyle(color: Colors.amber.withOpacity(0.8), fontSize: 11),
                           ),
+                        ],
+                        const SizedBox(height: 16),
+                        // Plan Cards Grid
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: plans.map((plan) {
+                            return SizedBox(
+                              width: (MediaQuery.of(context).size.width - 140) / 2,
+                              child: CloverPlanCard(
+                                plan: plan,
+                                isSelected: selectedPlanId == plan.id,
+                                feePercentage: gatewayFee,
+                                onTap: () {
+                                  setState(() => selectedPlanId = plan.id);
+                                },
+                              ),
+                            );
+                          }).toList(),
                         ),
-                    ],
+                        if (_isLoading)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 20.0),
+                            child: Center(
+                              child: CircularProgressIndicator(color: AppTheme.accentGold),
+                            ),
+                          ),
+                      ],
+                    ),
                   );
                 },
               ),

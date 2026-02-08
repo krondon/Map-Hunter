@@ -22,9 +22,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _cedulaController = TextEditingController();
   final _phoneController = TextEditingController();
+  
+  // Selectores para cédula y teléfono
+  String _selectedNationalityType = 'V'; // V o E
+  String _selectedPhonePrefix = '0412'; // Prefijo por defecto
+  
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptedTerms = false;
+  
+  // Opciones de nacionalidad
+  final List<String> _nationalityTypes = ['V', 'E'];
+  
+  // Prefijos de operadoras venezolanas
+  final List<String> _phonePrefixes = ['0412', '0414', '0424', '0416', '0426', '0422'];
   
   // Lista básica de palabras prohibidas (se puede expandir)
   final List<String> _bannedWords = ['admin', 'root', 'moderator', 'tonto', 'estupido', 'idiota', 'groseria', 'puto', 'mierda'];
@@ -67,8 +78,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _nameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text,
-          cedula: _cedulaController.text.trim(),
-          phone: _phoneController.text.trim(),
+          cedula: '$_selectedNationalityType${_cedulaController.text.trim()}', // Combinar V/E + número
+          phone: '$_selectedPhonePrefix${_phoneController.text.trim()}', // Combinar prefijo + número
         );
         
         if (!mounted) return;
@@ -195,48 +206,137 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const SizedBox(height: 40),
 
                           // ==========================================
-                          // CAMPO CÉDULA / RIF
+                          // CAMPO CÉDULA
                           // ==========================================
-                          TextFormField(
-                            controller: _cedulaController,
-                            style: const TextStyle(color: Colors.white),
-                            keyboardType: TextInputType.text,
-                            decoration: const InputDecoration(
-                              labelText: 'Cédula / RIF',
-                              labelStyle: TextStyle(color: Colors.white60),
-                              prefixIcon: Icon(Icons.badge_outlined, color: Colors.white60),
-                              hintText: 'V12345678',
-                              hintStyle: TextStyle(color: Colors.white24),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu cédula o RIF';
-                              }
-                              return null;
-                            },
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Dropdown para V/E
+                              Container(
+                                width: 70,
+                                margin: const EdgeInsets.only(right: 12),
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedNationalityType,
+                                  dropdownColor: AppTheme.cardBg,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Tipo',
+                                    labelStyle: TextStyle(color: Colors.white60, fontSize: 12),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                                  ),
+                                  items: _nationalityTypes.map((type) {
+                                    return DropdownMenuItem(
+                                      value: type,
+                                      child: Text(type, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedNationalityType = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                              
+                              // Campo para el número de cédula
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _cedulaController,
+                                  style: const TextStyle(color: Colors.white),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(9), // Máximo 9 dígitos
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Número de Cédula',
+                                    labelStyle: TextStyle(color: Colors.white60),
+                                    prefixIcon: Icon(Icons.badge_outlined, color: Colors.white60),
+                                    hintText: '12345678',
+                                    hintStyle: TextStyle(color: Colors.white24),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Ingresa tu cédula';
+                                    }
+                                    
+                                    // Validar longitud: 6-9 dígitos
+                                    if (value.length < 6 || value.length > 9) {
+                                      return 'Debe tener entre 6 y 9 dígitos';
+                                    }
+                                    
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 20),
 
                           // ==========================================
                           // CAMPO TELÉFONO
                           // ==========================================
-                          TextFormField(
-                            controller: _phoneController,
-                            style: const TextStyle(color: Colors.white),
-                            keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              labelText: 'Teléfono',
-                              labelStyle: TextStyle(color: Colors.white60),
-                              prefixIcon: Icon(Icons.phone_android_outlined, color: Colors.white60),
-                              hintText: '04121234567',
-                              hintStyle: TextStyle(color: Colors.white24),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu teléfono';
-                              }
-                              return null;
-                            },
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Dropdown para prefijo
+                              Container(
+                                width: 90,
+                                margin: const EdgeInsets.only(right: 12),
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedPhonePrefix,
+                                  dropdownColor: AppTheme.cardBg,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Prefijo',
+                                    labelStyle: TextStyle(color: Colors.white60, fontSize: 12),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                                  ),
+                                  items: _phonePrefixes.map((prefix) {
+                                    return DropdownMenuItem(
+                                      value: prefix,
+                                      child: Text(prefix, style: const TextStyle(fontSize: 14)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedPhonePrefix = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                              
+                              // Campo para el número
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _phoneController,
+                                  style: const TextStyle(color: Colors.white),
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(7), // Solo 7 dígitos
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  decoration: const InputDecoration(
+                                    labelText: 'Número',
+                                    labelStyle: TextStyle(color: Colors.white60),
+                                    prefixIcon: Icon(Icons.phone_android_outlined, color: Colors.white60),
+                                    hintText: '1234567',
+                                    hintStyle: TextStyle(color: Colors.white24),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Ingresa tu número';
+                                    }
+                                    
+                                    if (value.length != 7) {
+                                      return 'Debe tener 7 dígitos';
+                                    }
+                                    
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 20),
                           

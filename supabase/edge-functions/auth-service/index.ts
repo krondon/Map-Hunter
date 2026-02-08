@@ -68,17 +68,61 @@ serve(async (req) => {
 
     // --- REGISTER ---
     if (path === 'register') {
-      const { email, password, name } = await req.json()
+      const { email, password, name, cedula, phone } = await req.json()
 
       if (!email || !password || !name) {
         throw new Error('Email, password and name are required')
+      }
+
+      // Validar formato de cédula venezolana (V/E + 6-9 dígitos)
+      if (cedula) {
+        const cedulaRegex = /^[VE]\d{6,9}$/i
+        if (!cedulaRegex.test(cedula)) {
+          throw new Error('Formato de cédula inválido. Usa V12345678 o E12345678')
+        }
+
+        // Verificar si la cédula ya existe
+        const { data: existingCedula } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('cedula', cedula.toUpperCase())
+          .single()
+
+        if (existingCedula) {
+          throw new Error('Esta cédula ya está registrada')
+        }
+      }
+
+      // Validar formato de teléfono venezolano (04XX-XXXXXXX)
+      if (phone) {
+        const phoneDigits = phone.replace('-', '')
+        const phoneRegex = /^04(12|14|24|16|26)\d{7}$/
+
+        if (!phoneRegex.test(phoneDigits)) {
+          throw new Error('Formato de teléfono inválido. Usa 0412-1234567')
+        }
+
+        // Verificar si el teléfono ya existe
+        const { data: existingPhone } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('phone', phoneDigits)
+          .single()
+
+        if (existingPhone) {
+          throw new Error('Este teléfono ya está registrado')
+        }
       }
 
       const { data, error } = await supabaseClient.auth.signUp({
         email,
         password,
         options: {
-          data: { name }
+          data: {
+            name,
+            cedula: cedula ? cedula.toUpperCase() : null,
+            phone: phone ? phone.replace('-', '') : null
+          }
         }
       })
 
@@ -145,7 +189,7 @@ serve(async (req) => {
       )
 
       const { data: { user }, error: userError } = await userSupabase.auth.getUser()
-      
+
       if (userError || !user) {
         throw new Error('Invalid or expired session')
       }
@@ -197,7 +241,7 @@ serve(async (req) => {
       )
 
       const { data: { user }, error: userError } = await userSupabase.auth.getUser()
-      
+
       if (userError || !user) {
         throw new Error('Invalid or expired session')
       }
@@ -225,7 +269,7 @@ serve(async (req) => {
           bank_code: bank_code,
           phone_number: profile.phone,
           dni: String(profile.dni),
-          is_default: true 
+          is_default: true
         })
         .select()
         .single()
@@ -234,6 +278,84 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify(data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // --- DELETE ACCOUNT ---
+    if (path === 'delete-account' && req.method === 'DELETE') {
+      const { password } = await req.json()
+
+      if (!password) {
+        throw new Error('Password is required to delete account')
+      }
+
+      // Authorization Check
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader) {
+        throw new Error('Missing Authorization header')
+      }
+
+      // Create authenticated client for RLS
+      const userSupabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      )
+
+      const { data: { user }, error: userError } = await userSupabase.auth.getUser()
+
+      if (userError || !user) {
+        throw new Error('Invalid or expired session')
+      }
+
+      // Verify password by attempting to sign in
+      const { error: passwordError } = await supabaseClient.auth.signInWithPassword({
+        email: user.email!,
+        password: password,
+      })
+
+      if (passwordError) {
+        throw new Error('Contraseña incorrecta')
+      }
+
+      // Use service role to delete user data and auth account
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      if (!serviceKey) {
+        throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY')
+      }
+
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        serviceKey,
+        { auth: { persistSession: false } }
+      )
+
+      // Delete profile (cascade will handle related data)
+      const { error: profileError } = await serviceClient
+        .from('profiles')
+        .delete()
+        .eq('id', user.id)
+
+      if (profileError) {
+        console.error('Error deleting profile:', profileError)
+        throw new Error('Error al eliminar el perfil')
+      }
+
+      // Delete auth user
+      const { error: authDeleteError } = await serviceClient.auth.admin.deleteUser(user.id)
+
+      if (authDeleteError) {
+        console.error('Error deleting auth user:', authDeleteError)
+        throw new Error('Error al eliminar la cuenta de autenticación')
+      }
+
+      return new Response(
+        JSON.stringify({ message: 'Account deleted successfully' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

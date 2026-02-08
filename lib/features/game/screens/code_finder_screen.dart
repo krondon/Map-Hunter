@@ -252,14 +252,46 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     );
   }
 
+  Future<bool> _onWillPop() async {
+    return (await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 10),
+                Text('¿Salir del juego?', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            content: const Text(
+              'Si sales ahora, es posible que pierdas tu progreso o la entrada que pagaste.\n\n¿Estás seguro de que deseas salir?',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('CANCELAR', style: TextStyle(color: Colors.white)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('SALIR', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        )) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Only show input if close enough (e.g., < 20 meters)
     final bool showInput = _distanceToTarget <= 20;
     
-
-
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
@@ -276,7 +308,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
       body: Container(
@@ -672,6 +704,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
         ],
       ),
     ),
-  );
-}
+      ),
+    );
+  }
 }

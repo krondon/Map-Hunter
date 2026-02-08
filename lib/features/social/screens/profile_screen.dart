@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../game/providers/game_provider.dart';
@@ -9,6 +10,7 @@ import '../../../shared/widgets/animated_cyber_background.dart';
 import 'wallet_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../../core/utils/input_sanitizer.dart';
+import '../../../shared/utils/global_keys.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -480,36 +482,163 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showDeleteConfirmation() {
+    final passwordController = TextEditingController();
+    bool isDeleting = false;
+    bool obscurePassword = true;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text("Borrar Cuenta", style: TextStyle(color: Colors.white)),
-        content: const Text(
-          "¿Estás seguro de que deseas borrar tu cuenta? Esta acción no se puede deshacer.",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.3)),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Funcionalidad de borrar cuenta en desarrollo"),
-                  backgroundColor: AppTheme.dangerRed,
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppTheme.dangerRed, size: 28),
+              const SizedBox(width: 12),
+              const Flexible(
+                child: Text(
+                  "Borrar Cuenta", 
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-              );
-            },
-            child: const Text("Borrar", style: TextStyle(color: AppTheme.dangerRed)),
+              ),
+            ],
           ),
-        ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Esta acción ELIMINARÁ permanentemente:",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "• Todo tu progreso\n"
+                  "• Tus items y monedas\n"
+                  "• Tu historial de eventos\n"
+                  "• Todos tus datos",
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Ingresa tu contraseña:",
+                  style: TextStyle(color: AppTheme.dangerRed, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: obscurePassword,
+                  enabled: !isDeleting,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Contraseña",
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.05),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppTheme.dangerRed.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppTheme.dangerRed),
+                    ),
+                    prefixIcon: const Icon(Icons.lock, color: AppTheme.dangerRed, size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.white.withOpacity(0.5),
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setDialogState(() => obscurePassword = !obscurePassword);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isDeleting ? null : () {
+                passwordController.dispose();
+                Navigator.pop(ctx);
+              },
+              child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: isDeleting ? null : () async {
+                final password = passwordController.text.trim();
+                
+                if (password.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Debes ingresar tu contraseña"),
+                      backgroundColor: AppTheme.dangerRed,
+                    ),
+                  );
+                  return;
+                }
+
+                setDialogState(() => isDeleting = true);
+
+                try {
+                  final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                  await playerProvider.deleteAccount(password);
+                  
+                  if (!ctx.mounted) return;
+                  passwordController.dispose();
+                  Navigator.pop(ctx); // Cerrar diálogo
+                  
+                  // Restablecer modo UI inmersivo antes de navegar
+                  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+                  
+                  // Forzar navegación al login
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                } catch (e) {
+                  if (!ctx.mounted) return;
+                  
+                  setDialogState(() => isDeleting = false);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Error: $e"),
+                      backgroundColor: AppTheme.dangerRed,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.dangerRed,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isDeleting
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text("Borrar", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildTemporalStampsSection(GameProvider gameProvider) {
     return Column(

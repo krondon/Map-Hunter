@@ -139,6 +139,8 @@ class _GameRequestScreenState extends State<GameRequestScreen>
            
            // Si ya es participante ACTIVO o está aprobado -> REDIRECCIÓN INMEDIATA
            if ((request != null && request.isApproved) || (isParticipant && playerStatus == 'active')) {
+              // CRITICAL FIX: Reset spectator role
+              playerProvider.setSpectatorRole(false);
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
               );
@@ -321,6 +323,9 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         
         debugPrint('✅ GameRequestScreen: User approved!');
         
+        // CRITICAL FIX: Ensure user is NOT marked as spectator if approved as player
+        playerProvider.setSpectatorRole(false);
+        
         if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
           // No tiene avatar, ir a seleccionarlo
           Navigator.of(context).pushReplacement(
@@ -473,6 +478,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             );
             
             // Navegar directamente al juego (rescue de estado inconsistente)
+            Provider.of<PlayerProvider>(context, listen: false).setSpectatorRole(false);
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                   builder: (_) => HomeScreen(eventId: widget.eventId!)),

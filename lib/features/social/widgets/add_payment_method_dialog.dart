@@ -86,83 +86,109 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
     final dni = player?.cedula ?? 'No definido';
     final phone = player?.phone ?? 'No definido';
 
-    return AlertDialog(
+    return Dialog(
       backgroundColor: AppTheme.cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
       ),
-      title: Row(
-        children: [
-          const Icon(Icons.credit_card, color: AppTheme.accentGold),
-          const SizedBox(width: 12),
-          const Text(
-            'Agregar Pago Móvil',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight: MediaQuery.of(context).size.height * 0.8, // Force scroll if too tall
+        ),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Se usará tu Cédula y Teléfono del perfil.',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+              // Title
+              Row(
+                children: [
+                  const Icon(Icons.credit_card, color: AppTheme.accentGold),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Agregar Pago Móvil',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-
-              // Read-only Info
-              _buildInfoRow(Icons.badge, 'Cédula', dni),
-              const SizedBox(height: 12),
-              _buildInfoRow(Icons.phone_android, 'Teléfono', phone),
-              
               const SizedBox(height: 20),
-              
-              // Bank Dropdown
-              DropdownButtonFormField<String>(
-                dropdownColor: AppTheme.cardBg,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Banco'),
-                value: _selectedBankCode,
-                items: _banks.map((bank) {
-                  return DropdownMenuItem(
-                    value: bank['code'],
-                    child: Text(
-                      '${bank['code']} - ${bank['name']}',
-                      overflow: TextOverflow.ellipsis,
+
+              // Content
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Se usará tu Cédula y Teléfono del perfil.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => _selectedBankCode = val),
-                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Requerido';
-                  return null;
-                },
+                    const SizedBox(height: 16),
+        
+                    // Read-only Info
+                    _buildInfoRow(Icons.badge, 'Cédula', dni),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(Icons.phone_android, 'Teléfono', phone),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Bank Dropdown
+                    DropdownButtonFormField<String>(
+                      dropdownColor: AppTheme.cardBg,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Banco'),
+                      value: _selectedBankCode,
+                      isExpanded: true, // Fix horizontal overflow
+                      menuMaxHeight: 300, // Limit menu height
+                      items: _banks.map((bank) {
+                        return DropdownMenuItem(
+                          value: bank['code'],
+                          child: Text(
+                            '${bank['code']} - ${bank['name']}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => _selectedBankCode = val),
+                       validator: (value) {
+                        if (value == null || value.isEmpty) return 'Requerido';
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _isLoading ? null : () => Navigator.pop(context, false),
+                    child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _saveMethod,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentGold,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: _isLoading 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      : const Text('Guardar'),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _saveMethod,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.accentGold,
-            foregroundColor: Colors.black,
-          ),
-          child: _isLoading 
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-            : const Text('Guardar Método'),
-        ),
-      ],
     );
   }
 

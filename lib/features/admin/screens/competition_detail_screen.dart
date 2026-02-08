@@ -339,8 +339,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                             FlutterMap(
                               mapController: mapController,
                               options: MapOptions(
-                                center: initial,
-                                zoom: 14,
+                                initialCenter: initial,
+                                initialZoom: 14,
                                 cameraConstraint: CameraConstraint.contain(
                                   bounds: LatLngBounds(
                                     const latlng.LatLng(0.5, -73.5), 

@@ -31,12 +31,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+
   bool _isPasswordVisible = false;
   late AnimationController _shimmerTitleController;
 
   @override
   void initState() {
     super.initState();
+    
+    // Asegurar modo inmersivo al cargar login
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
     _shimmerTitleController = AnimationController(
       duration: const Duration(milliseconds: 2500),
       vsync: this,
@@ -47,6 +54,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+
     _shimmerTitleController.dispose();
     super.dispose();
   }
@@ -72,8 +82,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // Hide keyboard first to trigger any pending commits
-      FocusScope.of(context).unfocus();
+      // 1. Unfocus specific fields
+      _emailFocus.unfocus();
+      _passwordFocus.unfocus();
+      
+      // 2. Kill any active focus in the scope
+      FocusScope.of(context).requestFocus(FocusNode());
+      
+      // 3. Force system hide (just to be sure)
+      SystemChannels.textInput.invokeMethod('TextInput.hide'); 
+
+      // NO DELAY - User wants immediate action
       // Force autofill save before processing login
       TextInput.finishAutofillContext(shouldSave: true);
 
@@ -93,6 +112,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
         if (!mounted) return;
         Navigator.pop(context); // Dismiss loading
+        SystemChannels.textInput.invokeMethod('TextInput.hide'); // Force keyboard close again
+
+
 
         // Verificar estado del usuario
         final player = playerProvider.currentPlayer;
@@ -490,7 +512,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               // Email field
                               TextFormField(
                                 controller: _emailController,
+                                focusNode: _emailFocus,
                                 keyboardType: TextInputType.emailAddress,
+
                                 textInputAction: TextInputAction.next,
                                 autofillHints: const [AutofillHints.email],
                                 style: const TextStyle(color: Colors.white),
@@ -510,7 +534,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               // Password field
                               TextFormField(
                                 controller: _passwordController,
+                                focusNode: _passwordFocus,
                                 obscureText: !_isPasswordVisible,
+
                                 textInputAction: TextInputAction.done,
                                 autofillHints: const [AutofillHints.password],
                                 onEditingComplete: _handleLogin,

@@ -206,14 +206,48 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     return Icons.local_fire_department;
   }
 
+  Future<bool> _onWillPop() async {
+    return (await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                SizedBox(width: 10),
+                Text('¿Salir de la búsqueda?', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            content: const Text(
+              'Si sales ahora, interrumpirás la búsqueda del objetivo.\n\n¿Estás seguro de que deseas salir?',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('CANCELAR', style: TextStyle(color: Colors.white)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('SALIR', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        )) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Current Distance Logic
     double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
     bool showInput = currentDistance <= 35;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(widget.clue.title.toUpperCase(), style: const TextStyle(fontSize: 14)),
         backgroundColor: Colors.transparent,
@@ -395,7 +429,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
           ),
         ],
       ),
+      ),
     ),
-  );
-}
+    );
+  }
 }

@@ -111,101 +111,128 @@ class _AddWithdrawalMethodDialogState extends State<AddWithdrawalMethodDialog> {
     final dni = player?.cedula ?? '---';
     final phone = player?.phone ?? '---';
 
-    return AlertDialog(
+    return Dialog(
       backgroundColor: AppTheme.cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
       ),
-      title: Row(
-        children: [
-          const Icon(Icons.add_card, color: AppTheme.accentGold),
-          const SizedBox(width: 12),
-          const Text(
-            'Agregar Pago Móvil',
-            style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.secondaryPink.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.3)),
-                ),
-                child: Row(
+              // Title
+              Row(
+                children: [
+                  const Icon(Icons.add_card, color: AppTheme.accentGold),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Agregar Pago Móvil',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Content
+              Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lock_outline,
-                        color: AppTheme.secondaryPink, size: 20),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'Por seguridad, solo puedes retirar a cuentas asociadas a tu identidad registrada.',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.secondaryPink.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.3)),
                       ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lock_outline,
+                              color: AppTheme.secondaryPink, size: 20),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              'Por seguridad, solo puedes retirar a cuentas asociadas a tu identidad registrada.',
+                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+        
+                    // READ ONLY FIELDS
+                    _buildReadOnlyField('Cédula de Identidad', dni, Icons.badge),
+                    const SizedBox(height: 12),
+                    _buildReadOnlyField('Teléfono Móvil', phone, Icons.phone_android),
+                    const SizedBox(height: 20),
+        
+                    // BANK SELECTOR
+                    DropdownButtonFormField<String>(
+                      dropdownColor: AppTheme.cardBg,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Banco'),
+                      value: _selectedBankCode,
+                      isExpanded: true,
+                      menuMaxHeight: 300,
+                      items: _banks.map((bank) {
+                        return DropdownMenuItem(
+                          value: bank['code'],
+                          child: Text(
+                            '${bank['code']} - ${bank['name']}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => _selectedBankCode = val),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
 
-              // READ ONLY FIELDS
-              _buildReadOnlyField('Cédula de Identidad', dni, Icons.badge),
-              const SizedBox(height: 12),
-              _buildReadOnlyField('Teléfono Móvil', phone, Icons.phone_android),
-              const SizedBox(height: 20),
-
-              // BANK SELECTOR
-              DropdownButtonFormField<String>(
-                dropdownColor: AppTheme.cardBg,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Banco'),
-                value: _selectedBankCode,
-                items: _banks.map((bank) {
-                  return DropdownMenuItem(
-                    value: bank['code'],
-                    child: Text(
-                      '${bank['code']} - ${bank['name']}',
-                      overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 24),
+              
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
+                    child:
+                        const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _saveMethod,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accentGold,
+                      foregroundColor: Colors.black,
                     ),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() => _selectedBankCode = val),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.black))
+                        : const Text('Guardar'),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child:
-              const Text('Cancelar', style: TextStyle(color: Colors.white60)),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _saveMethod,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.accentGold,
-            foregroundColor: Colors.black,
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.black))
-              : const Text('Guardar'),
-        ),
-      ],
     );
   }
 
