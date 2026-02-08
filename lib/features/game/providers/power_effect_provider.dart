@@ -117,7 +117,11 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   String? get activeEffectCasterId => activePowerSlug != null ? _timerService.getCasterId(activePowerSlug!) : null;
   DateTime? get activePowerExpiresAt => activePowerSlug != null ? _timerService.getExpiration(activePowerSlug!) : null;
 
-  bool isEffectActive(String slug) => _timerService.isActive(slug);
+  bool isEffectActive(String slug) {
+    if (slug == 'shield') return _shieldArmed;
+    if (slug == 'return') return _returnArmed;
+    return _timerService.isActive(slug);
+  }
   
   bool isPowerActive(PowerType type) {
     switch (type) {
@@ -131,7 +135,11 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
     }
   }
   
-  DateTime? getPowerExpiration(String slug) => _timerService.getExpiration(slug);
+  DateTime? getPowerExpiration(String slug) {
+    if (slug == 'shield' && _shieldArmed) return null; // Infinite until broken
+    if (slug == 'return' && _returnArmed) return null; // Infinite until triggered
+    return _timerService.getExpiration(slug);
+  }
   
   DateTime? getPowerExpirationByType(PowerType type) {
     switch (type) {
@@ -182,11 +190,13 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
 
   void armReturn() {
     _returnArmed = true;
+    _shieldArmed = false; // Mutual exclusivity
     notifyListeners();
   }
 
   Future<void> armShield() async {
     _shieldArmed = true;
+    _returnArmed = false; // Mutual exclusivity
     debugPrint('🛡️ Shield ARMED - Ready to block one attack');
     try {
       final duration = await _repository.getPowerDuration(powerSlug: 'shield');

@@ -33,7 +33,7 @@ class ReturnStrategy implements PowerStrategy {
   void onActivate(PowerEffectProvider provider) {
     debugPrint("↩️ Return activado - Tu próximo ataque será reflejado");
     HapticFeedback.mediumImpact();
-    // Return flag handled by provider logic/timer
+    provider.armReturn();
   }
 
   @override
