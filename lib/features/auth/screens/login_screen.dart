@@ -284,9 +284,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   : const Text('ENVIAR'),
             ),
           ],
-        ),
       ),
-    );
+    ),
+  );
   }
 
 
@@ -396,10 +396,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: AnimatedCyberBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
+      resizeToAvoidBottomInset: true, // Permitir que el teclado empuje el contenido
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(), // Ocultar teclado al tocar fuera
+        child: AnimatedCyberBackground(
+          child: SafeArea(
+            child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -626,9 +628,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               );
             },
           ),
-        ),
       ),
-    );
+    ),
+    ),
+  );
   }
 
   Widget _buildMornaBranding() {
