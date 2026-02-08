@@ -261,6 +261,26 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     _isLoggingOut = false;
   }
 
+  /// Elimina la cuenta del usuario permanentemente.
+  Future<void> deleteAccount(String password) async {
+    if (_isProcessing) return;
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      await _authService.deleteAccount(password);
+      // El logout se maneja dentro del servicio, pero limpiamos estado local por si acaso
+      resetState();
+    } catch (e) {
+      debugPrint('PlayerProvider: Error deleting account: $e');
+      rethrow;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+
 
 
   /// Global Reset: Clears all user session data

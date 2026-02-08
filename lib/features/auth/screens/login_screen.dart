@@ -40,6 +40,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    
+    // Asegurar modo inmersivo al cargar login
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
     _shimmerTitleController = AnimationController(
       duration: const Duration(milliseconds: 2500),
       vsync: this,

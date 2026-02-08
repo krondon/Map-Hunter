@@ -241,6 +241,9 @@ class AuthService {
         errorMsg.contains('invalid credentials')) {
       return 'Email o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
     }
+    if (errorMsg.contains('contraseña incorrecta')) {
+      return 'Contraseña incorrecta. Por favor, verifica e intenta de nuevo.';
+    }
     if (errorMsg.contains('user already registered') ||
         errorMsg.contains('already exists')) {
       return 'Este correo ya está registrado. Intenta iniciar sesión.';
@@ -304,4 +307,30 @@ class AuthService {
       return null;
     }
   }
+  /// Elimina la cuenta del usuario actual.
+  /// 
+  /// Invoca a la Edge Function 'auth-service/delete-account'.
+  /// Si tiene éxito, el usuario es eliminado de la base de datos.
+  Future<void> deleteAccount(String password) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'auth-service/delete-account',
+        body: {'password': password},
+        method: HttpMethod.delete,
+      );
+
+      if (response.status != 200) {
+        final error = response.data['error'] ?? 'Error desconocido al eliminar cuenta';
+        throw error;
+      }
+      
+      // La sesión se cierra automáticamente o debemos forzarlo
+      await logout();
+
+    } catch (e) {
+      debugPrint('AuthService: Error deleting account: $e');
+      throw _handleAuthError(e);
+    }
+  }
 }
+
