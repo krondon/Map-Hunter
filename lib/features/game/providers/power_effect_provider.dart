@@ -81,6 +81,28 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   String? _returnedPowerSlug;
   String? get returnedPowerSlug => _returnedPowerSlug;
 
+  // --- MUTUAL EXCLUSIVITY FOR DEFENSE POWERS ---
+  bool get isDefenseActive => _shieldArmed || _returnArmed || isEffectActive('invisibility') || isEffectActive('shield');
+  
+  String? get activeDefensePower {
+      if (_shieldArmed || isEffectActive('shield')) return 'shield';
+      if (_returnArmed) return 'return';
+      if (isEffectActive('invisibility')) return 'invisibility';
+      if (isEffectActive('extra_life')) return 'extra_life'; 
+      return null;
+  }
+
+  bool canActivateDefensePower(String powerSlug) {
+      if (activeDefensePower == null) return true;
+      // If the SAME power is active, we might allow extending it (depending on game rules), 
+      // but usually for defense it's a toggle or one-shot. 
+      // The requirement says: "Solo puede haber un (1) poder de defensa activo a la vez."
+      // So if any is active, we cannot activate another (unless it is the same one to refresh? 
+      // User says: "Si uno está activo: Ese poder muestra 'Activo'; los otros dos muestran 'Poder de defensa en uso' (deshabilitados)."
+      // proper check:
+      return activeDefensePower == powerSlug; 
+  }
+
 
   
   String? _cachedShieldPowerId;
@@ -422,7 +444,16 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   }
 
   void _removeEffect(String slug) {
+    debugPrint('[PowerEffectProvider] Removing effect: $slug');
     _timerService.removeEffect(slug);
+    
+    // Specfic cleanup for defense flags
+    if (slug == 'shield') {
+       _shieldArmed = false;
+    } else if (slug == 'return') {
+       _returnArmed = false;
+    }
+    
     notifyListeners();
   }
 

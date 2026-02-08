@@ -7,6 +7,8 @@ class InventoryItemCard extends StatelessWidget {
   final VoidCallback onUse;
   final int count;
   final bool isActive;
+  final bool isDisabled;
+  final String? disabledLabel;
   
   const InventoryItemCard({
     super.key,
@@ -14,6 +16,8 @@ class InventoryItemCard extends StatelessWidget {
     required this.onUse,
     this.count = 1,
     this.isActive = false,
+    this.isDisabled = false,
+    this.disabledLabel,
   });
 
   @override
@@ -86,17 +90,21 @@ class InventoryItemCard extends StatelessWidget {
                 width: double.infinity,
                 height: 30, // Even smaller height
                 child: ElevatedButton(
-                  onPressed: isActive ? null : onUse,
+                  onPressed: (isActive || isDisabled) ? null : onUse,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isActive 
+                    backgroundColor: (isActive || isDisabled)
                         ? Colors.grey.withOpacity(0.5) 
                         : AppTheme.secondaryPink,
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(
-                    isActive ? 'Activo' : 'Usar',
-                    style: const TextStyle(fontSize: 12),
+                    isActive 
+                       ? 'Activo' 
+                       : (isDisabled ? (disabledLabel ?? 'Bloqueado') : 'Usar'),
+                    style: const TextStyle(fontSize: 10), // Slightly smaller font for long labels
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

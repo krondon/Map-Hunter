@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../mall/models/power_item.dart';
+import '../providers/power_interfaces.dart';
 
 /// Bottom sheet for selecting a power to use on a target.
 /// 
@@ -70,6 +72,8 @@ class PowerSelectorBottomSheet extends StatelessWidget {
     for (var slug in inventory) {
       powerCounts[slug] = (powerCounts[slug] ?? 0) + 1;
     }
+
+    final effectProvider = Provider.of<PowerEffectReader>(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -190,10 +194,27 @@ class PowerSelectorBottomSheet extends StatelessWidget {
                     final power = filteredPowers[index];
                     final count = powerCounts[power.id] ?? 0;
                     
+                    bool isDisabled = false;
+                    String? disabledLabel;
+
+                    // Defense Exclusivity Check
+                    if (isTargetSelf) {
+                      final isActive = effectProvider.isEffectActive(power.id);
+                      if (isActive) {
+                        isDisabled = true;
+                        disabledLabel = "Activo";
+                      } else if (!effectProvider.canActivateDefensePower(power.id)) {
+                        isDisabled = true;
+                        disabledLabel = "Defensa en uso";
+                      }
+                    }
+
                     return _PowerTile(
                       power: power,
                       count: count,
-                      onTap: () => onPowerSelected(power),
+                      isDisabled: isDisabled,
+                      disabledLabel: disabledLabel,
+                      onTap: isDisabled ? null : () => onPowerSelected(power),
                     );
                   },
                 ),
@@ -210,12 +231,16 @@ class PowerSelectorBottomSheet extends StatelessWidget {
 class _PowerTile extends StatelessWidget {
   final PowerItem power;
   final int count;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isDisabled;
+  final String? disabledLabel;
 
   const _PowerTile({
     required this.power,
     required this.count,
     required this.onTap,
+    this.isDisabled = false,
+    this.disabledLabel,
   });
 
   @override
@@ -223,9 +248,11 @@ class _PowerTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: power.color.withOpacity(0.1),
+        color: isDisabled ? Colors.grey.withOpacity(0.1) : power.color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: power.color.withOpacity(0.3)),
+        border: Border.all(
+          color: isDisabled ? Colors.grey.withOpacity(0.3) : power.color.withOpacity(0.3)
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -241,14 +268,16 @@ class _PowerTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: power.color.withOpacity(0.2),
+                    color: isDisabled ? Colors.grey.withOpacity(0.2) : power.color.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: Text(
-                      power.icon,
-                      style: const TextStyle(fontSize: 24),
-                    ),
+                    child: isDisabled 
+                      ? const Icon(Icons.lock, color: Colors.white54, size: 20)
+                      : Text(
+                          power.icon,
+                          style: const TextStyle(fontSize: 24),
+                        ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -260,17 +289,18 @@ class _PowerTile extends StatelessWidget {
                     children: [
                       Text(
                         power.name,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isDisabled ? Colors.white54 : Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
                       ),
                       Text(
-                        power.description,
+                        disabledLabel ?? power.description,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: isDisabled ? AppTheme.dangerRed : Colors.white.withOpacity(0.6),
                           fontSize: 11,
+                          fontWeight: isDisabled ? FontWeight.bold : FontWeight.normal,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -280,27 +310,29 @@ class _PowerTile extends StatelessWidget {
                 ),
                 
                 // Count badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGold,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'x$count',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                if (!isDisabled)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentGold,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'x$count',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
-                ),
                 
                 const SizedBox(width: 8),
-                Icon(
-                  Icons.chevron_right,
-                  color: Colors.white.withOpacity(0.5),
-                ),
+                if (!isDisabled)
+                  Icon(
+                    Icons.chevron_right,
+                    color: Colors.white.withOpacity(0.5),
+                  ),
               ],
             ),
           ),

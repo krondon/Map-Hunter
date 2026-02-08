@@ -190,18 +190,39 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               );
 
                               final effectProvider = Provider.of<PowerEffectReader>(context);
-                              // Solo verificamos estado activo para poderes defensivos personales
-                              final isDefensive = ['shield', 'invisibility', 'return'].contains(itemDef.id);
-                              final isActive = isDefensive && effectProvider.isEffectActive(itemDef.id);
                               
+                              // Logic for Defense Power Exclusivity
+                              // 1. Identify if this item is a defense power
+                              final isDefensive = ['shield', 'invisibility', 'return'].contains(itemDef.id);
+                              
+                              bool isActive = false;
+                              bool isDisabled = false;
+                              String? disabledLabel;
+
                               if (isDefensive) {
-                                debugPrint('🔘 [UI-SYNC] Estado del botón para ${itemDef.id}: ${isActive ? "ACTIVO" : "DISPONIBLE"}');
+                                  // Check if THIS specific power is active
+                                  isActive = effectProvider.isEffectActive(itemDef.id);
+                                  
+                                  // Check if we should disable it (because another defense is active)
+                                  if (!isActive) {
+                                      // Now we can use the interface directly!
+                                      if (!effectProvider.canActivateDefensePower(itemDef.id)) {
+                                          isDisabled = true;
+                                          disabledLabel = 'Defensa en uso';
+                                      }
+                                  }
+                              }
+
+                              if (isDefensive) {
+                                debugPrint('🔘 [UI-SYNC] Button State for ${itemDef.id}: Active=$isActive, Disabled=$isDisabled');
                               }
 
                               return InventoryItemCard(
                                 item: itemDef,
                                 count: count,
                                 isActive: isActive,
+                                isDisabled: isDisabled,
+                                disabledLabel: disabledLabel,
                                 onUse: () =>
                                     _handleItemUse(context, itemDef, player.id),
                               );

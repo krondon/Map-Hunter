@@ -45,6 +45,11 @@ abstract class PowerEffectReader extends Listenable {
   String? get returnedByPlayerName;
   String? get returnedAgainstCasterId;
   String? get returnedPowerSlug;
+  
+  // Defense Exclusivity
+  String? get activeDefensePower;
+  bool get isDefenseActive;
+  bool canActivateDefensePower(String slug);
 }
 
 /// Interface for managing power state (Write/Action).

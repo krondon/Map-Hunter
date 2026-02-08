@@ -27,6 +27,19 @@ class PowerService {
     bool isAlreadyActive = false,
   }) async {
     try {
+      // --- DEFENSE EXCLUSIVITY CHECK (Refactor) ---
+      // We need access to the provider state to check other active powers.
+      // Since PowerService is stateless regarding provider, we rely on `isAlreadyActive` 
+      // which was passed from the caller (PlayerProvider/Dispatcher).
+      // BUT, `isAlreadyActive` only checked if the SAME power was active.
+      // We need to know if ANY defense power is active.
+      
+      // Ideally, the caller should have checked `canActivateDefensePower` before calling this.
+      // However, as a safeguard, if we could check here it would be good.
+      // Given we don't have provider reference here, we must rely on the caller to enforce 
+      // "Can I cast this?".
+      // But we can check if `isAlreadyActive` passed in implies "Specific Power Active".
+      
       if (isAlreadyActive) {
          debugPrint('PowerService: 🛑 Power $powerSlug is already active locally. Aborting execution.');
          return PowerUseResponse.error('already_active_locally');

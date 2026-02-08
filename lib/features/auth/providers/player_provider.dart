@@ -590,6 +590,12 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
 
     try {
+      // --- EXCLUSIVITY CHECK ---
+      if (!effectProvider.canActivateDefensePower(powerSlug)) {
+          debugPrint('PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
+          return PowerUseResult.error; 
+      }
+
       effectProvider.setManualCasting(true);
 
       // Prepare rivals list for blur_screen
