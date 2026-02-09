@@ -21,6 +21,7 @@ enum AccessResultType {
   // --- NEW: Wallet & Spectator Support ---
   needsPayment,      // User needs to pay entry fee
   spectatorAllowed,  // User can observe but not play
+  bannedSpectator,   // User is banned but can spectate
 }
 
 class GameAccessResult {
@@ -142,7 +143,13 @@ class GameAccessService {
       if (isGamePlayer) {
         // User is ALREADY in the event
         if (playerStatus == 'suspended' || playerStatus == 'banned') {
-           return GameAccessResult(AccessResultType.suspended, message: 'Has sido suspendido de esta competencia por un administrador.');
+           // NEW: Allow banned users to spectate
+           return GameAccessResult(
+             AccessResultType.bannedSpectator,
+             message: 'Estás suspendido de esta competencia. Solo puedes observar.',
+             role: UserRole.spectator,
+             isReadOnly: true,
+           );
         }
 
         if (playerStatus == 'spectator') {

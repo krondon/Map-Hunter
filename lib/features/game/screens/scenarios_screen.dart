@@ -60,6 +60,9 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
   
   // Cache for participant status to show "Entering..." vs "Request Access"
   Map<String, bool> _participantStatusMap = {};
+  
+  // Cache for ban status to show banned button
+  Map<String, String?> _banStatusMap = {}; // NEW
 
   // The default user role for scenario selection
   UserRole get role => UserRole.player;
@@ -281,21 +284,25 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     
     await eventProvider.fetchEvents();
     
-    // Load participation status for each event
+    // Load participation status and ban status for each event
     final userId = playerProvider.currentPlayer?.userId;
     if (userId != null) {
       final Map<String, bool> statusMap = {};
+      final Map<String, String?> banMap = {}; // NEW
       for (final event in eventProvider.events) {
         try {
           final data = await requestProvider.isPlayerParticipant(userId, event.id);
           statusMap[event.id] = data['isParticipant'] as bool? ?? false;
+          banMap[event.id] = data['status'] as String?; // NEW: Track ban status
         } catch (e) {
           statusMap[event.id] = false;
+          banMap[event.id] = null; // NEW
         }
       }
       if (mounted) {
         setState(() {
           _participantStatusMap = statusMap;
+          _banStatusMap = banMap; // NEW
         });
       }
     }
@@ -441,6 +448,23 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
               ScaffoldMessenger.of(context)
                   .showSnackBar(SnackBar(content: Text(result.message!)));
             }
+          }
+          break;
+
+        case AccessResultType.bannedSpectator:
+          // CRITICAL: Clear game context to prevent power effects
+          // This sets gamePlayerId = null, which triggers the hard gate in SabotageOverlay
+          playerProvider.clearGameContext();
+          
+          // Navigate directly to spectator mode for banned users
+          await gameProvider.fetchClues(eventId: scenario.id);
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SpectatorModeScreen(eventId: scenario.id),
+              ),
+            );
           }
           break;
 
@@ -1097,6 +1121,81 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
     );
   }
 
+  /// Builds a custom button for banned users that navigates to spectator mode
+  Widget _buildBannedButton(Scenario scenario) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.red.shade900.withOpacity(0.9),
+            Colors.orange.shade800.withOpacity(0.9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.red.shade300.withOpacity(0.8),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.3),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () async {
+          // CRITICAL: Navigate directly without validation flow
+          final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+          final gameProvider = Provider.of<GameProvider>(context, listen: false);
+          
+          // Clear game context to prevent power effects
+          playerProvider.clearGameContext();
+          
+          // Fetch clues for spectator view
+          await gameProvider.fetchClues(eventId: scenario.id);
+          
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SpectatorModeScreen(eventId: scenario.id),
+              ),
+            );
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.visibility_outlined, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text(
+              "🚫 SUSPENDIDO - OBSERVAR",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 13,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     print("DEBUG: ScenariosScreen build. isLoading: $_isLoading");
@@ -1657,84 +1756,48 @@ class _ScenariosScreenState extends State<ScenariosScreen> with TickerProviderSt
 
                                                               const SizedBox(height: 10),
                                                               SizedBox(
-                                                                width: 250, // Fixed width for button within FittedBox context
-                                                                child: ElevatedButton(
-                                                                  onPressed: () {
-                                                                    _onScenarioSelected(scenario);
-                                                                  },
-                                                                  style: ElevatedButton.styleFrom(
-                                                                    backgroundColor: AppTheme.accentGold,
-                                                                    foregroundColor: Colors.black,
-                                                                    elevation: 8,
-                                                                    shape: RoundedRectangleBorder(
-                                                                      borderRadius: BorderRadius.circular(20),
-                                                                    ),
-                                                                  ),
-                                                                  child: scenario.isCompleted 
-                                                                    ? const Text("VER PODIO", style: TextStyle(fontWeight: FontWeight.bold))
-                                                                    : _participantStatusMap[scenario.id] == true
-                                                                      ? const Row(
-                                                                          mainAxisSize: MainAxisSize.min,
-                                                                          children: [
-                                                                            Icon(Icons.play_arrow, size: 20),
-                                                                            SizedBox(width: 6),
-                                                                            Text("ENTRAR", style: TextStyle(fontWeight: FontWeight.bold)),
-                                                                          ],
-                                                                        )
-                                                                      : Row(
-                                                                          mainAxisSize: MainAxisSize.min,
-                                                                          children: [
-                                                                            Text(
-                                                                                scenario.entryFee == 0 
-                                                                                    ? "INSCRIBETE (GRATIS)" 
-                                                                                    : "INSCRIBETE (${scenario.entryFee} 🍀)",
-                                                                                style: const TextStyle(fontWeight: FontWeight.bold)
-                                                                            ),
-                                                                            if (scenario.entryFee == 0) ...[
-                                                                               const SizedBox(width: 6),
-                                                                               const Icon(Icons.card_giftcard, size: 18),
-                                                                            ],
-                                                                          ],
-                                                                        ),
-                                                                ),
-                                                              ),
-                                                              const SizedBox(height: 12),
-                                                              SizedBox(
                                                                 width: 250,
-                                                                child: OutlinedButton(
-                                                                  onPressed: () {
-                                                                    Navigator.push(
-                                                                      context,
-                                                                      MaterialPageRoute(
-                                                                        builder: (_) => SpectatorModeScreen(eventId: scenario.id),
+                                                                child: (_banStatusMap[scenario.id] == 'banned' || _banStatusMap[scenario.id] == 'suspended')
+                                                                  ? _buildBannedButton(scenario)
+                                                                  : ElevatedButton(
+                                                                      onPressed: () {
+                                                                        _onScenarioSelected(scenario);
+                                                                      },
+                                                                      style: ElevatedButton.styleFrom(
+                                                                        backgroundColor: AppTheme.accentGold,
+                                                                        foregroundColor: Colors.black,
+                                                                        elevation: 8,
+                                                                        shape: RoundedRectangleBorder(
+                                                                          borderRadius: BorderRadius.circular(20),
+                                                                        ),
                                                                       ),
-                                                                    );
-                                                                  },
-                                                                  style: OutlinedButton.styleFrom(
-                                                                    side: BorderSide(color: Colors.white.withOpacity(0.6), width: 1.5),
-                                                                    shape: RoundedRectangleBorder(
-                                                                      borderRadius: BorderRadius.circular(20),
+                                                                      child: scenario.isCompleted 
+                                                                        ? const Text("VER PODIO", style: TextStyle(fontWeight: FontWeight.bold))
+                                                                        : _participantStatusMap[scenario.id] == true
+                                                                          ? const Row(
+                                                                              mainAxisSize: MainAxisSize.min,
+                                                                              children: [
+                                                                                Icon(Icons.play_arrow, size: 20),
+                                                                                SizedBox(width: 6),
+                                                                                Text("ENTRAR", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                                              ],
+                                                                            )
+                                                                          : Row(
+                                                                              mainAxisSize: MainAxisSize.min,
+                                                                              children: [
+                                                                                Text(
+                                                                                    scenario.entryFee == 0 
+                                                                                        ? "INSCRIBETE (GRATIS)" 
+                                                                                        : "INSCRIBETE (${scenario.entryFee} 🍀)",
+                                                                                    style: const TextStyle(fontWeight: FontWeight.bold)
+                                                                                ),
+                                                                                if (scenario.entryFee == 0) ...[
+                                                                                   const SizedBox(width: 6),
+                                                                                   const Icon(Icons.card_giftcard, size: 18),
+                                                                                ],
+                                                                              ],
+                                                                            ),
                                                                     ),
-                                                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                                                    backgroundColor: Colors.black45,
-                                                                  ),
-                                                                  child: const Row(
-                                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                                    children: [
-                                                                      Icon(Icons.visibility_outlined, color: Colors.white, size: 20),
-                                                                      SizedBox(width: 8),
-                                                                      Text(
-                                                                         "MODO ESPECTADOR",
-                                                                         style: TextStyle(
-                                                                           color: Colors.white,
-                                                                           fontWeight: FontWeight.bold,
-                                                                           fontSize: 12,
-                                                                           letterSpacing: 1.0,
-                                                                         ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ),
                                                               ),
                                                             ],
                                                           ),
