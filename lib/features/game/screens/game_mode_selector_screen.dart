@@ -8,8 +8,69 @@ import 'scenarios_screen.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../auth/screens/login_screen.dart';
 
-class GameModeSelectorScreen extends StatelessWidget {
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class GameModeSelectorScreen extends StatefulWidget {
   const GameModeSelectorScreen({super.key});
+
+  @override
+  State<GameModeSelectorScreen> createState() => _GameModeSelectorScreenState();
+}
+
+class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTime();
+    });
+  }
+
+  Future<void> _checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasSeenTutorial = prefs.getBool('seen_mode_tutorial') ?? false;
+    if (!hasSeenTutorial) {
+      if (mounted) {
+        // Delay slightly to ensure screen is fully ready
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _showTutorial(context);
+        });
+      }
+    }
+  }
+
+  void _showTutorial(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, _, __) => CyberTutorialOverlay(
+          steps: [
+            TutorialStep(
+              title: "BIENVENIDO EXPLORADOR",
+              description: "Aquí comienza tu aventura en MapHunter. Elige sabiamente cómo deseas participar.",
+              icon: Icons.explore,
+            ),
+            TutorialStep(
+              title: "MODO PRESENCIAL",
+              description: "Vive la aventura en el mundo real. Requiere GPS y escanear códigos QR físicos en ubicaciones reales. ¡Prepárate para caminar!",
+              icon: Icons.location_on,
+            ),
+            TutorialStep(
+              title: "MODO ONLINE",
+              description: "Participa desde cualquier lugar. Acceso mediante códigos PIN y superando minijuegos desde la comodidad de tu asiento.",
+              icon: Icons.wifi,
+            ),
+          ],
+          onFinish: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('seen_mode_tutorial', true);
+            if (mounted) Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +112,7 @@ class GameModeSelectorScreen extends StatelessWidget {
             backgroundColor: currentBg,
             body: Stack(
               children: [
-                // Fondo unificado con el estilo del Login
+                // Fondo unificado estático (IGUAL AL LOGIN - SIN ANIMACIONES)
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
@@ -72,11 +133,6 @@ class GameModeSelectorScreen extends StatelessWidget {
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                    // Solo mostramos el animado en modo claro ya que en modo oscuro queremos que sea IGUAL al login
-                    child: !isDarkMode ? const AnimatedCyberBackground(
-                      gridColor: Color(0xFFD1D1DB),
-                      vignetteColor: Color(0xFFE9D5FF),
-                    ) : null,
                   ),
                 ),
                 
@@ -90,15 +146,62 @@ class GameModeSelectorScreen extends StatelessWidget {
                           children: [
                             IconButton(
                               onPressed: () async {
-                                await context.read<PlayerProvider>().logout();
-                                if (context.mounted) {
-                                  Navigator.of(context).pushAndRemoveUntil(
-                                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                                    (route) => false,
-                                  );
+                                final Color dialogBg = isDarkMode ? const Color(0xFF1A1A1D) : Colors.white;
+                                final Color dialogTitle = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+                                final Color dialogContent = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+
+                                final bool? confirmLogout = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    backgroundColor: dialogBg,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.5)),
+                                    ),
+                                    title: Row(
+                                      children: [
+                                        const Icon(Icons.logout, color: AppTheme.dangerRed),
+                                        const SizedBox(width: 12),
+                                        Text('Cerrar Sesión', style: TextStyle(color: dialogTitle, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                    content: Text(
+                                      '¿Estás seguro que deseas cerrar sesión?',
+                                      style: TextStyle(color: dialogContent),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, false),
+                                        child: Text('Cancelar', style: TextStyle(color: dialogContent.withOpacity(0.6))),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.dangerRed,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        child: const Text('SALIR'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirmLogout == true && context.mounted) {
+                                  await context.read<PlayerProvider>().logout();
+                                  if (context.mounted) {
+                                    Navigator.of(context).pushAndRemoveUntil(
+                                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                      (route) => false,
+                                    );
+                                  }
                                 }
                               },
-                              icon: Icon(Icons.arrow_back_ios_new, color: currentAction), // Usamos Oro/Púrpura según tema
+                              icon: Icon(Icons.arrow_back_ios_new, color: currentAction),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => _showTutorial(context),
+                              icon: Icon(Icons.help_outline, color: currentAction),
                             ),
                           ],
                         ),
@@ -246,17 +349,7 @@ class _ModeCardState extends State<_ModeCard> with TickerProviderStateMixin {
           child: Container(
             decoration: BoxDecoration(
               color: cardBg,
-              // Eliminado el gradiente vibrante para hacerlo sólido como pidió el usuario
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.isDarkMode 
-                      ? Colors.black.withOpacity(0.4) 
-                      : Colors.black.withOpacity(0.05),
-                  blurRadius: 15,
-                  spreadRadius: widget.isDarkMode ? 2 : 0,
-                ),
-              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -322,7 +415,7 @@ class _ModeCardState extends State<_ModeCard> with TickerProviderStateMixin {
                                     Text(
                                       widget.title,
                                       style: TextStyle(
-                                        color: widget.isDarkMode ? widget.color : const Color(0xFF1A1A1D),
+                                        color: widget.color, // Siempre dorado
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1,
@@ -342,7 +435,7 @@ class _ModeCardState extends State<_ModeCard> with TickerProviderStateMixin {
                               ),
                               Icon(
                                 Icons.arrow_forward_ios,
-                                color: widget.isDarkMode ? widget.color.withOpacity(0.5) : const Color(0xFF1A1A1D).withOpacity(0.3),
+                                color: widget.color.withOpacity(0.5), // Siempre dorado sutil
                                 size: 16,
                               ),
                             ],
@@ -380,18 +473,16 @@ class _AnimatedBorderPainter extends CustomPainter {
       ..shader = SweepGradient(
         colors: [
           primaryColor.withOpacity(0.0),
-          primaryColor.withOpacity(0.5),
           primaryColor,
           secondaryColor,
           primaryColor,
-          primaryColor.withOpacity(0.5),
           primaryColor.withOpacity(0.0),
         ],
-        stops: const [0.0, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0],
+        stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
         transform: GradientRotation(animationValue * 2 * math.pi),
       ).createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
+      ..strokeWidth = 2.0;
 
     final RRect rrect = RRect.fromRectAndRadius(rect, const Radius.circular(20));
     canvas.drawRRect(rrect, paint);

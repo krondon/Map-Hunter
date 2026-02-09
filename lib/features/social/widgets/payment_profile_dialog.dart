@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 import '../../../core/theme/app_theme.dart';
 
 class PaymentProfileDialog extends StatefulWidget {
@@ -81,8 +82,11 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final playerProvider = Provider.of<PlayerProvider>(context);
+    final isDarkMode = playerProvider.isDarkMode;
+    
     return AlertDialog(
-      backgroundColor: AppTheme.cardBg,
+      backgroundColor: isDarkMode ? AppTheme.cardBg : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
@@ -91,9 +95,9 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
         children: [
           const Icon(Icons.person_pin, color: AppTheme.accentGold),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Completar Datos',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -104,9 +108,9 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Para realizar operaciones de pago móvil, necesitamos completar tu perfil.',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A), fontSize: 13),
               ),
               const SizedBox(height: 20),
               
@@ -120,9 +124,9 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
                     margin: const EdgeInsets.only(right: 12),
                     child: DropdownButtonFormField<String>(
                       value: _documentType,
-                      dropdownColor: AppTheme.cardBg,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Tipo'),
+                      dropdownColor: isDarkMode ? AppTheme.cardBg : Colors.white,
+                      style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D)),
+                      decoration: _inputDecoration('Tipo', isDarkMode),
                       items: ['V', 'E', 'J', 'G'].map((type) {
                         return DropdownMenuItem(
                           value: type,
@@ -141,8 +145,8 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
                       controller: _dniController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Cédula / RIF (Solo números)'),
+                      style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D)),
+                      decoration: _inputDecoration('Cédula / RIF (Solo números)', isDarkMode),
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Requerido';
                         if (value.length < 5) return 'Inválido';
@@ -158,8 +162,8 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Teléfono (04141234567)'),
+                style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D)),
+                decoration: _inputDecoration('Teléfono (04141234567)', isDarkMode),
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Requerido';
                   if (value.length < 10) return 'Teléfono inválido';
@@ -173,7 +177,7 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+          child: Text('Cancelar', style: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black45)),
         ),
         ElevatedButton(
           onPressed: _isLoading ? _saveProfile : _saveProfile,
@@ -182,23 +186,19 @@ class _PaymentProfileDialogState extends State<PaymentProfileDialog> {
             foregroundColor: Colors.black,
           ),
           child: _isLoading 
-            ? const SizedBox(
-                width: 20, 
-                height: 20, 
-                child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2)
-              )
+            ? const LoadingIndicator(fontSize: 10, color: Colors.black)
             : const Text('Guardar y Continuar'),
         ),
       ],
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, bool isDarkMode) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white60),
+      labelStyle: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black54),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+        borderSide: BorderSide(color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.2)),
         borderRadius: BorderRadius.circular(10),
       ),
       focusedBorder: OutlineInputBorder(

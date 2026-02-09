@@ -5,6 +5,7 @@ import '../models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/shop_item_card.dart';
 import '../../game/providers/game_provider.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -296,7 +297,7 @@ class _ShopScreenState extends State<ShopScreen> {
             Container(
               color: Colors.black54,
               child: const Center(
-                child: CircularProgressIndicator(color: AppTheme.accentGold),
+                child: LoadingIndicator(),
               ),
             ),
         ],

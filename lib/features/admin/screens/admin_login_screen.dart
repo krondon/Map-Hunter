@@ -5,6 +5,7 @@ import '../../auth/screens/splash_screen.dart';
 import 'dashboard-screen.dart';
 import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -110,7 +111,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         ),
         child: SafeArea(
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple))
+            ? const Center(child: LoadingIndicator())
             : Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
@@ -266,15 +267,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             ),
                             child: Container(
                               alignment: Alignment.center,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
+                               child: _isLoading
+                                  ? const LoadingIndicator(fontSize: 14, color: Colors.white)
                                   : const Text(
                                       'INGRESAR',
                                       style: TextStyle(

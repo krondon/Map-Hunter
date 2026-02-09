@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../auth/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class AddPaymentMethodDialog extends StatefulWidget {
   const AddPaymentMethodDialog({super.key});
@@ -82,12 +83,14 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
+    final playerProvider = Provider.of<PlayerProvider>(context);
+    final isDarkMode = playerProvider.isDarkMode;
+    final player = playerProvider.currentPlayer;
     final dni = player?.cedula ?? 'No definido';
     final phone = player?.phone ?? 'No definido';
 
     return Dialog(
-      backgroundColor: AppTheme.cardBg,
+      backgroundColor: isDarkMode ? AppTheme.cardBg : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
@@ -108,9 +111,9 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                 children: [
                   const Icon(Icons.credit_card, color: AppTheme.accentGold),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Agregar Pago Móvil',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ],
               ),
@@ -122,24 +125,24 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Se usará tu Cédula y Teléfono del perfil.',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A), fontSize: 13),
                     ),
                     const SizedBox(height: 16),
         
                     // Read-only Info
-                    _buildInfoRow(Icons.badge, 'Cédula', dni),
+                     _buildInfoRow(Icons.badge, 'Cédula', dni, isDarkMode),
                     const SizedBox(height: 12),
-                    _buildInfoRow(Icons.phone_android, 'Teléfono', phone),
+                    _buildInfoRow(Icons.phone_android, 'Teléfono', phone, isDarkMode),
                     
                     const SizedBox(height: 20),
                     
                     // Bank Dropdown
                     DropdownButtonFormField<String>(
-                      dropdownColor: AppTheme.cardBg,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Banco'),
+                      dropdownColor: isDarkMode ? AppTheme.cardBg : Colors.white,
+                      style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D)),
+                      decoration: _inputDecoration('Banco', isDarkMode),
                       value: _selectedBankCode,
                       isExpanded: true, // Fix horizontal overflow
                       menuMaxHeight: 300, // Limit menu height
@@ -170,7 +173,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                 children: [
                   TextButton(
                     onPressed: _isLoading ? null : () => Navigator.pop(context, false),
-                    child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+                    child: Text('Cancelar', style: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black45)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
@@ -180,7 +183,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
                       foregroundColor: Colors.black,
                     ),
                     child: _isLoading 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      ? const LoadingIndicator(fontSize: 10, color: Colors.black)
                       : const Text('Guardar'),
                   ),
                 ],
@@ -192,23 +195,23 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: isDarkMode ? Colors.white10 : Colors.black12),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white54, size: 20),
+          Icon(icon, color: isDarkMode ? Colors.white54 : Colors.black45, size: 20),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-              Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(label, style: TextStyle(color: isDarkMode ? Colors.white38 : Colors.black38, fontSize: 10)),
+              Text(value, style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -216,12 +219,12 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, bool isDarkMode) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white60),
+      labelStyle: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black54),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+        borderSide: BorderSide(color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.2)),
         borderRadius: BorderRadius.circular(10),
       ),
       focusedBorder: OutlineInputBorder(

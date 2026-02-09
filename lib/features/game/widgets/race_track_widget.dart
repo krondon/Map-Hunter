@@ -9,6 +9,7 @@ import '../../auth/providers/player_provider.dart';
 import '../services/race_logic_service.dart';
 import 'power_selector_bottom_sheet.dart';
 import 'player_group_selector.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 /// RaceTrackWidget displays the race progress with interactive avatar selection.
 /// 
@@ -262,10 +263,7 @@ class RaceTrackWidget extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(
-                        color: AppTheme.accentGold,
-                        strokeWidth: 3,
-                      ),
+                      const LoadingIndicator(fontSize: 14),
                       SizedBox(height: 8),
                       Text(
                         'Ejecutando poder...',

@@ -41,6 +41,7 @@ import '../widgets/success_celebration_dialog.dart';
 import '../../../shared/widgets/time_stamp_animation.dart';
 
 import '../../../shared/widgets/animated_cyber_background.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 import '../widgets/no_lives_widget.dart';
 
 class PuzzleScreen extends StatefulWidget {
@@ -647,7 +648,7 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     context: context,
     barrierDismissible: false,
     builder: (ctx) => const Center(
-      child: CircularProgressIndicator(color: AppTheme.accentGold),
+      child: LoadingIndicator(),
     ),
   );
 

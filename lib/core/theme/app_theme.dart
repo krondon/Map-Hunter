@@ -1,143 +1,121 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Color Palette
-  static const Color primaryPurple = Color(0xFF6C5CE7);
-  static const Color secondaryPink = Color(0xFFFF6B9D);
-  static const Color accentGold = Color(0xFFFFD700);
-  static const Color darkBg = Color(0xFF0A0E27);
-  static const Color cardBg = Color(0xFF1A1F3A);
-  static const Color successGreen = Color(0xFF00D9A3);
-  static const Color dangerRed = Color(0xFFFF4757);
-  static const Color warningOrange = Color(0xFFFFB142);
-  static const Color neonGreen = Color(0xFF39FF14); // Added for minigame feedback
+  // --- DARK PALETTE (The Void) ---
+  static const Color dGoldMain = Color(0xFFFECB00);
+  static const Color dGoldLight = Color(0xFFFFF176);
+  static const Color dGoldDark = Color(0xFFFBC02D);
+  static const Color dGoldMuted = Color(0xFFB8860B);
   
-  // Gradients
+  static const Color dBrandMain = Color(0xFF7B2CBF);
+  static const Color dBrandLight = Color(0xFFA29BFE);
+  static const Color dBrandDark = Color(0xFF4834D4);
+  static const Color dBrandDeep = Color(0xFF150826);
+  
+  static const Color dSurface0 = Color(0xFF0D0D0F); // Background absolute
+  static const Color dSurface1 = Color(0xFF1A1A1D); // Cards
+  static const Color dSurface2 = Color(0xFF2D3436); // Modals/Overlays
+  static const Color dSurface3 = Color(0xFF3D4461); // Elevated
+  static const Color dBorder = Color(0xFF3D3D4D);
+  
+  // --- LIGHT PALETTE (Crystal Clarity) ---
+  static const Color lGoldAction = Color(0xFFFFD700);
+  static const Color lGoldText = Color(0xFFB8860B);
+  static const Color lGoldSurface = Color(0xFFFFFDE7);
+  
+  static const Color lBrandMain = Color(0xFF5A189A);
+  static const Color lBrandSurface = Color(0xFFE9D5FF);
+  static const Color lBrandDeep = Color(0xFF3C096C);
+  
+  static const Color lSurface0 = Color(0xFFF2F2F7); // Background absolute
+  static const Color lSurface1 = Color(0xFFFFFFFF); // Cards
+  static const Color lSurfaceAlt = Color(0xFFD1D1DB); // Secondary fields
+  static const Color lBorder = Color(0xFFD1D1DB);
+  
+  // legacy aliases for backward compatibility
+  static const Color accentGold = dGoldMain;
+  static const Color darkBg = dSurface0;
+  static const Color cardBg = dSurface1;
+  static const Color dangerRed = Color(0xFFFF4757);
+  static const Color successGreen = Color(0xFF00D9A3);
+  static const Color primaryPurple = Color(0xFF7B2CBF);
+  static const Color secondaryPink = Color(0xFFD42AB3);
+  static const Color warningOrange = Color(0xFFFF9F43);
+  static const Color neonGreen = Color(0xFF00D9A3);
+
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryPurple, secondaryPink],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
-  static const LinearGradient goldGradient = LinearGradient(
-    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-  
+
   static const LinearGradient darkGradient = LinearGradient(
-    colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A)],
+    colors: [dSurface0, Color(0xFF1A1A1D)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
-  static ThemeData get darkTheme {
+  static const LinearGradient goldGradient = LinearGradient(
+    colors: [dGoldMain, dGoldDark],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
+  static ThemeData get lightTheme => _buildTheme(Brightness.light);
+
+  static ThemeData _buildTheme(Brightness brightness) {
+    final bool isDark = brightness == Brightness.dark;
+    
+    final Color bg = isDark ? dSurface0 : lSurface0;
+    final Color surface = isDark ? dSurface1 : lSurface1;
+    final Color primary = isDark ? dBrandMain : lBrandMain;
+    final Color textColor = isDark ? Colors.white : const Color(0xFF1A1A1D);
+    final Color textSec = isDark ? Colors.white70 : const Color(0xFF4A4A5A);
+
     return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: darkBg,
-      primaryColor: primaryPurple,
-      colorScheme: const ColorScheme.dark(
-        primary: primaryPurple,
-        secondary: secondaryPink,
-        surface: cardBg,
-        background: darkBg,
+      brightness: brightness,
+      scaffoldBackgroundColor: bg,
+      primaryColor: primary,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: primary,
+        secondary: isDark ? dGoldMain : lGoldAction,
+        surface: surface,
+        background: bg,
+        error: dangerRed,
+        onPrimary: Colors.white,
+        onSecondary: isDark ? Colors.black : Colors.white,
+        onSurface: textColor,
+        onBackground: textColor,
+        onError: Colors.white,
       ),
-      
-      // Text Theme
       textTheme: TextTheme(
-        displayLarge: const TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          fontFamily: 'sans-serif',
-        ),
-        displayMedium: const TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          fontFamily: 'sans-serif',
-        ),
-        displaySmall: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-          fontFamily: 'sans-serif',
-        ),
-        headlineMedium: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-        headlineSmall: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-        bodyLarge: const TextStyle(
-          fontSize: 16,
-          color: Colors.white70,
-        ),
-        bodyMedium: const TextStyle(
-          fontSize: 14,
-          color: Colors.white60,
-        ),
-        bodySmall: const TextStyle(
-          fontSize: 12,
-          color: Colors.white54,
-        ),
+        displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor),
+        displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
+        bodyLarge: TextStyle(fontSize: 16, color: textSec),
+        bodyMedium: TextStyle(fontSize: 14, color: textSec),
+        labelLarge: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      
-      // Card Theme
-      cardTheme: const CardThemeData(
-        color: cardBg,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
-        ),
+      cardTheme: CardThemeData(
+        color: surface,
+        elevation: isDark ? 0 : 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      
-      // Elevated Button Theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryPurple,
+          backgroundColor: primary,
           foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
       ),
-      
-      // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: cardBg,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryPurple, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: dangerRed, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        hintStyle: const TextStyle(
-          color: Colors.white38,
-          fontSize: 14,
-        ),
+        fillColor: surface,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? dBorder : lBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
       ),
     );
   }

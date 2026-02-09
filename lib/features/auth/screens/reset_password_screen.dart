@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/error_handler.dart';
 import '../providers/player_provider.dart';
 import 'login_screen.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -148,7 +149,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const LoadingIndicator(fontSize: 14, color: Colors.white)
                           : const Text(
                               'ACTUALIZAR Y ENTRAR',
                               style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),

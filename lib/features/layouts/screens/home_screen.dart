@@ -15,6 +15,7 @@ import '../../social/screens/profile_screen.dart';
 import '../../../shared/widgets/sabotage_overlay.dart';
 import '../../game/providers/power_interfaces.dart';
 import '../../game/screens/spectator_mode_screen.dart'; // ADDED
+import '../../../shared/widgets/loading_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   final String eventId; 
@@ -66,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
       // Placeholder mientras redirige
-      _screens = [const Scaffold(body: Center(child: CircularProgressIndicator()))];
+      _screens = [const Scaffold(body: Center(child: LoadingIndicator()))];
     } else {
       _screens = [
         CluesScreen(eventId: widget.eventId),

@@ -6,6 +6,9 @@ import '../providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../shared/widgets/loading_overlay.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -41,6 +44,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final List<String> _bannedWords = ['admin', 'root', 'moderator', 'tonto', 'estupido', 'idiota', 'groseria', 'puto', 'mierda'];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTime();
+    });
+  }
+
+  Future<void> _checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasSeenTutorial = prefs.getBool('seen_register_tutorial') ?? false;
+    if (!hasSeenTutorial) {
+      if (mounted) _showTutorial(context);
+      await prefs.setBool('seen_register_tutorial', true);
+    }
+  }
+
+  void _showTutorial(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, _, __) => CyberTutorialOverlay(
+          steps: [
+            TutorialStep(
+              title: "TU IDENTIDAD",
+              description: "Ingresa tu cédula y teléfono correctamente. Estos datos son vitales para validar tu identidad en el gremio.",
+              icon: Icons.badge_outlined,
+            ),
+            TutorialStep(
+              title: "DATOS DE ACCESO",
+              description: "Tu correo y contraseña serán tus credenciales únicas para entrar al mundo de MapHunter. ¡No las compartas!",
+              icon: Icons.vpn_key_outlined,
+            ),
+            TutorialStep(
+              title: "TÉRMINOS DEL GREMIO",
+              description: "Lee con atención y acepta las reglas del juego para poder registrarte y comenzar tu aventura.",
+              icon: Icons.gavel_outlined,
+            ),
+          ],
+          onFinish: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -67,11 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
         
         // 1. Mostrar indicador de carga
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
-        );
+        LoadingOverlay.show(context);
 
         // 2. Ejecutar registro
         await playerProvider.register(
@@ -85,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (!mounted) return;
         
         // 3. Cerrar el indicador de carga
-        Navigator.pop(context);
+        LoadingOverlay.hide(context);
 
         // 4. Mostrar mensaje discreto de éxito
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       } catch (e) {
         if (!mounted) return;
-        Navigator.pop(context); // Cierra el indicador de carga si hubo error
+        LoadingOverlay.hide(context); // Cierra el indicador de carga si hubo error
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -265,6 +309,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: _isDarkMode ? Colors.white : lMysticPurple,
                             ),
                             onPressed: () => setState(() => _isDarkMode = !_isDarkMode),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.help_outline, color: _isDarkMode ? Colors.white : lMysticPurple),
+                            onPressed: () => _showTutorial(context),
                           ),
                         ],
                       ),

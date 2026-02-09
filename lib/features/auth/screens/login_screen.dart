@@ -18,6 +18,8 @@ import '../../game/providers/connectivity_provider.dart';
 import '../../game/providers/game_provider.dart';
 import 'dart:async'; // For TimeoutException
 import 'dart:math' as math;
+import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -102,42 +104,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         final isDarkMode = playerProvider.isDarkMode;
 
         // Show loading indicator
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) {
-            final Color currentBrand = const Color(0xFFFECB00); // Siempre Legendary Gold como en dark mode
-            
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                    Text(
-                    'Cargando...',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      decoration: TextDecoration.none,
-                      fontFamily: 'Inter',
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  CircularProgressIndicator(
-                    color: currentBrand,
-                  ),
-                ],
-              ),
-            );
-          },
-        );
+        LoadingOverlay.show(context);
 
         await playerProvider.login(
             _emailController.text.trim(), _passwordController.text);
 
         if (!mounted) return;
-        Navigator.pop(context); // Dismiss loading
+        LoadingOverlay.hide(context); // Dismiss loading
         SystemChannels.textInput.invokeMethod('TextInput.hide'); // Force keyboard close again
 
 
@@ -217,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         }
       } catch (e) {
         if (!mounted) return;
-        Navigator.pop(context); // Dismiss loading
+        LoadingOverlay.hide(context); // Dismiss loading
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -374,15 +347,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         }
                       }
                     },
-                        child: isSending
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2, 
-                                  color: isDarkMode ? Colors.black : Colors.white
-                                ),
-                              )
+                              child: isSending
+                                  ? LoadingIndicator(
+                                      fontSize: 10, 
+                                      color: isDarkMode ? Colors.black : Colors.white
+                                    )
                             : const Text('ENVIAR', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),

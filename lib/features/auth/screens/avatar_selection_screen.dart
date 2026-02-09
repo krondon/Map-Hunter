@@ -7,6 +7,7 @@ import '../providers/player_provider.dart';
 import '../../game/providers/game_provider.dart';
 import 'story_screen.dart';
 import '../../../core/services/video_preload_service.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class AvatarSelectionScreen extends StatefulWidget {
   final String eventId;
@@ -444,7 +445,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                         ),
                       ),
                       child: _isSaving 
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const LoadingIndicator(fontSize: 14, color: Colors.white)
                         : const Text(
                             'CONFIRMAR IDENTIDAD',
                             style: TextStyle(

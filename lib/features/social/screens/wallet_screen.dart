@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/loading_overlay.dart';
 import '../../wallet/widgets/payment_webview_modal.dart'; // Added
 import 'profile_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
@@ -29,7 +31,8 @@ import '../../wallet/repositories/transaction_repository.dart';
 import '../../wallet/widgets/transaction_card.dart';
 
 class WalletScreen extends StatefulWidget {
-  const WalletScreen({super.key});
+  final bool hideScaffold;
+  const WalletScreen({super.key, this.hideScaffold = false});
 
   @override
   State<WalletScreen> createState() => _WalletScreenState();
@@ -75,40 +78,45 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
 
-
+    final isDarkMode = playerProvider.isDarkMode;
     final player = playerProvider.currentPlayer;
     final cloverBalance = player?.clovers ?? 0;
 
-    return Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      extendBody: true,
-      bottomNavigationBar: _buildBottomNavBar(),
-      body: AnimatedCyberBackground(
-        child: SafeArea(
+    final mainColumn = SafeArea(
           child: Column(
             children: [
               // Custom AppBar
               Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: SizedBox(
+                  height: 80,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Back Button on the left
+                      if (!widget.hideScaffold)
+                        Positioned(
+                          left: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black87),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ),
+                      
+                      // Centered Logo
+                      Image.asset(
+                        playerProvider.isDarkMode ? 'assets/images/titulocopia.png' : 'assets/images/logocopia2.png',
+                        height: 65,
+                        fit: BoxFit.contain,
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Image.asset(
-                      'assets/images/maphunter_titulo.png',
-                      height: 28,
-                      fit: BoxFit.contain,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -145,10 +153,10 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text(
+                            Text(
                               'TRÉBOLES',
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: isDarkMode ? Colors.white70 : Colors.black54,
                                 fontSize: 12,
                                 letterSpacing: 4,
                                 fontWeight: FontWeight.w900,
@@ -172,8 +180,8 @@ class _WalletScreenState extends State<WalletScreen> {
                               children: [
                                 Text(
                                   cloverBalance.toString(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.white : Colors.black87,
                                     fontSize: 36,
                                     fontWeight: FontWeight.w900,
                                     height: 1,
@@ -229,10 +237,10 @@ class _WalletScreenState extends State<WalletScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppTheme.cardBg.withOpacity(0.5),
+                          color: isDarkMode ? AppTheme.cardBg.withOpacity(0.5) : Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                            color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
                           ),
                         ),
                         child: Column(
@@ -249,10 +257,10 @@ class _WalletScreenState extends State<WalletScreen> {
                                       size: 20,
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text(
+                                    Text(
                                       'ÚLTIMOS MOVIMIENTOS',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: isDarkMode ? Colors.white : Colors.black87,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1,
@@ -293,14 +301,14 @@ class _WalletScreenState extends State<WalletScreen> {
                             const SizedBox(height: 20),
                             
                             if (_isLoadingHistory)
-                              const Center(child: CircularProgressIndicator(color: Colors.white24))
+                               const Center(child: LoadingIndicator(fontSize: 14))
                             else if (_recentTransactions.isEmpty)
-                              const Center(
+                              Center(
                                 child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                                  padding: const EdgeInsets.symmetric(vertical: 20.0),
                                   child: Text(
                                     'No hay transacciones recientes',
-                                    style: TextStyle(color: Colors.white38),
+                                    style: TextStyle(color: isDarkMode ? Colors.white38 : Colors.black38),
                                   ),
                                 ),
                               )
@@ -334,11 +342,11 @@ class _WalletScreenState extends State<WalletScreen> {
                                             final confirm = await showDialog<bool>(
                                               context: context,
                                               builder: (context) => AlertDialog(
-                                                backgroundColor: AppTheme.cardBg,
-                                                title: const Text('Cancelar Orden', style: TextStyle(color: Colors.white)),
-                                                content: const Text(
+                                                backgroundColor: isDarkMode ? AppTheme.cardBg : Colors.white,
+                                                title: Text('Cancelar Orden', style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
+                                                content: Text(
                                                   '¿Estás seguro de que quieres cancelar esta orden pendiente?',
-                                                  style: TextStyle(color: Colors.white70),
+                                                  style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
                                                 ),
                                                 actions: [
                                                   TextButton(
@@ -380,8 +388,19 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
             ],
           ),
-        ),
-      ),
+    );
+
+    final content = widget.hideScaffold 
+        ? mainColumn 
+        : AnimatedCyberBackground(child: mainColumn);
+
+    if (widget.hideScaffold) return content;
+
+    return Scaffold(
+      backgroundColor: AppTheme.darkBg,
+      extendBody: true,
+      bottomNavigationBar: _buildBottomNavBar(),
+      body: content,
     );
   }
 
@@ -562,9 +581,9 @@ class _WalletScreenState extends State<WalletScreen> {
     
     // Refresh profile to ensure we have the latest DNI/Phone data from DB
     // This is critical to skip the form if data exists.
-    setState(() => _isLoading = true);
+    LoadingOverlay.show(context);
     await playerProvider.refreshProfile();
-    setState(() => _isLoading = false);
+    if (mounted) LoadingOverlay.hide(context);
 
     final player = playerProvider.currentPlayer;
     if (player == null) return;
@@ -589,9 +608,9 @@ class _WalletScreenState extends State<WalletScreen> {
       builder: (ctx) => PaymentMethodSelector(
         onMethodSelected: (methodId) async {
           Navigator.pop(ctx);
-          if (methodId == 'pago_movil') {
+            if (methodId == 'pago_movil') {
             
-            setState(() => _isLoading = true);
+            LoadingOverlay.show(context);
             try {
               // Check if user has a payment method
               final methods = await Supabase.instance.client
@@ -601,7 +620,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   .limit(1);
                   
               if (!mounted) return;
-              setState(() => _isLoading = false);
+              LoadingOverlay.hide(context);
 
               if (methods.isEmpty) {
                 // Show Add Dialog
@@ -672,9 +691,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox(
                       height: 200,
-                      child: Center(
-                        child: CircularProgressIndicator(color: AppTheme.accentGold),
-                      ),
+                      child: LoadingIndicator(),
                     );
                   }
                   
@@ -705,50 +722,46 @@ class _WalletScreenState extends State<WalletScreen> {
                     );
                   }
                   
-                  return SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Selecciona un plan de tréboles:',
-                          style: TextStyle(color: Colors.white70),
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selecciona un plan de tréboles:',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      if (gatewayFee > 0) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Nota: La pasarela cobra +${gatewayFee.toStringAsFixed(1)}% de comisión',
+                          style: TextStyle(color: Colors.amber.withOpacity(0.8), fontSize: 11),
                         ),
-                        if (gatewayFee > 0) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'Nota: La pasarela cobra +${gatewayFee.toStringAsFixed(1)}% de comisión',
-                            style: TextStyle(color: Colors.amber.withOpacity(0.8), fontSize: 11),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        // Plan Cards Grid
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: plans.map((plan) {
-                            return SizedBox(
-                              width: (MediaQuery.of(context).size.width - 140) / 2,
-                              child: CloverPlanCard(
-                                plan: plan,
-                                isSelected: selectedPlanId == plan.id,
-                                feePercentage: gatewayFee,
-                                onTap: () {
-                                  setState(() => selectedPlanId = plan.id);
-                                },
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        if (_isLoading)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 20.0),
-                            child: Center(
-                              child: CircularProgressIndicator(color: AppTheme.accentGold),
-                            ),
-                          ),
                       ],
-                    ),
+                      const SizedBox(height: 16),
+                      // Plan Cards Grid
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: plans.map((plan) {
+                          return SizedBox(
+                            width: (MediaQuery.of(context).size.width - 140) / 2,
+                            child: CloverPlanCard(
+                              plan: plan,
+                              isSelected: selectedPlanId == plan.id,
+                              feePercentage: gatewayFee,
+                              onTap: () {
+                                setState(() => selectedPlanId = plan.id);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20.0),
+                          child: LoadingIndicator(fontSize: 14),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -953,9 +966,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox(
                       height: 200,
-                      child: Center(
-                        child: CircularProgressIndicator(color: AppTheme.secondaryPink),
-                      ),
+                      child: LoadingIndicator(color: AppTheme.secondaryPink),
                     );
                   }
 
@@ -1085,9 +1096,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       if (_isLoading)
                         const Padding(
                           padding: EdgeInsets.only(top: 16),
-                          child: Center(
-                            child: CircularProgressIndicator(color: AppTheme.secondaryPink),
-                          ),
+                          child: LoadingIndicator(color: AppTheme.secondaryPink, fontSize: 14),
                         ),
                     ],
                   );

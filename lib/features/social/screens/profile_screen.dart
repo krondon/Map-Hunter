@@ -10,10 +10,12 @@ import '../../../shared/widgets/animated_cyber_background.dart';
 import 'wallet_screen.dart';
 import '../../game/screens/scenarios_screen.dart';
 import '../../../core/utils/input_sanitizer.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/utils/global_keys.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool hideScaffold;
+  const ProfileScreen({super.key, this.hideScaffold = false});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -25,67 +27,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final playerProvider = Provider.of<PlayerProvider>(context);
     final gameProvider = Provider.of<GameProvider>(context);
     final player = playerProvider.currentPlayer;
+    final isDarkMode = playerProvider.isDarkMode;
     
     if (player == null) {
       return const Scaffold(
         backgroundColor: AppTheme.darkBg,
         body: Center(
-          child: CircularProgressIndicator(color: AppTheme.accentGold),
+          child: LoadingIndicator(),
         ),
       );
     }
     
-    return Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      extendBody: true,
-      bottomNavigationBar: _buildBottomNavBar(),
-      body: AnimatedCyberBackground(
-        child: CustomScrollView(
+    final mainScroll = CustomScrollView(
           slivers: [
-            SliverAppBar(
-              expandedHeight: 0,
-              floating: true,
-              pinned: true,
-              backgroundColor: Colors.black.withOpacity(0.5),
-              title: const Text('ID DE JUGADOR', 
-                style: TextStyle(letterSpacing: 4, fontWeight: FontWeight.w900, fontSize: 16)),
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.logout, color: AppTheme.dangerRed),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: AppTheme.cardBg,
-                        title: const Text('Cerrar Sesión',
-                            style: TextStyle(color: Colors.white)),
-                        content: const Text(
-                          '¿Estás seguro que deseas cerrar sesión?',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancelar',
-                                style: TextStyle(color: Colors.white54)),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(ctx); // Close dialog
-                              playerProvider.logout();
-                              // AuthMonitor will handle navigation
-                            },
-                            child: const Text('Salir',
-                                style: TextStyle(color: AppTheme.dangerRed)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
+            if (!widget.hideScaffold)
+              SliverAppBar(
+                expandedHeight: 0,
+                floating: true,
+                pinned: true,
+                backgroundColor: Colors.black.withOpacity(0.5),
+                title: const Text('ID DE JUGADOR', 
+                  style: TextStyle(letterSpacing: 4, fontWeight: FontWeight.w900, fontSize: 16)),
+                centerTitle: true,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: AppTheme.dangerRed),
+                    onPressed: () {
+                      _showLogoutDialog(playerProvider);
+                    },
+                  ),
+                ],
+              ),
             
             SliverToBoxAdapter(
               child: Padding(
@@ -93,17 +65,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     // 1. GAMER CARD WITH NEON GLOW
-                    _buildGamerCard(player),
+                    _buildGamerCard(player, isDarkMode),
                     
                     const SizedBox(height: 24),
                     
                     // 2. TEMPORAL STAMPS (SELLOS) - NEW ANIMATED SECTION
-                    _buildTemporalStampsSection(gameProvider),
+                    _buildTemporalStampsSection(gameProvider, isDarkMode),
                     
                     const SizedBox(height: 24),
                     
-
-
                     const SizedBox(height: 40),
                     const Text("ASTHORIA PROTOCOL v1.0.4", 
                       style: TextStyle(color: Colors.white10, fontSize: 10, letterSpacing: 4)),
@@ -113,22 +83,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ],
+        );
+
+    final content = widget.hideScaffold 
+        ? mainScroll 
+        : AnimatedCyberBackground(child: mainScroll);
+
+    if (widget.hideScaffold) return content;
+
+    return Scaffold(
+      backgroundColor: AppTheme.darkBg,
+      extendBody: true,
+      bottomNavigationBar: _buildBottomNavBar(),
+      body: content,
+    );
+  }
+
+  void _showLogoutDialog(PlayerProvider playerProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? AppTheme.cardBg : Colors.white,
+        title: Text('Cerrar Sesión',
+            style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
+        content: Text(
+          '¿Estás seguro que deseas cerrar sesión?',
+          style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar',
+                style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx); // Close dialog
+              playerProvider.logout();
+              // AuthMonitor will handle navigation
+            },
+            child: const Text('Salir',
+                style: TextStyle(color: AppTheme.dangerRed)),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildGamerCard(dynamic player) {
+  Widget _buildGamerCard(dynamic player, bool isDarkMode) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg.withOpacity(0.8),
+        color: isDarkMode ? AppTheme.cardBg.withOpacity(0.8) : Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.primaryPurple.withOpacity(isDarkMode ? 0.3 : 0.1)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.2), 
+            color: AppTheme.primaryPurple.withOpacity(isDarkMode ? 0.2 : 0.1), 
             blurRadius: 30, 
             offset: const Offset(0, 10)
           )
@@ -206,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 20),
           Text(player.name.toUpperCase(), 
-            style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 2)),
+            style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 2)),
           const SizedBox(height: 4),
           Text(player.profession.toUpperCase(), 
             style: const TextStyle(color: AppTheme.secondaryPink, fontSize: 12, letterSpacing: 4, fontWeight: FontWeight.w300)),
@@ -217,11 +229,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatCompact(Icons.star, "${player.totalXP}", "XP TOTAL", AppTheme.secondaryPink),
+              _buildStatCompact(Icons.star, "${player.totalXP}", "XP TOTAL", AppTheme.secondaryPink, isDarkMode),
               _buildVerticalDivider(),
-              _buildStatCompact(Icons.eco, "${player.clovers}", "TRÉBOLES", Colors.green),
+              _buildStatCompact(Icons.eco, "${player.clovers}", "TRÉBOLES", Colors.green, isDarkMode),
               _buildVerticalDivider(),
-              _buildStatCompact(Icons.emoji_events, "${player.eventsCompleted?.length ?? 0}", "EVENTOS", Colors.cyan),
+              _buildStatCompact(Icons.emoji_events, "${player.eventsCompleted?.length ?? 0}", "EVENTOS", Colors.cyan, isDarkMode),
             ],
           ),
           
@@ -231,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Divider(
-              color: Colors.white.withOpacity(0.2),
+              color: isDarkMode ? Colors.white.withOpacity(0.2) : Colors.black12,
               thickness: 1,
             ),
           ),
@@ -462,7 +474,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: isSaving 
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  ? const LoadingIndicator(fontSize: 14, color: Colors.black)
                   : const Text("GUARDAR CAMBIOS", style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               
@@ -640,7 +652,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
 
-  Widget _buildTemporalStampsSection(GameProvider gameProvider) {
+  Widget _buildTemporalStampsSection(GameProvider gameProvider, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -657,9 +669,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           height: 110,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
+            border: Border.all(color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
           ),
           child: gameProvider.clues.isEmpty
             ? const Center(child: Text("Inicia una misión para recolectar sellos", 
@@ -765,19 +777,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCompact(IconData icon, String value, String label, Color color) {
+  Widget _buildStatCompact(IconData icon, String value, String label, Color color, bool isDarkMode) {
     return Column(
       children: [
         Icon(icon, color: color, size: 22),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 9, letterSpacing: 1)),
+        Text(value, style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontWeight: FontWeight.w900, fontSize: 18)),
+        Text(label, style: TextStyle(color: isDarkMode ? Colors.white38 : Colors.black38, fontSize: 9, letterSpacing: 1)),
       ],
     );
   }
 
   Widget _buildVerticalDivider() {
-    return Container(width: 1, height: 35, color: Colors.white.withOpacity(0.05));
+    return Container(width: 1, height: 35, color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05));
   }
 
   IconData _getAvatarIcon(String profession) {
@@ -891,15 +903,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text('Soporte y Mantenimiento', style: TextStyle(color: Colors.white)),
-        content: const SingleChildScrollView(
+        backgroundColor: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? AppTheme.cardBg : Colors.white,
+        title: Text('Soporte y Mantenimiento', style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
+        content: SingleChildScrollView(
           child: Text(
             "Si tienes algún problema o sugerencia, contáctanos:\n\n"
             "📧 Email: soporte@maphunter.com\n"
             "📞 Teléfono: +58 xxx xxx xxx\n\n"
             "Estamos disponibles de Lunes a Viernes, 9:00 AM - 5:00 PM.",
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
           ),
         ),
         actions: [

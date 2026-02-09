@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class SafeNetworkImage extends StatelessWidget {
   final String? url;
@@ -33,7 +34,7 @@ class SafeNetworkImage extends StatelessWidget {
           width: width,
           height: height,
           color: Colors.black12,
-          child: const Center(child: CircularProgressIndicator()),
+          child: const Center(child: LoadingIndicator(fontSize: 10)),
         );
       },
       errorBuilder: (context, error, stackTrace) {

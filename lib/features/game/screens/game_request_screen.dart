@@ -15,6 +15,7 @@ import '../../layouts/screens/home_screen.dart';
 import './scenarios_screen.dart';
 import './spectator_mode_screen.dart';
 import '../../auth/screens/avatar_selection_screen.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 
 class GameRequestScreen extends StatefulWidget {
   final String? eventId;
@@ -737,7 +738,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
             child: SlideTransition(
               position: _slideAnimation,
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const LoadingIndicator()
                   : Column(
                       children: [
                         Expanded(
@@ -969,14 +970,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          SizedBox(
-                                            width: 50, 
-                                            height: 50, 
-                                            child: CircularProgressIndicator(
-                                              color: Colors.greenAccent, 
-                                              strokeWidth: 3,
-                                            )
-                                          ),
+                                          const LoadingIndicator(fontSize: 14, color: Colors.greenAccent),
                                           SizedBox(height: 20),
                                           Text(
                                             "¡Entrando al evento...", 
@@ -1035,14 +1029,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                         ),
                                       ),
                                       child: _isSubmitting
-                                        ? const SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          )
+                                        ? const LoadingIndicator(fontSize: 12)
                                         : const Text(
                                             'ENVIAR SOLICITUD',
                                             style: TextStyle(

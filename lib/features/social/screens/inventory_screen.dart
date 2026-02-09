@@ -11,6 +11,7 @@ import '../../mall/screens/mall_screen.dart';
 import '../../../shared/utils/game_ui_utils.dart';
 import '../../game/providers/power_interfaces.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import '../../../shared/widgets/loading_indicator.dart';
 // PowerSwipeAction se mantiene disponible pero no se usa en este flujo simplificado
 
 class InventoryScreen extends StatefulWidget {
@@ -61,7 +62,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       return const Scaffold(
         backgroundColor: AppTheme.darkBg,
         body: Center(
-          child: CircularProgressIndicator(color: AppTheme.accentGold),
+          child: LoadingIndicator(),
         ),
       );
     }
@@ -238,7 +239,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             Container(
               color: Colors.black54,
               child: const Center(
-                child: CircularProgressIndicator(color: AppTheme.accentGold),
+                child: LoadingIndicator(),
               ),
             ),
         ],

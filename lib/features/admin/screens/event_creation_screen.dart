@@ -20,6 +20,7 @@ import '../widgets/store_edit_dialog.dart';
 import '../../mall/providers/store_provider.dart';
 import '../../mall/models/mall_store.dart';
 import '../../mall/models/power_item.dart'; // NEW
+import '../../../shared/widgets/loading_indicator.dart';
 
 class EventCreationScreen extends StatefulWidget {
   final VoidCallback? onEventCreated;
@@ -999,7 +1000,9 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           child: ElevatedButton(
                             onPressed: (provider.isFormValid && !provider.isLoading) ? () => _submitForm(provider) : null,
                             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple, disabledBackgroundColor: const Color(0xFF2A2D3E), disabledForegroundColor: Colors.white30, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                            child: provider.isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("PUBLICAR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                             child: provider.isLoading 
+                                ? const LoadingIndicator(fontSize: 14, color: Colors.white) 
+                                : const Text("PUBLICAR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
                           ),
                         ),
                         const SizedBox(height: 40),
