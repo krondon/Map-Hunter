@@ -103,9 +103,10 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const GlitchText(
-                      text: "MapHunter",
-                      fontSize: 22,
+                    Image.asset(
+                      'assets/images/maphunter_titulo.png',
+                      height: 28,
+                      fit: BoxFit.contain,
                     ),
                   ],
                 ),

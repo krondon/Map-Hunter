@@ -118,92 +118,11 @@ class _SplashScreenState extends State<SplashScreen>
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo Animado
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Círculos externos girando
-                    RotationTransition(
-                      turns: _controller,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.primaryPurple.withOpacity(0.5),
-                            width: 2,
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.explore,
-                          size: 80,
-                          color: AppTheme.accentGold,
-                        ),
-                      ),
-                    ),
-                    // Brillo central
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.accentGold.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 40),
-
-                // Título
-                AnimatedBuilder(
-                  animation: _shimmerTitleController,
-                  builder: (context, child) {
-                    return ShaderMask(
-                      shaderCallback: (bounds) {
-                        return LinearGradient(
-                          colors: const [
-                            Colors.white,
-                            AppTheme.accentGold,
-                            Colors.white,
-                            AppTheme.accentGold,
-                            Colors.white,
-                          ],
-                          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-                          begin: Alignment(-1.0 + (_shimmerTitleController.value * 2.0), -0.5),
-                          end: Alignment(1.0 + (_shimmerTitleController.value * 2.0), 0.5),
-                          tileMode: TileMode.clamp,
-                        ).createShader(bounds);
-                      },
-                      child: _GlitchText(
-                        text: 'MAPHUNTER',
-                        style: const TextStyle(
-                          fontSize: 38,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 4,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-                const Text(
-                  'RPG',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w300,
-                    color: AppTheme.secondaryPink,
-                    letterSpacing: 8,
-                  ),
+                // Logo de MapHunter central
+                Image.asset(
+                  'assets/images/logo4.1.png',
+                  height: 250,
+                  fit: BoxFit.contain,
                 ),
 
                 const SizedBox(height: 60),

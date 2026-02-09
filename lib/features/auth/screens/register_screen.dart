@@ -131,19 +131,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  bool _isDarkMode = false; // Inicia en Modo Día
+
   void _showTermsDialog() {
+    const Color dSurface1 = Color(0xFF1A1A1D);
+    const Color lSurface1 = Color(0xFFFFFFFF);
+    const Color lTextPrimary = Color(0xFF1A1A1D);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text("Términos y Condiciones", style: TextStyle(color: Colors.white)),
+        backgroundColor: _isDarkMode ? dSurface1 : lSurface1,
+        title: Text(
+          "Términos y Condiciones", 
+          style: TextStyle(color: _isDarkMode ? Colors.white : lTextPrimary)
+        ),
         content: SingleChildScrollView(
-          child: const Text(
+          child: Text(
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n"
             "1. Uso del servicio...\n"
             "2. Privacidad de datos...\n"
             "3. Responsabilidades...",
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
           ),
         ),
         actions: [
@@ -158,309 +167,332 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true, // Permitir que el teclado empuje
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(), // Tap para ocultar teclado
-        child: AnimatedCyberBackground(
-          child: SafeArea(
-          child: Column(
+    // Definición local de la paleta de colores del "Sistema Cromático"
+    const Color dSurface0 = Color(0xFF0D0D0F);
+    const Color dSurface1 = Color(0xFF1A1A1D);
+    const Color dMysticPurple = Color(0xFF7B2CBF);
+    const Color dMysticPurpleDeep = Color(0xFF150826);
+    const Color dGoldMain = Color(0xFFFECB00);
+    const Color dGoldLight = Color(0xFFFFF176);
+    const Color dBorderGray = Color(0xFF3D3D4D);
+
+    const Color lSurface0 = Color(0xFFF2F2F7);
+    const Color lSurface1 = Color(0xFFFFFFFF);
+    const Color lMysticPurple = Color(0xFF5A189A);
+    const Color lMysticPurpleDeep = Color(0xFFE9D5FF);
+    const Color lBorderGray = Color(0xFFD1D1DB);
+    const Color lTextPrimary = Color(0xFF1A1A1D);
+    const Color lTextSecondary = Color(0xFF4A4A5A);
+
+    final Color currentSurface0 = _isDarkMode ? dSurface0 : lSurface0;
+    final Color currentSurface1 = _isDarkMode ? dSurface1 : lSurface1;
+    final Color currentBrand = _isDarkMode ? dMysticPurple : lMysticPurple;
+    final Color currentBrandDeep = _isDarkMode ? dMysticPurpleDeep : lMysticPurpleDeep;
+    final Color currentBorder = _isDarkMode ? dBorderGray : lBorderGray;
+    final Color currentText = _isDarkMode ? Colors.white : lTextPrimary;
+    final Color currentTextSec = _isDarkMode ? Colors.white70 : lTextSecondary;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: currentSurface1,
+          labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6), fontSize: 14),
+          prefixIconColor: currentBrand,
+          suffixIconColor: currentTextSec.withOpacity(0.6),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: currentBorder, width: 1.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: currentBrand, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: currentSurface0,
+        resizeToAvoidBottomInset: true,
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Stack(
             children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+              // Fondo con degradado
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.8, -0.6),
+                      radius: 1.5,
+                      colors: [
+                        currentBrandDeep,
+                        currentSurface0,
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              SafeArea(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Crear Cuenta',
-                            style: Theme.of(context).textTheme.displayLarge,
+                          IconButton(
+                            icon: Icon(Icons.arrow_back, color: _isDarkMode ? Colors.white : lMysticPurple),
+                            onPressed: () => Navigator.pop(context),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Únete a la aventura',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          const SizedBox(height: 40),
-
-                          // ==========================================
-                          // CAMPO CÉDULA / RIF
-                          // ==========================================
-                          TextFormField(
-                            controller: _cedulaController,
-                            style: const TextStyle(color: Colors.white),
-                            keyboardType: TextInputType.text,
-                            decoration: const InputDecoration(
-                              labelText: 'Cédula / RIF',
-                              labelStyle: TextStyle(color: Colors.white60),
-                              prefixIcon: Icon(Icons.badge_outlined, color: Colors.white60),
-                              hintText: 'V12345678',
-                              hintStyle: TextStyle(color: Colors.white24),
+                          IconButton(
+                            icon: Icon(
+                              _isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
+                              color: _isDarkMode ? Colors.white : lMysticPurple,
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu cédula o RIF';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-
-                          // ==========================================
-                          // CAMPO TELÉFONO
-                          // ==========================================
-                          TextFormField(
-                            controller: _phoneController,
-                            style: const TextStyle(color: Colors.white),
-                            keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              labelText: 'Teléfono',
-                              labelStyle: TextStyle(color: Colors.white60),
-                              prefixIcon: Icon(Icons.phone_android_outlined, color: Colors.white60),
-                              hintText: '04121234567',
-                              hintStyle: TextStyle(color: Colors.white24),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu teléfono';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // ==========================================
-                          // CAMPO NOMBRE
-                          // ==========================================
-                          TextFormField(
-                            controller: _nameController,
-                            style: const TextStyle(color: Colors.white),
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(50),
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]'),
-                              ),
-                            ],
-                            decoration: const InputDecoration(
-                              labelText: 'Nombre Completo',
-                              labelStyle: TextStyle(color: Colors.white60),
-                              prefixIcon: Icon(Icons.person_outline, color: Colors.white60),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu nombre';
-                              }
-                              if (!value.trim().contains(' ')) {
-                                return 'Ingresa tu nombre completo (Nombre y Apellido)';
-                              }
-                              
-                              // Filtro de groserías
-                              final lowerValue = value.toLowerCase();
-                              for (final word in _bannedWords) {
-                                if (lowerValue.contains(word)) {
-                                  return 'Nombre no permitido. Elige otro.';
-                                }
-                              }
-                              
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Email field
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              labelStyle: TextStyle(color: Colors.white60),
-                              prefixIcon: Icon(Icons.email_outlined, color: Colors.white60),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu email';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Email inválido';
-                              }
-                              
-                              // Bloqueo de dominios temporales
-                              final domain = value.split('@').last.toLowerCase();
-                              final blockedDomains = ['yopmail.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'mailinator.com'];
-                              
-                              if (blockedDomains.contains(domain)) {
-                                return 'Dominio de correo no permitido';
-                              }
-                              
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Password field
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: !_isPasswordVisible,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Contraseña',
-                              labelStyle: const TextStyle(color: Colors.white60),
-                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white60),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.white60,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Ingresa tu contraseña';
-                              }
-                              if (value.length < 6) {
-                                return 'Mínimo 6 caracteres';
-                              }
-                              if (value.length > 30) {
-                                return 'Máximo 30 caracteres';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Confirm password field
-                          TextFormField(
-                            controller: _confirmPasswordController,
-                            obscureText: !_isConfirmPasswordVisible,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: 'Confirmar Contraseña',
-                              labelStyle: const TextStyle(color: Colors.white60),
-                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white60),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                  color: Colors.white60,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                                  });
-                                },
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Confirma tu contraseña';
-                              }
-                              if (value != _passwordController.text) {
-                                return 'Las contraseñas no coinciden';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // TÉRMINOS Y CONDICIONES
-                          CheckboxListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: RichText(
-                              text: TextSpan(
-                                children: [
-                                  const TextSpan(
-                                    text: "Acepto los ",
-                                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                                  ),
-                                  TextSpan(
-                                    text: "términos y condiciones de uso.",
-                                    style: const TextStyle(
-                                      color: AppTheme.accentGold, 
-                                      fontSize: 14,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = _showTermsDialog,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            value: _acceptedTerms,
-                            activeColor: AppTheme.accentGold,
-                            checkColor: Colors.black,
-                            onChanged: (newValue) {
-                              setState(() {
-                                _acceptedTerms = newValue ?? false;
-                              });
-                            },
-                            controlAffinity: ListTileControlAffinity.leading,
-                          ),
-                          
-                          const SizedBox(height: 30),
-                          
-                          // Register button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.primaryGradient,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryPurple.withOpacity(0.4),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: _handleRegister,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'CREAR CUENTA',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            onPressed: () => setState(() => _isDarkMode = !_isDarkMode),
                           ),
                         ],
                       ),
                     ),
-                  ),
+                    Expanded(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'CREAR CUENTA',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: currentText,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 3,
+                                    fontSize: 24,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Únete a la aventura ☘️",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: currentTextSec,
+                                    fontWeight: FontWeight.w400,
+                                    letterSpacing: 2.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 30),
+
+                                // Cédula / RIF
+                                TextFormField(
+                                  controller: _cedulaController,
+                                  style: TextStyle(color: currentText),
+                                  decoration: InputDecoration(
+                                    labelText: 'CÉDULA / RIF',
+                                    prefixIcon: const Icon(Icons.badge_outlined),
+                                    hintText: 'V12345678',
+                                    hintStyle: TextStyle(color: currentTextSec.withOpacity(0.3), fontSize: 13),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) return 'Ingresa tu cédula o RIF';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Teléfono
+                                TextFormField(
+                                  controller: _phoneController,
+                                  style: TextStyle(color: currentText),
+                                  keyboardType: TextInputType.phone,
+                                  decoration: InputDecoration(
+                                    labelText: 'TELÉFONO',
+                                    prefixIcon: const Icon(Icons.phone_android_outlined),
+                                    hintText: '04121234567',
+                                    hintStyle: TextStyle(color: currentTextSec.withOpacity(0.3), fontSize: 13),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) return 'Ingresa tu teléfono';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Nombre completo
+                                TextFormField(
+                                  controller: _nameController,
+                                  style: TextStyle(color: currentText),
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(50),
+                                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]')),
+                                  ],
+                                  decoration: const InputDecoration(
+                                    labelText: 'NOMBRE COMPLETO',
+                                    prefixIcon: Icon(Icons.person_outline),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) return 'Ingresa tu nombre';
+                                    if (!value.trim().contains(' ')) return 'Ingresa Nombre y Apellido';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Email
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: TextStyle(color: currentText),
+                                  decoration: const InputDecoration(
+                                    labelText: 'EMAIL',
+                                    prefixIcon: Icon(Icons.email_outlined),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) return 'Ingresa tu email';
+                                    if (!value.contains('@')) return 'Email inválido';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Password
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: !_isPasswordVisible,
+                                  style: TextStyle(color: currentText),
+                                  decoration: InputDecoration(
+                                    labelText: 'CONTRASEÑA',
+                                    prefixIcon: const Icon(Icons.lock_outline),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
+                                    if (value.length < 6) return 'Mínimo 6 caracteres';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Confirm Password
+                                TextFormField(
+                                  controller: _confirmPasswordController,
+                                  obscureText: !_isConfirmPasswordVisible,
+                                  style: TextStyle(color: currentText),
+                                  decoration: InputDecoration(
+                                    labelText: 'CONFIRMAR CONTRASEÑA',
+                                    prefixIcon: const Icon(Icons.lock_outline),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                                      onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) return 'Confirma tu contraseña';
+                                    if (value != _passwordController.text) return 'Las contraseñas no coinciden';
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 10),
+
+                                // Términos y condiciones
+                                Theme(
+                                  data: ThemeData(
+                                    unselectedWidgetColor: _isDarkMode ? Colors.white30 : Colors.black38,
+                                  ),
+                                  child: CheckboxListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: "Acepto los ",
+                                            style: TextStyle(color: currentTextSec, fontSize: 13),
+                                          ),
+                                          TextSpan(
+                                            text: "términos y condiciones de uso.",
+                                            style: TextStyle(
+                                              color: _isDarkMode ? dGoldMain : lMysticPurple, 
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            recognizer: TapGestureRecognizer()..onTap = _showTermsDialog,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    value: _acceptedTerms,
+                                    activeColor: currentBrand,
+                                    checkColor: Colors.white,
+                                    onChanged: (newValue) => setState(() => _acceptedTerms = newValue ?? false),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                  ),
+                                ),
+                                
+                                const SizedBox(height: 20),
+
+                                // Register button
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 56,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [dGoldLight, dGoldMain],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: dGoldMain.withOpacity(0.3),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: _handleRegister,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'CREAR CUENTA',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
       ),
-    ),
     );
   }
 }
