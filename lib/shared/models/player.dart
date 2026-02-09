@@ -121,11 +121,21 @@ class Player implements ITargetable {
       totalXP: json['total_xp'] ?? 0,
       completedCluesCount: json['completed_clues_count'] ?? json['completed_clues'] ?? json['total_xp'] ?? 0,
       profession: json['profession'] ?? 'Novice',
-      coins: (json['total_coins'] is num 
+      // [REF] Coins now prioritize active session (game_players) over global profile
+      coins: () {
+        // 1. Try to extract from nested game_players object
+        if (json['game_players'] != null) {
+          final gp = json['game_players'];
+          if (gp is List && gp.isNotEmpty) return gp.first['coins'];
+          if (gp is Map) return gp['coins'];
+        }
+        // 2. Fallback to direct field (handled by provider overwrite or legacy)
+        return (json['total_coins'] is num 
           ? (json['total_coins'] as num).toInt() 
           : (json['coins'] is num 
               ? (json['coins'] as num).toInt() 
-              : int.tryParse(json['coins']?.toString() ?? '300') ?? 300)),
+              : int.tryParse(json['coins']?.toString() ?? '300') ?? 300));
+      }(),
       status: _parseStatus(json['status']),
       frozenUntil: json['frozen_until'] != null
           ? DateTime.parse(json['frozen_until'])

@@ -469,6 +469,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           itemId: itemId,
           cost: cost,
           isPower: isPower,
+          gamePlayerId: _currentPlayer!.gamePlayerId,
         );
       }
 
@@ -777,7 +778,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       final baseQuery = _supabase
           .from('game_players')
-          .select('id, lives, status, event_id')
+          .select('id, lives, coins, status, event_id')
           .eq('user_id', userId);
 
       Map<String, dynamic>? gpData;
@@ -792,7 +793,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
         debugPrint("PlayerProvider: Maintaining SESSION GP ID: $currentGpId");
         gpData = await _supabase
             .from('game_players')
-            .select('id, lives, status, event_id')
+            .select('id, lives, coins, status, event_id')
             .eq('id', currentGpId)
             .maybeSingle();
       } else if (restoreSessionContext) {
@@ -813,6 +814,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       List<String> realInventory = [];
       int actualLives = 3;
+      int? actualCoins; // [REF] Session coins
       String? gamePlayerId;
       String? fetchedEventId;
 
@@ -830,6 +832,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           fetchedEventId = null;
         } else {
           actualLives = gpData['lives'] ?? 3;
+          actualCoins = gpData['coins']; // May be null if column not filled yet
           final String gpId = gpData['id'];
           gamePlayerId = gpId;
         }
@@ -870,6 +873,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       }
 
       newPlayer.lives = actualLives;
+      if (actualCoins != null) {
+         newPlayer.coins = actualCoins; // [REF] Overwrite global coins with session coins
+      }
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;
       newPlayer.currentEventId = fetchedEventId;

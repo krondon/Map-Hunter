@@ -300,65 +300,81 @@ serve(async (req) => {
         }
       }
 
-      // 4. Premios (Corregido: total_coins)
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+// 4. Premios (Refactorizado: game_players.coins)
+        const currentRewardCoins = Number(clue.coin_reward) || 0
 
-      if (profile) {
-        // Calculamos XP total sumando la recompensa
-        const currentTotalXp = Number(profile.total_xp) || Number(profile.experience) || 0
-        const rewardXp = Number(clue.xp_reward) || 0
-        const newTotalXp = currentTotalXp + rewardXp
-        const currentCoins = Math.max(Number(profile.coins) || 0, Number(profile.total_coins) || 0)
-        const newCoins = currentCoins + (Number(clue.coin_reward) || 0)
+        // Actualizamos game_players.coins (Session Based Economy)
+        const { data: gamePlayer, error: gpError } = await supabaseAdmin
+          .from('game_players')
+          .select('id, coins, completed_clues_count')
+          .eq('user_id', user.id)
+          .eq('event_id', clue.event_id)
+          .single()
 
-        // Calculamos nivel y residuo (newPartialXp)
-        let calculatedLevel = 1
-        let tempXp = newTotalXp
-
-        while (true) {
-          const xpNeededForNext = calculatedLevel * 100
-          if (tempXp >= xpNeededForNext) {
-            tempXp -= xpNeededForNext
-            calculatedLevel++
-          } else {
-            break
-          }
+        if (gamePlayer) {
+          const newCoins = (Number(gamePlayer.coins) || 0) + currentRewardCoins
+          
+          await supabaseAdmin
+            .from('game_players')
+            .update({
+              coins: newCoins,
+              // Mantenemos conteo de pistas (ya se actualizó arriba en 2.5 pero confirmamos)
+              // completed_clues_count: (gamePlayer.completed_clues_count || 0) 
+              // No necesario reenviar completed_clues_count si no cambia aquí, pero coins sí.
+            })
+            .eq('id', gamePlayer.id)
+            
+          console.log(`[complete-clue] Awarded ${currentRewardCoins} coins. New Balance: ${newCoins}`)
+        } else {
+          console.error('[complete-clue] Game player not found for reward update')
         }
 
-        const newPartialXp = tempXp // El residuo que llena la barra de 0 a 100
-
-        // Profesión dinámica
-        let newProfession = profile.profession || 'Novice'
-        const standardRanks = ['Novice', 'Apprentice', 'Explorer', 'Master', 'Legend']
-        if (standardRanks.includes(newProfession)) {
-          if (calculatedLevel < 5) newProfession = 'Novice'
-          else if (calculatedLevel < 10) newProfession = 'Apprentice'
-          else if (calculatedLevel < 20) newProfession = 'Explorer'
-          else if (calculatedLevel < 50) newProfession = 'Master'
-          else newProfession = 'Legend'
-        }
-
-        console.log(`[complete-clue] New Coins: ${newCoins}, New Total XP: ${newTotalXp}`)
-
-        // Actualizamos la DB con ambos campos para mantener consistencia
-        const { error: rewardError } = await supabaseAdmin
+        // Mantenemos actualización de XP Global en Profiles (opcional, si el sistema de nivel es global)
+        const { data: profile } = await supabaseAdmin
           .from('profiles')
-          .update({
-            experience: newPartialXp, // Barra de progreso
-            total_xp: newTotalXp,    // Estadísticas
-            level: calculatedLevel,
-            coins: newCoins,
-            total_coins: newCoins,   // <--- SYNC BOTH COLUMNS
-            profession: newProfession
-          })
+          .select('*')
           .eq('id', user.id)
+          .single()
 
-        if (rewardError) console.error('[complete-clue] Reward Error:', rewardError)
-      }
+        if (profile) {
+          const currentTotalXp = Number(profile.total_xp) || Number(profile.experience) || 0
+          const rewardXp = Number(clue.xp_reward) || 0
+          const newTotalXp = currentTotalXp + rewardXp
+          
+          let calculatedLevel = 1
+          let tempXp = newTotalXp
+          while (true) {
+            const xpNeededForNext = calculatedLevel * 100
+            if (tempXp >= xpNeededForNext) {
+              tempXp -= xpNeededForNext
+              calculatedLevel++
+            } else {
+              break
+            }
+          }
+          const newPartialXp = tempXp 
+
+          let newProfession = profile.profession || 'Novice'
+          const standardRanks = ['Novice', 'Apprentice', 'Explorer', 'Master', 'Legend']
+          if (standardRanks.includes(newProfession)) {
+            if (calculatedLevel < 5) newProfession = 'Novice'
+            else if (calculatedLevel < 10) newProfession = 'Apprentice'
+            else if (calculatedLevel < 20) newProfession = 'Explorer'
+            else if (calculatedLevel < 50) newProfession = 'Master'
+            else newProfession = 'Legend'
+          }
+
+          // SOLO actualizamos XP y Level, NO coins global
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              experience: newPartialXp,
+              total_xp: newTotalXp,
+              level: calculatedLevel,
+              profession: newProfession
+            })
+            .eq('id', user.id)
+        }
 
       // 5. Check if race was completed and return that info
       const { data: finalEvent } = await supabaseAdmin
@@ -474,7 +490,7 @@ serve(async (req) => {
 
     // --- SABOTAGE RIVAL ---
     if (path === 'sabotage-rival') {
-      const { rivalId } = await req.json()
+      const { rivalId, eventId } = await req.json()
 
       // VALIDACIÓN DE SEGURIDAD: Evitar auto-sabotaje
       if (rivalId === user.id) {
@@ -483,31 +499,54 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
+      
+      if (!eventId) {
+        return new Response(
+            JSON.stringify({ error: 'Event ID required for sabotage' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+      }
 
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       )
 
-      const { data: userProfile } = await supabaseAdmin
-        .from('profiles')
-        .select('coins')
-        .eq('id', user.id)
+      // Verificar monedas en game_players (Session Based)
+      const { data: currentPlayer } = await supabaseAdmin
+        .from('game_players')
+        .select('id, coins')
+        .eq('user_id', user.id)
+        .eq('event_id', eventId)
         .single()
 
-      if (!userProfile || userProfile.coins < 50) {
+      if (!currentPlayer || (Number(currentPlayer.coins) || 0) < 50) {
         return new Response(
           JSON.stringify({ error: 'Not enough coins' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
+      // Descontar costo (50 monedas)
       await supabaseAdmin
-        .from('profiles')
-        .update({ coins: userProfile.coins - 50 })
-        .eq('id', user.id)
+        .from('game_players')
+        .update({ coins: (Number(currentPlayer.coins) - 50) })
+        .eq('id', currentPlayer.id)
 
+      // Aplicar castigo al rival (Freeze Profile? Or Game Player status?)
+      // Original logic used profiles.status = 'frozen'.
+      // If sabotage is game specific, maybe we should freeze game_player?
+      // Prompt says "update lo que logic of reward and sabotage... UPDATE realize sobre game_players"
+      // But sabotage effect (freezing) currently is on profile.
+      // If we freeze profile, they are frozen in ALL games. 
+      // For now, I will keep profile freeze logic as is (since prompt focused on coins), 
+      // OR move freeze to game_players.status if supported.
+      // Schema game_players has status text default 'active'.
+      // I'll stick to legacy profile freeze unless instructed otherwise, but coins MUST come from game_players.
+      
       const freezeUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      
+      // Update: Freeze global profile logic acts as global penalty
       await supabaseAdmin
         .from('profiles')
         .update({

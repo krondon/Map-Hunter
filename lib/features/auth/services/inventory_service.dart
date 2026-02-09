@@ -113,15 +113,22 @@ class InventoryService {
     required String itemId,
     required int cost,
     bool isPower = true,
+    String? gamePlayerId,
   }) async {
     try {
-      await _supabase.rpc('buy_item', params: {
+      final params = {
         'p_user_id': userId,
         'p_event_id': eventId,
         'p_item_id': itemId,
         'p_cost': cost,
         'p_is_power': isPower,
-      });
+      };
+      
+      if (gamePlayerId != null) {
+        params['p_game_player_id'] = gamePlayerId;
+      }
+
+      await _supabase.rpc('buy_item', params: params);
 
       return PurchaseResult(success: true);
     } catch (e) {
@@ -175,13 +182,18 @@ class InventoryService {
           .single();
       final String powerId = power['id'];
 
-      // 3. Verificar monedas (doble check)
-      final profile = await _supabase.from('profiles').select('coins').eq('id', userId).single();
-      final int currentCoins = (profile['coins'] as num?)?.toInt() ?? 0;
+      // 3. Verificar monedas (game_players - Session Based)
+      final gpCheck = await _supabase
+          .from('game_players')
+          .select('coins')
+          .eq('id', gpId)
+          .single();
+          
+      final int currentCoins = (gpCheck['coins'] as num?)?.toInt() ?? 0;
       if (currentCoins < cost) throw 'No tienes suficientes monedas';
 
       // 4. Descontar monedas
-      await _supabase.from('profiles').update({'coins': currentCoins - cost}).eq('id', userId);
+      await _supabase.from('game_players').update({'coins': currentCoins - cost}).eq('id', gpId);
 
       // 5. Añadir poder al inventario
       final existingPower = await _supabase
