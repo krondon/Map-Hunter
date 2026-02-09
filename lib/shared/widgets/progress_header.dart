@@ -14,6 +14,11 @@ class ProgressHeader extends StatelessWidget {
       final player = playerProvider.currentPlayer;
       if (player == null) return const SizedBox.shrink();
 
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+      final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+      final Color currentSurface = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+
       // ✅ SINGLE SOURCE OF TRUTH: Solo GameProvider para vidas globales
       final int displayLives = gameProvider.lives;
         
@@ -21,11 +26,11 @@ class ProgressHeader extends StatelessWidget {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: AppTheme.primaryGradient,
+            gradient: AppTheme.mainGradient(context),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryPurple.withOpacity(0.3),
+                color: (isDarkMode ? AppTheme.primaryPurple : Colors.indigo).withOpacity(0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),

@@ -110,6 +110,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
 
   void _handleFakeGPS() {
     if (!mounted) return;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
       context: context,
@@ -117,17 +118,17 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
       builder: (context) => WillPopScope(
         onWillPop: () async => false, 
         child: AlertDialog(
-          backgroundColor: AppTheme.cardBg,
-          title: const Row(
+          backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
-              SizedBox(width: 10),
-              Expanded(child: Text("Ubicación Falsa Detectada", style: TextStyle(color: Colors.white, fontSize: 18))),
+              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
+              const SizedBox(width: 10),
+              Expanded(child: Text("Ubicación Falsa Detectada", style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: 18))),
             ],
           ),
-          content: const Text(
+          content: Text(
             "Para jugar limpio, debes desactivar las aplicaciones de ubicación falsa (Fake GPS).\n\nEl juego se detendrá hasta que uses tu ubicación real.",
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
           ),
           actions: [
             TextButton(
@@ -177,8 +178,9 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   Color get _temperatureColor {
-    if (_distanceToTarget > 500) return Colors.cyanAccent;
-    if (_distanceToTarget > 200) return Colors.blue;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    if (_distanceToTarget > 500) return isDarkMode ? Colors.cyanAccent : Colors.blue.shade900;
+    if (_distanceToTarget > 200) return isDarkMode ? Colors.blue : Colors.blue.shade700;
     if (_distanceToTarget > 50) return Colors.orange;
     if (_distanceToTarget > 10) return Colors.red;
     return AppTheme.successGreen;
@@ -208,11 +210,12 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   void _showSuccessDialog() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
+        backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Icon(Icons.check_circle,
             color: AppTheme.successGreen, size: 60),
@@ -221,13 +224,16 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
           children: [
             Text(
               "¡CÓDIGO ENCONTRADO!",
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               "Has desbloqueado el acceso al escenario.",
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -253,25 +259,26 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   Future<bool> _onWillPop() async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return (await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            title: const Row(
+            backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+            title: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                SizedBox(width: 10),
-                Text('¿Salir del juego?', style: TextStyle(color: Colors.white)),
+                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                const SizedBox(width: 10),
+                Text('¿Salir del juego?', style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
               ],
             ),
-            content: const Text(
+            content: Text(
               'Si sales ahora, es posible que pierdas tu progreso o la entrada que pagaste.\n\n¿Estás seguro de que deseas salir?',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
             ),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('CANCELAR', style: TextStyle(color: Colors.white)),
+                child: Text('CANCELAR', style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -288,6 +295,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   Widget build(BuildContext context) {
     // Only show input if close enough (e.g., < 20 meters)
     final bool showInput = _distanceToTarget <= 20;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -296,15 +304,15 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
       appBar: AppBar(
         title: Text(
           widget.scenario.name.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
             letterSpacing: 1.5,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.black45, // Semi-transparent for readability
+        backgroundColor: isDarkMode ? Colors.black45 : Colors.white.withOpacity(0.8), 
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -312,8 +320,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
+        decoration: BoxDecoration(
+          gradient: AppTheme.mainGradient(context),
         ),
         child: Stack(
           children: [
@@ -355,7 +363,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
+                                  color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(color: Colors.white24),
                                 ),
@@ -376,14 +384,14 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                       ],
                                     ),
                                     const SizedBox(height: 10),
-                                    Text(
-                                      widget.scenario.starterClue,
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          height: 1.5,
-                                          color: Colors.white),
-                                      textAlign: TextAlign.center,
-                                    ),
+                                      Text(
+                                        widget.scenario.starterClue,
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            height: 1.5,
+                                            color: isDarkMode ? Colors.white : const Color(0xFF2D3436)),
+                                        textAlign: TextAlign.center,
+                                      ),
                                   ],
                                 ),
                               ),

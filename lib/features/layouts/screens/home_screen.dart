@@ -112,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final player = Provider.of<PlayerProvider>(context).currentPlayer;
     final eventProvider = Provider.of<EventProvider>(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     try {
       final event =
@@ -158,9 +159,9 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             type: BottomNavigationBarType.fixed,
-            backgroundColor: AppTheme.cardBg,
+            backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
             selectedItemColor: AppTheme.secondaryPink,
-            unselectedItemColor: Colors.white54,
+            unselectedItemColor: isDarkMode ? Colors.white54 : Colors.black45,
             showUnselectedLabels: true,
             elevation: 0,
             items: [

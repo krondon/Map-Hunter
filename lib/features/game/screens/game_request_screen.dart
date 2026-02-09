@@ -590,133 +590,160 @@ class _GameRequestScreenState extends State<GameRequestScreen>
   }
 
   void _showRequestStatusDialog(GameRequest request) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1A1F3A), Color(0xFF0A0E27)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: request.statusColor.withOpacity(0.5),
-              width: 2,
-            ),
+  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+  final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDarkMode 
+                ? [const Color(0xFF1A1F3A), const Color(0xFF0A0E27)]
+                : [Colors.white, const Color(0xFFF5F5FA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                request.isApproved
-                    ? Icons.check_circle
-                    : request.isRejected
-                        ? Icons.cancel
-                        : Icons.access_time,
-                color: request.statusColor,
-                size: 60,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: request.statusColor.withOpacity(0.5),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              request.isApproved
+                  ? Icons.check_circle
+                  : request.isRejected
+                      ? Icons.cancel
+                      : Icons.access_time,
+              color: request.statusColor,
+              size: 60,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Estado de la Solicitud',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: currentText,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: request.statusColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: request.statusColor, width: 1),
+              ),
+              child: Text(
+                request.statusText,
+                style: TextStyle(
+                  color: request.statusColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            if (request.isApproved) ...[
               const SizedBox(height: 16),
               Text(
-                'Estado de la Solicitud',
-                style: Theme.of(context).textTheme.headlineSmall,
+                '¡Puedes empezar a jugar!',
+                style: TextStyle(color: currentTextSec),
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: request.statusColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: request.statusColor, width: 1),
-                ),
-                child: Text(
-                  request.statusText,
-                  style: TextStyle(
-                    color: request.statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              if (request.isApproved) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  '¡Puedes empezar a jugar!',
-                  style: TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      // Initialize game and fetch clues
-                      final gameProvider = Provider.of<GameProvider>(context, listen: false);
-                      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Initialize game and fetch clues
+                    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+                    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
-                      if (widget.eventId != null) {
-                        if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
-                           Navigator.of(context).pop();
-                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: widget.eventId!)),
-                          );
-                          return;
-                        }
-                        await gameProvider.startGame(widget.eventId!);
+                    if (widget.eventId != null) {
+                      if (playerProvider.currentPlayer?.avatarId == null || playerProvider.currentPlayer!.avatarId!.isEmpty) {
+                         Navigator.of(context).pop();
+                         Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => AvatarSelectionScreen(eventId: widget.eventId!)),
+                        );
+                        return;
                       }
-                      
-                      if (!context.mounted) return;
+                      await gameProvider.startGame(widget.eventId!);
+                    }
+                    
+                    if (!context.mounted) return;
 
-                      Navigator.of(context).pop();
-                      Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
-                    );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId!)),
+                  );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'IR AL JUEGO',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                  ),
+                  child: const Text(
+                    'IR AL JUEGO',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-              ],
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cerrar', style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain)),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
     final player = playerProvider.currentPlayer;
 
+    final isDarkMode = playerProvider.isDarkMode;
+    
+    // Paleta del Login
+    final Color currentSurface0 = isDarkMode ? AppTheme.dSurface0 : AppTheme.lSurface0;
+    final Color currentBrandDeep = isDarkMode ? AppTheme.dBrandDeep : AppTheme.lBrandSurface;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    final Color currentBrand = isDarkMode ? AppTheme.dBrandMain : AppTheme.lBrandMain;
+    final Color currentAccent = isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain;
+
     return Scaffold(
-      extendBodyBehindAppBar: true, // Para que el gradiente cubra todo
+      extendBodyBehindAppBar: true, 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: currentText),
           onPressed: () {
              Navigator.of(context).pushReplacement(
                MaterialPageRoute(builder: (_) => ScenariosScreen()),
@@ -725,11 +752,14 @@ class _GameRequestScreenState extends State<GameRequestScreen>
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(-0.8, -0.6),
+            radius: 1.5,
+            colors: [
+              currentBrandDeep,
+              currentSurface0,
+            ],
           ),
         ),
         child: SafeArea(
@@ -747,41 +777,37 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Game Icon
+                                // Logo de MapHunter (como en Login)
                                 if (_gameRequest == null) ...[
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: AppTheme.primaryGradient,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.primaryPurple
-                                              .withOpacity(0.5),
-                                          blurRadius: 30,
-                                          spreadRadius: 5,
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.sports_esports,
-                                      size: 50,
-                                      color: Colors.white,
+                                  Image.asset(
+                                    isDarkMode ? 'assets/images/logo4.1.png' : 'assets/images/logo4.2.png',
+                                    height: 160,
+                                    fit: BoxFit.contain,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    "Búsqueda del tesoro ☘️",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: currentTextSec,
+                                      fontWeight: FontWeight.w400,
+                                      letterSpacing: 2.0,
                                     ),
                                   ),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 32),
                                 ],
 
                                 // Welcome Message
-                                Text(
-                                  '¡Bienvenido ${player?.name ?? "Jugador"}!',
-                                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
+                                  Text(
+                                    '¡Bienvenido ${player?.name ?? "Jugador"}!',
+                                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                      color: currentText,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
                                 const SizedBox(height: 32),
 
                                 // --- COUNTDOWN WIDGET ---
@@ -794,15 +820,15 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                       color: Colors.black.withOpacity(0.5),
                                       borderRadius: BorderRadius.circular(15),
                                       border: Border.all(
-                                          color: AppTheme.accentGold),
+                                          color: currentAccent),
                                     ),
                                     child: Column(
                                       children: [
-                                        const Text("LA COMPETENCIA INICIA EN:",
-                                            style: TextStyle(
-                                                color: AppTheme.accentGold,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 1.5)),
+                                         Text("LA COMPETENCIA INICIA EN:",
+                                             style: TextStyle(
+                                                 color: currentAccent,
+                                                 fontWeight: FontWeight.bold,
+                                                 letterSpacing: 1.5)),
                                         const SizedBox(height: 8),
                                         Text(
                                           "${_timeUntilStart!.inDays}d ${_timeUntilStart!.inHours % 24}h ${_timeUntilStart!.inMinutes % 60}m ${_timeUntilStart!.inSeconds % 60}s",
@@ -823,28 +849,28 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                     padding: const EdgeInsets.all(16),
                                     margin: const EdgeInsets.only(bottom: 24),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.2),
+                                      color: currentBrand.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(15),
                                       border: Border.all(
-                                          color: Colors.greenAccent),
+                                          color: currentBrand, width: 2),
                                     ),
-                                    child: const Column(
-                                      children: [
-                                        Icon(Icons.play_circle_fill,
-                                            color: Colors.greenAccent, size: 36),
-                                        SizedBox(height: 8),
-                                        Text("¡COMPETENCIA EN CURSO!",
-                                            style: TextStyle(
-                                                color: Colors.greenAccent,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 1.5,
-                                                fontSize: 16)),
-                                        SizedBox(height: 4),
-                                        Text("¡Corre a buscar las pistas!",
-                                            style: TextStyle(
-                                                color: Colors.white70)),
-                                      ],
-                                    ),
+                                     child: Column(
+                                       children: [
+                                         Icon(Icons.play_circle_fill,
+                                             color: currentBrand, size: 36),
+                                         const SizedBox(height: 8),
+                                         Text("¡COMPETENCIA EN CURSO!",
+                                             style: TextStyle(
+                                                 color: currentBrand,
+                                                 fontWeight: FontWeight.bold,
+                                                 letterSpacing: 1.5,
+                                                 fontSize: 16)),
+                                         const SizedBox(height: 4),
+                                         Text("¡Corre a buscar las pistas!",
+                                             style: TextStyle(
+                                                 color: currentTextSec)),
+                                       ],
+                                     ),
                                   ),
 
                                 // Info Card
@@ -852,22 +878,21 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   margin: const EdgeInsets.symmetric(vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.cardBg.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: AppTheme.primaryPurple
-                                          .withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
+                                    decoration: BoxDecoration(
+                                      color: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: currentBrand.withOpacity(0.3),
+                                        width: 1.5,
                                       ),
-                                    ],
-                                  ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
                                   child: Column(
                                     children: [
                                       const Icon(
@@ -890,29 +915,32 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                         const SizedBox(height: 4),
                                         Text(
                                           'Participantes: $_participantCount / $_maxParticipants',
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 16,
-                                          ),
+                                           style: TextStyle(
+                                             color: currentTextSec,
+                                             fontSize: 16,
+                                           ),
                                         ),
                                         const SizedBox(height: 8),
-                                        const Text(
+                                        Text(
                                           'Se ha alcanzado el límite máximo. Puedes unirte en modo espectador para observar el progreso.',
-                                          style: TextStyle(color: Colors.white60, fontSize: 13),
+                                           style: TextStyle(color: currentTextSec.withOpacity(0.7), fontSize: 13),
                                           textAlign: TextAlign.center,
                                         ),
                                       ] else ...[
-                                        Text(
-                                          '¿Te gustaría participar en este juego?',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                          Text(
+                                            '¿Te gustaría participar?',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: currentText,
+                                                ),
+                                            textAlign: TextAlign.center,
+                                          ),
                                         const SizedBox(height: 4),
                                         Text(
                                           'Participantes: $_participantCount / $_maxParticipants',
-                                          style: const TextStyle(color: Colors.white54, fontSize: 14),
+                                          style: TextStyle(color: currentTextSec, fontSize: 14),
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
@@ -1003,14 +1031,20 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                   height: 48,
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      gradient: AppTheme.primaryGradient,
+                                      gradient: LinearGradient(
+                                        colors: isDarkMode 
+                                            ? [const Color(0xFFFFF176), const Color(0xFFFECB00)] 
+                                            : [const Color(0xFF9D4EDD), const Color(0xFF5A189A)],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppTheme.primaryPurple
-                                              .withOpacity(0.4),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 10),
+                                          color: (isDarkMode ? const Color(0xFFFECB00) : const Color(0xFF5A189A))
+                                              .withOpacity(0.3),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 5),
                                         ),
                                       ],
                                     ),
@@ -1022,23 +1056,22 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                             },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.transparent,
-                                        shadowColor: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                      child: _isSubmitting
-                                        ? const LoadingIndicator(fontSize: 12)
-                                        : const Text(
-                                            'ENVIAR SOLICITUD',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                              letterSpacing: 1.2,
+                                            foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
                                             ),
                                           ),
+                                      child: _isSubmitting
+                                        ? const LoadingIndicator(fontSize: 12, showMessage: false)
+                                          : Text(
+                                              'ENVIAR SOLICITUD',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w900,
+                                                color: isDarkMode ? Colors.black : Colors.white,
+                                                letterSpacing: 1.5,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 )

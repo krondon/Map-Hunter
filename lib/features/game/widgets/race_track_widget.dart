@@ -39,6 +39,11 @@ class RaceTrackWidget extends StatelessWidget {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final effectProvider = Provider.of<PowerEffectManager>(context);
     final gameProvider = Provider.of<GameProvider>(context);
+    
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
     final String? myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
     // --- LOGIC LAYER (Service Use) ---
@@ -106,12 +111,12 @@ class RaceTrackWidget extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: currentCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.05),
             blurRadius: 10,
             spreadRadius: 2,
           ),
@@ -172,7 +177,7 @@ class RaceTrackWidget extends StatelessWidget {
                   child: Text(
                     '👆 Toca un avatar para usar poderes',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
+                      color: currentTextSec.withOpacity(0.6),
                       fontSize: 10,
                       fontStyle: FontStyle.italic,
                     ),
@@ -196,18 +201,20 @@ class RaceTrackWidget extends StatelessWidget {
                             height: 8,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: Colors.grey[800],
+                              color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                               borderRadius: BorderRadius.circular(4),
                               gradient: LinearGradient(
-                                colors: [Colors.grey[800]!, Colors.grey[700]!],
+                                colors: isDarkMode 
+                                  ? [Colors.grey[800]!, Colors.grey[700]!]
+                                  : [Colors.grey[300]!, Colors.grey[200]!],
                               ),
                             ),
                           ),
                         ),
 
                         // Markers
-                        const Positioned(left: 0, top: 65, child: Text("START", style: TextStyle(fontSize: 8, color: Colors.white30))),
-                        const Positioned(right: 0, top: 65, child: Text("META", style: TextStyle(fontSize: 8, color: Colors.white30))),
+                        Positioned(left: 0, top: 65, child: Text("START", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
+                        Positioned(right: 0, top: 65, child: Text("META", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
 
                         // Flag
                         const Positioned(
@@ -240,7 +247,7 @@ class RaceTrackWidget extends StatelessWidget {
                   child: Text(
                     raceView.motivationText,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: currentTextSec.withOpacity(0.7),
                       fontSize: 10,
                       fontStyle: FontStyle.italic,
                     ),
@@ -356,6 +363,10 @@ class _RacerAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    
     // Calculo visual puro usando ITargetable.progress (double)
     final double count = vm.data.progress;
     final progress = totalClues > 0 ? (count / totalClues).clamp(0.0, 1.0) : 0.0;
@@ -415,7 +426,7 @@ class _RacerAvatarWidget extends StatelessWidget {
                            ? Colors.redAccent 
                            : (vm.isMe
                                ? AppTheme.accentGold
-                               : (vm.isLeader ? Colors.amber : Colors.white24)),
+                               : (vm.isLeader ? Colors.amber : (isDarkMode ? Colors.white24 : Colors.black26))),
                         width: (vm.isMe || isSelected) ? 2 : 1,
                       ),
                       boxShadow: [
@@ -433,7 +444,7 @@ class _RacerAvatarWidget extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(avatarSize / 2),
                       child: Container(
-                        color: vm.isMe ? AppTheme.primaryPurple : Colors.grey[800],
+                        color: vm.isMe ? AppTheme.primaryPurple : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
                         child: Builder(
                           builder: (context) {
                             // 1. Prioridad: Avatar Local
@@ -460,7 +471,7 @@ class _RacerAvatarWidget extends StatelessWidget {
                                 errorBuilder: (context, error, stackTrace) => Center(
                                   child: Text(
                                     (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
-                                    style: TextStyle(color: Colors.white, fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               );
@@ -470,7 +481,7 @@ class _RacerAvatarWidget extends StatelessWidget {
                             return Center(
                               child: Text(
                                 (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
-                                style: TextStyle(color: Colors.white, fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
                               ),
                             );
                           },
@@ -498,8 +509,11 @@ class _RacerAvatarWidget extends StatelessWidget {
             Container(
                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                decoration: BoxDecoration(
-                 color: isSelected ? Colors.red : (vm.isMe ? AppTheme.accentGold : Colors.black.withOpacity(0.7)),
+                 color: isSelected ? Colors.red : (vm.isMe ? AppTheme.accentGold : (isDarkMode ? Colors.black.withOpacity(0.7) : Colors.white.withOpacity(0.85))),
                  borderRadius: BorderRadius.circular(6),
+                 boxShadow: [
+                   if (!isDarkMode) BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
+                 ],
                ),
                child: Row(
                  mainAxisSize: MainAxisSize.min,
@@ -507,7 +521,7 @@ class _RacerAvatarWidget extends StatelessWidget {
                    Text(
                      vm.isMe ? 'TÚ' : (vm.isLeader ? 'TOP 1' : _getShortName(vm.data.label ?? 'J')),
                      style: TextStyle(
-                        color: vm.isMe ? Colors.black : Colors.white,
+                        color: vm.isMe ? Colors.black : currentText,
                         fontSize: 9, 
                         fontWeight: FontWeight.w700,
                      ),
@@ -517,7 +531,7 @@ class _RacerAvatarWidget extends StatelessWidget {
                      Text(
                        '${vm.data.progress.toInt()}', // Display count
                        style: TextStyle(
-                         color: vm.isMe ? Colors.black87 : Colors.white70,
+                         color: vm.isMe ? Colors.black87 : currentTextSec,
                          fontSize: 9, 
                          fontWeight: FontWeight.w500,
                        ),

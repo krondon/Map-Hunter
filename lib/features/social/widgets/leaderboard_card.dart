@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../shared/models/player.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
 
 class LeaderboardCard extends StatelessWidget {
   final Player player;
@@ -29,13 +29,18 @@ class LeaderboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final Color currentSurface = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isTopThree
-            ? AppTheme.cardBg.withOpacity(0.8)
-            : AppTheme.cardBg.withOpacity(0.5),
+            ? currentSurface.withOpacity(0.8)
+            : currentSurface.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
         border: isTopThree
             ? Border.all(color: _getRankColor().withOpacity(0.3), width: 2)
@@ -113,17 +118,17 @@ class LeaderboardCard extends StatelessWidget {
               children: [
                 Text(
                   player.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: currentText,
                   ),
                 ),
                 Text(
                   player.profession,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.6),
+                    color: currentTextSec,
                   ),
                 ),
               ],

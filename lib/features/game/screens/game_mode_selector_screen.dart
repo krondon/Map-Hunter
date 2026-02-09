@@ -101,6 +101,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
     final Color currentTextSec = isDarkMode ? Colors.white.withOpacity(0.85) : lTextSecondary;
     final Color currentBrand = isDarkMode ? brandMain : lMysticPurple;
     final Color currentAction = isDarkMode ? dGoldMain : lMysticPurple;
+    final Color optionTitleColor = isDarkMode ? dGoldMain : lMysticPurple;
 
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 800),
@@ -116,17 +117,14 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: isDarkMode ? RadialGradient(
-                        center: const Alignment(-0.8, -0.6),
-                        radius: 1.5,
-                        colors: [
-                          brandDeep, // Color(0xFF150826)
-                          dSurface0, // Color(0xFF0D0D0F)
-                        ],
+                      gradient: isDarkMode ? const LinearGradient(
+                        colors: [dSurface0, dSurface1],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ) : LinearGradient(
                         colors: [
                           lSurface0,
-                          const Color(0xFFE9D5FF),
+                          const Color(0xFFE0E0E6),
                           lSurface1,
                         ],
                         begin: Alignment.topCenter,
@@ -238,7 +236,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                           title: 'MODO PRESENCIAL',
                           description: 'Vive la aventura en el mundo real. Requiere GPS y escanear códigos QR físicos.',
                           icon: Icons.location_on_rounded,
-                          color: dGoldMain, // Siempre dorado por petición
+                          color: optionTitleColor, // Siempre dorado por petición
                           isDarkMode: isDarkMode,
                           onTap: () {
                             context.read<AppModeProvider>().setMode(GameMode.presencial);
@@ -254,7 +252,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                           title: 'MODO ONLINE',
                           description: 'Participa desde cualquier lugar. Acceso mediante códigos PIN y minijuegos.',
                           icon: Icons.wifi_protected_setup_rounded,
-                          color: dGoldMain, // Siempre dorado por petición
+                          color: optionTitleColor, // Siempre dorado por petición
                           isDarkMode: isDarkMode,
                           onTap: () {
                             context.read<AppModeProvider>().setMode(GameMode.online);

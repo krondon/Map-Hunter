@@ -100,28 +100,26 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   }
 
   void _handleFakeGPS() {
-    // Evitar acumulacion de dialogos
     if (!mounted) return;
-    
-    // Detener actualizaciones si es necesario o simplemente bloquear la UI
-    // Mostramos un dialogo que no se puede cerrar facilmente
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => WillPopScope(
-        onWillPop: () async => false, // Bloquear botón atrás
+        onWillPop: () async => false, 
         child: AlertDialog(
-          backgroundColor: AppTheme.cardBg,
-          title: const Row(
+          backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
-              SizedBox(width: 10),
-              Expanded(child: Text("Ubicación Falsa Detectada", style: TextStyle(color: Colors.white, fontSize: 18))),
+              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
+              const SizedBox(width: 10),
+              Expanded(child: Text("Ubicación Falsa Detectada", style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: 18))),
             ],
           ),
-          content: const Text(
+          content: Text(
             "Para jugar limpio, debes desactivar las aplicaciones de ubicación falsa (Fake GPS).\n\nEl juego se detendrá hasta que uses tu ubicación real.",
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
           ),
           actions: [
             TextButton(
@@ -191,9 +189,10 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   }
 
   Color get _temperatureColor {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     double dist = _forceProximity ? 5.0 : _distanceToTarget;
-    if (dist > 500) return Colors.cyanAccent;
-    if (dist > 200) return Colors.blue;
+    if (dist > 500) return isDarkMode ? Colors.cyanAccent : Colors.blue.shade900;
+    if (dist > 200) return isDarkMode ? Colors.blue : Colors.blue.shade700;
     if (dist > 50) return Colors.orange;
     if (dist > 20) return Colors.deepOrange;
     return AppTheme.successGreen;
@@ -207,25 +206,26 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   }
 
   Future<bool> _onWillPop() async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return (await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            title: const Row(
+            backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+            title: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                SizedBox(width: 10),
-                Text('¿Salir de la búsqueda?', style: TextStyle(color: Colors.white)),
+                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                const SizedBox(width: 10),
+                Text('¿Salir de la búsqueda?', style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
               ],
             ),
-            content: const Text(
+            content: Text(
               'Si sales ahora, interrumpirás la búsqueda del objetivo.\n\n¿Estás seguro de que deseas salir?',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
             ),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('CANCELAR', style: TextStyle(color: Colors.white)),
+                child: Text('CANCELAR', style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -243,19 +243,20 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     // Current Distance Logic
     double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
     bool showInput = currentDistance <= 35;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.clue.title.toUpperCase(), style: const TextStyle(fontSize: 14)),
+        title: Text(widget.clue.title.toUpperCase(), style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
+        decoration: BoxDecoration(
+          gradient: AppTheme.mainGradient(context),
         ),
         child: Stack(
           children: [
@@ -300,7 +301,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                         Text(
                           widget.clue.hint.isNotEmpty ? widget.clue.hint : "Encuentra la ubicación...",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(fontSize: 18, color: isDarkMode ? Colors.white : const Color(0xFF2D3436)),
                         ),
                       ],
                     ),
@@ -333,7 +334,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                       if (!showInput)
                         Text(
                           "${currentDistance.toInt()}m del objetivo",
-                          style: const TextStyle(color: Colors.white54),
+                          style: TextStyle(color: isDarkMode ? Colors.white54 : const Color(0xFF636E72)),
                         ),
                     ],
                  ),

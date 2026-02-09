@@ -61,6 +61,21 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
+  static LinearGradient mainGradient(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark 
+      ? const LinearGradient(
+          colors: [dSurface0, dSurface1],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        )
+      : const LinearGradient(
+          colors: [lSurface0, Color(0xFFE0E0E6)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        );
+  }
+
   static ThemeData get darkTheme => _buildTheme(Brightness.dark);
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
 

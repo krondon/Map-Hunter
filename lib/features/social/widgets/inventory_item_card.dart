@@ -22,6 +22,11 @@ class InventoryItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+
     return Stack(
       children: [
         Container(
@@ -29,8 +34,8 @@ class InventoryItemCard extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppTheme.cardBg,
-                AppTheme.cardBg.withOpacity(0.8),
+                currentCard,
+                currentCard.withOpacity(0.8),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -59,10 +64,10 @@ class InventoryItemCard extends StatelessWidget {
                   children: [
                     Text(
                       item.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12, // Reduced font size
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: currentText,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -71,9 +76,9 @@ class InventoryItemCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       item.description,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 9, // Reduced font size
-                        color: Colors.white60,
+                        color: currentTextSec,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
