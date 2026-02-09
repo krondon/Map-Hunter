@@ -16,19 +16,19 @@ import '../../game/strategies/power_response.dart';
 
 enum PowerUseResult { success, reflected, error, blocked }
 
-  /// Core Player Provider - Handles player identity, session, and coordination.
-/// 
+/// Core Player Provider - Handles player identity, session, and coordination.
+///
 /// After SRP refactoring:
 /// - Inventory operations are handled by [PlayerInventoryProvider]
 /// - Stats/Lives operations are handled by [PlayerStatsProvider]
 /// - This provider focuses on: Auth, Profile, Avatar, Session management
-/// 
+///
 /// Public API remains unchanged for backward compatibility.
 class PlayerProvider extends ChangeNotifier implements IResettable {
   Player? _currentPlayer;
   List<Player> _allPlayers = [];
   final SupabaseClient _supabase;
-  
+
   // Services (DIP)
   final AuthService _authService;
   final AdminService _adminService;
@@ -45,9 +45,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
   Timer? _pollingTimer;
   bool _isSpectatorSession = false; // NEW: Flag for spectator mode choice
-  
+
   List<PowerItem> _shopItems = PowerItem.getShopItems();
-  
+
   Player? get currentPlayer => _currentPlayer;
   List<Player> get allPlayers => _allPlayers;
   bool get isLoggedIn => _currentPlayer != null;
@@ -68,7 +68,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
         _adminService = adminService,
         _inventoryService = inventoryService,
         _powerService = powerService;
-  
+
   void clearBanMessage() {
     _banMessage = null;
     notifyListeners();
@@ -78,7 +78,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   int getPowerCount(String itemId, String eventId) {
     return _eventInventories[eventId]?[itemId] ?? 0;
   }
-  
+
   /// Update local lives without backend sync.
   void updateLocalLives(int newLives) {
     if (_currentPlayer != null) {
@@ -105,13 +105,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
   // Flag to prevent auto-reconnection after explicit exit
   bool _suppressAutoJoin = false;
-  
+
   /// Set current event context for profile sync.
   Future<void> setCurrentEventContext(String eventId) async {
     if (_currentPlayer == null) return;
-    
+
     debugPrint('PlayerProvider: Setting current event context to $eventId');
-    
+
     if (_currentPlayer!.currentEventId == eventId) {
       return;
     }
@@ -123,28 +123,29 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Future<void> loadShopItems() async {
     try {
       final configs = await _powerService.getPowerConfigs();
-      
+
       _shopItems = _shopItems.map((item) {
-          final matches = configs.where((d) => d['slug'] == item.id);
-          final config = matches.isNotEmpty ? matches.first : null;
+        final matches = configs.where((d) => d['slug'] == item.id);
+        final config = matches.isNotEmpty ? matches.first : null;
 
-          if (config != null) {
-            final int duration = (config['duration'] as num?)?.toInt() ?? 0;
-            
-            String newDesc = item.description;
-            if (duration > 0) {
-              newDesc = newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
-            }
+        if (config != null) {
+          final int duration = (config['duration'] as num?)?.toInt() ?? 0;
 
-            return item.copyWith(
-              durationSeconds: duration,
-              description: newDesc,
-            );
+          String newDesc = item.description;
+          if (duration > 0) {
+            newDesc =
+                newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
           }
-          return item;
-        }).toList();
-        
-        notifyListeners();
+
+          return item.copyWith(
+            durationSeconds: duration,
+            description: newDesc,
+          );
+        }
+        return item;
+      }).toList();
+
+      notifyListeners();
     } catch (e) {
       debugPrint("PlayerProvider: Error loading shop items: $e");
     }
@@ -164,9 +165,11 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<void> register(String name, String email, String password, {String? cedula, String? phone}) async {
+  Future<void> register(String name, String email, String password,
+      {String? cedula, String? phone}) async {
     try {
-      final userId = await _authService.register(name, email, password, cedula: cedula, phone: phone);
+      final userId = await _authService.register(name, email, password,
+          cedula: cedula, phone: phone);
       await restoreSession(userId);
     } catch (e) {
       debugPrint('Error registering: $e');
@@ -197,12 +200,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     try {
       // 1. Cache locally for immediate and offline access
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_avatar_${_currentPlayer!.userId}', avatarId);
+      await prefs.setString(
+          'cached_avatar_${_currentPlayer!.userId}', avatarId);
       debugPrint('PlayerProvider: Avatar $avatarId cached locally');
 
       // 2. Update DB
       await _authService.updateAvatar(_currentPlayer!.userId, avatarId);
-      
+
       // 3. Update memory and notify
       _currentPlayer = _currentPlayer!.copyWith(avatarId: avatarId);
       notifyListeners();
@@ -212,24 +216,26 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<void> updateProfile({String? name, String? email, String? cedula, String? phone}) async {
+  Future<void> updateProfile(
+      {String? name, String? email, String? cedula, String? phone}) async {
     if (_currentPlayer == null) return;
     try {
-      await _authService.updateProfile(_currentPlayer!.userId, 
+      await _authService.updateProfile(
+        _currentPlayer!.userId,
         name: name,
-        email: email, 
-        cedula: cedula, 
+        email: email,
+        cedula: cedula,
         phone: phone,
       );
-      
+
       // Actualizar localmente
       _currentPlayer = _currentPlayer!.copyWith(
         name: name,
         email: email,
-        cedula: cedula, 
+        cedula: cedula,
         phone: phone,
       );
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error updating profile in provider: $e');
@@ -252,14 +258,14 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     // Use centralized AuthService logout which triggers callbacks
     await _authService.logout();
-    
+
     // Note: Local reset() will be called via callback registered in main.dart
     // But we keep basic cleanup locally for safety if not registered
-    
+
     if (clearBanMessage) {
       _banMessage = null;
     }
-    
+
     _isLoggingOut = false;
   }
 
@@ -282,9 +288,6 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-
-
-
   /// Global Reset: Clears all user session data
   /// Implementación de IResettable
   @override
@@ -298,10 +301,10 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     _currentPlayer = null;
     _eventInventories.clear();
     // _banMessage is optional to clear depending on UX, usually yes on logout
-    // But we might want to show WHY they were logged out. 
+    // But we might want to show WHY they were logged out.
     // For now, clear it.
     _banMessage = null;
-    
+
     notifyListeners();
   }
 
@@ -321,7 +324,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     if (_currentPlayer != null) {
       debugPrint('PlayerProvider: 🧹 Clearing Game Context (Exiting Event)...');
       _currentPlayer!.gamePlayerId = null;
-      _currentPlayer!.currentEventId = null; 
+      _currentPlayer!.currentEventId = null;
       _currentPlayer!.lives = 3; // Reset lives visual to default/safe state
       notifyListeners();
     }
@@ -331,7 +334,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   void setSpectatorRole(bool isSpectator) {
     _isSpectatorSession = isSpectator;
     if (_currentPlayer != null) {
-      _currentPlayer = _currentPlayer!.copyWith(role: isSpectator ? 'spectator' : 'user');
+      _currentPlayer =
+          _currentPlayer!.copyWith(role: isSpectator ? 'spectator' : 'user');
       notifyListeners();
     }
   }
@@ -342,7 +346,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     if (_currentPlayer == null) return;
     try {
       final userId = _currentPlayer!.userId;
-      
+
       // 1. Verificar si ya tiene un record en este evento
       final existing = await _supabase
           .from('game_players')
@@ -350,7 +354,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           .eq('user_id', userId)
           .eq('event_id', eventId)
           .maybeSingle();
-      
+
       if (existing == null) {
         // 2. Crear un ghost player
         await _supabase.from('game_players').insert({
@@ -359,17 +363,39 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           'status': 'spectator',
           'lives': 0, // No juega, no tiene vidas
         });
-        debugPrint('PlayerProvider: Ghost player created for spectator $userId');
-      } else if (existing['status'] == 'pending' || existing['status'] == 'rejected') {
+        debugPrint(
+            'PlayerProvider: Ghost player created for spectator $userId');
+      } else if (existing['status'] == 'pending' ||
+          existing['status'] == 'rejected') {
         // Si el usuario tenía una solicitud pendiente o rechazada, le permitimos ser espectador
-        await _supabase
-            .from('game_players')
-            .update({'status': 'spectator'})
-            .eq('id', existing['id']);
-        debugPrint('PlayerProvider: Updated status to spectator for user $userId');
+        await _supabase.from('game_players').update(
+            {'status': 'spectator', 'lives': 0}).eq('id', existing['id']);
+        debugPrint(
+            'PlayerProvider: Updated ${existing['status']} to spectator for user $userId');
+      } else if (existing['status'] == 'banned' ||
+          existing['status'] == 'suspended') {
+        // CRITICAL: Banned/suspended users KEEP their status but can VIEW as spectators
+        // We only clear their power effects so they can see the game without visual interference
+        debugPrint(
+            'PlayerProvider: Clearing power effects for ${existing['status']} user (status preserved)');
+        try {
+          await _supabase
+              .from('active_power_effects')
+              .delete()
+              .eq('target_game_player_id', existing['id']);
+          debugPrint(
+              'PlayerProvider: ✅ Power effects cleared for ${existing['status']} user');
+        } catch (e) {
+          debugPrint('PlayerProvider: ⚠️ Error clearing power effects: $e');
+        }
+        // NOTE: We do NOT update the status. Banned users remain banned.
+        debugPrint(
+            'PlayerProvider: ${existing['status']} user can now view as spectator (status unchanged)');
       }
-      
-      // 3. Refrescar perfil para cargar el gamePlayerId
+
+      // Refrescar perfil para cargar el gamePlayerId actualizado
+      // NOTE: No llamamos clearGameContext() aquí porque causaría un bucle de rebuilds.
+      // refreshProfile() se encargará de actualizar el estado correctamente.
       await refreshProfile(eventId: eventId);
     } catch (e) {
       debugPrint('PlayerProvider: Error joining as spectator: $e');
@@ -412,7 +438,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     try {
       final PurchaseResult result;
-      
+
       if (_isSpectatorSession) {
         // Los espectadores usan el flujo manual para bypass de RPC restrictivo
         result = await _inventoryService.purchaseItemAsSpectator(
@@ -447,7 +473,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   /// Returns a summary string of what was bought or if failed.
   Future<String> purchaseFullStock(String eventId) async {
     if (_currentPlayer == null) return "No player";
-    
+
     int totalCost = 0;
     Map<PowerItem, int> toBuy = {};
     const int maxPerItem = 3;
@@ -458,17 +484,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       // Assuming 'extra_life' is also desirable, or filter if strictly powers.
       // Based on ShopScreen logic: bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
       // But let's buy EVERYTHING that is displayed in the shop.
-      
+
       // Get current count
       int currentCount = 0;
       bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
-      
+
       if (isPower) {
         currentCount = getPowerCount(item.id, eventId);
       } else if (item.id == 'extra_life') {
         currentCount = _currentPlayer!.lives;
       }
-      
+
       // Calculate needed
       int needed = maxPerItem - currentCount;
       if (needed > 0) {
@@ -490,19 +516,21 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     // We do this sequentially to ensure stability, though parallel could work if DB handles it.
     // For safety and simpler error handling, sequential.
     int successCount = 0;
-    
+
     try {
       for (final entry in toBuy.entries) {
         final item = entry.key;
         final qty = entry.value;
-        final bool isPower = item.type != PowerType.utility && item.id != 'extra_life';
+        final bool isPower =
+            item.type != PowerType.utility && item.id != 'extra_life';
 
         for (int i = 0; i < qty; i++) {
-           final success = await purchaseItem(item.id, eventId, item.cost, isPower: isPower);
-           if (success) successCount++;
+          final success =
+              await purchaseItem(item.id, eventId, item.cost, isPower: isPower);
+          if (success) successCount++;
         }
       }
-      
+
       return "Compra masiva completada. Items comprados: $successCount por $totalCost monedas.";
     } catch (e) {
       return "Error durante la compra masiva: $e";
@@ -542,7 +570,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       debugPrint('[DEBUG] 🔄 syncRealInventory START');
       debugPrint('[DEBUG]    userId: ${_currentPlayer!.userId}');
       debugPrint('[DEBUG]    eventId: $eventId');
-      debugPrint('[DEBUG]    effectProvider is null? ${effectProvider == null}');
+      debugPrint(
+          '[DEBUG]    effectProvider is null? ${effectProvider == null}');
 
       final result = await _inventoryService.syncRealInventory(
         userId: _currentPlayer!.userId,
@@ -566,18 +595,20 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       if (result.lives != null) {
         _currentPlayer!.lives = result.lives!;
       }
-      
+
       _currentPlayer!.gamePlayerId = result.gamePlayerId;
-      
+
       // Configure PowerEffectProvider
-      
+
       debugPrint('[DEBUG] 🎯 Configuring PowerEffectProvider...');
-      effectProvider?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
+      effectProvider
+          ?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
       // effectProvider?.configureReturnHandler - REMOVED: Return logic is now handled by strategies
-      
-      debugPrint('[DEBUG] 📡 Calling startListening with gamePlayerId: ${result.gamePlayerId} and eventId: $eventId');
+
+      debugPrint(
+          '[DEBUG] 📡 Calling startListening with gamePlayerId: ${result.gamePlayerId} and eventId: $eventId');
       effectProvider?.startListening(result.gamePlayerId, eventId: eventId);
-      
+
       debugPrint("GamePlayer found: ${result.gamePlayerId}");
 
       _currentPlayer!.inventory.clear();
@@ -612,19 +643,20 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     try {
       // --- EXCLUSIVITY CHECK ---
       if (!effectProvider.canActivateDefensePower(powerSlug)) {
-          debugPrint('PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
-          return PowerUseResult.error; 
+        debugPrint(
+            'PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
+        return PowerUseResult.error;
       }
 
       effectProvider.setManualCasting(true);
 
       // Prepare rivals list for blur_screen
       List<RivalInfo>? rivals;
-      
+
       // Determine Event ID (Critical for Spectators and Broadcasts)
       String? eventId = _currentPlayer?.currentEventId;
       if (eventId == null && gameProvider != null) {
-         eventId = gameProvider.currentEventId;
+        eventId = gameProvider.currentEventId;
       }
 
       if (powerSlug == 'blur_screen' && gameProvider != null) {
@@ -639,10 +671,11 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             .toList();
       }
 
-      
       // Determine if this power is a self-buff that is already active
-      final isDefensive = ['shield', 'invisibility', 'return'].contains(powerSlug);
-      final isAlreadyActive = isDefensive && effectProvider.isEffectActive(powerSlug);
+      final isDefensive =
+          ['shield', 'invisibility', 'return'].contains(powerSlug);
+      final isAlreadyActive =
+          isDefensive && effectProvider.isEffectActive(powerSlug);
 
       final response = await _powerService.executePower(
         casterGamePlayerId: casterGamePlayerId,
@@ -651,9 +684,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
         rivals: rivals,
         eventId: eventId,
         isSpectator: _isSpectatorSession,
-        isAlreadyActive: isAlreadyActive, 
+        isAlreadyActive: isAlreadyActive,
       );
-      
+
       if (response.blockedByShield) {
         // [SHIELD FEEDBACK] The attack was executed but blocked.
         effectProvider.notifyAttackBlocked();
@@ -665,7 +698,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       switch (response.result) {
         case PowerUseResultType.reflected:
           if (powerSlug != 'return' && !effectProvider.isReturnArmed) {
-            effectProvider.notifyPowerReturned(response.returnedByName ?? 'Un rival');
+            effectProvider
+                .notifyPowerReturned(response.returnedByName ?? 'Un rival');
           }
           await refreshProfile();
           return PowerUseResult.reflected;
@@ -712,7 +746,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   /// Internal fetch method.
   /// [restoreSessionContext] : If true, it attempts to find any active game participation to auto-join.
   /// If false (default), it strictly refreshes the CURRENT known context (or none).
-  Future<void> _fetchProfile(String userId, {String? eventId, bool restoreSessionContext = false}) async {
+  Future<void> _fetchProfile(String userId,
+      {String? eventId, bool restoreSessionContext = false}) async {
     try {
       // 1. Fetch basic profile
       final profileData =
@@ -721,7 +756,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       // 2. Determine which GamePlayer context to fetch (if any)
       //    We do NOT auto-guess unless restoreSessionContext is true
-      
+
       final targetEventId = eventId ?? _currentPlayer?.currentEventId;
       final currentGpId = _currentPlayer?.gamePlayerId;
 
@@ -729,14 +764,14 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           .from('game_players')
           .select('id, lives, status, event_id')
           .eq('user_id', userId);
-      
+
       Map<String, dynamic>? gpData;
-      
+
       if (targetEventId != null) {
         // Option A: Specific Event requested or already Active
-        debugPrint("PlayerProvider: Fetching profile for TARGET/CURRENT event: $targetEventId");
+        debugPrint(
+            "PlayerProvider: Fetching profile for TARGET/CURRENT event: $targetEventId");
         gpData = await baseQuery.eq('event_id', targetEventId).maybeSingle();
-      
       } else if (currentGpId != null) {
         // Option B: No event ID, but we have a GamePlayer ID session
         debugPrint("PlayerProvider: Maintaining SESSION GP ID: $currentGpId");
@@ -745,16 +780,19 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             .select('id, lives, status, event_id')
             .eq('id', currentGpId)
             .maybeSingle();
-
       } else if (restoreSessionContext) {
         // Option C: No context, but explicit restoration requested (Auto-Join latest)
-        debugPrint("PlayerProvider: RESTORING SESSION. Fetching LATEST joined event.");
-        gpData = await baseQuery.order('joined_at', ascending: false).limit(1).maybeSingle();
-      
+        debugPrint(
+            "PlayerProvider: RESTORING SESSION. Fetching LATEST joined event.");
+        gpData = await baseQuery
+            .order('joined_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
       } else {
         // Option D: No context, no specific request. (e.g. background polling while in Lobby)
         // Do NOT fetch GamePlayer data. Stay in Lobby mode.
-        debugPrint("PlayerProvider: No active context. Skipping GamePlayer fetch (Lobby Mode).");
+        debugPrint(
+            "PlayerProvider: No active context. Skipping GamePlayer fetch (Lobby Mode).");
         gpData = null;
       }
 
@@ -765,12 +803,14 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       if (gpData != null) {
         fetchedEventId = gpData['event_id'] as String?;
-        
+
         final status = gpData['status'] as String?;
-        debugPrint("[PlayerProvider] Profile Status='${profileData['status']}', GamePlayer Status='$status', EventId='$fetchedEventId'");
-        
+        debugPrint(
+            "[PlayerProvider] Profile Status='${profileData['status']}', GamePlayer Status='$status', EventId='$fetchedEventId'");
+
         if (status == 'suspended' || status == 'banned') {
-          debugPrint('PlayerProvider: User is $status from event $fetchedEventId. Invalidating session.');
+          debugPrint(
+              'PlayerProvider: User is $status from event $fetchedEventId. Invalidating session.');
           gpData = null;
           fetchedEventId = null;
         } else {
@@ -802,14 +842,15 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       // 4. Build player atomically
       final Player newPlayer = Player.fromJson(profileData);
-      
+
       // Local cache recovery for avatar
       if (newPlayer.avatarId == null || newPlayer.avatarId!.isEmpty) {
         final prefs = await SharedPreferences.getInstance();
         final localAvatar = prefs.getString('cached_avatar_$userId');
         if (localAvatar != null && localAvatar.isNotEmpty) {
-           debugPrint('PlayerProvider: Recovering avatar $localAvatar from local cache');
-           newPlayer.avatarId = localAvatar;
+          debugPrint(
+              'PlayerProvider: Recovering avatar $localAvatar from local cache');
+          newPlayer.avatarId = localAvatar;
         }
       }
 
@@ -826,14 +867,15 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       // Check ban BEFORE notifying a "valid" state
       if (finalPlayer.status == PlayerStatus.banned) {
-         debugPrint("BANNED user detected in realtime. Logging out...");
-         _banMessage = 'Has sido baneado por un administrador.';
-         await logout(clearBanMessage: false);
-         return; 
+        debugPrint("BANNED user detected in realtime. Logging out...");
+        _banMessage = 'Has sido baneado por un administrador.';
+        await logout(clearBanMessage: false);
+        return;
       }
 
       _currentPlayer = finalPlayer;
-      debugPrint('🔍 PlayerProvider: notifyListeners(). gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}, role: ${_currentPlayer?.role}');
+      debugPrint(
+          '🔍 PlayerProvider: notifyListeners(). gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}, role: ${_currentPlayer?.role}');
       notifyListeners();
 
       // Check pending penalties from previous disconnections
@@ -853,9 +895,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       if (prefs.getBool('pending_life_loss') == true) {
         final eventId = prefs.getString('pending_life_loss_event');
         debugPrint('PlayerProvider: Processing pending penalty for $userId');
-        
+
         await loseLife(eventId: eventId);
-        
+
         await prefs.remove('pending_life_loss');
         await prefs.remove('pending_life_loss_event');
         debugPrint('PlayerProvider: Pending penalty applied successfully');
@@ -895,10 +937,11 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       if (response != null) {
         final String statusStr = response['status'] ?? 'active';
-        if (statusStr == 'banned' && _currentPlayer?.status != PlayerStatus.banned) {
-           debugPrint("Polling detected BAN. Forcing update...");
-           await refreshProfile();
-           return;
+        if (statusStr == 'banned' &&
+            _currentPlayer?.status != PlayerStatus.banned) {
+          debugPrint("Polling detected BAN. Forcing update...");
+          await refreshProfile();
+          return;
         }
       }
 
@@ -909,7 +952,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             .select('id')
             .eq('id', _currentPlayer!.gamePlayerId!)
             .maybeSingle();
-        
+
         if (gpRes == null) {
           debugPrint("Polling detected RESET (registration disappeared).");
           await refreshProfile();
@@ -941,26 +984,30 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   void _subscribeToGamePlayers(String userId) {
     if (_gamePlayersSubscription != null) return;
 
-    debugPrint('🔊 PlayerProvider: Subscribing to game_players STREAM for user $userId');
-    
+    debugPrint(
+        '🔊 PlayerProvider: Subscribing to game_players STREAM for user $userId');
+
     _gamePlayersSubscription = _supabase
         .from('game_players')
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .listen((data) {
-          debugPrint('🔊 PlayerProvider: ⚡ STREAM UPDATE received in game_players! (${data.length} rows)');
-          
+          debugPrint(
+              '🔊 PlayerProvider: ⚡ STREAM UPDATE received in game_players! (${data.length} rows)');
+
           bool banDetectedForCurrentEvent = false;
           final currentEventId = _currentPlayer?.currentEventId;
 
           for (final gp in data) {
             final String? status = gp['status'];
             final String? eventId = gp['event_id'];
-            
-            if (eventId == currentEventId && (status == 'suspended' || status == 'banned')) {
-               debugPrint('🚫 PlayerProvider: BAN detected for current event ($eventId) via Stream!');
-               banDetectedForCurrentEvent = true;
-               break;
+
+            if (eventId == currentEventId &&
+                (status == 'suspended' || status == 'banned')) {
+              debugPrint(
+                  '🚫 PlayerProvider: BAN detected for current event ($eventId) via Stream!');
+              banDetectedForCurrentEvent = true;
+              break;
             }
           }
 
@@ -968,7 +1015,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             if (banDetectedForCurrentEvent) {
               _currentPlayer!.gamePlayerId = null;
               _currentPlayer!.status = PlayerStatus.banned;
-              debugPrint('🔍 PlayerProvider: Invalidating local session (INSTANT BAN).');
+              debugPrint(
+                  '🔍 PlayerProvider: Invalidating local session (INSTANT BAN).');
               notifyListeners();
             } else {
               refreshProfile();
@@ -1050,8 +1098,10 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<void> toggleGameBanUser(String userId, String eventId, bool ban) async {
-    debugPrint('PlayerProvider: toggleGameBanUser CALLED. Delegating to AdminService...');
+  Future<void> toggleGameBanUser(
+      String userId, String eventId, bool ban) async {
+    debugPrint(
+        'PlayerProvider: toggleGameBanUser CALLED. Delegating to AdminService...');
     try {
       await _adminService.toggleGameBanUser(userId, eventId, ban);
       debugPrint('PlayerProvider: toggleGameBanUser completed successfully');
@@ -1100,165 +1150,172 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           .eq('game_player_id', gpId)
           .eq('power_id', powerUuid)
           .maybeSingle();
-     /// Load shop items configuration from service.
-  Future<void> loadShopItems() async {
-    try {
-      final configs = await _powerService.getPowerConfigs();
-      
-      _shopItems = _shopItems.map((item) {
-          final matches = configs.where((d) => d['slug'] == item.id);
-          final config = matches.isNotEmpty ? matches.first : null;
 
-          if (config != null) {
-            final int duration = (config['duration'] as num?)?.toInt() ?? 0;
-            
-            String newDesc = item.description;
-            if (duration > 0) {
-              newDesc = newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
+      /// Load shop items configuration from service.
+      Future<void> loadShopItems() async {
+        try {
+          final configs = await _powerService.getPowerConfigs();
+
+          _shopItems = _shopItems.map((item) {
+            final matches = configs.where((d) => d['slug'] == item.id);
+            final config = matches.isNotEmpty ? matches.first : null;
+
+            if (config != null) {
+              final int duration = (config['duration'] as num?)?.toInt() ?? 0;
+
+              String newDesc = item.description;
+              if (duration > 0) {
+                newDesc =
+                    newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
+              }
+
+              return item.copyWith(
+                durationSeconds: duration,
+                description: newDesc,
+              );
             }
+            return item;
+          }).toList();
 
-            return item.copyWith(
-              durationSeconds: duration,
-              description: newDesc,
-            );
+          notifyListeners();
+        } catch (e) {
+          debugPrint("PlayerProvider: Error loading shop items: $e");
+        }
+      }
+
+      // ============================================================
+      // AUTHENTICATION (delegated to AuthService)
+      // ============================================================
+
+      Future<void> login(String email, String password) async {
+        try {
+          final userId = await _authService.login(email, password);
+          await _fetchProfile(userId);
+        } catch (e) {
+          debugPrint('Error logging in: $e');
+          rethrow;
+        }
+      }
+
+      Future<void> register(String name, String email, String password,
+          {String? cedula, String? phone}) async {
+        try {
+          final userId = await _authService.register(name, email, password,
+              cedula: cedula, phone: phone);
+          await _fetchProfile(userId);
+        } catch (e) {
+          debugPrint('Error registering: $e');
+          rethrow;
+        }
+      }
+
+      Future<void> resetPassword(String email) async {
+        try {
+          await _authService.resetPassword(email);
+        } catch (e) {
+          debugPrint('Error resetting password: $e');
+          rethrow;
+        }
+      }
+
+      Future<void> updatePassword(String newPassword) async {
+        try {
+          await _authService.updatePassword(newPassword);
+        } catch (e) {
+          debugPrint('Error updating password: $e');
+          rethrow;
+        }
+      }
+
+      Future<void> updateAvatar(String avatarId) async {
+        if (_currentPlayer == null) return;
+        try {
+          // 1. Cache locally for immediate and offline access
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(
+              'cached_avatar_${_currentPlayer!.userId}', avatarId);
+          debugPrint('PlayerProvider: Avatar $avatarId cached locally');
+
+          // 2. Update DB
+          await _authService.updateAvatar(_currentPlayer!.userId, avatarId);
+
+          // 3. Update memory and notify
+          _currentPlayer = _currentPlayer!.copyWith(avatarId: avatarId);
+          notifyListeners();
+        } catch (e) {
+          debugPrint('Error updating avatar: $e');
+          rethrow;
+        }
+      }
+
+      Future<void> updateProfile({String? name, String? email}) async {
+        if (_currentPlayer == null) return;
+        try {
+          await _authService.updateProfile(_currentPlayer!.userId,
+              name: name, email: email);
+
+          // Actualizar localmente
+          if (name != null) {
+            _currentPlayer = _currentPlayer!.copyWith(name: name);
           }
-          return item;
-        }).toList();
-        
+          if (email != null) {
+            _currentPlayer = _currentPlayer!.copyWith(email: email);
+          }
+
+          notifyListeners();
+        } catch (e) {
+          debugPrint('Error updating profile in provider: $e');
+          rethrow;
+        }
+      }
+
+      Future<void> logout({bool clearBanMessage = true}) async {
+        if (_isLoggingOut) return;
+        _isLoggingOut = true;
+
+        // Use centralized AuthService logout which triggers callbacks
+        await _authService.logout();
+
+        // Note: Local reset() will be called via callback registered in main.dart
+        // But we keep basic cleanup locally for safety if not registered
+
+        if (clearBanMessage) {
+          _banMessage = null;
+        }
+
+        _isLoggingOut = false;
+      }
+
+      /// Global Reset: Clears all user session data
+      /// Implementación de IResettable
+      @override
+      void resetState() {
+        _pollingTimer?.cancel();
+        _profileSubscription?.cancel();
+        _profileSubscription = null;
+        _gamePlayersSubscription?.cancel();
+        _gamePlayersSubscription = null;
+
+        _currentPlayer = null;
+        _eventInventories.clear();
+        // _banMessage is optional to clear depending on UX, usually yes on logout
+        // But we might want to show WHY they were logged out.
+        // For now, clear it.
+        _banMessage = null;
+
         notifyListeners();
-    } catch (e) {
-      debugPrint("PlayerProvider: Error loading shop items: $e");
-    }
-  }
-
-  // ============================================================
-  // AUTHENTICATION (delegated to AuthService)
-  // ============================================================
-
-  Future<void> login(String email, String password) async {
-    try {
-      final userId = await _authService.login(email, password);
-      await _fetchProfile(userId);
-    } catch (e) {
-      debugPrint('Error logging in: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> register(String name, String email, String password, {String? cedula, String? phone}) async {
-    try {
-      final userId = await _authService.register(name, email, password, cedula: cedula, phone: phone);
-      await _fetchProfile(userId);
-    } catch (e) {
-      debugPrint('Error registering: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> resetPassword(String email) async {
-    try {
-      await _authService.resetPassword(email);
-    } catch (e) {
-      debugPrint('Error resetting password: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> updatePassword(String newPassword) async {
-    try {
-      await _authService.updatePassword(newPassword);
-    } catch (e) {
-      debugPrint('Error updating password: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> updateAvatar(String avatarId) async {
-    if (_currentPlayer == null) return;
-    try {
-      // 1. Cache locally for immediate and offline access
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_avatar_${_currentPlayer!.userId}', avatarId);
-      debugPrint('PlayerProvider: Avatar $avatarId cached locally');
-
-      // 2. Update DB
-      await _authService.updateAvatar(_currentPlayer!.userId, avatarId);
-      
-      // 3. Update memory and notify
-      _currentPlayer = _currentPlayer!.copyWith(avatarId: avatarId);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error updating avatar: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> updateProfile({String? name, String? email}) async {
-    if (_currentPlayer == null) return;
-    try {
-      await _authService.updateProfile(_currentPlayer!.userId, name: name, email: email);
-      
-      // Actualizar localmente
-      if (name != null) {
-        _currentPlayer = _currentPlayer!.copyWith(name: name);
       }
-      if (email != null) {
-        _currentPlayer = _currentPlayer!.copyWith(email: email);
+
+      /// Clears the current player's inventory list explicitly.
+      /// Used to prevent ghost data when switching events.
+      void clearCurrentInventory() {
+        if (_currentPlayer != null) {
+          _currentPlayer!.inventory = [];
+          debugPrint('PlayerProvider: Inventory cleared for context switch.');
+          notifyListeners();
+        }
       }
-      
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error updating profile in provider: $e');
-      rethrow;
-    }
-  }
 
-  Future<void> logout({bool clearBanMessage = true}) async {
-    if (_isLoggingOut) return;
-    _isLoggingOut = true;
-
-    // Use centralized AuthService logout which triggers callbacks
-    await _authService.logout();
-    
-    // Note: Local reset() will be called via callback registered in main.dart
-    // But we keep basic cleanup locally for safety if not registered
-    
-    if (clearBanMessage) {
-      _banMessage = null;
-    }
-    
-    _isLoggingOut = false;
-  }
-
-  /// Global Reset: Clears all user session data
-  /// Implementación de IResettable
-  @override
-  void resetState() {
-    _pollingTimer?.cancel();
-    _profileSubscription?.cancel();
-    _profileSubscription = null;
-    _gamePlayersSubscription?.cancel();
-    _gamePlayersSubscription = null;
-
-    _currentPlayer = null;
-    _eventInventories.clear();
-    // _banMessage is optional to clear depending on UX, usually yes on logout
-    // But we might want to show WHY they were logged out. 
-    // For now, clear it.
-    _banMessage = null;
-    
-    notifyListeners();
-  }
-
-  /// Clears the current player's inventory list explicitly.
-  /// Used to prevent ghost data when switching events.
-  void clearCurrentInventory() {
-    if (_currentPlayer != null) {
-      _currentPlayer!.inventory = [];
-      debugPrint('PlayerProvider: Inventory cleared for context switch.');
-      notifyListeners();
-    }
-  }
       if (existing != null) {
         await _supabase
             .from('player_powers')

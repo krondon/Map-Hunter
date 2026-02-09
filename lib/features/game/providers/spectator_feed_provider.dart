@@ -26,11 +26,11 @@ class SpectatorFeedProvider extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   final List<GameFeedEvent> _events = [];
   final String _eventId;
-  
+
   RealtimeChannel? _powersSubscription;
   RealtimeChannel? _playersSubscription;
   RealtimeChannel? _purchasesSubscription;
-  
+
   List<GameFeedEvent> get events => _events;
 
   SpectatorFeedProvider(this._eventId) {
@@ -49,25 +49,31 @@ class SpectatorFeedProvider extends ChangeNotifier {
     try {
       final powers = await _supabase
           .from('active_powers')
-          .select('id, power_slug, caster_id, target_id, expires_at, created_at, caster:caster_id(profiles(name)), target:target_id(profiles(name))')
+          .select(
+              'id, power_slug, caster_id, target_id, expires_at, created_at, caster:caster_id(profiles(name)), target:target_id(profiles(name))')
           .eq('event_id', _eventId)
           .order('created_at', ascending: false)
           .limit(10);
 
       for (var p in powers) {
-        final casterName = (p['caster']?['profiles'] as Map?)?['name'] ?? 'Alguien';
-        final targetName = (p['target']?['profiles'] as Map?)?['name'] ?? 'Alguien';
+        final casterName =
+            (p['caster']?['profiles'] as Map?)?['name'] ?? 'Alguien';
+        final targetName =
+            (p['target']?['profiles'] as Map?)?['name'] ?? 'Alguien';
         final slug = p['power_slug'] as String;
-        
-        _addEvent(GameFeedEvent(
-          id: p['id'].toString(),
-          playerName: casterName,
-          action: 'USÓ UN PODER',
-          detail: '$casterName lanzó ${_getTranslatedPowerName(slug)} contra $targetName',
-          timestamp: DateTime.parse(p['created_at']),
-          type: 'power',
-          icon: _getPowerIcon(slug),
-        ), notify: false);
+
+        _addEvent(
+            GameFeedEvent(
+              id: p['id'].toString(),
+              playerName: casterName,
+              action: 'USÓ UN PODER',
+              detail:
+                  '$casterName lanzó ${_getTranslatedPowerName(slug)} contra $targetName',
+              timestamp: DateTime.parse(p['created_at']),
+              type: 'power',
+              icon: _getPowerIcon(slug),
+            ),
+            notify: false);
       }
       notifyListeners();
     } catch (e) {
@@ -93,15 +99,16 @@ class SpectatorFeedProvider extends ChangeNotifier {
             final targetId = record['target_id']?.toString();
             final slug = record['power_slug']?.toString() ?? 'Poder';
 
-            // We need names, so we might need a quick fetch or a cache
-            final casterName = await _getPlayerName(casterId);
-            final targetName = await _getPlayerName(targetId);
+            // caster_id and target_id are game_player_ids, not user_ids
+            final casterName = await _getPlayerNameFromGamePlayerId(casterId);
+            final targetName = await _getPlayerNameFromGamePlayerId(targetId);
 
             _addEvent(GameFeedEvent(
               id: record['id'].toString(),
               playerName: casterName,
               action: 'USÓ UN PODER',
-              detail: '$casterName activó ${_getTranslatedPowerName(slug)} sobre $targetName',
+              detail:
+                  '$casterName activó ${_getTranslatedPowerName(slug)} sobre $targetName',
               timestamp: DateTime.now(),
               type: 'power',
               icon: _getPowerIcon(slug),
@@ -139,17 +146,18 @@ class SpectatorFeedProvider extends ChangeNotifier {
           callback: (payload) async {
             final oldRecord = payload.oldRecord;
             final newRecord = payload.newRecord;
-            
+
             final oldClues = oldRecord['completed_clues_count'] as int? ?? 0;
             final newClues = newRecord['completed_clues_count'] as int? ?? 0;
             final oldLives = oldRecord['lives'] as int? ?? 0;
             final newLives = newRecord['lives'] as int? ?? 0;
 
             if (newClues > oldClues) {
-              final playerName = await _getPlayerName(newRecord['user_id']?.toString());
+              final playerName =
+                  await _getPlayerName(newRecord['user_id']?.toString());
               final rank = await _calculateRank(newClues);
               final rankStr = rank > 0 ? ' (Va $rankº)' : '';
-              
+
               _addEvent(GameFeedEvent(
                 id: 'clue_${newRecord['id']}_$newClues',
                 playerName: playerName,
@@ -162,8 +170,9 @@ class SpectatorFeedProvider extends ChangeNotifier {
             }
 
             if (newLives < oldLives) {
-               final playerName = await _getPlayerName(newRecord['user_id']?.toString());
-               _addEvent(GameFeedEvent(
+              final playerName =
+                  await _getPlayerName(newRecord['user_id']?.toString());
+              _addEvent(GameFeedEvent(
                 id: 'life_${newRecord['id']}_$newLives',
                 playerName: playerName,
                 action: '¡DAÑO RECIBIDO!',
@@ -188,9 +197,10 @@ class SpectatorFeedProvider extends ChangeNotifier {
           callback: (payload) async {
             final record = payload.newRecord;
             final oldRecord = payload.oldRecord;
-            
+
             final newQty = record['quantity'] as int? ?? 0;
-            final oldQty = (oldRecord != null) ? (oldRecord['quantity'] as int? ?? 0) : 0;
+            final oldQty =
+                (oldRecord != null) ? (oldRecord['quantity'] as int? ?? 0) : 0;
 
             if (newQty > oldQty) {
               final gamePlayerId = record['game_player_id']?.toString();
@@ -201,7 +211,7 @@ class SpectatorFeedProvider extends ChangeNotifier {
 
               final userId = await _getUserIdOfPlayer(gamePlayerId);
               final playerName = await _getPlayerName(userId);
-              
+
               final powerId = record['power_id']?.toString();
               final powerName = await _getPowerNameTranslatedFromId(powerId);
 
@@ -222,24 +232,38 @@ class SpectatorFeedProvider extends ChangeNotifier {
 
   final Map<String, String> _gpEventCache = {};
   Future<String?> _getEventOfPlayer(String gamePlayerId) async {
-    if (_gpEventCache.containsKey(gamePlayerId)) return _gpEventCache[gamePlayerId];
+    if (_gpEventCache.containsKey(gamePlayerId))
+      return _gpEventCache[gamePlayerId];
     try {
-      final res = await _supabase.from('game_players').select('event_id').eq('id', gamePlayerId).maybeSingle();
+      final res = await _supabase
+          .from('game_players')
+          .select('event_id')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
       final eid = res?['event_id']?.toString();
       if (eid != null) _gpEventCache[gamePlayerId] = eid;
       return eid;
-    } catch (_) { return null; }
+    } catch (_) {
+      return null;
+    }
   }
 
   final Map<String, String?> _gpUserCache = {};
   Future<String?> _getUserIdOfPlayer(String gamePlayerId) async {
-    if (_gpUserCache.containsKey(gamePlayerId)) return _gpUserCache[gamePlayerId];
+    if (_gpUserCache.containsKey(gamePlayerId))
+      return _gpUserCache[gamePlayerId];
     try {
-      final res = await _supabase.from('game_players').select('user_id').eq('id', gamePlayerId).maybeSingle();
+      final res = await _supabase
+          .from('game_players')
+          .select('user_id')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
       final uid = res?['user_id']?.toString();
       _gpUserCache[gamePlayerId] = uid;
       return uid;
-    } catch (_) { return null; }
+    } catch (_) {
+      return null;
+    }
   }
 
   final Map<String, String> _powerNameCache = {};
@@ -247,24 +271,30 @@ class SpectatorFeedProvider extends ChangeNotifier {
     if (powerId == null) return 'un objeto';
     if (_powerNameCache.containsKey(powerId)) return _powerNameCache[powerId]!;
     try {
-      final res = await _supabase.from('powers').select('slug, name').eq('id', powerId).maybeSingle();
+      final res = await _supabase
+          .from('powers')
+          .select('slug, name')
+          .eq('id', powerId)
+          .maybeSingle();
       if (res == null) return 'un objeto';
-      
+
       final slug = res['slug']?.toString();
       final dbName = res['name']?.toString() ?? 'un objeto';
-      
+
       String finalName = dbName;
       if (slug != null) {
         final translated = _getTranslatedPowerName(slug);
         // Only use translation if it's one of our known Spanish terms, otherwise fallback to DB name
         if (translated != slug.toUpperCase()) {
-           finalName = translated;
+          finalName = translated;
         }
       }
-      
+
       _powerNameCache[powerId] = finalName;
       return finalName;
-    } catch (_) { return 'un objeto'; }
+    } catch (_) {
+      return 'un objeto';
+    }
   }
 
   void _addEvent(GameFeedEvent event, {bool notify = true}) {
@@ -279,7 +309,11 @@ class SpectatorFeedProvider extends ChangeNotifier {
     if (_nameCache.containsKey(userId)) return _nameCache[userId]!;
 
     try {
-      final res = await _supabase.from('profiles').select('name').eq('id', userId).maybeSingle();
+      final res = await _supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', userId)
+          .maybeSingle();
       final name = res?['name'] ?? 'Jugador';
       _nameCache[userId] = name;
       return name;
@@ -288,29 +322,56 @@ class SpectatorFeedProvider extends ChangeNotifier {
     }
   }
 
+  /// Gets player name from game_player_id by first resolving to user_id
+  Future<String> _getPlayerNameFromGamePlayerId(String? gamePlayerId) async {
+    if (gamePlayerId == null) return 'Alguien';
+
+    // First get user_id from game_player_id
+    final userId = await _getUserIdOfPlayer(gamePlayerId);
+
+    // Then get name from user_id
+    return await _getPlayerName(userId);
+  }
+
   String _getPowerIcon(String slug) {
     switch (slug) {
-      case 'freeze': return '❄️';
-      case 'shield': return '🛡️';
-      case 'invisibility': return '👻';
-      case 'life_steal': return '🧛';
-      case 'blur_screen': return '🌫️';
-      case 'return': return '🔄';
-      case 'black_screen': return '🕶️';
-      default: return '⚡';
+      case 'freeze':
+        return '❄️';
+      case 'shield':
+        return '🛡️';
+      case 'invisibility':
+        return '👻';
+      case 'life_steal':
+        return '🧛';
+      case 'blur_screen':
+        return '🌫️';
+      case 'return':
+        return '🔄';
+      case 'black_screen':
+        return '🕶️';
+      default:
+        return '⚡';
     }
   }
-  
+
   String _getTranslatedPowerName(String slug) {
     switch (slug) {
-      case 'freeze': return 'Congelar';
-      case 'shield': return 'Escudo';
-      case 'invisibility': return 'Invisible';
-      case 'life_steal': return 'Robar Vida';
-      case 'blur_screen': return 'Difuminar';
-      case 'return': return 'Retornar';
-      case 'black_screen': return 'Pantalla Negra';
-      default: return slug.toUpperCase();
+      case 'freeze':
+        return 'Congelar';
+      case 'shield':
+        return 'Escudo';
+      case 'invisibility':
+        return 'Invisible';
+      case 'life_steal':
+        return 'Robar Vida';
+      case 'blur_screen':
+        return 'Difuminar';
+      case 'return':
+        return 'Retornar';
+      case 'black_screen':
+        return 'Pantalla Negra';
+      default:
+        return slug.toUpperCase();
     }
   }
 

@@ -12,9 +12,10 @@ import 'features/auth/services/inventory_service.dart';
 import 'features/auth/services/power_service.dart';
 import 'features/admin/services/admin_service.dart';
 import 'features/game/providers/game_request_provider.dart';
+import 'features/game/repositories/game_request_repository.dart';
 import 'core/theme/app_theme.dart';
 
-import 'features/game/providers/event_provider.dart'; 
+import 'features/game/providers/event_provider.dart';
 import 'features/admin/screens/auth_save.dart';
 import 'features/game/services/game_service.dart';
 import 'features/events/services/event_service.dart';
@@ -33,9 +34,10 @@ Future<void> main() async {
   try {
     final url = dotenv.env['SUPABASE_URL'] ?? '';
     final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-    
+
     if (url.isEmpty || anonKey.isEmpty) {
-      throw Exception("Supabase URL or Anon Key is missing in .env file. Error: $envError");
+      throw Exception(
+          "Supabase URL or Anon Key is missing in .env file. Error: $envError");
     }
 
     await Supabase.initialize(
@@ -61,7 +63,7 @@ Future<void> main() async {
     ));
     return;
   }
-  
+
   // Configuración de orientación para móvil
   if (!kIsWeb) {
     SystemChrome.setPreferredOrientations([
@@ -69,7 +71,7 @@ Future<void> main() async {
       DeviceOrientation.portraitDown,
     ]);
   }
-  
+
   runApp(const TreasureHuntAdminApp());
 }
 
@@ -94,7 +96,12 @@ class TreasureHuntAdminApp extends StatelessWidget {
             powerService: PowerService(supabaseClient: supabase),
           );
         }),
-        ChangeNotifierProvider(create: (_) => GameRequestProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final supabase = Supabase.instance.client;
+          return GameRequestProvider(
+            repository: GameRequestRepository(supabaseClient: supabase),
+          );
+        }),
         ChangeNotifierProvider(create: (_) {
           final supabase = Supabase.instance.client;
           return EventProvider(eventService: EventService(supabase));
