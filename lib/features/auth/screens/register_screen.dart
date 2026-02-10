@@ -138,17 +138,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // 3. Cerrar el indicador de carga
         LoadingOverlay.hide(context);
 
-        // 4. Mostrar mensaje discreto de éxito
+        // 4. Mostrar mensaje claro de éxito y validación
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
               children: [
-                Icon(Icons.check_circle_outline, color: Colors.white),
+                Icon(Icons.mark_email_read_outlined, color: Colors.white),
                 SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Cuenta creada exitosamente. ¡Inicia sesión!',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '¡Registro exitoso!',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        'Por favor, revisa tu correo para activar tu cuenta antes de iniciar sesión.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -157,12 +167,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(20),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 5),
           ),
         );
 
-        // 5. Regresar inmediatamente a la vista de Login
-        Navigator.pop(context);
+        // 5. Redirigir al Login tras un breve delay o inmediatamente
+        // Usamos pushReplacementNamed para que no puedan volver atrás
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (!mounted) return;
 
       } catch (e) {
         if (!mounted) return;

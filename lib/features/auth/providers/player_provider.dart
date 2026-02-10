@@ -192,7 +192,11 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     try {
       final userId = await _authService.register(name, email, password,
           cedula: cedula, phone: phone);
-      await restoreSession(userId);
+      
+      // Solo intentamos restaurar sesión si realmente tenemos una activa
+      if (_supabase.auth.currentSession != null) {
+        await restoreSession(userId);
+      }
     } catch (e) {
       debugPrint('Error registering: $e');
       rethrow;

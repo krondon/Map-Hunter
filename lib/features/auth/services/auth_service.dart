@@ -42,7 +42,15 @@ class AuthService {
         await _supabase.auth.setSession(data['session']['refresh_token']);
 
         if (data['user'] != null) {
-          return data['user']['id'] as String;
+          final user = data['user'];
+          
+          // Verificar si el email ha sido confirmado
+          if (user['email_confirmed_at'] == null) {
+            await logout(); // Limpiar cualquier sesión parcial
+            throw 'Tu correo aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.';
+          }
+
+          return user['id'] as String;
         }
         throw 'No se recibió información del usuario';
       } else {
@@ -112,30 +120,34 @@ class AuthService {
 
       final data = response.data;
 
-      if (data['session'] != null) {
-        await _supabase.auth.setSession(data['session']['refresh_token']);
-
-        if (data['user'] != null) {
-          // Delay para permitir que la BD sincronice el perfil
-          await Future.delayed(const Duration(seconds: 1));
-          
-          // Actualización explícita de datos extra en perfil
-          if (cedula != null || phone != null) {
-            try {
-              await _supabase.from('profiles').update({
-                if (cedula != null) 'cedula': cedula,
-                if (phone != null) 'phone': phone,
-              }).eq('id', data['user']['id']);
-            } catch (e) {
-              debugPrint('Warning: Could not update extra profile fields: $e');
-            }
-          }
-
-          return data['user']['id'] as String;
+      if (data['user'] != null) {
+        // Si hay usuario, el registro fue exitoso a nivel de BD.
+        // Si hay sesión, la guardamos. Si no (porque requiere confirmación), seguimos igual.
+        if (data['session'] != null) {
+          await _supabase.auth.setSession(data['session']['refresh_token']);
         }
-        throw 'No se recibió información del usuario';
+
+        final userId = data['user']['id'] as String;
+
+        // Delay para permitir que la BD sincronice el perfil (Trigger)
+        await Future.delayed(const Duration(seconds: 1));
+        
+        // Actualización explícita de datos extra en perfil si tenemos sesión
+        // Si no tenemos sesión (email sin confirmar), esto fallará por RLS, así que lo omitimos o lo intentamos con catch
+        if ((cedula != null || phone != null) && data['session'] != null) {
+          try {
+            await _supabase.from('profiles').update({
+              if (cedula != null) 'cedula': cedula,
+              if (phone != null) 'phone': phone,
+            }).eq('id', userId);
+          } catch (e) {
+            debugPrint('Warning: Could not update extra profile fields: $e');
+          }
+        }
+
+        return userId;
       }
-      throw 'No se recibió sesión válida';
+      throw 'No se recibió información del usuario';
     } catch (e) {
       debugPrint('AuthService: Error registering: $e');
       throw _handleAuthError(e);
@@ -269,8 +281,8 @@ class AuthService {
     if (errorMsg.contains('email not confirmed')) {
       return 'Debes confirmar tu correo electrónico antes de entrar.';
     }
-    if (errorMsg.contains('too many requests')) {
-      return 'Demasiados intentos. Por favor espera un momento.';
+    if (errorMsg.contains('rate limit') || errorMsg.contains('too many requests')) {
+      return 'Demasiados intentos. Por favor espera unos minutos antes de intentar de nuevo.';
     }
     if (errorMsg.contains('suspendida') || errorMsg.contains('banned')) {
       return 'Tu cuenta ha sido suspendida permanentemente.';

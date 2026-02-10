@@ -137,32 +137,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       
       if (!mounted) return;
       
-      // Mostrar diálogo explicativo
-      // Mostrar diálogo explicativo
-      // showDialog(
-      //   context: context,
-      //   barrierDismissible: false,
-      //   builder: (ctx) => AlertDialog(
-      //     backgroundColor: AppTheme.cardBg,
-      //     title: const Text('¡Sin Vidas!', style: TextStyle(color: Colors.white)),
-      //     content: const Text(
-      //       'Te has quedado sin vidas. No puedes continuar en este minijuego.',
-      //       style: TextStyle(color: Colors.white70),
-      //     ),
-      //     actions: [
-      //       ElevatedButton(
-      //         onPressed: () {
-      //           Navigator.pop(ctx); // Cerrar diálogo
-      //           if (mounted) {
-      //             Navigator.pop(context); // Cerrar minijuego
-      //           }
-      //         },
-      //         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
-      //         child: const Text('Entendido'),
-      //       ),
-      //     ],
-      //   ),
-      // );
     }
   }
 
@@ -302,38 +276,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       }
     }
   }
-
-  // void _showNoLivesDialog() {
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder: (context) => AlertDialog(
-  //       backgroundColor: AppTheme.cardBg,
-  //       title: const Text("¡Sin vidas!", style: TextStyle(color: Colors.white)),
-  //       content: const Text(
-  //           "Te has quedado sin vidas. Necesitas comprar más en la tienda para continuar jugando.",
-  //           style: TextStyle(color: Colors.white70)),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () {
-  //             Navigator.pop(context); // Close dialog
-  //             Navigator.pop(context); // Close screen
-  //           },
-  //           child: const Text("Entendido"),
-  //         ),
-  //         ElevatedButton(
-  //           onPressed: () {
-  //             Navigator.pop(context); 
-  //             Navigator.pop(context);
-  //             Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
-  //           },
-  //           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentGold),
-  //           child: const Text("Comprar Vidas", style: TextStyle(color: Colors.black)),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   @override
   void deactivate() {

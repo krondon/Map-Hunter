@@ -163,30 +163,70 @@ serve(async (req) => {
           { auth: { persistSession: false } }
         )
 
-        const { error: profileError } = await serviceClient
-          .from('profiles')
-          .upsert(
-            {
-              id: data.user.id,
-              email,
-              name,
-              role: 'user',
-              clovers: 0,
-              dni: sanitizedCedula,
-              phone: sanitizedPhone
-            },
-            { onConflict: 'id' }
-          )
+        // Strategy: Wait briefly for any potential triggers to create the profile
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        if (profileError) {
-          // Manejar errores de constraint único con mensajes amigables
-          if (profileError.message?.includes('profiles_dni_key')) {
-            throw new Error('Esta cédula ya está registrada')
-          }
-          if (profileError.message?.includes('profiles_phone_key')) {
-            throw new Error('Este teléfono ya está registrado')
-          }
-          throw profileError
+        let profileUpdated = false;
+        let profileError = null;
+        const maxRetries = 3;
+
+        for (let i = 0; i < maxRetries; i++) {
+            // 1. Try to UPDATE first (assuming trigger might have created it)
+            const { data: updatedProfile, error: updateError } = await serviceClient
+                .from('profiles')
+                .update({
+                    email,
+                    name,
+                    role: 'user',
+                    dni: sanitizedCedula,
+                    phone: sanitizedPhone
+                })
+                .eq('id', data.user.id)
+                .select()
+                .maybeSingle();
+
+            if (!updateError && updatedProfile) {
+                console.log('Profile successfully updated (likely created by trigger).');
+                profileUpdated = true;
+                break;
+            }
+
+            // 2. If update found nothing (or failed), try to INSERT
+            const { error: insertError } = await serviceClient
+                .from('profiles')
+                .insert({
+                    id: data.user.id,
+                    email,
+                    name,
+                    role: 'user',
+                    clovers: 0,
+                    dni: sanitizedCedula,
+                    phone: sanitizedPhone
+                });
+
+            if (!insertError) {
+                console.log('Profile successfully inserted manually.');
+                profileUpdated = true;
+                break;
+            }
+
+            profileError = insertError;
+            console.log(`Attempt ${i + 1} failed: ${insertError?.message}. Retrying...`);
+            
+            // Wait before next retry
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+
+        if (!profileUpdated && profileError) {
+             // Manejar errores de constraint único con mensajes amigables
+             if (profileError.message?.includes('profiles_dni_key')) {
+                throw new Error('Esta cédula ya está registrada')
+              }
+              if (profileError.message?.includes('profiles_phone_key')) {
+                throw new Error('Este teléfono ya está registrado')
+              }
+              // If it's the FK error still, we bubble it up but it's very unlikely now
+              throw profileError
         }
       }
 
