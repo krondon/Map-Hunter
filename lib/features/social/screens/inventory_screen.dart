@@ -25,6 +25,11 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   bool _isLoading = false;
 
+  bool get isDarkMode => Theme.of(context).brightness == Brightness.dark;
+  Color get currentCard => isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+  Color get currentText => isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+  Color get currentTextSec => isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+
   @override
   void initState() {
     super.initState();
@@ -132,7 +137,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppTheme.cardBg,
+                            color: currentCard,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -145,10 +150,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 '${player.inventory.length}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: Colors.white,
+                                  color: currentText,
                                 ),
                               ),
                             ],
@@ -362,7 +367,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
         showModalBottomSheet(
           context: context,
-          backgroundColor: AppTheme.cardBg,
+          backgroundColor: currentCard,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
@@ -430,9 +435,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           ),
                         ),
                         title: Text(rival.name,
-                            style: const TextStyle(color: Colors.white)),
+                            style: TextStyle(color: currentText)),
                         subtitle: Text('${rival.totalXP} XP',
-                            style: const TextStyle(color: Colors.white60)),
+                            style: TextStyle(color: currentTextSec)),
                         trailing: const Icon(Icons.bolt,
                             color: AppTheme.secondaryPink),
                         onTap: () {
@@ -565,19 +570,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Icon(
             Icons.shopping_bag_outlined,
             size: 80,
-            color: Colors.white.withOpacity(0.3),
+            color: currentTextSec.withOpacity(0.3),
           ),
           const SizedBox(height: 20),
           Text(
             'Inventario vacío',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white54,
+                  color: currentTextSec,
                 ),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Visita La Tiendita para comprar poderes',
-            style: TextStyle(color: Colors.white54),
+            style: TextStyle(color: currentTextSec),
             textAlign: TextAlign.center,
           ),
         ],
@@ -671,12 +676,12 @@ class _AttackSuccessDialogState extends State<_AttackSuccessDialog>
                   const SizedBox(height: 5),
                   Material(
                     color: Colors.transparent,
-                    child: Text(
-                      widget.targetName.isEmpty
-                          ? ''
-                          : 'Objetivo: ${widget.targetName}',
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                    ),
+                      child: Text(
+                        widget.targetName.isEmpty
+                            ? ''
+                            : 'Objetivo: ${widget.targetName}',
+                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                      ),
                   ),
                 ],
               ),

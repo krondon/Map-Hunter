@@ -111,16 +111,43 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
   Future<void> _fetchLeaderboard() async {
     try {
-      final data = await Supabase.instance.client
-          .from('event_leaderboard')
-          .select()
+      // 1. Fetch ranking from game_players
+      final playersData = await Supabase.instance.client
+          .from('game_players')
+          .select('user_id, completed_clues:completed_clues_count')
           .eq('event_id', widget.event.id)
-          .order('completed_clues', ascending: false)
-          .order('last_completion_time', ascending: true);
+          .neq('status', 'spectator')
+          .order('completed_clues_count', ascending: false);
+      
+      if (playersData.isEmpty) {
+        if (mounted) setState(() => _leaderboardData = []);
+        return;
+      }
+
+      // 2. Fetch profile data for these users
+      final userIds = playersData.map((e) => e['user_id'] as String).toList();
+      final profilesData = await Supabase.instance.client
+          .from('profiles')
+          .select('id, name, avatar_id')
+          .inFilter('id', userIds);
+
+      final Map<String, dynamic> profilesMap = {
+        for (var p in profilesData) p['id']: p
+      };
+
+      // 3. Combine data
+      final enrichedData = playersData.map((p) {
+        final profile = profilesMap[p['user_id']] ?? {};
+        return {
+          ...p,
+          'name': profile['name'] ?? 'Usuario',
+          'avatar_id': profile['avatar_id'],
+        };
+      }).toList();
 
       if (mounted) {
         setState(() {
-          _leaderboardData = List<Map<String, dynamic>>.from(data);
+            _leaderboardData = List<Map<String, dynamic>>.from(enrichedData);
         });
       }
     } catch (e) {

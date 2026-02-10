@@ -72,6 +72,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   // The default user role for scenario selection
   UserRole get role => UserRole.player;
+  bool get isDarkMode => Theme.of(context).brightness == Brightness.dark;
 
   void _showLogoutDialog() {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
@@ -397,6 +398,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     if (_isProcessing) return;
 
     if (scenario.isCompleted) {
@@ -860,23 +862,24 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           if (role == UserRole.player) {
             final confirm = await showDialog<bool>(
               context: context,
-              builder: (ctx) => BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Dialog(
-                  backgroundColor: Colors.transparent,
-                  insetPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF1A1F3A).withOpacity(0.95),
-                          const Color(0xFF0A0E27).withOpacity(0.95),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
+              builder: (ctx) {
+                final isDarkMode = Theme.of(ctx).brightness == Brightness.dark;
+                return BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Dialog(
+                    backgroundColor: Colors.transparent,
+                    insetPadding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDarkMode 
+                            ? [const Color(0xFF1A1F3A).withOpacity(0.95), const Color(0xFF0A0E27).withOpacity(0.95)]
+                            : [Colors.white.withOpacity(0.98), const Color(0xFFF0F0F7).withOpacity(0.98)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: AppTheme.secondaryPink.withOpacity(0.5),
                         width: 1.5,
@@ -939,10 +942,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                           ],
                         ),
 
-                        const Text(
+                        Text(
                           '¡EVENTO LLENO!',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDarkMode ? Colors.white : AppTheme.secondaryPink,
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2.0,
@@ -959,18 +962,18 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                 result.message ??
                                     'El cupo de jugadores activos (${scenario.maxPlayers}) ha sido alcanzado.',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: isDarkMode ? Colors.white : const Color(0xFF2D3436),
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              const Text(
+                              Text(
                                 'No te preocupes, aún puedes vivir la experiencia desde el modo espectador.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.white70,
+                                  color: isDarkMode ? Colors.white70 : const Color(0xFF636E72),
                                   fontSize: 14,
                                   height: 1.6,
                                 ),
@@ -1039,9 +1042,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 12, horizontal: 24),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'VOLVER AL INICIO',
                                   style: TextStyle(
+                                    color: isDarkMode ? Colors.white38 : Colors.grey,
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1.2,
@@ -1056,8 +1060,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                     ),
                   ),
                 ),
-              ),
-            );
+              );
+            },
+          );
 
             if (confirm != true) return;
           }
@@ -1132,20 +1137,24 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   void _showErrorDialog(String msg, {String title = 'Atención'}) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-              backgroundColor: AppTheme.cardBg,
+              backgroundColor: currentCard,
               title: Text(title,
-                  style: const TextStyle(color: AppTheme.dangerRed)),
+                  style: const TextStyle(color: AppTheme.dangerRed, fontWeight: FontWeight.bold)),
               content: Text(
                 msg,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: currentText),
               ),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Entendido'))
+                    child: Text('Entendido', style: TextStyle(color: isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain)))
               ],
             ));
   }
@@ -1488,7 +1497,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
     final Color currentBrand = isDarkMode ? AppTheme.dBrandMain : AppTheme.lBrandMain;
     final Color currentBrandDeep = isDarkMode ? AppTheme.dBrandDeep : AppTheme.lBrandSurface;
-    final Color currentAction = isDarkMode ? AppTheme.dGoldMain : AppTheme.lGoldAction;
+    final Color currentAction = isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain;
 
     return SafeArea(
       child: LayoutBuilder(
@@ -1753,7 +1762,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                         onPressed: () => _onScenarioSelected(scenario),
                                                                         style: ElevatedButton.styleFrom(
                                                                           backgroundColor: currentAction, 
-                                                                          foregroundColor: isDarkMode ? Colors.black : Colors.white, 
+                                                                          foregroundColor: (isDarkMode && currentAction == AppTheme.dGoldMain) ? Colors.black : Colors.white, 
                                                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
                                                                         ),
                                                                         child: scenario.isCompleted

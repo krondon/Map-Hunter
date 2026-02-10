@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
 
 class AnimatedCyberBackground extends StatefulWidget {
   final Widget? child;
@@ -58,10 +59,27 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.gridColor ?? const Color(0xFF6366F1);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final color = widget.gridColor ?? (isDarkMode ? const Color(0xFF6366F1) : AppTheme.lBrandMain);
 
     return Stack(
       children: [
+        // 0. Background Base (from Login)
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(-0.8, -0.6),
+                radius: 1.5,
+                colors: [
+                  isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface0,
+                  isDarkMode ? AppTheme.dSurface0 : Colors.white,
+                ],
+              ),
+            ),
+          ),
+        ),
+
         // 1. Grid
         Positioned.fill(
           child: AnimatedBuilder(
@@ -86,7 +104,7 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
           ),
         ),
 
-        // 3. Vignette / Gradient Overlay
+        // 3. Vignette / Subtle Overlay
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
@@ -95,7 +113,7 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
                 radius: 1.2,
                 colors: [
                   Colors.transparent,
-                  (widget.vignetteColor ?? Colors.black).withOpacity(0.4),
+                  (widget.vignetteColor ?? (isDarkMode ? Colors.black : Colors.white)).withOpacity(isDarkMode ? 0.4 : 0.2),
                 ],
               ),
             ),

@@ -21,6 +21,10 @@ class ClueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Check mode
     final isOnline = Provider.of<AppModeProvider>(context).isOnlineMode;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -35,14 +39,14 @@ class ClueCard extends StatelessWidget {
               color: clue.isCompleted
                   ? AppTheme.successGreen.withOpacity(0.1)
                   : isLocked
-                      ? AppTheme.cardBg.withOpacity(0.5)
-                      : AppTheme.cardBg,
+                      ? currentCard.withOpacity(0.5)
+                      : currentCard,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: clue.isCompleted
                     ? AppTheme.successGreen
                     : isLocked
-                        ? Colors.white12
+                        ? (isDarkMode ? Colors.white12 : Colors.black12)
                         : AppTheme.primaryPurple.withOpacity(0.3),
                 width: 2,
               ),
@@ -101,7 +105,7 @@ class ClueCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isLocked ? Colors.white38 : Colors.white,
+                          color: isLocked ? currentText.withOpacity(0.4) : currentText,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -118,7 +122,7 @@ class ClueCard extends StatelessWidget {
                           color: clue.isCompleted
                               ? AppTheme.successGreen
                               : isLocked
-                                  ? Colors.white24
+                                  ? currentText.withOpacity(0.3)
                                   : AppTheme.secondaryPink,
                         ),
                       ),

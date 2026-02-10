@@ -201,11 +201,15 @@ class _CluesScreenState extends State<CluesScreen> {
 
   // NUEVO MÉTODO: Muestra la pista en modo "Solo Lectura"
   void _showCompletedClueDialog(BuildContext context, dynamic clue) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-            clue.title ?? 'Pista Completada'), // Asumiendo que clue tiene title
+        backgroundColor: currentCard,
+        title: Text(clue.title ?? 'Pista Completada', style: TextStyle(color: currentText)), // Asumiendo que clue tiene title
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -225,7 +229,7 @@ class _CluesScreenState extends State<CluesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cerrar"),
+            child: Text("Cerrar", style: TextStyle(color: isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain)),
           )
         ],
       ),
@@ -241,6 +245,9 @@ class _CluesScreenState extends State<CluesScreen> {
   @override
   Widget build(BuildContext context) {
     final gameProvider = Provider.of<GameProvider>(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
 
     return ExitProtectionWrapper(
         child: Scaffold(
@@ -299,8 +306,7 @@ class _CluesScreenState extends State<CluesScreen> {
                                   child: Text(
                                     gameProvider.errorMessage!,
                                     textAlign: TextAlign.center,
-                                    style:
-                                        const TextStyle(color: Colors.white70),
+                                    style: TextStyle(color: currentTextSec),
                                   ),
                                 ),
                                 const SizedBox(height: 24),
@@ -319,21 +325,21 @@ class _CluesScreenState extends State<CluesScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.explore_off,
-                                    size: 80,
-                                    color: Colors.white.withOpacity(0.3),
-                                  ),
+                                    Icon(
+                                      Icons.explore_off,
+                                      size: 80,
+                                      color: currentText.withOpacity(0.2),
+                                    ),
                                   const SizedBox(height: 20),
-                                  Text(
-                                    'No hay pistas disponibles',
-                                    style: Theme.of(context)
+                                    Text(
+                                      'No hay pistas disponibles',
+                                      style: Theme.of(context)
                                         .textTheme
                                         .headlineMedium
                                         ?.copyWith(
-                                          color: Colors.white54,
-                                        ),
-                                  ),
+                                            color: currentTextSec,
+                                          ),
+                                    ),
                                   const SizedBox(height: 10),
                                   ElevatedButton(
                                     onPressed: () {
@@ -448,23 +454,27 @@ class _CluesScreenState extends State<CluesScreen> {
 
   // --- NUEVO DIÁLOGO DE DESBLOQUEO ---
   void _showUnlockClueDialog(BuildContext context, Clue clue) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Row(
+        backgroundColor: currentCard,
+        title: Row(
           children: [
-            Icon(Icons.lock, color: AppTheme.accentGold),
-            SizedBox(width: 10),
-            Text("Desbloquear Misión", style: TextStyle(color: Colors.white)),
+            Icon(Icons.lock, color: isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain),
+            const SizedBox(width: 10),
+            Text("Desbloquear Misión", style: TextStyle(color: currentText)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               "Para acceder a esta misión, debes encontrar el código QR en la ubicación real.",
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
             ),
             const SizedBox(height: 20),
             // Opción 1: Escanear
@@ -472,8 +482,8 @@ class _CluesScreenState extends State<CluesScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentGold,
-                  foregroundColor: Colors.black,
+                  backgroundColor: isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain,
+                  foregroundColor: isDarkMode ? Colors.black : Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onPressed: () async {
@@ -515,7 +525,7 @@ class _CluesScreenState extends State<CluesScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            const Divider(color: Colors.white24),
+            Divider(color: isDarkMode ? Colors.white24 : Colors.black12),
             const SizedBox(height: 10),
           ],
         ),

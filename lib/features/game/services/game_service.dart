@@ -86,13 +86,13 @@ class GameService {
   /// Obtiene el leaderboard de un evento y lo enriquece con datos de perfiles (Avatars)
   Future<List<Player>> getLeaderboard(String eventId) async {
     try {
-      // 1. Obtener la lista base del ranking desde la VISTA
+      // 1. Obtener la lista base del ranking desde la tabla game_players (reemplaza vista faltante)
       final List<dynamic> leaderboardData = await _supabase
-          .from('event_leaderboard')
-          .select()
+          .from('game_players')
+          .select('user_id, completed_clues:completed_clues_count')
           .eq('event_id', eventId)
-          .order('completed_clues', ascending: false, nullsFirst: false)
-          .order('last_completion_time', ascending: true)
+          .neq('status', 'spectator') // Excluir espectadores
+          .order('completed_clues_count', ascending: false)
           .limit(50);
 
       if (leaderboardData.isEmpty) return [];

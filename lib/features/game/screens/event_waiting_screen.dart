@@ -78,15 +78,12 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     if (_timeLeft == null) return const Scaffold(backgroundColor: Colors.black);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.mainGradient(context),
         ),
         child: SafeArea(
           child: Stack(
@@ -135,21 +132,21 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
+                      Text(
                         "La aventura aún no comienza",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
                           fontWeight: FontWeight.bold,
                           fontSize: 28,
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
+                      Text(
                         "Por favor, espera con paciencia.\nEl tesoro aguarda valientemente.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
                           fontSize: 16,
                           height: 1.5,
                         ),
@@ -161,9 +158,9 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
+                          color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white10),
+                          border: Border.all(color: isDarkMode ? Colors.white10 : AppTheme.lBorder),
                         ),
                         child: Column(
                           children: [
@@ -178,11 +175,11 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                             const SizedBox(height: 10),
                             Text(
                               "${_timeLeft!.inDays}d ${_timeLeft!.inHours % 24}h ${_timeLeft!.inMinutes % 60}m ${_timeLeft!.inSeconds % 60}s",
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : AppTheme.lBrandMain,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
-                                fontFeatures: [FontFeature.tabularFigures()],
+                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
                           ],
@@ -236,7 +233,7 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                 child: Center(
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text("Volver a Escenarios", style: TextStyle(color: Colors.white54)),
+                    child: Text("Volver a Escenarios", style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain.withOpacity(0.7))),
                   ),
                 ),
               )

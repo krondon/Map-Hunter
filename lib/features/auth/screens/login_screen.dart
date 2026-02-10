@@ -350,6 +350,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               child: isSending
                                   ? LoadingIndicator(
                                       fontSize: 10, 
+                                      showMessage: false,
                                       color: isDarkMode ? Colors.black : Colors.white
                                     )
                             : const Text('ENVIAR', style: TextStyle(fontWeight: FontWeight.bold)),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../game/providers/game_provider.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
 import '../widgets/leaderboard_card.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 
@@ -34,6 +34,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget build(BuildContext context) {
     final gameProvider = Provider.of<GameProvider>(context);
     final leaderboard = gameProvider.leaderboard;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final Color currentSurface = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
     
     return AnimatedCyberBackground(
       child: SafeArea(
@@ -112,12 +116,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       children: [
                         Text(
                           'Ranking',
-                          style: Theme.of(context).textTheme.displayMedium,
+                          style: Theme.of(context).textTheme.displayMedium?.copyWith(color: currentText),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Más pistas completadas', // Cambio de texto para reflejar la lógica
-                          style: Theme.of(context).textTheme.bodyLarge,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: currentTextSec),
                         ),
                       ],
                     ),
@@ -151,7 +155,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg,
+                  color: currentSurface,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -185,7 +189,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             
             // Si hay menos de 3, mostrar mensaje o lista simple
             if (leaderboard.isEmpty)
-               const Expanded(child: Center(child: Text("Cargando ranking...", style: TextStyle(color: Colors.white70)))),
+               Expanded(child: Center(child: Text("Cargando ranking...", style: TextStyle(color: currentTextSec)))),
 
             // Rest of the leaderboard
             if (leaderboard.isNotEmpty)
@@ -209,7 +213,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
   
-  Widget _buildPodiumPosition(player, int position, double height, Color color) {
+  Widget _buildPodiumPosition(dynamic player, int position, double height, Color color) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+
     return Column(
       children: [
         Stack(
@@ -284,10 +292,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           width: 80,
           child: Text(
             player.name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: currentText,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -299,7 +307,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           'Lvl ${player.level}',
           style: TextStyle(
             fontSize: 11,
-            color: Colors.white.withOpacity(0.7),
+            color: currentTextSec,
           ),
         ),
         const SizedBox(height: 8),
