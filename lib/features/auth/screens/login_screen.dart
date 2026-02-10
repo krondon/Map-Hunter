@@ -265,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: emailController,
-                  style: TextStyle(color: currentText),
+                  style: TextStyle(color: isDarkMode ? currentText : const Color(0xFF1A1A1D)),
                   decoration: InputDecoration(
                     labelText: 'Email',
                     labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6)),
@@ -523,24 +523,34 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     final Color currentBrand = isDarkMode ? dMysticPurple : lMysticPurple;
     final Color currentBrandDeep = isDarkMode ? dMysticPurpleDeep : lMysticPurpleDeep;
     final Color currentBorder = isDarkMode ? dBorderGray : lBorderGray;
-    final Color currentText = isDarkMode ? Colors.white : lTextPrimary;
-    final Color currentTextSec = isDarkMode ? Colors.white70 : lTextSecondary;
+    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
 
     return Theme(
       data: Theme.of(context).copyWith(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: currentSurface1,
-          labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6), fontSize: 14),
-          prefixIconColor: currentBrand,
-          suffixIconColor: currentTextSec.withOpacity(0.6),
+          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFFFF8E1), // Gris oscuro en noche, Beige en día
+          labelStyle: TextStyle(
+            color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          prefixIconColor: isDarkMode ? currentBrand : const Color(0xFF5A189A),
+          suffixIconColor: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: currentBorder, width: 1.5),
+            borderSide: BorderSide(
+              color: isDarkMode ? currentBorder : const Color(0xFFD1D1DB),
+              width: 1.5,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: currentBrand, width: 2),
+            borderSide: BorderSide(
+              color: isDarkMode ? currentBrand : const Color(0xFF5A189A),
+              width: 2,
+            ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -555,20 +565,33 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           onTap: () => FocusScope.of(context).unfocus(),
           child: Stack(
             children: [
-              // Fondo con degradado
+              // Fondo con imagen hero.png en modo oscuro o loginclaro.png en modo claro
               Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.8, -0.6),
-                      radius: 1.5,
-                      colors: [
-                        currentBrandDeep,
-                        currentSurface0,
-                      ],
-                    ),
-                  ),
-                ),
+                child: isDarkMode
+                    ? Opacity(
+                        opacity: 0.7, // Opacidad para mejor legibilidad
+                        child: Image.asset(
+                          'assets/images/hero.png',
+                          fit: BoxFit.cover, // Cubre toda la pantalla sin espacios
+                          alignment: Alignment.center,
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          // Imagen de fondo
+                          Image.asset(
+                            'assets/images/loginclaro.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                          // Capa negra transparente para mejor legibilidad
+                          Container(
+                            color: Colors.black.withOpacity(0.2),
+                          ),
+                        ],
+                      ),
               ),
 
               SafeArea(
@@ -594,7 +617,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       child: IconButton(
                                         icon: Icon(
                                           isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
-                                          color: isDarkMode ? Colors.white : lMysticPurple,
+                                          color: Colors.white,
                                           size: 28,
                                         ),
                                         onPressed: () {
@@ -606,7 +629,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     const Spacer(flex: 1),
                                     // Logo de MapHunter
                                     Image.asset(
-                                      isDarkMode ? 'assets/images/logo4.1.png' : 'assets/images/logo4.2.png',
+                                      'assets/images/logo4.1.png',
                                       height: 180,
                                       fit: BoxFit.contain,
                                     ),
@@ -615,9 +638,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       "Búsqueda del tesoro ☘️",
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: currentTextSec,
-                                        fontWeight: FontWeight.w400,
-                                        letterSpacing: 2.0,
+                                        color: Colors.white.withOpacity(0.9),
+                                         fontWeight: FontWeight.w400,
+                                         letterSpacing: 2.0,
                                       ),
                                     ),
                                     const SizedBox(height: 40),
@@ -756,7 +779,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                           child: Text(
                                             'Regístrate',
                                             style: TextStyle(
-                                              color: isDarkMode ? dGoldMain : lMysticPurple,
+                                              color: dGoldMain,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -787,26 +810,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 
   Widget _buildMornaBranding({bool isDark = true}) {
-    final Color textColor = isDark ? Colors.white.withOpacity(0.7) : const Color(0xFF1A1A1D).withOpacity(0.7);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          "BY JOTA DE &",
-          style: TextStyle(
-            color: textColor,
-            fontSize: 10,
-            letterSpacing: 1.5,
-          ),
+        // Imagen JD.PNG
+        Image.asset(
+          'assets/images/jd.PNG',
+          height: 30, // Ajustado para que se vea bien junto al logo de Morna
         ),
-        const SizedBox(width: 8),
-        Opacity(
-          opacity: isDark ? 1.0 : 0.8,
-          child: Image.asset(
-            'assets/images/morna_logo.png',
-            height: 18,
-            color: isDark ? null : const Color(0xFF1A1A1D),
-          ),
+        const SizedBox(width: 12),
+        // Logo Morna
+        Image.asset(
+          'assets/images/morna_logo.png',
+          height: 18,
         ),
       ],
     );
