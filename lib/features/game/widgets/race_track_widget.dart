@@ -82,7 +82,7 @@ class RaceTrackWidget extends StatelessWidget {
       // Determine if target is self
       final normalizedMyId = myGamePlayerId.trim().toLowerCase();
       final normalizedTargetId = selectedRacer.data.id.trim().toLowerCase();
-      final isTargetSelf = normalizedMyId == normalizedTargetId;
+      final isTargetSelf = selectedRacer.isMe || (normalizedMyId == normalizedTargetId);
 
       // Show power selector with ISP filtering
       final selectedPower = await PowerSelectorBottomSheet.show(

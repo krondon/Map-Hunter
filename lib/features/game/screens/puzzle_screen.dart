@@ -1150,7 +1150,7 @@ Widget _buildMinigameScaffold(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: RaceTrackWidget(
                           leaderboard: game.leaderboard,
-                          currentPlayerId: player?.id ?? '',
+                          currentPlayerId: player?.userId ?? '',
                           totalClues: game.clues.length,
                           onSurrender: () => showSkipDialog(context, onFinish),
                           compact: clue.puzzleType == PuzzleType.tetris || clue.puzzleType == PuzzleType.hangman,

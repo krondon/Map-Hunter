@@ -274,7 +274,7 @@ class _CluesScreenState extends State<CluesScreen> {
                     currentPlayerId:
                         Provider.of<PlayerProvider>(context, listen: false)
                                 .currentPlayer
-                                ?.id ??
+                                ?.userId ??
                             '',
                     totalClues: game.clues.length,
                   );
