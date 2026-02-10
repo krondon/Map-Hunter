@@ -21,7 +21,8 @@ enum PuzzleType {
   imageTrivia,
   wordScramble,
   chargeShaker,
-  emojiMovie;
+  emojiMovie,
+  virusTap;
 
   String get dbValue => toString().split('.').last;
 
@@ -48,13 +49,15 @@ enum PuzzleType {
       case PuzzleType.codeBreaker:
         return '🔐 Caja Fuerte (Code)';
       case PuzzleType.imageTrivia:
-        return '🖼️ Desafío Visual (Trivia)';
+        return '🖼️ Trivia de Imagen';
       case PuzzleType.wordScramble:
-        return '🔤 Palabra Misteriosa';
+        return '🔠 Ordenar Palabras';
       case PuzzleType.chargeShaker:
-        return '🔋 Carga Rápida (Shake)';
+        return '⚡ Agitar Carga';
       case PuzzleType.emojiMovie:
-        return '🎬 Adivina la Película (Emojis)';
+        return '🎬 Adivina Película';
+      case PuzzleType.virusTap:
+        return '🦠 Virus Tap (Whack-a-Mole)';
     }
   }
 
@@ -70,6 +73,7 @@ enum PuzzleType {
       case PuzzleType.blockFill:
       case PuzzleType.chargeShaker:
       case PuzzleType.emojiMovie:
+      case PuzzleType.virusTap:
         return true;
       default:
         return false;
@@ -106,6 +110,8 @@ enum PuzzleType {
         return '¡Agita el celular para cargar la batería!';
       case PuzzleType.emojiMovie:
         return 'Adivina la película con los emojis';
+      case PuzzleType.virusTap:
+        return 'Elimina 15 virus antes de que acabe el tiempo';
     }
   }
 }
