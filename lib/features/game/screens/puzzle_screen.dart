@@ -27,6 +27,10 @@ import '../widgets/minigames/block_fill_minigame.dart';
 import '../widgets/minigames/code_breaker_widget.dart';
 import '../widgets/minigames/image_trivia_widget.dart';
 import '../widgets/minigames/word_scramble_widget.dart';
+import '../widgets/minigames/charge_shaker_minigame.dart';
+import '../widgets/minigames/emoji_movie_minigame.dart';
+import '../widgets/minigames/virus_tap_minigame.dart';
+import '../widgets/minigames/drone_dodge_minigame.dart';
 import '../widgets/minigame_countdown_overlay.dart';
 import 'scenarios_screen.dart';
 import '../../game/providers/game_request_provider.dart';
@@ -58,10 +62,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   bool _legalExit = false;
   bool _isNavigatingToWinner = false; // Flag to prevent double navigation
   bool _showBriefing = false; // Deshabilitado como se solicitó
-  
+
   // Safe Provider Access
   late GameProvider _gameProvider;
-  late ConnectivityProvider _connectivityProvider; 
+  late ConnectivityProvider _connectivityProvider;
   bool _isActive = true;
 
   @override
@@ -69,40 +73,43 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     super.initState();
     // Cache provider for safe disposal
     _gameProvider = Provider.of<GameProvider>(context, listen: false);
-    _connectivityProvider = Provider.of<ConnectivityProvider>(context, listen: false);
+    _connectivityProvider =
+        Provider.of<ConnectivityProvider>(context, listen: false);
 
     // Penalty logic removed
-    
+
     // Verificar vidas al iniciar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLives();
       _checkBanStatus(); // Check ban on entry
 
       // --- SYNC PLAYER PROVIDER WITH CURRENT EVENT ---
-      // Fix for issue where PlayerProvider loads "latest" (potentially banned) event 
+      // Fix for issue where PlayerProvider loads "latest" (potentially banned) event
       // instead of the current active event.
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
-      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
       final eventId = gameProvider.currentEventId;
-      
+
       if (eventId != null && playerProvider.currentPlayer != null) {
-         // Sync strict: If IDs don't match, force refresh for THIS event
-         if (playerProvider.currentPlayer?.currentEventId != eventId) {
-             debugPrint("PuzzleScreen: Syncing PlayerProvider to event $eventId...");
-             playerProvider.refreshProfile(eventId: eventId);
-         }
+        // Sync strict: If IDs don't match, force refresh for THIS event
+        if (playerProvider.currentPlayer?.currentEventId != eventId) {
+          debugPrint(
+              "PuzzleScreen: Syncing PlayerProvider to event $eventId...");
+          playerProvider.refreshProfile(eventId: eventId);
+        }
       }
 
       // --- MARCAR ENTRADA A MINIJUEGO PARA CONNECTIVITY ---
       if (eventId != null) {
-          context.read<ConnectivityProvider>().enterMinigame(eventId);
+        context.read<ConnectivityProvider>().enterMinigame(eventId);
       }
 
       // --- ESCUCHA DE FIN DE CARRERA EN TIEMPO REAL ---
       // --- ESCUCHA DE FIN DE CARRERA EN TIEMPO REAL ---
       Provider.of<GameProvider>(context, listen: false)
           .addListener(_checkRaceCompletion);
-      
+
       // MOVED: _checkGlobalLivesGameOver monitoring is now started inside _checkLives
       // to avoid race conditions during initialization.
     });
@@ -126,15 +133,16 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   /// Si detecta 0 vidas (por ej. Life Steal enemigo), cierra el minijuego.
   void _checkGlobalLivesGameOver() {
     if (!mounted || !_isActive || _legalExit) return;
-    
+
     // Use stored provider or safely access context if active
     final gameProvider = _gameProvider;
-    
+
     // Si las vidas globales llegaron a 0, forzar salida
     if (gameProvider.lives <= 0) {
-      debugPrint('[LIVES_MONITOR] 🔴 Global lives reached 0. Forcing minigame exit.');
+      debugPrint(
+          '[LIVES_MONITOR] 🔴 Global lives reached 0. Forcing minigame exit.');
       _finishLegally(); // Marcar como salida legal para evitar penalización
-      
+
       if (!mounted) return;
       
     }
@@ -142,11 +150,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   void _checkRaceCompletion() async {
     if (!mounted || !_isActive || _isNavigatingToWinner) return;
-    
+
     final gameProvider = _gameProvider;
-    // For PlayerProvider, we still need context or also cache it? 
+    // For PlayerProvider, we still need context or also cache it?
     // Usually PlayerProvider is less volatile, but to be safe we check active first.
-    // Since we returned if !_isActive, access to context should be 'safer', 
+    // Since we returned if !_isActive, access to context should be 'safer',
     // but caching is best. For now we rely on _isActive check.
     if (!context.mounted) return;
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
@@ -191,51 +199,51 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   // Check for ban status (Per-competition kick)
   Future<void> _checkBanStatus() async {
-     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-     final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final requestProvider =
+        Provider.of<GameRequestProvider>(context, listen: false);
 
-     final userId = playerProvider.currentPlayer?.userId;
-     final eventId = gameProvider.currentEventId;
+    final userId = playerProvider.currentPlayer?.userId;
+    final eventId = gameProvider.currentEventId;
 
-     if (userId != null && eventId != null) {
-        final status = await requestProvider.getGamePlayerStatus(userId, eventId);
-        if (status == 'banned') {
-          if (!mounted) return;
-          _handleBanKick();
-        }
-     }
+    if (userId != null && eventId != null) {
+      final status = await requestProvider.getGamePlayerStatus(userId, eventId);
+      if (status == 'banned') {
+        if (!mounted) return;
+        _handleBanKick();
+      }
+    }
   }
 
   void _handleBanKick() {
-     // Prevent multiple kicks
-     if (_legalExit) return; 
-     _legalExit = true; // Treat as exit to prevent loops
+    // Prevent multiple kicks
+    if (_legalExit) return;
+    _legalExit = true; // Treat as exit to prevent loops
 
-     showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            title: const Text('⛔ Acceso Denegado', style: TextStyle(color: AppTheme.dangerRed)),
-            content: const Text(
-              'Has sido baneado de esta competencia por un administrador.',
-              style: TextStyle(color: Colors.white),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () {
-                      // Kick to Scenarios Screen (List of competitions)
-                      Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => ScenariosScreen()),
-                          (route) => false 
-                      );
-                  },
-                  child: const Text('Entendido')
-              )
-            ],
-          ),
-      );
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('⛔ Acceso Denegado',
+            style: TextStyle(color: AppTheme.dangerRed)),
+        content: const Text(
+          'Has sido baneado de esta competencia por un administrador.',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () {
+                // Kick to Scenarios Screen (List of competitions)
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => ScenariosScreen()),
+                    (route) => false);
+              },
+              child: const Text('Entendido'))
+        ],
+      ),
+    );
   }
 
   Future<void> _checkLives() async {
@@ -244,7 +252,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
     // 1. Verificación preliminar con source-of-truth visual (PlayerProvider)
-    if (playerProvider.currentPlayer != null && playerProvider.currentPlayer!.lives > 0) {
+    if (playerProvider.currentPlayer != null &&
+        playerProvider.currentPlayer!.lives > 0) {
       // Si el perfil dice que tenemos vidas, CONFIAMOS EN ÉL y no bloqueamos.
       // Solo verificamos si GameProvider está desincronizado
       if (gameProvider.lives <= 0) {
@@ -252,25 +261,26 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         // Intentamos sincronizar pero SIN bloquear UI
         await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
       }
-      
+
       // Safe to monitor now
       _startLivesMonitoring();
-      return; 
+      return;
     }
 
     // 2. Si PlayerProvider dice 0 o es null, verificamos con GameProvider (Server)
     if (playerProvider.currentPlayer != null) {
       await gameProvider.fetchLives(playerProvider.currentPlayer!.userId);
-      
+
       // Volvemos a leer PlayerProvider por si acaso se actualizó en background
       final freshPlayerLives = playerProvider.currentPlayer?.lives ?? 0;
-      
+
       if (gameProvider.lives <= 0 && freshPlayerLives <= 0) {
         if (!mounted) return;
         // _showNoLivesDialog();
         // DO NOT start monitoring if we are dead.
       } else {
-        debugPrint("SYNC INFO: Vidas encontradas (Game: ${gameProvider.lives}, Player: $freshPlayerLives). Juego permitido.");
+        debugPrint(
+            "SYNC INFO: Vidas encontradas (Game: ${gameProvider.lives}, Player: $freshPlayerLives). Juego permitido.");
         // Lives found, start monitoring
         _startLivesMonitoring();
       }
@@ -286,22 +296,22 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   @override
   void dispose() {
     // WidgetsBinding.instance.removeObserver(this); // Removed
-    
+
     // --- MARCAR SALIDA DEL MINIJUEGO PARA CONNECTIVITY ---
     try {
       _connectivityProvider.exitMinigame();
     } catch (_) {}
-    
+
     // Limpiar listener de fin de carrera usando la referencia CACHEADA
     try {
       _gameProvider.removeListener(_checkRaceCompletion);
     } catch (_) {}
-    
+
     // Limpiar listener de monitoreo de vidas
     try {
       _gameProvider.removeListener(_checkGlobalLivesGameOver);
     } catch (_) {}
-    
+
     super.dispose();
   }
 
@@ -327,12 +337,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       //    Ya no confiamos ciegamente en el servidor si la UI local dice 0.
       //    La lógica "stricter" solicitada: Si CUALQUIERA dice 0, no pasas.
       bool forcedBlock = false;
-      
+
       // Check Status for realtime kick
       if (player != null && player.status == PlayerStatus.banned) {
-         // Schedule kick if not already doing it
-         WidgetsBinding.instance.addPostFrameCallback((_) => _checkBanStatus());
-         forcedBlock = true; // Block UI
+        // Schedule kick if not already doing it
+        WidgetsBinding.instance.addPostFrameCallback((_) => _checkBanStatus());
+        forcedBlock = true; // Block UI
       }
 
       if (player != null && player.lives <= 0) {
@@ -347,9 +357,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     Widget gameWidget;
     // Cast seguro solicitado
-    final onlineClue = widget.clue is OnlineClue ? widget.clue as OnlineClue : widget.clue;
+    final onlineClue =
+        widget.clue is OnlineClue ? widget.clue as OnlineClue : widget.clue;
     // Nota: Si pasamos PhysicalClue, usará el fallback de los getters virtuales.
-    
+
     // Pasamos _finishLegally a TODOS los hijos para que avisen antes de cerrar o ganar
     switch (onlineClue.puzzleType) {
       case PuzzleType.slidingPuzzle:
@@ -393,22 +404,36 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         gameWidget =
             ImageTriviaWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
-       case PuzzleType.wordScramble:
+      case PuzzleType.wordScramble:
         gameWidget =
             WordScrambleWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.chargeShaker:
+        gameWidget =
+            ChargeShakerWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.emojiMovie:
+        gameWidget =
+            EmojiMovieWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.virusTap:
+        gameWidget =
+            VirusTapWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.droneDodge:
+        gameWidget =
+            DroneDodgeWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       default:
         gameWidget = const Center(child: Text("Minijuego no implementado"));
     }
-
-
 
     // WRAPPER DE SEGURIDAD: Evitar salir sin penalización
     return PopScope(
       canPop: _legalExit || isSpectator,
       onPopInvoked: (didPop) async {
         if (didPop || _legalExit || isSpectator) return;
-        
+
         // Si intenta salir con Back, mostramos el diálogo de rendición (que cobra vida)
         showSkipDialog(context, _finishLegally);
       },
@@ -536,10 +561,10 @@ void showSkipDialog(BuildContext context, VoidCallback? onLegalExit) {
             }
 
             // Usamos dialogContext para cerrar el diálogo
-            Navigator.pop(dialogContext); 
+            Navigator.pop(dialogContext);
             // Usamos context (el argumento original de la función) para cerrar el PuzzleScreen
             if (context.mounted) {
-               Navigator.pop(context);
+              Navigator.pop(context);
             }
 
             // Deduct life logic
@@ -547,10 +572,10 @@ void showSkipDialog(BuildContext context, VoidCallback? onLegalExit) {
                 Provider.of<PlayerProvider>(context, listen: false);
             final gameProvider =
                 Provider.of<GameProvider>(context, listen: false);
-            
+
             if (playerProvider.currentPlayer != null) {
-               // USAR HELPER CENTRALIZADO
-               await MinigameLogicHelper.executeLoseLife(context);
+              // USAR HELPER CENTRALIZADO
+              await MinigameLogicHelper.executeLoseLife(context);
             }
 
             // No llamamos a skipCurrentClue(), simplemente salimos.
@@ -580,7 +605,7 @@ void showSkipDialog(BuildContext context, VoidCallback? onLegalExit) {
 void _showSuccessDialog(BuildContext context, Clue clue) async {
   final gameProvider = Provider.of<GameProvider>(context, listen: false);
   final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-  
+
   // [FIX] Capturar Navigator ANTES de cualquier operación async
   // Esto garantiza que podamos navegar incluso si el context padre cambia
   final navigator = Navigator.of(context);
@@ -604,9 +629,11 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
       result = {'success': true}; // Demo mode fallback
     } else {
       debugPrint('--- COMPLETING CLUE: ${clue.id} (XP: ${clue.xpReward}) ---');
-      result = await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "WIN");
+      result =
+          await gameProvider.completeCurrentClue(clue.riddleAnswer ?? "WIN");
       coinsEarned = result?['coins_earned'] ?? 0;
-      debugPrint('--- CLUE COMPLETION RESULT: ${result != null}, Coins Earned: $coinsEarned ---');
+      debugPrint(
+          '--- CLUE COMPLETION RESULT: ${result != null}, Coins Earned: $coinsEarned ---');
     }
   } catch (e) {
     debugPrint("Error completando pista: $e");
@@ -624,7 +651,8 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     if (playerProvider.currentPlayer != null) {
       debugPrint('--- REFRESHING PROFILE START ---');
       await playerProvider.refreshProfile();
-      debugPrint('--- REFRESHING PROFILE END. New Coins: ${playerProvider.currentPlayer?.coins} ---');
+      debugPrint(
+          '--- REFRESHING PROFILE END. New Coins: ${playerProvider.currentPlayer?.coins} ---');
     }
 
     // Check if race was completed or if player completed all clues
@@ -954,6 +982,78 @@ class WordScrambleWrapper extends StatelessWidget {
           }));
 }
 
+class ChargeShakerWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const ChargeShakerWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      ChargeShakerMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class EmojiMovieWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const EmojiMovieWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      EmojiMovieMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class VirusTapWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const VirusTapWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      VirusTapMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class DroneDodgeWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const DroneDodgeWrapper(
+      {super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      DroneDodgeMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
 // --- SCAFFOLD COMPARTIDO ACTUALIZADO (Soporta onFinish para Rendición Legal) ---
 
 String _getMinigameInstruction(Clue clue) {
@@ -984,8 +1084,10 @@ String _getMinigameInstruction(Clue clue) {
       return "Ordena las letras";
     default:
       // Si es un tipo estándar, verificamos por el título o descripción
-      if (clue.riddleQuestion?.contains("código") ?? false) return "Descifra el código";
-      if (clue.minigameUrl != null && clue.minigameUrl!.isNotEmpty) return "Adivina la imagen";
+      if (clue.riddleQuestion?.contains("código") ?? false)
+        return "Descifra el código";
+      if (clue.minigameUrl != null && clue.minigameUrl!.isNotEmpty)
+        return "Adivina la imagen";
       return "¡Resuelve el desafío!";
   }
 }
@@ -1015,22 +1117,22 @@ Widget _buildMinigameScaffold(
                 children: [
                   Column(
                     children: [
-                       // AppBar Personalizado
+                      // AppBar Personalizado
                       Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
                             if (player?.role == 'spectator')
                               IconButton(
-                                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                                icon: const Icon(Icons.arrow_back,
+                                    color: Colors.white),
                                 onPressed: () => Navigator.pop(context),
                               ),
                             const Spacer(),
-
                             if (player?.role != 'spectator') ...[
                               // INDICADOR DE VIDAS CON ANIMACIÓN
                               const ShieldBadge(), // NEW SHIELD WIDGET
-                            AnimatedLivesWidget(),
+                              AnimatedLivesWidget(),
                               const SizedBox(width: 10),
 
                               Container(
@@ -1039,7 +1141,8 @@ Widget _buildMinigameScaffold(
                                 decoration: BoxDecoration(
                                   color: AppTheme.accentGold.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(color: AppTheme.accentGold),
+                                  border:
+                                      Border.all(color: AppTheme.accentGold),
                                 ),
                                 child: Row(
                                   children: [
@@ -1066,7 +1169,8 @@ Widget _buildMinigameScaffold(
                               ),
                             ] else
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: Colors.blue.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(20),
@@ -1074,11 +1178,15 @@ Widget _buildMinigameScaffold(
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.visibility, color: Colors.blueAccent, size: 14),
+                                    Icon(Icons.visibility,
+                                        color: Colors.blueAccent, size: 14),
                                     SizedBox(width: 6),
                                     Text(
                                       'MODO ESPECTADOR',
-                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
@@ -1095,7 +1203,8 @@ Widget _buildMinigameScaffold(
                           currentPlayerId: player?.userId ?? '',
                           totalClues: game.clues.length,
                           onSurrender: () => showSkipDialog(context, onFinish),
-                          compact: clue.puzzleType == PuzzleType.tetris || clue.puzzleType == PuzzleType.hangman,
+                          compact: clue.puzzleType == PuzzleType.tetris ||
+                              clue.puzzleType == PuzzleType.hangman,
                         ),
                       ),
 
@@ -1112,18 +1221,20 @@ Widget _buildMinigameScaffold(
 
                   // EFECTO BLUR (Inyectado aquí)
                   // EFECTO BLUR (Inyectado aquí)
-                  if (context.watch<PowerEffectReader>().isPowerActive(PowerType.blur))
-                    Builder(
-                      builder: (context) {
-                         final expiry = context.read<PowerEffectReader>().getPowerExpirationByType(PowerType.blur);
-                         if (expiry != null) {
-                           return Positioned.fill(
-                             child: BlurScreenEffect(expiresAt: expiry),
-                           );
-                         }
-                         return const SizedBox.shrink();
+                  if (context
+                      .watch<PowerEffectReader>()
+                      .isPowerActive(PowerType.blur))
+                    Builder(builder: (context) {
+                      final expiry = context
+                          .read<PowerEffectReader>()
+                          .getPowerExpirationByType(PowerType.blur);
+                      if (expiry != null) {
+                        return Positioned.fill(
+                          child: BlurScreenEffect(expiresAt: expiry),
+                        );
                       }
-                    ),
+                      return const SizedBox.shrink();
+                    }),
 
                   // Efecto Visual de Daño (Flash Rojo) al perder vida
                   LossFlashOverlay(lives: game.lives),

@@ -8,49 +8,77 @@ enum ClueType {
 }
 
 enum PuzzleType {
-  slidingPuzzle, 
-  ticTacToe, 
+  slidingPuzzle,
+  ticTacToe,
   hangman,
-  tetris,         
-  findDifference, 
-  flags,          
-  minesweeper,    
-  snake,          
+  tetris,
+  findDifference,
+  flags,
+  minesweeper,
+  snake,
   blockFill,
   codeBreaker,
   imageTrivia,
-  wordScramble;      
+  wordScramble,
+  chargeShaker,
+  emojiMovie,
+  virusTap,
+  droneDodge;
 
   String get dbValue => toString().split('.').last;
 
   String get label {
     switch (this) {
-      case PuzzleType.ticTacToe: return '❌⭕ La Vieja (Tic Tac Toe)';
-      case PuzzleType.hangman: return '🔤 El Ahorcado';
-      case PuzzleType.slidingPuzzle: return '🧩 Rompecabezas (Sliding)';
-      case PuzzleType.tetris: return '🧱 Tetris';
-      case PuzzleType.findDifference: return '🔎 Encuentra la Diferencia';
-      case PuzzleType.flags: return '🏳️ Banderas (Quiz)';
-      case PuzzleType.minesweeper: return '💣 Buscaminas';
-      case PuzzleType.snake: return '🐍 Snake (Culebrita)';
-      case PuzzleType.blockFill: return '🟦 Rellenar Bloques';
-      case PuzzleType.codeBreaker: return '🔐 Caja Fuerte (Code)';
-      case PuzzleType.imageTrivia: return '🖼️ Desafío Visual (Trivia)';
-      case PuzzleType.wordScramble: return '🔤 Palabra Misteriosa';
+      case PuzzleType.ticTacToe:
+        return '❌⭕ La Vieja (Tic Tac Toe)';
+      case PuzzleType.hangman:
+        return '🔤 El Ahorcado';
+      case PuzzleType.slidingPuzzle:
+        return '🧩 Rompecabezas (Sliding)';
+      case PuzzleType.tetris:
+        return '🧱 Tetris';
+      case PuzzleType.findDifference:
+        return '🔎 Encuentra la Diferencia';
+      case PuzzleType.flags:
+        return '🏳️ Banderas (Quiz)';
+      case PuzzleType.minesweeper:
+        return '💣 Buscaminas';
+      case PuzzleType.snake:
+        return '🐍 Snake (Culebrita)';
+      case PuzzleType.blockFill:
+        return '🟦 Rellenar Bloques';
+      case PuzzleType.codeBreaker:
+        return '🔐 Caja Fuerte (Code)';
+      case PuzzleType.imageTrivia:
+        return '🖼️ Trivia de Imagen';
+      case PuzzleType.wordScramble:
+        return '🔠 Ordenar Palabras';
+      case PuzzleType.chargeShaker:
+        return '⚡ Agitar Carga';
+      case PuzzleType.emojiMovie:
+        return '🎬 Adivina Película';
+      case PuzzleType.virusTap:
+        return '🦠 Virus Tap (Whack-a-Mole)';
+      case PuzzleType.droneDodge:
+        return '🚁 Drone Esquiva';
     }
   }
 
   bool get isAutoValidation {
     switch (this) {
       case PuzzleType.ticTacToe:
-      case PuzzleType.slidingPuzzle:      
+      case PuzzleType.slidingPuzzle:
       case PuzzleType.tetris:
       case PuzzleType.findDifference:
       case PuzzleType.flags:
       case PuzzleType.minesweeper:
       case PuzzleType.snake:
       case PuzzleType.blockFill:
-        return true; 
+      case PuzzleType.chargeShaker:
+      case PuzzleType.emojiMovie:
+      case PuzzleType.virusTap:
+      case PuzzleType.droneDodge:
+        return true;
       default:
         return false;
     }
@@ -58,18 +86,38 @@ enum PuzzleType {
 
   String get defaultQuestion {
     switch (this) {
-      case PuzzleType.ticTacToe: return 'Gana una partida contra la IA';
-      case PuzzleType.slidingPuzzle: return 'Ordena la imagen correctamente';
-      case PuzzleType.hangman: return 'Pista sobre la palabra...';
-      case PuzzleType.tetris: return 'Alcanza el puntaje objetivo';
-      case PuzzleType.findDifference: return 'Encuentra el icono diferente';
-      case PuzzleType.flags: return 'Adivina 5 banderas correctamente';
-      case PuzzleType.minesweeper: return 'Descubre todas las casillas seguras';
-      case PuzzleType.snake: return 'Come 15 manzanas sin chocar';
-      case PuzzleType.blockFill: return 'Rellena todo el camino';
-      case PuzzleType.codeBreaker: return 'Descifra el código de 4 dígitos';
-      case PuzzleType.imageTrivia: return '¿Qué es lo que ves en la imagen?';
-      case PuzzleType.wordScramble: return 'Ordena las letras para formar la palabra';
+      case PuzzleType.ticTacToe:
+        return 'Gana una partida contra la IA';
+      case PuzzleType.slidingPuzzle:
+        return 'Ordena la imagen correctamente';
+      case PuzzleType.hangman:
+        return 'Pista sobre la palabra...';
+      case PuzzleType.tetris:
+        return 'Alcanza el puntaje objetivo';
+      case PuzzleType.findDifference:
+        return 'Encuentra el icono diferente';
+      case PuzzleType.flags:
+        return 'Adivina 5 banderas correctamente';
+      case PuzzleType.minesweeper:
+        return 'Descubre todas las casillas seguras';
+      case PuzzleType.snake:
+        return 'Come 15 manzanas sin chocar';
+      case PuzzleType.blockFill:
+        return 'Rellena todo el camino';
+      case PuzzleType.codeBreaker:
+        return 'Descifra el código de 4 dígitos';
+      case PuzzleType.imageTrivia:
+        return '¿Qué es lo que ves en la imagen?';
+      case PuzzleType.wordScramble:
+        return 'Ordena las letras para formar la palabra';
+      case PuzzleType.chargeShaker:
+        return '¡Agita el celular para cargar la batería!';
+      case PuzzleType.emojiMovie:
+        return 'Adivina la película con los emojis';
+      case PuzzleType.virusTap:
+        return 'Elimina 15 virus antes de que acabe el tiempo';
+      case PuzzleType.droneDodge:
+        return 'Sobrevive 30 segundos esquivando los obstáculos';
     }
   }
 }
@@ -86,7 +134,7 @@ abstract class Clue {
   bool isCompleted;
   bool isLocked;
   final int sequenceIndex;
-  
+
   // Universal coordinates for all clue types (including Minigames)
   final double? latitude;
   final double? longitude;
@@ -118,13 +166,14 @@ abstract class Clue {
   String? get minigameUrl => null;
   String? get riddleQuestion => null;
   String? get riddleAnswer => null;
-  PuzzleType get puzzleType => PuzzleType.slidingPuzzle; 
-  
+  PuzzleType get puzzleType => PuzzleType.slidingPuzzle;
+
   factory Clue.fromJson(Map<String, dynamic> json) {
     // Safety check for image URLs in JSON
     String? image = json['image_url'];
-    if (image != null && (image.contains('C:/') || image.contains('file:///'))) {
-       // local path handling
+    if (image != null &&
+        (image.contains('C:/') || image.contains('file:///'))) {
+      // local path handling
     }
 
     final typeStr = json['type'] as String?;
@@ -246,13 +295,12 @@ class OnlineClue extends Clue {
       minigameUrl: json['minigame_url'],
       riddleQuestion: json['riddle_question'],
       riddleAnswer: json['riddle_answer'],
-      puzzleType: json['puzzle_type'] != null 
-        ? PuzzleType.values.firstWhere(
-            (e) => e.toString().split('.').last == json['puzzle_type'],
-            orElse: () => PuzzleType.slidingPuzzle,
-          )
-        : PuzzleType.slidingPuzzle,
-
+      puzzleType: json['puzzle_type'] != null
+          ? PuzzleType.values.firstWhere(
+              (e) => e.toString().split('.').last == json['puzzle_type'],
+              orElse: () => PuzzleType.slidingPuzzle,
+            )
+          : PuzzleType.slidingPuzzle,
       xpReward: (json['xp_reward'] as num?)?.toInt() ?? 50,
       // coinReward: (json['coin_reward'] as num?)?.toInt() ?? 10, // REMOVED
       isCompleted: json['isCompleted'] ?? json['is_completed'] ?? false,
