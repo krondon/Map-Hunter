@@ -461,49 +461,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             WordScrambleWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       case PuzzleType.memorySequence:
-        gameWidget = MemorySequenceMinigame(
-          clue: widget.clue,
-          onSuccess: () {
-            _finishLegally();
-            _showSuccessDialog(context, widget.clue);
-          },
-        );
+        gameWidget = MemorySequenceWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       case PuzzleType.drinkMixer:
-        gameWidget = DrinkMixerMinigame(
-          clue: widget.clue,
-          onSuccess: () {
-            _finishLegally();
-            _showSuccessDialog(context, widget.clue);
-          },
-        );
+        gameWidget = DrinkMixerWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       case PuzzleType.librarySort:
-        gameWidget = LibrarySortMinigame(
-          clue: widget.clue,
-          onSuccess: () {
-            _finishLegally();
-            _showSuccessDialog(context, widget.clue);
-          },
-        );
+        gameWidget = LibrarySortWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       case PuzzleType.fastNumber:
-        gameWidget = FastNumberMinigame(
-          clue: widget.clue,
-          onSuccess: () {
-            _finishLegally();
-            _showSuccessDialog(context, widget.clue);
-          },
-        );
+        gameWidget = FastNumberWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       case PuzzleType.bagShuffle:
-        gameWidget = BagShuffleMinigame(
-          clue: widget.clue,
-          onSuccess: () {
-            _finishLegally();
-            _showSuccessDialog(context, widget.clue);
-          },
-        );
+        gameWidget = BagShuffleWrapper(clue: widget.clue, onFinish: _finishLegally);
         break;
       default:
         gameWidget = const Center(child: Text("Minijuego no implementado"));
@@ -1062,6 +1032,91 @@ class WordScrambleWrapper extends StatelessWidget {
           }));
 }
 
+class MemorySequenceWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const MemorySequenceWrapper({super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      MemorySequenceMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class DrinkMixerWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const DrinkMixerWrapper({super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      DrinkMixerMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class LibrarySortWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const LibrarySortWrapper({super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      LibrarySortMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class FastNumberWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const FastNumberWrapper({super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      FastNumberMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
+class BagShuffleWrapper extends StatelessWidget {
+  final Clue clue;
+  final VoidCallback onFinish;
+  const BagShuffleWrapper({super.key, required this.clue, required this.onFinish});
+  @override
+  Widget build(BuildContext context) => _buildMinigameScaffold(
+      context,
+      clue,
+      onFinish,
+      BagShuffleMinigame(
+          clue: clue,
+          onSuccess: () {
+            onFinish();
+            _showSuccessDialog(context, clue);
+          }));
+}
+
 // --- SCAFFOLD COMPARTIDO ACTUALIZADO (Soporta onFinish para Rendición Legal) ---
 
 String _getMinigameInstruction(Clue clue) {
@@ -1090,6 +1145,16 @@ String _getMinigameInstruction(Clue clue) {
       return "Adivina la imagen";
     case PuzzleType.wordScramble:
       return "Ordena las letras";
+    case PuzzleType.memorySequence:
+      return "Recuerda la secuencia";
+    case PuzzleType.drinkMixer:
+      return "Iguala el cóctel";
+    case PuzzleType.librarySort:
+      return "Ordena por tonalidad";
+    case PuzzleType.fastNumber:
+      return "Captura el número";
+    case PuzzleType.bagShuffle:
+      return "Sigue la bolsa";
     default:
       // Si es un tipo estándar, verificamos por el título o descripción
       if (clue.riddleQuestion?.contains("código") ?? false) return "Descifra el código";

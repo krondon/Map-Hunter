@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +11,6 @@ import 'game_over_overlay.dart';
 import '../race_track_widget.dart';
 import '../../utils/minigame_logic_helper.dart';
 import '../../../../shared/widgets/animated_cyber_background.dart';
-import '../../../mall/screens/mall_screen.dart';
 
 class LibrarySortMinigame extends StatefulWidget {
   final Clue clue;
@@ -50,7 +49,6 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
   String _overlayMessage = "";
   bool _canRetry = false;
   bool _isVictory = false;
-  bool _showShopButton = false;
 
   @override
   void initState() {
@@ -115,7 +113,7 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
 
   void _handleTimeOut() {
     _timer.cancel();
-    _loseLife("¡Tiempo agotado!");
+    _loseLife("┬íTiempo agotado!");
   }
 
   void _checkVictory() {
@@ -134,7 +132,7 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
     HapticFeedback.heavyImpact();
     _showOverlayState(
       title: "ARCHIVO RESTAURADO",
-      message: "Has ordenado todos los núcleos de datos.",
+      message: "Has ordenado todos los n├║cleos de datos.",
       victory: true,
     );
   }
@@ -177,160 +175,193 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Column(
-          children: [
-            const SizedBox(height: 5),
+    final gameProvider = Provider.of<GameProvider>(context);
+    final player = context.watch<PlayerProvider>().currentPlayer;
 
-            // BARRA DE ESTADO (Vidas, Progreso y Tiempo)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              child: Row(
-                children: [
-                  _buildStatPill(Icons.favorite, "x${Provider.of<GameProvider>(context).lives}", AppTheme.dangerRed),
-                  const SizedBox(width: 8),
-                  _buildStatPill(Icons.inventory_2_outlined, "${_shelfSlots.where((s) => s.placedBook != null).length}/${_shelfSlots.length}", AppTheme.accentGold),
-                  const Spacer(),
-                  _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 5),
-
-            // TITLE & INSTRUCTIONS
-            const Text(
-              "BIBLIOTECA DE DATOS",
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5, decoration: TextDecoration.none),
-            ),
-            const Text(
-              "Ordena los núcleos por color para restaurar el archivo.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 10, decoration: TextDecoration.none),
-            ),
-
-            // THE LIBRARY SHELF (Slots) - EXPANDED TO FIT
-            Expanded(
-              flex: 3,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black38,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.white10),
-                  boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10)],
-                ),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 10,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          const AnimatedCyberBackground(),
+          
+          SafeArea(
+            child: Column(
+              children: [
+                // 1. TOP HEADER (Requested: Lives, XP and Flag Icon at the top right)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _buildStatPill(Icons.favorite, "x${gameProvider.lives}", AppTheme.dangerRed),
+                      const SizedBox(width: 8),
+                      _buildStatPill(Icons.star, "+50 XP", Colors.amber),
+                      const SizedBox(width: 10),
+                      IconButton(
+                        onPressed: _handleGiveUp,
+                        icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 22),
+                        tooltip: 'Rendirse',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
                   ),
-                  itemCount: _shelfSlots.length,
-                  itemBuilder: (context, index) => _buildShelfSlot(_shelfSlots[index]),
                 ),
-              ),
-            ),
 
-            // THE SCATTERED BOOKS (Source tray)
-            Container(
-              height: 100,
-              width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("LIBROS PENDIENTES", style: TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
-                  Expanded(
-                    child: _missingBooks.isEmpty 
-                      ? const Center(child: Text("¡Todos colocados!", style: TextStyle(color: AppTheme.successGreen, decoration: TextDecoration.none, fontSize: 11)))
-                      : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _missingBooks.length,
-                          itemBuilder: (context, index) {
-                            final book = _missingBooks[index];
-                            return Draggable<BookModel>(
-                              data: book,
-                              feedback: Material(
-                                color: Colors.transparent,
-                                child: Opacity(
-                                  opacity: 0.8,
-                                  child: _buildBookCore(book, isDragging: true),
-                                ),
-                              ),
-                              childWhenDragging: Opacity(
-                                opacity: 0.3,
-                                child: _buildBookCore(book),
-                              ),
+                // 2. RACE TRACK
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RaceTrackWidget(
+                    leaderboard: gameProvider.leaderboard,
+                    currentPlayerId: player?.userId ?? '',
+                    totalClues: gameProvider.clues.length,
+                  ),
+                ),
+
+                // 3. SUB-HEADER (Requested: Timer and Lives BELOW race)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                  child: Row(
+                    children: [
+                      // Lives Design matched to reference image (simple heart + text)
+                      Row(
+                        children: [
+                          const Icon(Icons.favorite, color: AppTheme.dangerRed, size: 24),
+                          const SizedBox(width: 8),
+                          Text(
+                            "x${gameProvider.lives}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      // Timer
+                      _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // 3. TITLE & INSTRUCTIONS (Smaller to fit more content)
+                const Text(
+                  "BIBLIOTECA DE DATOS",
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 2),
+                  child: Text(
+                    "Ordena los n├║cleos por color.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white54, fontSize: 10),
+                  ),
+                ),
+
+                // 4. THE LIBRARY SHELF (Slots)
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black38,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white10),
+                      boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 10)],
+                    ),
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 6,
+                        childAspectRatio: 0.6,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _shelfSlots.length,
+                      itemBuilder: (context, index) {
+                        final slot = _shelfSlots[index];
+                        return _buildShelfSlot(slot);
+                      },
+                    ),
+                  ),
+                ),
+
+                // 5. THE SCATTERED BOOKS (Source tray)
+                Container(
+                  height: 100,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: _missingBooks.isEmpty 
+                    ? const Center(child: Text("┬íTodos colocados!", style: TextStyle(color: Colors.white30)))
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _missingBooks.length,
+                        itemBuilder: (context, index) {
+                          final book = _missingBooks[index];
+                          return Draggable<BookModel>(
+                            data: book,
+                            feedback: Opacity(
+                              opacity: 0.8,
+                              child: _buildBookCore(book, isDragging: true),
+                            ),
+                            childWhenDragging: Opacity(
+                              opacity: 0.3,
                               child: _buildBookCore(book),
-                            );
-                          },
-                        ),
+                            ),
+                            child: _buildBookCore(book),
+                          );
+                        },
+                      ),
+                ),
+
+                // 6. SURRENDER
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: OutlinedButton(
+                    onPressed: _handleGiveUp,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      side: const BorderSide(color: AppTheme.dangerRed, width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text("RENDIRSE", style: TextStyle(color: AppTheme.dangerRed, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                ],
-              ),
-            ),
-
-            // SURRENDER BUTTON
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: OutlinedButton(
-                onPressed: _handleGiveUp,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 40),
-                  side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.4), width: 1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: Text(
-                  "RENDIRSE",
-                  style: TextStyle(color: AppTheme.dangerRed.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ],
             ),
-            const SizedBox(height: 10),
-          ],
-        ),
-
-        if (_showOverlay)
-          GameOverOverlay(
-            title: _overlayTitle,
-            message: _overlayMessage,
-            isVictory: _isVictory,
-            onRetry: _canRetry ? () {
-              setState(() {
-                _showOverlay = false;
-                _isGameOver = false;
-                _isVictory = false;
-                _secondsRemaining = 45;
-                _initializeGame();
-                _startTimer();
-              });
-            } : null,
-            onGoToShop: _showShopButton ? () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
-              if (mounted) {
-                setState(() {
-                  _canRetry = true;
-                  _showShopButton = false;
-                });
-              }
-            } : null,
-            onExit: () {
-               if (_isVictory) widget.onSuccess();
-               Navigator.pop(context);
-            },
           ),
-      ],
+
+          if (_showOverlay)
+            GameOverOverlay(
+              title: _overlayTitle,
+              message: _overlayMessage,
+              isVictory: _isVictory,
+              onRetry: _canRetry ? () {
+                setState(() {
+                  _showOverlay = false;
+                  _isGameOver = false;
+                  _isVictory = false;
+                  _secondsRemaining = 45;
+                  _initializeGame();
+                  _startTimer();
+                });
+              } : null,
+              onExit: () {
+                if (_isVictory) widget.onSuccess();
+                Navigator.pop(context);
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -392,8 +423,11 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
                   size: 24,
                 ),
               ),
+              // Directional indicator
               Positioned(
-                bottom: 4, left: 0, right: 0,
+                bottom: 4,
+                left: 0,
+                right: 0,
                 child: Container(
                   height: 3,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -413,7 +447,7 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
   Widget _buildBookCore(BookModel book, {bool isDragging = false, bool isFixed = false}) {
     return Container(
       width: 48,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(6),
@@ -454,17 +488,32 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
         ),
         child: Stack(
           children: [
-            Positioned(top: 10, left: 0, right: 0, child: Container(height: 2, color: Colors.black26)),
-            Positioned(top: 14, left: 0, right: 0, child: Container(height: 1, color: Colors.white10)),
-            Positioned(bottom: 10, left: 0, right: 0, child: Container(height: 2, color: Colors.black26)),
-            Positioned(bottom: 14, left: 0, right: 0, child: Container(height: 1, color: Colors.white10)),
+            // Spine Ribs (Realistic book detail)
+            Positioned(
+              top: 10, left: 0, right: 0,
+              child: Container(height: 2, color: Colors.black26),
+            ),
+            Positioned(
+              top: 14, left: 0, right: 0,
+              child: Container(height: 1, color: Colors.white10),
+            ),
+            Positioned(
+              bottom: 10, left: 0, right: 0,
+              child: Container(height: 2, color: Colors.black26),
+            ),
+            Positioned(
+              bottom: 14, left: 0, right: 0,
+              child: Container(height: 1, color: Colors.white10),
+            ),
             
+            // Central Label / Author area
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 20, height: 35,
+                    width: 25,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(2),
@@ -473,11 +522,11 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: List.generate(4, (index) => 
-                        Container(width: 12, height: 1.5, color: Colors.white24)
+                        Container(width: 15, height: 1.5, color: Colors.white24)
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 5),
                   Icon(
                     isFixed ? Icons.lock_clock_outlined : Icons.auto_stories,
                     color: Colors.white30,
@@ -487,6 +536,14 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
               ),
             ),
             
+            // Top Badge
+            Positioned(
+              top: 2,
+              right: 2,
+              child: Icon(Icons.star, color: Colors.white.withOpacity(0.1), size: 10),
+            ),
+
+            // Shine overlay
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -509,7 +566,7 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
 
   Widget _buildStatPill(IconData icon, String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -520,7 +577,7 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
         children: [
           Icon(icon, color: color, size: 14),
           const SizedBox(width: 6),
-          Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, decoration: TextDecoration.none)),
+          Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
         ],
       ),
     );

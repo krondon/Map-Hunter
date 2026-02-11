@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -118,7 +118,7 @@ class _DrinkMixerMinigameState extends State<DrinkMixerMinigame> {
 
   void _handleTimeOut() {
     _timer.cancel();
-    _loseLife("¡Tiempo agotado!");
+    _loseLife("┬íTiempo agotado!");
   }
 
   void _addRed() {
@@ -233,254 +233,195 @@ class _DrinkMixerMinigameState extends State<DrinkMixerMinigame> {
 
   @override
   Widget build(BuildContext context) {
-    final gameProvider = Provider.of<GameProvider>(context);
-    final player = context.watch<PlayerProvider>().currentPlayer;
     final currentColor = _getCurrentColor();
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Material(
-        color: Colors.transparent,
-        child: Stack(
-          children: [
-            const AnimatedCyberBackground(),
-            
-            SafeArea(
-              child: Column(
-                children: [
-                   // 1. TOP HEADER (Requested: Lives, XP, Flag Icon at the top right)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        _buildStatPill(Icons.favorite, "x${gameProvider.lives}", AppTheme.dangerRed),
-                        const SizedBox(width: 8),
-                        _buildStatPill(Icons.star, "+50 XP", Colors.amber),
-                        const SizedBox(width: 10),
-                        IconButton(
-                          onPressed: _handleGiveUp,
-                          icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 22),
-                          tooltip: 'Rendirse',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                  ),
+    return Stack(
+      children: [
+        // Content Area 
+        SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const SizedBox(height: 5),
 
-                  // 2. LIVE RACE (FULL SIZE)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: RaceTrackWidget(
-                      leaderboard: gameProvider.leaderboard,
-                      currentPlayerId: player?.userId ?? '',
-                      totalClues: gameProvider.clues.length,
-                    ),
+                // BARRA DE ESTADO (Vidas, Progreso y Tiempo)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Row(
+                    children: [
+                      _buildStatPill(Icons.favorite, "x${Provider.of<GameProvider>(context).lives}", AppTheme.dangerRed),
+                      const SizedBox(width: 8),
+                      _buildStatPill(Icons.local_bar, "$_cocktailsServed/$_targetCocktails", AppTheme.accentGold),
+                      const Spacer(),
+                      _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
+                    ],
                   ),
+                ),
 
-                  // 3. SUB-HEADER (Requested: Timer and Progress BELOW race)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 5),
-                    child: Row(
-                      children: [
-                        _buildStatPill(Icons.local_bar, "$_cocktailsServed/$_targetCocktails", AppTheme.accentGold),
-                        const Spacer(),
-                        _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
-                      ],
+                const SizedBox(height: 15),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // VERTICAL CONTROLS
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildVertButton("RED", _cRed, _addRed),
+                          const SizedBox(height: 12),
+                          _buildVertButton("BLUE", _cBlue, _addBlue),
+                          const SizedBox(height: 12),
+                          _buildVertButton("YEL", _cYellow, _addYellow),
+                          const SizedBox(height: 15),
+                          IconButton(
+                            onPressed: _resetMix,
+                            icon: const Icon(Icons.refresh, color: Colors.white38, size: 20),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  // 4. MAIN GAME CONTENT (Scrollable to prevent glitch)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 10),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                    
+                    // THE MIXER INTERFACE
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text(
+                            "IGUALA EL CÓCTEL",
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5, decoration: TextDecoration.none),
+                          ),
+                          const Text(
+                            "Mezcla los ingredientes para igualar el color objetivo.",
+                            style: TextStyle(color: Colors.white38, fontSize: 9, fontStyle: FontStyle.italic, decoration: TextDecoration.none),
+                          ),
+                          const SizedBox(height: 15),
+                          // COMPARISON
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildColorCircle("OBJETIVO", _targetColor),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                child: Icon(Icons.compare_arrows, color: Colors.white12, size: 16),
+                              ),
+                              _buildColorCircle("TU MEZCLA", currentColor),
+                            ],
+                          ),
+                          const SizedBox(height: 15),
+                          // COMPACT GLASS
+                          Container(
+                            width: 80,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: const BorderRadius.only(
+                                bottomLeft: Radius.circular(30),
+                                bottomRight: Radius.circular(30),
+                                topLeft: Radius.circular(5),
+                                topRight: Radius.circular(5),
+                              ),
+                              border: Border.all(color: Colors.white12, width: 2),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
                               children: [
-                                // VERTICAL CONTROLS
-                                Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  width: double.infinity,
+                                  height: 100 * ((_redAmount + _blueAmount + _yellowAmount) / 1.0).clamp(0.0, 1.0),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.04),
-                                    borderRadius: BorderRadius.circular(15),
-                                    border: Border.all(color: Colors.white10),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      _buildVertButton("RED", _cRed, _addRed),
-                                      const SizedBox(height: 12),
-                                      _buildVertButton("BLUE", _cBlue, _addBlue),
-                                      const SizedBox(height: 12),
-                                      _buildVertButton("YEL", _cYellow, _addYellow),
-                                      const SizedBox(height: 15),
-                                      IconButton(
-                                        onPressed: _resetMix,
-                                        icon: const Icon(Icons.refresh, color: Colors.white38, size: 20),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                
-                                // THE MIXER INTERFACE
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        "IGUALA EL CÓCTEL",
-                                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5, decoration: TextDecoration.none),
-                                      ),
-                                      const Text(
-                                        "Mezcla los ingredientes para igualar el color objetivo.",
-                                        style: TextStyle(color: Colors.white38, fontSize: 9, fontStyle: FontStyle.italic, decoration: TextDecoration.none),
-                                      ),
-                                      const SizedBox(height: 15),
-                                      // COMPARISON
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          _buildColorCircle("OBJETIVO", _targetColor),
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(horizontal: 10),
-                                            child: Icon(Icons.compare_arrows, color: Colors.white12, size: 16),
-                                          ),
-                                          _buildColorCircle("TU MEZCLA", currentColor),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 15),
-                                      // COMPACT GLASS
-                                      Container(
-                                        width: 80,
-                                        height: 100,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.05),
-                                          borderRadius: const BorderRadius.only(
-                                            bottomLeft: Radius.circular(30),
-                                            bottomRight: Radius.circular(30),
-                                            topLeft: Radius.circular(5),
-                                            topRight: Radius.circular(5),
-                                          ),
-                                          border: Border.all(color: Colors.white12, width: 2),
-                                        ),
-                                        child: Stack(
-                                          alignment: Alignment.bottomCenter,
-                                          children: [
-                                            AnimatedContainer(
-                                              duration: const Duration(milliseconds: 250),
-                                              width: double.infinity,
-                                              height: 100 * ((_redAmount + _blueAmount + _yellowAmount) / 1.0).clamp(0.0, 1.0),
-                                              decoration: BoxDecoration(
-                                                color: currentColor,
-                                                borderRadius: const BorderRadius.only(
-                                                  bottomLeft: Radius.circular(28),
-                                                  bottomRight: Radius.circular(28),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 15),
-                                      // SERVE BUTTON
-                                      SizedBox(
-                                        width: 140,
-                                        child: ElevatedButton(
-                                          onPressed: _checkMix,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppTheme.accentGold,
-                                            foregroundColor: Colors.black,
-                                            padding: const EdgeInsets.symmetric(vertical: 14),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          child: const Text("SERVIR CÓCTEL", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
-                                        ),
-                                      ),
-                                    ],
+                                    color: currentColor,
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(28),
+                                      bottomRight: Radius.circular(28),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 80),
-                            // 5. SURRENDER (Matched to reference image)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                              child: OutlinedButton(
-                                onPressed: _handleGiveUp,
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 50),
-                                  side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.8), width: 1.2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  backgroundColor: Colors.transparent,
-                                  elevation: 0,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.flag_outlined, size: 16, color: AppTheme.dangerRed.withOpacity(0.9)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "RENDIRSE",
-                                      style: TextStyle(
-                                        color: AppTheme.dangerRed.withOpacity(0.9),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          ),
+                          const SizedBox(height: 15),
+                          // SERVE BUTTON
+                          SizedBox(
+                            width: 140,
+                            child: ElevatedButton(
+                              onPressed: _checkMix,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentGold,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
+                              child: const Text("SERVIR CÓCTEL", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
                             ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                
+                // BOTÓN DE RENDICIÓN ABAJO
+                Padding(
+                  padding: EdgeInsets.zero,
+                  child: OutlinedButton(
+                    onPressed: _handleGiveUp,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 45),
+                      side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.6), width: 1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text(
+                      "RENDIRSE",
+                      style: TextStyle(color: AppTheme.dangerRed.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 30),
+              ],
             ),
-
-            if (_showOverlay)
-              GameOverOverlay(
-                title: _overlayTitle,
-                message: _overlayMessage,
-                isVictory: _isVictory,
-                onRetry: _canRetry ? () {
-                  setState(() {
-                    _showOverlay = false;
-                    _isGameOver = false;
-                    _isVictory = false;
-                    _cocktailsServed = 0;
-                    _secondsRemaining = 90;
-                    _generateTarget();
-                    _startTimer();
-                  });
-                } : null,
-                onGoToShop: _showShopButton ? () async {
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
-                  if (context.mounted) {
-                    setState(() {
-                      _canRetry = true;
-                      _showShopButton = false;
-                      _overlayMessage = "¡Vidas recargadas!";
-                    });
-                  }
-                } : null,
-                onExit: () {
-                   if (_isVictory) widget.onSuccess();
-                   Navigator.pop(context);
-                },
-              ),
-          ],
+          ),
         ),
-      ),
+
+        if (_showOverlay)
+          GameOverOverlay(
+            title: _overlayTitle,
+            message: _overlayMessage,
+            isVictory: _isVictory,
+            onRetry: _canRetry ? () {
+              setState(() {
+                _showOverlay = false;
+                _isGameOver = false;
+                _isVictory = false;
+                _cocktailsServed = 0;
+                _secondsRemaining = 90;
+                _generateTarget();
+                _startTimer();
+              });
+            } : null,
+            onGoToShop: _showShopButton ? () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
+              if (context.mounted) {
+                setState(() {
+                  _canRetry = true;
+                  _showShopButton = false;
+                  _overlayMessage = "¡Vidas recargadas!";
+                });
+              }
+            } : null,
+            onExit: () {
+               if (_isVictory) widget.onSuccess();
+               Navigator.pop(context);
+            },
+          ),
+      ],
     );
   }
 

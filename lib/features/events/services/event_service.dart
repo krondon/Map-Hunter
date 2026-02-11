@@ -91,7 +91,6 @@ class EventService {
           'riddle_question': clue['riddle_question'],
           'riddle_answer': clue['riddle_answer'],
           'xp_reward': clue['xp_reward'] ?? 50,
-          'coin_reward': clue['coin_reward'] ?? 10,
           'sequence_index': i + 1, // Guardamos el orden explícito
         });
       }
@@ -283,7 +282,6 @@ class EventService {
         'riddle_question': (clue is OnlineClue) ? (clue as OnlineClue).riddleQuestion : null,
         'riddle_answer': (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
         'xp_reward': clue.xpReward,
-        'coin_reward': clue.coinReward,
         'latitude': (clue is PhysicalClue) ? (clue as PhysicalClue).latitude : null,
         'longitude': (clue is PhysicalClue) ? (clue as PhysicalClue).longitude : null,
         'hint': clue.hint,
@@ -324,7 +322,6 @@ class EventService {
         'riddle_question': (clue is OnlineClue) ? (clue as OnlineClue).riddleQuestion : null,
         'riddle_answer': (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
         'xp_reward': clue.xpReward,
-        'coin_reward': clue.coinReward,
         'sequence_index': clue.sequenceIndex > 0 ? clue.sequenceIndex : nextOrder, // Use provided index if valid
         'latitude': (clue is PhysicalClue) ? (clue as PhysicalClue).latitude : null,
         'longitude': (clue is PhysicalClue) ? (clue as PhysicalClue).longitude : null,

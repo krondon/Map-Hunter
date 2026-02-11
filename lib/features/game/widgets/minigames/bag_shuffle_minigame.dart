@@ -11,6 +11,7 @@ import 'game_over_overlay.dart';
 import '../race_track_widget.dart';
 import '../../utils/minigame_logic_helper.dart';
 import '../../../../shared/widgets/animated_cyber_background.dart';
+import '../../../mall/screens/mall_screen.dart';
 
 class BagShuffleMinigame extends StatefulWidget {
   final Clue clue;
@@ -57,6 +58,7 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
   String _overlayMessage = "";
   bool _canRetry = false;
   bool _isVictory = false;
+  bool _showShopButton = false; // Added missing member
 
   @override
   void initState() {
@@ -233,142 +235,148 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
 
   @override
   Widget build(BuildContext context) {
-    final gameProvider = Provider.of<GameProvider>(context);
-    final player = context.watch<PlayerProvider>().currentPlayer;
+    return Stack(
+      children: [
+        Column(
+          children: [
+            const SizedBox(height: 5),
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          const AnimatedCyberBackground(),
-          
-          SafeArea(
-            child: Column(
-              children: [
-                // HEADER
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildStatPill(Icons.favorite, "x${gameProvider.lives}", AppTheme.dangerRed),
-                      const SizedBox(width: 8),
-                      _buildStatPill(Icons.star, "+50 XP", Colors.amber),
-                      const SizedBox(width: 10),
-                      IconButton(
-                        onPressed: _handleGiveUp,
-                        icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 22),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
+            // BARRA DE ESTADO (Vidas y Tiempo)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: Row(
+                children: [
+                  _buildStatPill(Icons.favorite, "x${Provider.of<GameProvider>(context).lives}", AppTheme.dangerRed),
+                  const Spacer(),
+                  _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
+                ],
+              ),
+            ),
 
-                // RACE TRACK
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: RaceTrackWidget(
-                    leaderboard: gameProvider.leaderboard,
-                    currentPlayerId: player?.userId ?? '',
-                    totalClues: gameProvider.clues.length,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // SUB-HEADER: Lives & Timer
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.favorite, color: AppTheme.dangerRed, size: 24),
-                          const SizedBox(width: 8),
-                          Text(
-                            "x${gameProvider.lives}",
-                            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // OBJECTIVE BOX
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "OBJETIVO:",
-                        style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 2),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        _state == GameState.idle ? "ESPERANDO..." : "¿DÓNDE ESTÁ EL ${_getColorName(_targetColor)}?",
-                        style: TextStyle(
-                          color: _targetColor, 
-                          fontSize: 22, 
-                          fontWeight: FontWeight.w900, 
-                          letterSpacing: 1,
-                          shadows: [Shadow(color: _targetColor.withOpacity(0.5), blurRadius: 10)]
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // GAME BOARD
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Stack(
-                      children: _bags.map((bag) => _buildAnimatedBag(bag)).toList(),
+            const SizedBox(height: 10),
+            
+            // STATUS & TARGET INFO
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _state == GameState.showing 
+                        ? "MEMORIZA LA POSICIÓN"
+                        : _state == GameState.shuffling
+                          ? "¡AQUÍ VAN!"
+                          : "TOCA LA BOLSA CORRECTA",
+                      style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, decoration: TextDecoration.none),
                     ),
                   ),
+                  if (_state != GameState.shuffling) ...[
+                    const Text("BUSCA: ", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: _targetColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white),
+                      ),
+                    ),
+                  ]
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // GAME AREA
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Stack(
+                  children: [
+                    // Position slots indicators
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: List.generate(3, (index) => _buildSlotMarker()),
+                    ),
+                    
+                    // The Bags
+                    ..._bags.map((bag) => _buildAnimatedBag(bag)),
+                  ],
                 ),
-
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
-          ),
 
-          if (_showOverlay)
-            GameOverOverlay(
-              title: _overlayTitle,
-              message: _overlayMessage,
-              isVictory: _isVictory,
-              onRetry: _canRetry ? () {
+            // SHUFFLE PROGRESS
+            if (_state == GameState.shuffling)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                child: Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: _shufflesDone / _totalShuffles,
+                      backgroundColor: Colors.white10,
+                      color: AppTheme.accentGold,
+                    ),
+                    const SizedBox(height: 5),
+                    const Text("MEZCLANDO...", style: TextStyle(color: AppTheme.accentGold, fontSize: 10, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+                  ],
+                ),
+              ),
+            
+            // BOTÓN DE RENDICIÓN
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: OutlinedButton(
+                onPressed: _handleGiveUp,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 45),
+                  side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.4), width: 1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  "RENDIRSE",
+                  style: TextStyle(color: AppTheme.dangerRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+
+        if (_showOverlay)
+          GameOverOverlay(
+            title: _overlayTitle,
+            message: _overlayMessage,
+            isVictory: _isVictory,
+            onRetry: _canRetry ? _resetGame : null,
+            onGoToShop: _showShopButton ? () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
+              if (mounted) {
                 setState(() {
-                  _showOverlay = false;
-                  _isGameOver = false;
-                  _secondsRemaining = 60;
-                  _startRound();
-                  _gameTimer.cancel();
-                  _startGameTimer();
+                  _canRetry = true;
+                  _showShopButton = false;
                 });
-              } : null,
-              onExit: () {
-                if (_isVictory) widget.onSuccess();
-                Navigator.pop(context);
-              },
-            ),
-        ],
-      ),
+              }
+            } : null,
+            onExit: () {
+              if (_isVictory) widget.onSuccess();
+              Navigator.pop(context);
+            },
+          ),
+      ],
     );
+  }
+
+  void _resetGame() {
+    setState(() {
+      _showOverlay = false;
+      _isGameOver = false;
+      _isVictory = false;
+      _secondsRemaining = 60;
+      _startRound();
+    });
   }
 
   Widget _buildAnimatedBag(BagModel bag) {
@@ -421,6 +429,17 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSlotMarker() {
+    return Container(
+      width: 60,
+      height: 6,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
       ),
     );
   }

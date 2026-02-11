@@ -241,285 +241,144 @@ class _MemorySequenceMinigameState extends State<MemorySequenceMinigame> {
     }
   }
 
-  IconData _getIconForIndex(int index) {
-    switch (index) {
-      case 0: return Icons.code;
-      case 1: return Icons.wifi;
-      case 2: return Icons.memory;
-      case 3: return Icons.security;
-      default: return Icons.error;
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    final gameProvider = Provider.of<GameProvider>(context);
-    final playerProvider = Provider.of<PlayerProvider>(context);
-    final player = playerProvider.currentPlayer;
-
-    return PopScope(
-      canPop: false,
-      child: Material( 
-        color: Colors.transparent,
-        child: Stack(
-          children: [
-            Opacity( opacity: 0.3, child: const AnimatedCyberBackground()),
-
-            Column(
-              children: [
-                // 1. TOP HEADER: Lives (Pill) | XP (Pill) | Flag (Pill) - Grouped on the right
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-                  child: Row(
-                    children: [
-                      const Spacer(), // Push everything to the right
-                      
-                      // LIVES PILL
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.favorite, color: Colors.redAccent, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'x${gameProvider.lives}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.none,
-                              ),
-                            ),
-                          ],
-                        ),
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          child: Column(
+            children: [
+            const SizedBox(height: 5),
+            
+            // 1. STATUS BAR
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                    // LEVEL
+                    Text(
+                      "NIVEL ${_sequence.length}/$_currentDifficulty",
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.5), 
+                          fontSize: 10, 
+                          letterSpacing: 2,
+                          decoration: TextDecoration.none
                       ),
-
-                      const SizedBox(width: 6), // Very small gap
-
-                      // XP PILL
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.amber.withOpacity(0.5)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 14),
-                            const SizedBox(width: 4),
-                            const Text(
-                              '+50 XP', 
-                              style: TextStyle(
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                decoration: TextDecoration.none,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 10), // Small gap before flag
-                      
-                      // FLAG ICON (SURRENDER)
-                      IconButton(
-                        onPressed: _handleGiveUp,
-                        icon: const Icon(Icons.flag, color: Colors.redAccent, size: 24),
-                        tooltip: 'Rendirse',
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 2. LIVE RACE WIDGET (FULL SIZE)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: RaceTrackWidget(
-                    leaderboard: gameProvider.leaderboard,
-                    currentPlayerId: player?.userId ?? '',
-                    totalClues: gameProvider.clues.length,
-                  ),
-                ),
-                
-                const SizedBox(height: 10),
-
-                // 2.5 LIVES BELOW RACE (normal style)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.favorite, color: AppTheme.dangerRed, size: 20),
-                      const SizedBox(width: 5),
-                      Text(
-                        "x${gameProvider.lives}", 
-                        style: const TextStyle(
-                          color: Colors.white, 
-                          fontSize: 16, 
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none,
-                        )
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 5),
-
-                // 3. STATUS & TIMER
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                        // LEVEL
-                        Text(
-                          "NIVEL ${_sequence.length}/$_currentDifficulty",
-                          style: TextStyle(
-                              color: Colors.white.withOpacity(0.5), 
-                              fontSize: 12, 
-                              letterSpacing: 2,
-                              decoration: TextDecoration.none
-                          ),
-                        ),
-                        
-                        // TIMER PILL
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2A2A2E),
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white10),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.timer_outlined, size: 14, color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
-                              const SizedBox(width: 4),
-                              Text(
-                                "${_secondsRemaining ~/ 60}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
-                                style: TextStyle(
-                                  color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white, 
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.none
-                                )
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                // STATUS MESSAGE
-                Text(
-                  _statusMessage,
-                  style: TextStyle(
-                    color: _isPlayerTurn ? Colors.greenAccent : AppTheme.accentGold, 
-                    fontSize: 18, 
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                    decoration: TextDecoration.none,
-                    shadows: [
-                         if (_isPlayerTurn) const Shadow(color: Colors.greenAccent, blurRadius: 10)
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 15),
-
-                // 4. GAME GRID (compact)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 90.0, vertical: 10.0),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: List.generate(4, (index) {
-                        final isActive = _activeButtonIndex == index;
-                        return _buildGameButton(index, isActive);
-                      }),
                     ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // 5. BOTÓN RENDIRSE (RECTANGULAR)
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _showOverlay ? null : _handleGiveUp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        surfaceTintColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        foregroundColor: AppTheme.dangerRed,
-                        side: const BorderSide(color: AppTheme.dangerRed),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), // More rectangular
-                        elevation: 0,
+                    
+                    // STATUS TEXT
+                    Text(
+                      _isPlayerTurn ? "TU TURNO" : "MEMORIZA",
+                      style: TextStyle(
+                        color: _isPlayerTurn ? Colors.greenAccent : AppTheme.accentGold, 
+                        fontSize: 12, 
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
                       ),
-                      icon: const Icon(Icons.flag_outlined),
-                      label: const Text("RENDIRSE"),
                     ),
-                  ),
-                )
-              ],
+                ],
+              ),
             ),
 
-            if (_showOverlay)
-              GameOverOverlay(
-                title: _overlayTitle,
-                message: _overlayMessage,
-                isVictory: _isVictory,
-                onRetry: _canRetry ? () {
-                  setState(() {
-                    _showOverlay = false;
-                    _isGameOver = false;
-                    _isPlayerTurn = false;
-                    _timer.cancel();
-                    _secondsRemaining = 90;
-                    _startTimer();
-                    _startGame();
-                  });
-                } : null,
-                onGoToShop: _showShopButton ? () async {
-                   await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MallScreen()),
-                  );
-                  if (context.mounted) {
-                     setState(() {
-                       _canRetry = true;
-                       _showShopButton = false;
-                       _overlayMessage = "¡Vidas recargadas!";
-                     });
-                  }
-                } : null,
-                onExit: () => Navigator.pop(context),
+            const SizedBox(height: 10),
+
+            // STATUS MESSAGE
+            Text(
+              _statusMessage,
+              style: TextStyle(
+                color: _isPlayerTurn ? Colors.greenAccent : AppTheme.accentGold, 
+                fontSize: 20, 
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+                decoration: TextDecoration.none,
+                shadows: [
+                     if (_isPlayerTurn) const Shadow(color: Colors.greenAccent, blurRadius: 10)
+                 ],
               ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 4. GAME GRID
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 80.0, vertical: 5.0), 
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 15,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: List.generate(4, (index) {
+                    final isActive = _activeButtonIndex == index;
+                    return _buildGameButton(index, isActive);
+                  }),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 50),
+            
+            // 5. SURRENDER BUTTON
+            Padding(
+              padding: const EdgeInsets.only(bottom: 25, left: 30, right: 30),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _handleGiveUp,
+                  icon: const Icon(Icons.flag, color: AppTheme.dangerRed, size: 18),
+                  label: const Text(
+                    "RENDIRSE", 
+                    style: TextStyle(color: AppTheme.dangerRed, letterSpacing: 2, fontWeight: FontWeight.bold)
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.dangerRed, width: 1.2),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    backgroundColor: AppTheme.dangerRed.withOpacity(0.05),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
+
+        if (_showOverlay)
+          GameOverOverlay(
+            title: _overlayTitle,
+            message: _overlayMessage,
+            isVictory: _isVictory,
+            onRetry: _canRetry ? () {
+              setState(() {
+                _showOverlay = false;
+                _isGameOver = false;
+                _isPlayerTurn = false;
+                _startGame();
+              });
+            } : null,
+            onGoToShop: _showShopButton ? () async {
+               await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MallScreen()),
+              );
+              if (context.mounted) {
+                 setState(() {
+                   _canRetry = true;
+                   _showShopButton = false;
+                   _overlayMessage = "¡Vidas recargadas!";
+                 });
+              }
+            } : null,
+            onExit: () => Navigator.pop(context),
+          ),
+      ],
     );
   }
-  
+
   Widget _buildGameButton(int index, bool isActive) {
     final color = _gameColors[index];
     
@@ -529,10 +388,10 @@ class _MemorySequenceMinigameState extends State<MemorySequenceMinigame> {
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           color: isActive ? color : color.withOpacity(0.8), 
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(25),
           border: Border.all(
-            color: isActive ? Colors.white : Colors.transparent,
-            width: 4,
+            color: isActive ? Colors.white : Colors.white10,
+            width: isActive ? 4 : 2,
           ),
           boxShadow: isActive ? [
             BoxShadow(
@@ -542,7 +401,7 @@ class _MemorySequenceMinigameState extends State<MemorySequenceMinigame> {
             )
           ] : [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: color.withOpacity(0.2),
               offset: const Offset(0, 4),
               blurRadius: 8
             )
@@ -550,10 +409,10 @@ class _MemorySequenceMinigameState extends State<MemorySequenceMinigame> {
         ),
         child: Center(
           child: Text(
-            (index + 1).toString(), 
+            "${index + 1}",
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 48,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.none,
             ),
