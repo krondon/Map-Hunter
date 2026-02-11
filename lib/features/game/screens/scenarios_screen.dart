@@ -61,6 +61,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   bool _isLoading = true;
   bool _isProcessing = false; // Prevents double taps
   int _navIndex = 1; // Default to Escenarios (index 1)
+  String _selectedFilter = 'active'; // Filter state: 'active' or 'pending'
 
   // Cache for participant status to show "Entering..." vs "Request Access"
   Map<String, bool> _participantStatusMap = {};
@@ -1446,6 +1447,14 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       visibleEvents = visibleEvents.where((e) => e.type != 'online').toList();
     }
 
+    // APLICAR FILTRO DE ESTADO (Active vs Pending)
+    visibleEvents = visibleEvents.where((e) {
+      if (e.status == 'completed') return false; // Nunca mostrar finalizados aquí
+      if (_selectedFilter == 'active') return e.status == 'active';
+      if (_selectedFilter == 'pending') return e.status == 'pending';
+      return false;
+    }).toList();
+
     // Convertir Eventos a Escenarios usando Mapper
     final List<Scenario> scenarios = ScenarioMapper.fromEvents(visibleEvents);
 
@@ -1779,6 +1788,31 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                     ),
 
                     const SizedBox(height: 10),
+
+                    // CONTROLES DE FILTRO
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildFilterChip(
+                            label: 'En Curso',
+                            isActive: _selectedFilter == 'active',
+                            onTap: () => setState(() => _selectedFilter = 'active'),
+                            activeColor: currentAction,
+                            textColor: isDarkMode ? Colors.black : Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          _buildFilterChip(
+                            label: 'Próximos',
+                            isActive: _selectedFilter == 'pending',
+                            onTap: () => setState(() => _selectedFilter = 'pending'),
+                            activeColor: Colors.blueAccent,
+                            textColor: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
 
                     Expanded(
                       child: LayoutBuilder(
@@ -2191,6 +2225,40 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             ),
           );
         },
+      ),
+    );
+  }
+  Widget _buildFilterChip({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    required Color activeColor,
+    required Color textColor,
+  }) {
+    // Determine colors based on state
+    final backgroundColor = isActive ? activeColor : Colors.transparent;
+    final borderColor = isActive ? activeColor : (Provider.of<PlayerProvider>(context).isDarkMode ? Colors.white24 : Colors.black12);
+    final labelColor = isActive ? textColor : (Provider.of<PlayerProvider>(context).isDarkMode ? Colors.white60 : Colors.black54);
+    final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: labelColor,
+            fontWeight: fontWeight,
+            fontSize: 14,
+          ),
+        ),
       ),
     );
   }

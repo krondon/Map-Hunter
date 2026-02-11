@@ -82,7 +82,7 @@ abstract class Clue {
   final String hint;
   final ClueType type;
   final int xpReward;
-  final int coinReward;
+  // final int coinReward; // REMOVED
   bool isCompleted;
   bool isLocked;
   final int sequenceIndex;
@@ -99,7 +99,7 @@ abstract class Clue {
     required this.hint,
     required this.type,
     this.xpReward = 50,
-    this.coinReward = 10,
+    // this.coinReward = 10,
     this.isCompleted = false,
     this.isLocked = true,
     this.sequenceIndex = 0,
@@ -149,7 +149,7 @@ class PhysicalClue extends Clue {
     required super.hint,
     required super.type,
     super.xpReward,
-    super.coinReward,
+    // super.coinReward, // REMOVED
     super.isCompleted,
     super.isLocked,
     super.sequenceIndex,
@@ -169,7 +169,7 @@ class PhysicalClue extends Clue {
       longitude: (json['longitude'] as num?)?.toDouble(),
       qrCode: json['qr_code'],
       xpReward: (json['xp_reward'] as num?)?.toInt() ?? 50,
-      coinReward: (json['coin_reward'] as num?)?.toInt() ?? 10,
+      // coinReward: (json['coin_reward'] as num?)?.toInt() ?? 10, // REMOVED
       isCompleted: json['isCompleted'] ?? json['is_completed'] ?? false,
       isLocked: json['isLocked'] ?? json['is_locked'] ?? true,
       sequenceIndex: json['sequence_index'] ?? 0,
@@ -223,7 +223,7 @@ class OnlineClue extends Clue {
     required super.hint,
     required super.type,
     super.xpReward,
-    super.coinReward,
+    // super.coinReward, // REMOVED
     super.isCompleted,
     super.isLocked,
     super.sequenceIndex,
@@ -252,8 +252,9 @@ class OnlineClue extends Clue {
             orElse: () => PuzzleType.slidingPuzzle,
           )
         : PuzzleType.slidingPuzzle,
+
       xpReward: (json['xp_reward'] as num?)?.toInt() ?? 50,
-      coinReward: (json['coin_reward'] as num?)?.toInt() ?? 10,
+      // coinReward: (json['coin_reward'] as num?)?.toInt() ?? 10, // REMOVED
       isCompleted: json['isCompleted'] ?? json['is_completed'] ?? false,
       isLocked: json['isLocked'] ?? json['is_locked'] ?? true,
       sequenceIndex: json['sequence_index'] ?? 0,

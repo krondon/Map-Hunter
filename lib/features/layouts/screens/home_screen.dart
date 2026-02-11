@@ -123,6 +123,13 @@ class _HomeScreenState extends State<HomeScreen> {
         return EventWaitingScreen(
           event: event,
           onTimerFinished: () {
+            // 1. Update DB status to 'active' if it's currently 'pending'
+            if (event.status == 'pending') {
+               debugPrint("⏳ Timer finished! Updating event ${event.id} status to active.");
+               eventProvider.updateEventStatus(event.id, 'active');
+            }
+            
+            // 2. Local state update to force re-render
             setState(() {
               _forceGameStart = true;
             });

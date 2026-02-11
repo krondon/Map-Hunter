@@ -32,11 +32,12 @@ class EventService {
            }
         }
 
-        await _supabase.storage.from('events-images').uploadBinary(
-              filePath,
-              bytes,
-              fileOptions: FileOptions(contentType: mimeType, upsert: true),
-            );
+        await _uploadWithRetry(
+          'events-images',
+          filePath,
+          bytes,
+          FileOptions(contentType: mimeType, upsert: true),
+        );
 
         imageUrl = _supabase.storage.from('events-images').getPublicUrl(filePath);
       }
@@ -91,7 +92,7 @@ class EventService {
           'riddle_question': clue['riddle_question'],
           'riddle_answer': clue['riddle_answer'],
           'xp_reward': clue['xp_reward'] ?? 50,
-          'coin_reward': clue['coin_reward'] ?? 10,
+          // 'coin_reward': clue['coin_reward'] ?? 10, // REMOVED
           'sequence_index': i + 1, // Guardamos el orden explícito
         });
       }
@@ -128,11 +129,12 @@ class EventService {
            }
         }
 
-        await _supabase.storage.from('events-images').uploadBinary(
-              filePath,
-              bytes,
-              fileOptions: FileOptions(contentType: mimeType, upsert: true),
-            );
+        await _uploadWithRetry(
+          'events-images',
+          filePath,
+          bytes,
+          FileOptions(contentType: mimeType, upsert: true),
+        );
 
         imageUrl = _supabase.storage.from('events-images').getPublicUrl(filePath);
       }
@@ -164,7 +166,7 @@ class EventService {
       rethrow;
     }
   }
-
+  
   // Eliminar evento
   Future<void> deleteEvent(String eventId, String currentImageUrl) async {
     try {
@@ -188,6 +190,19 @@ class EventService {
       await _supabase.from('events').delete().eq('id', eventId);
     } catch (e) {
       debugPrint('Error eliminando evento: $e');
+      rethrow;
+    }
+  }
+
+  // Actualizar status del evento
+  Future<void> updateEventStatus(String eventId, String status) async {
+    try {
+      await _supabase
+          .from('events')
+          .update({'status': status})
+          .eq('id', eventId);
+    } catch (e) {
+      debugPrint('Error updating event status: $e');
       rethrow;
     }
   }
@@ -246,7 +261,7 @@ class EventService {
       clue: (data['clue'] ?? '¡Pista desbloqueada!') as String, 
       maxParticipants: (data['max_participants'] ?? 0) as int,
       pin: (data['pin'] ?? '') as String,
- 
+      status: (data['status'] ?? 'pending') as String, // FIX: Map status from DB
       winnerId: data['winner_id'] as String?, 
       type: data['type'] ?? 'on_site',
       entryFee: (data['entry_fee'] as num?)?.toInt() ?? 0, // NEW: Read persistence fix
@@ -283,7 +298,7 @@ class EventService {
         'riddle_question': (clue is OnlineClue) ? (clue as OnlineClue).riddleQuestion : null,
         'riddle_answer': (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
         'xp_reward': clue.xpReward,
-        'coin_reward': clue.coinReward,
+        // 'coin_reward': clue.coinReward, // REMOVED
         'latitude': (clue is PhysicalClue) ? (clue as PhysicalClue).latitude : null,
         'longitude': (clue is PhysicalClue) ? (clue as PhysicalClue).longitude : null,
         'hint': clue.hint,
@@ -324,7 +339,7 @@ class EventService {
         'riddle_question': (clue is OnlineClue) ? (clue as OnlineClue).riddleQuestion : null,
         'riddle_answer': (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
         'xp_reward': clue.xpReward,
-        'coin_reward': clue.coinReward,
+        // 'coin_reward': clue.coinReward, // REMOVED
         'sequence_index': clue.sequenceIndex > 0 ? clue.sequenceIndex : nextOrder, // Use provided index if valid
         'latitude': (clue is PhysicalClue) ? (clue as PhysicalClue).latitude : null,
         'longitude': (clue is PhysicalClue) ? (clue as PhysicalClue).longitude : null,
@@ -360,6 +375,32 @@ class EventService {
     } catch (e) {
       debugPrint('Error deleting clue: $e');
       rethrow;
+    }
+  }
+
+  // Helper para subir archivos con reintentos
+  Future<void> _uploadWithRetry(
+    String bucket,
+    String path,
+    Uint8List bytes,
+    FileOptions options, {
+    int maxRetries = 3,
+  }) async {
+    int attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        await _supabase.storage.from(bucket).uploadBinary(
+              path,
+              bytes,
+              fileOptions: options,
+            );
+        return; // Success
+      } catch (e) {
+        attempt++;
+        debugPrint('⚠️ Error subiendo imagen (intento $attempt/$maxRetries): $e');
+        if (attempt >= maxRetries) rethrow; // Falló definitivamente
+        await Future.delayed(Duration(seconds: attempt * 2)); // Backoff exponencial
+      }
     }
   }
 }

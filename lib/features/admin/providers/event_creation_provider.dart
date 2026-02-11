@@ -249,8 +249,6 @@ class EventCreationProvider extends ChangeNotifier {
             'riddle_question': defaultPuzzleType.defaultQuestion, // Set default instruction
             'riddle_answer': defaultPuzzleType.isAutoValidation ? 'WIN' : '',
             'xp_reward': 50,
-            // DEPRECATED: coin_reward is now calculated dynamically by server based on player ranking
-            // 'coin_reward': 10,
             'hint': '',
             'latitude': null,
             'longitude': null,

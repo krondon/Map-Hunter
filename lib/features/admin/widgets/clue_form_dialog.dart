@@ -29,7 +29,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
   late TextEditingController _questionController;
   late TextEditingController _answerController;
   late TextEditingController _xpController;
-  late TextEditingController _coinController;
+
   late TextEditingController _hintController;
   late TextEditingController _latController;
   late TextEditingController _longController;
@@ -47,7 +47,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
     _questionController = TextEditingController(text: c?.riddleQuestion ?? '');
     _answerController = TextEditingController(text: c?.riddleAnswer ?? '');
     _xpController = TextEditingController(text: c?.xpReward.toString() ?? '50');
-    _coinController = TextEditingController(text: c?.coinReward.toString() ?? '10');
+
     _hintController = TextEditingController(text: c?.hint ?? '');
     _latController = TextEditingController(text: c?.latitude?.toString() ?? '');
     _longController = TextEditingController(text: c?.longitude?.toString() ?? '');
@@ -69,7 +69,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
     _questionController.dispose();
     _answerController.dispose();
     _xpController.dispose();
-    _coinController.dispose();
+
     _hintController.dispose();
     _latController.dispose();
     _longController.dispose();
@@ -174,7 +174,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
               hint: _hintController.text,
               type: type,
               xpReward: int.tryParse(_xpController.text) ?? 50,
-              coinReward: int.tryParse(_coinController.text) ?? 10,
+              // coinReward: int.tryParse(_coinController.text) ?? 10, // REMOVED
               puzzleType: _selectedType,
               riddleQuestion: _questionController.text,
               riddleAnswer: _answerController.text,
@@ -191,7 +191,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
               hint: _hintController.text,
               type: type,
               xpReward: int.tryParse(_xpController.text) ?? 50,
-              coinReward: int.tryParse(_coinController.text) ?? 10,
+              // coinReward: int.tryParse(_coinController.text) ?? 10, // REMOVED
               latitude: _latitude,
               longitude: _longitude,
               qrCode: isEdit && widget.clue is PhysicalClue ? (widget.clue as PhysicalClue).qrCode : null,
@@ -209,7 +209,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
               hint: _hintController.text,
               type: ClueType.minigame,
               xpReward: int.tryParse(_xpController.text) ?? 50,
-              coinReward: int.tryParse(_coinController.text) ?? 10,
+              // coinReward: int.tryParse(_coinController.text) ?? 10, // REMOVED
               puzzleType: _selectedType,
               riddleQuestion: _questionController.text,
               riddleAnswer: _answerController.text,
@@ -355,13 +355,7 @@ class _ClueFormDialogState extends State<ClueFormDialog> {
               decoration: _buildInputDecoration('Puntos XP'),
             ),
             const SizedBox(height: 10),
-            TextFormField(
-              controller: _coinController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: _buildInputDecoration('Monedas'),
-            ),
-            const SizedBox(height: 20),
+
             const Text("📍 Geolocalización (Opcional)",
                 style: TextStyle(
                     color: AppTheme.accentGold, fontWeight: FontWeight.bold)),

@@ -143,7 +143,7 @@ serve(async (req) => {
         riddle_question: clue.riddle_question,
         riddle_answer: clue.riddle_answer,
         xp_reward: clue.xp_reward || 50,
-        coin_reward: clue.coin_reward || 10,
+        
       }));
 
       const { error } = await supabaseClient

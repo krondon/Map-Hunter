@@ -16,6 +16,7 @@ class CompetitionsManagementScreen extends StatefulWidget {
 class _CompetitionsManagementScreenState
     extends State<CompetitionsManagementScreen> {
   bool _isLoading = true;
+  String _selectedFilter = 'active'; // 'active' or 'pending'
 
   @override
   void initState() {
@@ -79,7 +80,18 @@ class _CompetitionsManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    final events = Provider.of<EventProvider>(context).events;
+    final allEvents = Provider.of<EventProvider>(context).events;
+    
+    // FILTRO
+    final events = allEvents.where((e) {
+      if (_selectedFilter == 'completed') return e.status == 'completed';
+      // If NOT selecting completed, HIDE completed events
+      if (e.status == 'completed') return false; 
+      
+      if (_selectedFilter == 'active') return e.status == 'active';
+      if (_selectedFilter == 'pending') return e.status == 'pending';
+      return false;
+    }).toList();
 
     // Solo retornamos el contenido, el Dashboard provee el Scaffold y Header
     return Container(
@@ -109,6 +121,39 @@ class _CompetitionsManagementScreenState
                 IconButton(
                   icon: const Icon(Icons.refresh, color: Colors.white),
                   onPressed: _isLoading ? null : _loadEvents,
+                ),
+              ],
+            ),
+          ),
+          
+          // CONTROLES DE FILTRO
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Row(
+              children: [
+                _buildFilterChip(
+                  label: 'En Curso',
+                  isActive: _selectedFilter == 'active',
+                  onTap: () => setState(() => _selectedFilter = 'active'),
+                  activeColor: AppTheme.accentGold,
+                  textColor: Colors.black,
+                ),
+                const SizedBox(width: 12),
+                const SizedBox(width: 12),
+                _buildFilterChip(
+                  label: 'Por Comenzar',
+                  isActive: _selectedFilter == 'pending',
+                  onTap: () => setState(() => _selectedFilter = 'pending'),
+                  activeColor: Colors.blueAccent,
+                  textColor: Colors.white,
+                ),
+                const SizedBox(width: 12),
+                _buildFilterChip(
+                  label: 'Finalizados',
+                  isActive: _selectedFilter == 'completed',
+                  onTap: () => setState(() => _selectedFilter = 'completed'),
+                  activeColor: Colors.grey,
+                  textColor: Colors.white,
                 ),
               ],
             ),
@@ -293,6 +338,39 @@ class _CompetitionsManagementScreenState
                       ),
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildFilterChip({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    required Color activeColor,
+    required Color textColor,
+  }) {
+    final backgroundColor = isActive ? activeColor : Colors.white.withOpacity(0.05);
+    final borderColor = isActive ? activeColor : Colors.white24;
+    final labelColor = isActive ? textColor : Colors.white60;
+    final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: labelColor,
+            fontWeight: fontWeight,
+            fontSize: 14,
+          ),
+        ),
       ),
     );
   }
