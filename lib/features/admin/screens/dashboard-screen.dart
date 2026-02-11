@@ -14,6 +14,7 @@ import 'withdrawal_plans_management_screen.dart';
 import 'global_config_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
+import 'minigames/sequence_config_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -421,7 +422,7 @@ class _WelcomeDashboardViewState extends State<_WelcomeDashboardView> {
                         ?.call(2), // Navigate to Competitions (Index 2)
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

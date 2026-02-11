@@ -27,6 +27,7 @@ import '../widgets/minigames/block_fill_minigame.dart';
 import '../widgets/minigames/code_breaker_widget.dart';
 import '../widgets/minigames/image_trivia_widget.dart';
 import '../widgets/minigames/word_scramble_widget.dart';
+import '../widgets/minigames/memory_sequence_minigame.dart'; // NEW IMPORT
 import '../widgets/minigame_countdown_overlay.dart';
 import 'scenarios_screen.dart';
 import '../../game/providers/game_request_provider.dart';
@@ -454,6 +455,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
        case PuzzleType.wordScramble:
         gameWidget =
             WordScrambleWrapper(clue: widget.clue, onFinish: _finishLegally);
+        break;
+      case PuzzleType.memorySequence:
+        gameWidget = MemorySequenceMinigame(
+          clue: widget.clue,
+          onSuccess: () {
+            _finishLegally();
+            _showSuccessDialog(context, widget.clue);
+          },
+        );
         break;
       default:
         gameWidget = const Center(child: Text("Minijuego no implementado"));

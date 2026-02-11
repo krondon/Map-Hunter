@@ -19,7 +19,8 @@ enum PuzzleType {
   blockFill,
   codeBreaker,
   imageTrivia,
-  wordScramble;      
+  wordScramble,
+  memorySequence;      
 
   String get dbValue => toString().split('.').last;
 
@@ -37,6 +38,7 @@ enum PuzzleType {
       case PuzzleType.codeBreaker: return '🔐 Caja Fuerte (Code)';
       case PuzzleType.imageTrivia: return '🖼️ Desafío Visual (Trivia)';
       case PuzzleType.wordScramble: return '🔤 Palabra Misteriosa';
+      case PuzzleType.memorySequence: return '🧠 Secuencia de Memoria (Simon)';
     }
   }
 
@@ -50,6 +52,7 @@ enum PuzzleType {
       case PuzzleType.minesweeper:
       case PuzzleType.snake:
       case PuzzleType.blockFill:
+      case PuzzleType.memorySequence: // Auto-validado al ganar
         return true; 
       default:
         return false;
@@ -70,6 +73,7 @@ enum PuzzleType {
       case PuzzleType.codeBreaker: return 'Descifra el código de 4 dígitos';
       case PuzzleType.imageTrivia: return '¿Qué es lo que ves en la imagen?';
       case PuzzleType.wordScramble: return 'Ordena las letras para formar la palabra';
+      case PuzzleType.memorySequence: return 'Repite la secuencia de colores correctamente';
     }
   }
 }
