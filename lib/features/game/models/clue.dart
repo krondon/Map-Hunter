@@ -22,7 +22,8 @@ enum PuzzleType {
   wordScramble,
   memorySequence,
   drinkMixer,
-  librarySort;      
+  librarySort,
+  fastNumber;      
 
   String get dbValue => toString().split('.').last;
 
@@ -43,6 +44,7 @@ enum PuzzleType {
       case PuzzleType.memorySequence: return '🧠 Secuencia de Memoria (Simon)';
       case PuzzleType.drinkMixer: return '🍹 Cócteles de Neón (Mixer)';
       case PuzzleType.librarySort: return '📚 Biblioteca de Tonos (Sort)';
+      case PuzzleType.fastNumber: return '⚡ Número Veloz';
     }
   }
 
@@ -59,6 +61,7 @@ enum PuzzleType {
       case PuzzleType.memorySequence: // Auto-validado al ganar
       case PuzzleType.drinkMixer:
       case PuzzleType.librarySort:
+      case PuzzleType.fastNumber:
         return true; 
       default:
         return false;
@@ -82,6 +85,7 @@ enum PuzzleType {
       case PuzzleType.memorySequence: return 'Repite la secuencia de colores correctamente';
       case PuzzleType.drinkMixer: return 'Mezcla los colores para igualar el cóctel';
       case PuzzleType.librarySort: return 'Ordena los libros por su tonalidad de color';
+      case PuzzleType.fastNumber: return 'Escribe el número de 5 cifras que aparecerá brevemente';
     }
   }
 }

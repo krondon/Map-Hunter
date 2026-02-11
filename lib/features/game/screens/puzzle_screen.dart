@@ -29,7 +29,8 @@ import '../widgets/minigames/image_trivia_widget.dart';
 import '../widgets/minigames/word_scramble_widget.dart';
 import '../widgets/minigames/memory_sequence_minigame.dart'; 
 import '../widgets/minigames/drink_mixer_minigame.dart'; 
-import '../widgets/minigames/library_sort_minigame.dart'; // NEW IMPORT
+import '../widgets/minigames/library_sort_minigame.dart';
+import '../widgets/minigames/fast_number_minigame.dart'; // NEW IMPORT
 import '../widgets/minigame_countdown_overlay.dart';
 import 'scenarios_screen.dart';
 import '../../game/providers/game_request_provider.dart';
@@ -478,6 +479,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         break;
       case PuzzleType.librarySort:
         gameWidget = LibrarySortMinigame(
+          clue: widget.clue,
+          onSuccess: () {
+            _finishLegally();
+            _showSuccessDialog(context, widget.clue);
+          },
+        );
+        break;
+      case PuzzleType.fastNumber:
+        gameWidget = FastNumberMinigame(
           clue: widget.clue,
           onSuccess: () {
             _finishLegally();
