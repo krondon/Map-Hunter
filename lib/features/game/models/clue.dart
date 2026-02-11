@@ -22,7 +22,8 @@ enum PuzzleType {
   wordScramble,
   chargeShaker,
   emojiMovie,
-  virusTap;
+  virusTap,
+  droneDodge;
 
   String get dbValue => toString().split('.').last;
 
@@ -58,6 +59,8 @@ enum PuzzleType {
         return '🎬 Adivina Película';
       case PuzzleType.virusTap:
         return '🦠 Virus Tap (Whack-a-Mole)';
+      case PuzzleType.droneDodge:
+        return '🚁 Drone Esquiva';
     }
   }
 
@@ -74,6 +77,7 @@ enum PuzzleType {
       case PuzzleType.chargeShaker:
       case PuzzleType.emojiMovie:
       case PuzzleType.virusTap:
+      case PuzzleType.droneDodge:
         return true;
       default:
         return false;
@@ -112,6 +116,8 @@ enum PuzzleType {
         return 'Adivina la película con los emojis';
       case PuzzleType.virusTap:
         return 'Elimina 15 virus antes de que acabe el tiempo';
+      case PuzzleType.droneDodge:
+        return 'Sobrevive 30 segundos esquivando los obstáculos';
     }
   }
 }
