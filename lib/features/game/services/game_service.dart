@@ -89,7 +89,7 @@ class GameService {
       // 1. Obtener la lista base del ranking desde la tabla game_players (reemplaza vista faltante)
       final List<dynamic> leaderboardData = await _supabase
           .from('game_players')
-          .select('user_id, completed_clues:completed_clues_count')
+          .select('game_player_id:id, user_id, coins, completed_clues:completed_clues_count')
           .eq('event_id', eventId)
           .neq('status', 'spectator') // Excluir espectadores
           .order('completed_clues_count', ascending: false)
