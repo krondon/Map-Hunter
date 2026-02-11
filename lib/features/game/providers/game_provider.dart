@@ -441,7 +441,11 @@ class GameProvider extends ChangeNotifier implements IResettable {
   }
 
   Future<void> _fetchLeaderboardInternal({bool silent = false}) async {
-    if (_currentEventId == null) return;
+    if (_currentEventId == null) {
+      debugPrint("⚠️ GameProvider: _fetchLeaderboardInternal aborted. _currentEventId is null.");
+      return;
+    }
+    debugPrint("📊 GameProvider: Fetching leaderboard for event $_currentEventId");
 
     try {
       final data = await _gameService.getLeaderboard(_currentEventId!);

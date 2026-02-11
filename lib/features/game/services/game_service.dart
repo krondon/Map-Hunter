@@ -89,11 +89,18 @@ class GameService {
       // 1. Obtener la lista base del ranking desde la tabla game_players (reemplaza vista faltante)
       final List<dynamic> leaderboardData = await _supabase
           .from('game_players')
-          .select('game_player_id:id, user_id, coins, completed_clues:completed_clues_count')
+          .select('game_player_id:id, user_id, coins, completed_clues:completed_clues_count, status') // Added status for debug
           .eq('event_id', eventId)
-          .neq('status', 'spectator') // Excluir espectadores
+          .neq('status', 'spectator') 
           .order('completed_clues_count', ascending: false)
           .limit(50);
+      
+      debugPrint("📊 getLeaderboard: eventId=$eventId, found ${leaderboardData.length} entries");
+      if (leaderboardData.isNotEmpty) {
+           debugPrint("📊 Sample Entry: ${leaderboardData.first}");
+      } else {
+           debugPrint("⚠️ getLeaderboard: NO DATA FOUND for event $eventId");
+      }
 
       if (leaderboardData.isEmpty) return [];
 
@@ -127,7 +134,10 @@ class GameService {
         // Inyectar datos del perfil si existen
         if (profilesMap.containsKey(uid)) {
           final p = profilesMap[uid]!;
-          json['avatar_id'] = p['avatar_id'];
+          // Priorizar avatar_id del perfil
+          json['avatar_id'] = p['avatar_id'] ?? p['avatarId']; 
+          json['avatar_url'] = p['avatar_url']; // Ensure url is also passed
+          
           // Si el JSON base no tiene nombre, usa el del perfil
           if (json['name'] == null || json['name'].toString().isEmpty) {
             json['name'] = p['name'];
