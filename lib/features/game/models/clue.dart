@@ -23,7 +23,8 @@ enum PuzzleType {
   memorySequence,
   drinkMixer,
   librarySort,
-  fastNumber;      
+  fastNumber,
+  bagShuffle;      
 
   String get dbValue => toString().split('.').last;
 
@@ -45,6 +46,7 @@ enum PuzzleType {
       case PuzzleType.drinkMixer: return '🍹 Cócteles de Neón (Mixer)';
       case PuzzleType.librarySort: return '📚 Biblioteca de Tonos (Sort)';
       case PuzzleType.fastNumber: return '⚡ Número Veloz';
+      case PuzzleType.bagShuffle: return '🛍️ El Trile (Bolsas)';
     }
   }
 
@@ -62,6 +64,7 @@ enum PuzzleType {
       case PuzzleType.drinkMixer:
       case PuzzleType.librarySort:
       case PuzzleType.fastNumber:
+      case PuzzleType.bagShuffle:
         return true; 
       default:
         return false;
@@ -86,6 +89,7 @@ enum PuzzleType {
       case PuzzleType.drinkMixer: return 'Mezcla los colores para igualar el cóctel';
       case PuzzleType.librarySort: return 'Ordena los libros por su tonalidad de color';
       case PuzzleType.fastNumber: return 'Escribe el número de 5 cifras que aparecerá brevemente';
+      case PuzzleType.bagShuffle: return 'Sigue la bolsa que contiene el color solicitado';
     }
   }
 }
