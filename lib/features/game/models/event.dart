@@ -19,6 +19,7 @@ class GameEvent {
   final String type;
   final int entryFee;
   final int currentParticipants;
+  final int configuredWinners; // NEW: Controls how many people get prizes (1, 2, or 3)
 
   GameEvent({
     required this.id,
@@ -39,6 +40,7 @@ class GameEvent {
     this.type = 'on_site',
     this.entryFee = 0,
     this.currentParticipants = 0,
+    this.configuredWinners = 3,
   });
 
   LatLng get location => LatLng(latitude, longitude);
@@ -67,6 +69,7 @@ class GameEvent {
       type: json['type'] ?? 'on_site',
       entryFee: (json['entry_fee'] as num?)?.toInt() ?? 0,
       currentParticipants: (json['current_participants'] as num?)?.toInt() ?? 0,
+      configuredWinners: (json['configured_winners'] as num?)?.toInt() ?? 3,
     );
   }
 

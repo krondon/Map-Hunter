@@ -60,6 +60,7 @@ class EventService {
             'created_by_admin_id': _supabase.auth.currentUser?.id ?? 'admin_1',
             'type': event.type,
             'entry_fee': event.entryFee, // NEW: Persistence fix
+            'configured_winners': event.configuredWinners,
           })
           .select()
           .single();
@@ -154,6 +155,7 @@ class EventService {
             'pin': event.pin,
             'type': event.type,
             'entry_fee': event.entryFee, // NEW: Persistence fix
+            'configured_winners': event.configuredWinners,
           })
           .eq('id', event.id)
           .select()
@@ -265,6 +267,7 @@ class EventService {
       type: data['type'] ?? 'on_site',
       entryFee: (data['entry_fee'] as num?)?.toInt() ?? 0, // NEW: Read persistence fix
       currentParticipants: (data['current_participants'] as num?)?.toInt() ?? 0,
+      configuredWinners: (data['configured_winners'] as num?)?.toInt() ?? 3,
     );
   }
 

@@ -24,8 +24,10 @@ class EventCreationProvider extends ChangeNotifier {
   String _pin = '';
   int _maxParticipants = 0;
   int? _entryFee; // NEW: Nullable to enforce explicit input
+
   DateTime _selectedDate = DateTime.now();
   String _eventType = 'on_site'; // 'on_site' or 'online'
+  int _configuredWinners = 3; // Default 3 winners
 
   // Imágenes
   XFile? _selectedImage;
@@ -58,6 +60,7 @@ class EventCreationProvider extends ChangeNotifier {
   int? get entryFee => _entryFee;
   DateTime get selectedDate => _selectedDate;
   XFile? get selectedImage => _selectedImage;
+  int get configuredWinners => _configuredWinners;
   int get numberOfClues => _numberOfClues;
   List<Map<String, dynamic>> get clueForms => _clueForms;
   int get currentClueIndex => _currentClueIndex;
@@ -84,6 +87,7 @@ class EventCreationProvider extends ChangeNotifier {
       _entryFee = event.entryFee;
       _selectedDate = event.date;
       _eventType = event.type;
+      _configuredWinners = event.configuredWinners;
       // Note: Image and Clues are not fully loaded here in original code either
     } else {
       resetForm();
@@ -102,6 +106,7 @@ class EventCreationProvider extends ChangeNotifier {
     _maxParticipants = 0;
     _entryFee = null; // Reset to null
     _selectedDate = DateTime.now();
+    _configuredWinners = 3;
     _selectedImage = null;
     _numberOfClues = 0;
     _clueForms = [];
@@ -173,6 +178,13 @@ class EventCreationProvider extends ChangeNotifier {
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
+    notifyListeners();
+  }
+
+  void setConfiguredWinners(int value) {
+    if (value < 1) value = 1;
+    if (value > 3) value = 3;
+    _configuredWinners = value;
     notifyListeners();
   }
 
@@ -413,6 +425,7 @@ class EventCreationProvider extends ChangeNotifier {
         eventType: _eventType,
         imageFileName: _selectedImage!.name,
         entryFee: _entryFee ?? 0, // Validated to be non-null above
+        configuredWinners: _configuredWinners,
       );
 
       // Update PIN state for UI feedback (domain service may have auto-generated it)

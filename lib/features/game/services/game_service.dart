@@ -278,19 +278,23 @@ class GameService {
       if (response.status == 200) {
         final data = response.data as Map<String, dynamic>?;
 
-        // AUTO-DISTRIBUTE PRIZES IF RACE COMPLETED
+        // AUTO-DISTRIBUTE PRIZES IF RACE COMPLETED (ATOMIC RPC)
         if (data != null && data['raceCompleted'] == true) {
-          print("🏁 Race Completed by Winner! Attempting auto-distribution...");
+          debugPrint("🏁 Race Completed (Last Clue). Calling RegisterRPC...");
 
           // Use provided eventId, fallback to response, then null
           final eventIdToUse = eventId ?? data['eventId'];
-          final prize = await _attemptAutoDistribution(eventIdToUse);
-
-          if (prize > 0) {
-            // Inject prize into response so UI knows
-            final newData = Map<String, dynamic>.from(data);
-            newData['prizeAmount'] = prize;
-            return newData;
+          
+          if (eventIdToUse != null) {
+            final rpcRes = await _registerFinisher(eventIdToUse);
+            if (rpcRes != null && rpcRes['success'] == true) {
+               // Inject prize/position into response so UI knows
+               final newData = Map<String, dynamic>.from(data);
+               newData['prizeAmount'] = rpcRes['prize'];
+               newData['position'] = rpcRes['position'];
+               newData['raceCompletedGlobal'] = rpcRes['race_completed'];
+               return newData;
+            }
           }
         }
 
@@ -303,260 +307,24 @@ class GameService {
     }
   }
 
-  /// Intento de distribución automática de premios.
-  /// Retorna la cantidad ganada por el usuario actual (si alguna).
-  Future<int> _attemptAutoDistribution(String? eventId) async {
-    debugPrint("🏆 _attemptAutoDistribution CALLED with eventId: $eventId");
-
-    if (eventId == null) {
-      debugPrint("❌ eventId is NULL - aborting distribution");
-      return 0;
-    }
-
-    int myPrize = 0;
-
+  /// Registra al finalista en el backend de forma atómica.
+  Future<Map<String, dynamic>?> _registerFinisher(String eventId) async {
     try {
-      debugPrint("🏆 Auto-Distribution STARTED for event: $eventId");
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return null;
 
-      // 1. Obtener Entry Fee
-      debugPrint("🏆 Fetching entry fee...");
-      final eventResponse = await _supabase
-          .from('events')
-          .select('entry_fee')
-          .eq('id', eventId)
-          .single();
-      final int entryFee = eventResponse['entry_fee'] ?? 0;
-      debugPrint("🏆 Entry Fee: $entryFee");
-
-      // 2. Contar Participantes (Active + Banned/Suspended/Eliminated)
-      // Usamos RPC para saltar RLS y obtener conteo real
-      int count = 0;
-      try {
-        count = await _supabase.rpc('get_event_participants_count',
-            params: {'target_event_id': eventId});
-      } catch (e) {
-        debugPrint(
-            "⚠️ RPC get_event_participants_count failed: $e. Using fallback.");
-        count = await _supabase
-            .from('game_players')
-            .count(CountOption.exact)
-            .eq('event_id', eventId)
-            .inFilter('status',
-                ['active', 'completed', 'banned', 'suspended', 'eliminated']);
-      }
-
-      debugPrint("🏆 Participants Count (RPC): $count");
-
-      // 3. Calcular Bote (70%)
-      final double totalCollection = (count * entryFee).toDouble();
-      final double totalPot = totalCollection * 0.70;
-      debugPrint("🏆 Total Pot: $totalPot");
-
-      if (totalPot <= 0) {
-        debugPrint("🏆 Pot is 0. Aborting.");
-        return 0;
-      }
-
-      // 4. Obtener Leaderboard
-      // Necesitamos el leaderboard actualizado.
-      final List<dynamic> leaderboardResponse = await _supabase
-          .from('game_players')
-          .select(
-              'user_id, status, completed_clues_count, finish_time, profiles(name, avatar_id, avatar_url)')
-          .eq('event_id', eventId)
-          .inFilter(
-              'status', ['active', 'completed']) // CRÍTICO: Incluir 'completed'
-          .order('completed_clues_count', ascending: false)
-          .order('finish_time', ascending: true) // Desempate por tiempo
-          .limit(3);
-
-      debugPrint(
-          "🏆 Leaderboard Candidates Found: ${leaderboardResponse.length}");
-
-      if (leaderboardResponse.isEmpty) return 0;
-
-      // 5. Determinar Tiers
-      double p1Share = 0.0;
-      double p2Share = 0.0;
-      double p3Share = 0.0;
-
-      if (count < 5) {
-        p1Share = 1.00;
-        debugPrint("🏆 Tier 1 (<5 participants)");
-      } else if (count < 10) {
-        p1Share = 0.70;
-        p2Share = 0.30;
-        debugPrint("🏆 Tier 2 (5-9 participants)");
-      } else {
-        p1Share = 0.50;
-        p2Share = 0.30;
-        p3Share = 0.20;
-        debugPrint("🏆 Tier 3 (10+ participants)");
-      }
-
-      final myUserId = _supabase.auth.currentUser?.id;
-      debugPrint("🏆 My User ID: $myUserId");
-
-      // 6. Distribuir (Intentar premiar a todos, capturando errores individuales)
-
-      // Calculate base amounts using floor to avoid creating extra tréboles
-      final p1Amount = (totalPot * p1Share).floor();
-      final p2Amount = p2Share > 0 ? (totalPot * p2Share).floor() : 0;
-      final p3Amount = p3Share > 0 ? (totalPot * p3Share).floor() : 0;
-
-      // Calculate remainder and add to 1st place (winner gets the extra)
-      final totalDistributed = p1Amount + p2Amount + p3Amount;
-      final remainder = totalPot.floor() - totalDistributed;
-      final p1Final = p1Amount + remainder;
-
-      debugPrint("🏆 Prize Calculation:");
-      debugPrint("  Total Pot: ${totalPot.floor()}");
-      debugPrint("  1st: $p1Final (base: $p1Amount + remainder: $remainder)");
-      debugPrint("  2nd: $p2Amount");
-      debugPrint("  3rd: $p3Amount");
-      debugPrint("  Total Distributed: ${p1Final + p2Amount + p3Amount}");
-
-      // 1er Lugar
-      if (leaderboardResponse.isNotEmpty && p1Share > 0) {
-        final p1 = leaderboardResponse[0];
-        final amount = p1Final;
-        final userId = p1['user_id'];
-        debugPrint(
-            "🏆 1st Place: $userId (Amount: $amount). Status: ${p1['status']}");
-
-        if (userId == myUserId) {
-          myPrize = amount;
-          debugPrint("✅ 1st Place is ME!");
-        }
-
-        await _addToWalletSafe(
-          userId,
-          amount,
-          eventId: eventId,
-          position: 1,
-          potTotal: totalPot,
-          participantsCount: count,
-          entryFee: entryFee,
-        );
-      }
-
-      // 2do Lugar
-      if (leaderboardResponse.length > 1 && p2Share > 0) {
-        final p2 = leaderboardResponse[1];
-        final amount = p2Amount;
-        final userId = p2['user_id'];
-        debugPrint("🏆 2nd Place: $userId (Amount: $amount)");
-
-        if (userId == myUserId) myPrize = amount;
-        await _addToWalletSafe(
-          userId,
-          amount,
-          eventId: eventId,
-          position: 2,
-          potTotal: totalPot,
-          participantsCount: count,
-          entryFee: entryFee,
-        );
-      }
-
-      // 3er Lugar
-      if (leaderboardResponse.length > 2 && p3Share > 0) {
-        final p3 = leaderboardResponse[2];
-        final amount = p3Amount;
-        final userId = p3['user_id'];
-        debugPrint("🏆 3rd Place: $userId (Amount: $amount)");
-
-        if (userId == myUserId) myPrize = amount;
-        await _addToWalletSafe(
-          userId,
-          amount,
-          eventId: eventId,
-          position: 3,
-          potTotal: totalPot,
-          participantsCount: count,
-          entryFee: entryFee,
-        );
-      }
-
-      // Marcar evento como completado
-      await _supabase.from('events').update({
-        'status': 'completed',
-        'completed_at': DateTime.now().toIso8601String()
-      }).eq('id', eventId);
-
-      debugPrint("🏆 Auto-Distribution Completed. My Prize Won: $myPrize");
-    } catch (e) {
-      debugPrint("⚠️ Auto-Distribution Logic Error: $e");
-    }
-    return myPrize;
-  }
-
-  /// Helper seguro para añadir saldo (RPC para saltar RLS).
-  /// Registra la distribución en prize_distributions para auditoría.
-  Future<void> _addToWalletSafe(
-    String userId,
-    int amount, {
-    required String eventId,
-    required int position,
-    required double potTotal,
-    required int participantsCount,
-    required int entryFee,
-  }) async {
-    bool rpcSuccess = false;
-    String? errorMsg;
-
-    try {
-      debugPrint(
-          "💰 RPC: Awarding $amount to $userId (Position: $position)...");
-
-      // Call RPC to add clovers
-      await _supabase.rpc('add_clovers',
-          params: {'target_user_id': userId, 'amount': amount});
-
-      debugPrint("✅ RPC Success.");
-      rpcSuccess = true;
-    } catch (e) {
-      debugPrint("❌ RPC Failed: $e");
-      errorMsg = e.toString();
-
-      // Fallback: Direct update (will likely fail if not self or RLS blocks)
-      try {
-        debugPrint("💰 Fallback: Direct update...");
-        final res = await _supabase
-            .from('profiles')
-            .select('clovers')
-            .eq('id', userId)
-            .single();
-        final current = res['clovers'] ?? 0;
-        await _supabase
-            .from('profiles')
-            .update({'clovers': current + amount}).eq('id', userId);
-        debugPrint("✅ Fallback Success.");
-        rpcSuccess = true;
-        errorMsg = null;
-      } catch (e2) {
-        debugPrint("❌ Fallback Failed: $e2");
-        errorMsg = "RPC: $e, Fallback: $e2";
-      }
-    }
-
-    // ALWAYS record the distribution attempt in database for auditing
-    try {
-      await _supabase.from('prize_distributions').insert({
-        'event_id': eventId,
-        'user_id': userId,
-        'position': position,
-        'amount': amount,
-        'pot_total': potTotal,
-        'participants_count': participantsCount,
-        'entry_fee': entryFee,
-        'rpc_success': rpcSuccess,
-        'error_message': errorMsg,
+      debugPrint("🏆 Calling RPC register_race_finisher for $eventId...");
+      
+      final response = await _supabase.rpc('register_race_finisher', params: {
+        'p_event_id': eventId, 
+        'p_user_id': userId,
       });
-      debugPrint("📝 Prize distribution recorded in database.");
+
+      debugPrint("🏆 RPC Response: $response");
+      return response as Map<String, dynamic>;
     } catch (e) {
-      debugPrint("⚠️ Failed to record distribution: $e");
-      // Non-fatal - prize was already awarded (or attempted)
+      debugPrint("❌ Error registering finisher: $e");
+      return null;
     }
   }
 

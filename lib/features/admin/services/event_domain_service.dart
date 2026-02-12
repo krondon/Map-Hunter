@@ -131,6 +131,7 @@ class EventDomainService {
     EntryType entryType = EntryType.free,
     int? entryFee, // Changed to int to match GameEvent
     CurrencyType currency = CurrencyType.treboles,
+    int configuredWinners = 3, // NEW: Default to 3
   }) {
     final isOnline = eventType == 'online';
     final finalPin = isOnline ? generatePin(isOnline: true) : pin;
@@ -158,6 +159,7 @@ class EventDomainService {
       pin: finalPin,
       type: eventType,
       entryFee: entryFee ?? 0,
+      configuredWinners: configuredWinners,
     );
   }
 

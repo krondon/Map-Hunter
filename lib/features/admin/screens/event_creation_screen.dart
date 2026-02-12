@@ -542,6 +542,77 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         ),
                         const SizedBox(height: 20),
 
+                        // --- Configuración de Ganadores ---
+                        const Text("Configuración de Premios",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70)),
+                        const SizedBox(height: 10),
+                        
+                        Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.emoji_events, color: AppTheme.accentGold),
+                                  const SizedBox(width: 10),
+                                  const Text("Cantidad de Ganadores:", style: TextStyle(color: Colors.white)),
+                                  const Spacer(),
+                                  SegmentedButton<int>(
+                                    segments: const [
+                                      ButtonSegment<int>(value: 1, label: Text("1")),
+                                      ButtonSegment<int>(value: 2, label: Text("2")),
+                                      ButtonSegment<int>(value: 3, label: Text("3")),
+                                    ],
+                                    selected: {provider.configuredWinners},
+                                    onSelectionChanged: (Set<int> newSelection) {
+                                      provider.setConfiguredWinners(newSelection.first);
+                                    },
+                                    style: ButtonStyle(
+                                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                                        (Set<MaterialState> states) {
+                                          if (states.contains(MaterialState.selected)) {
+                                            return AppTheme.accentGold;
+                                          }
+                                          return Colors.transparent;
+                                        },
+                                      ),
+                                      foregroundColor: MaterialStateProperty.resolveWith<Color>(
+                                        (Set<MaterialState> states) {
+                                          if (states.contains(MaterialState.selected)) {
+                                            return Colors.black;
+                                          }
+                                          return Colors.white;
+                                        }
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Builder(
+                                builder: (context) {
+                                  int rec = 1;
+                                  if (provider.maxParticipants <= 5) rec = 1;
+                                  else if (provider.maxParticipants <= 10) rec = 2;
+                                  else rec = 3;
+
+                                  return Text(
+                                    "💡 Recomendación: $rec ganador${rec > 1 ? 'es' : ''} para ${provider.maxParticipants} jugadores.",
+                                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, fontStyle: FontStyle.italic),
+                                  );
+                                }
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
                         LayoutBuilder(
                           builder: (context, constraints) {
                              // PIN + Clue Row/Column
