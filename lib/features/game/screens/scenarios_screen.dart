@@ -1447,9 +1447,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       visibleEvents = visibleEvents.where((e) => e.type != 'online').toList();
     }
 
-    // APLICAR FILTRO DE ESTADO (Active vs Pending)
+    // APLICAR FILTRO DE ESTADO (Active vs Pending vs Completed)
     visibleEvents = visibleEvents.where((e) {
-      if (e.status == 'completed') return false; // Nunca mostrar finalizados aquí
+      if (_selectedFilter == 'completed') return e.status == 'completed';
+      if (e.status == 'completed') return false; // Hide completed in other tabs
       if (_selectedFilter == 'active') return e.status == 'active';
       if (_selectedFilter == 'pending') return e.status == 'pending';
       return false;
@@ -1791,14 +1792,16 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
                     // CONTROLES DE FILTRO
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 8.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _buildFilterChip(
                             label: 'En Curso',
                             isActive: _selectedFilter == 'active',
-                            onTap: () => setState(() => _selectedFilter = 'active'),
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'active'),
                             activeColor: currentAction,
                             textColor: isDarkMode ? Colors.black : Colors.white,
                           ),
@@ -1806,8 +1809,20 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                           _buildFilterChip(
                             label: 'Próximos',
                             isActive: _selectedFilter == 'pending',
-                            onTap: () => setState(() => _selectedFilter = 'pending'),
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'pending'),
                             activeColor: Colors.blueAccent,
+                            textColor: Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          _buildFilterChip(
+                            label: 'Finalizados',
+                            isActive: _selectedFilter == 'completed',
+                            onTap: () =>
+                                setState(() => _selectedFilter = 'completed'),
+                            activeColor: isDarkMode
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade400,
                             textColor: Colors.white,
                           ),
                         ],
@@ -2228,6 +2243,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       ),
     );
   }
+
   Widget _buildFilterChip({
     required String label,
     required bool isActive,
@@ -2237,8 +2253,16 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }) {
     // Determine colors based on state
     final backgroundColor = isActive ? activeColor : Colors.transparent;
-    final borderColor = isActive ? activeColor : (Provider.of<PlayerProvider>(context).isDarkMode ? Colors.white24 : Colors.black12);
-    final labelColor = isActive ? textColor : (Provider.of<PlayerProvider>(context).isDarkMode ? Colors.white60 : Colors.black54);
+    final borderColor = isActive
+        ? activeColor
+        : (Provider.of<PlayerProvider>(context).isDarkMode
+            ? Colors.white24
+            : Colors.black12);
+    final labelColor = isActive
+        ? textColor
+        : (Provider.of<PlayerProvider>(context).isDarkMode
+            ? Colors.white60
+            : Colors.black54);
     final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
 
     return GestureDetector(
