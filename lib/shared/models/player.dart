@@ -13,6 +13,7 @@ class Player implements ITargetable {
   int level;
   int experience;
   int totalXP;
+  @override
   int completedCluesCount; // Precise tracking for race
   String profession;
   int coins;
@@ -265,6 +266,7 @@ class Player implements ITargetable {
   
   @override
   String get avatarUrl => _avatarUrl;
+
 
   Player copyWith({
     String? userId,

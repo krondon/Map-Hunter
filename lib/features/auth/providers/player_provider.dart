@@ -14,7 +14,7 @@ import '../services/power_service.dart';
 import '../../admin/services/admin_service.dart';
 import '../../game/strategies/power_response.dart';
 
-enum PowerUseResult { success, reflected, error, blocked }
+enum PowerUseResult { success, reflected, error, blocked, gameFinished, targetFinished }
 
 /// Core Player Provider - Handles player identity, session, and coordination.
 ///
@@ -665,6 +665,30 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
       _isProcessing = false;
       return PowerUseResult.error;
+    }
+
+    // --- RACE FINISHED CHECKS ---
+    if (gameProvider != null && gameProvider.totalClues > 0) {
+      // 1. Check if I (Caster) have finished
+      if (_currentPlayer!.completedCluesCount >= gameProvider.totalClues) {
+        debugPrint('PlayerProvider: 🛑 User finished race. Cannot use powers.');
+        _isProcessing = false;
+        return PowerUseResult.gameFinished;
+      }
+
+      // 2. Check if Target has finished
+      // We need to find target in leaderboard to check their progress
+      final targetPlayer = gameProvider.leaderboard.firstWhere(
+        (p) => p.gamePlayerId == targetGamePlayerId || p.userId == targetGamePlayerId,
+        orElse: () => Player(userId: 'unknown', name: 'Unknown', email: ''), // Dummy fallback
+      );
+
+      if (targetPlayer.userId != 'unknown' && 
+          targetPlayer.completedCluesCount >= gameProvider.totalClues) {
+        debugPrint('PlayerProvider: 🛑 Target finished race. Cannot be targeted.');
+        _isProcessing = false;
+        return PowerUseResult.targetFinished;
+      }
     }
 
     try {

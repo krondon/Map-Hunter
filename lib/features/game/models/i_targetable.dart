@@ -5,4 +5,5 @@ abstract class ITargetable {
   bool get isSelectable;
   String? get avatarUrl; // Adding for UI decoupling
   String? get avatarId;  // Local asset reference (e.g., 'explorer_m')
+  int get completedCluesCount; // Precise tracking for race validation
 }

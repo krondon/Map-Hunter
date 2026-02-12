@@ -79,6 +79,19 @@ class RaceTrackWidget extends StatelessWidget {
         selectedRacer = selected;
       }
 
+      // Check if target is finished (UI Check before attempting logic)
+      final bool isTargetFinished = totalClues > 0 && selectedRacer.data.completedCluesCount >= totalClues;
+      if (isTargetFinished) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⛔ Este jugador ya terminó la carrera.'),
+            backgroundColor: Colors.grey,
+            duration: Duration(seconds: 1),
+          ),
+        );
+        return;
+      }
+
       // Determine if target is self
       final normalizedMyId = myGamePlayerId.trim().toLowerCase();
       final normalizedTargetId = selectedRacer.data.id.trim().toLowerCase();
@@ -324,6 +337,20 @@ class RaceTrackWidget extends StatelessWidget {
         );
       } else if (result == PowerUseResult.blocked) {
         // Handled by SabotageOverlay via PowerEffectProvider.notifyAttackBlocked()
+      } else if (result == PowerUseResult.gameFinished) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Carrera terminada! No puedes usar poderes.'),
+            backgroundColor: Colors.grey,
+          ),
+        );
+      } else if (result == PowerUseResult.targetFinished) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El objetivo ya terminó la carrera.'),
+            backgroundColor: Colors.grey,
+          ),
+        );
       } else if (success) {
         final suppressed = effectProvider.lastDefenseAction == DefenseAction.stealFailed;
         if (!suppressed) {
@@ -382,9 +409,14 @@ class _RacerAvatarWidget extends StatelessWidget {
     return Positioned(
       left: maxScroll * progress,
       top: topPosition,
-      child: Opacity(
-        opacity: vm.opacity,
-        child: Column(
+      child: ColorFiltered(
+        // Apply darken filter if player finished race
+        colorFilter: (totalClues > 0 && vm.data.completedCluesCount >= totalClues)
+            ? const ColorFilter.mode(Colors.black54, BlendMode.darken)
+            : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
+        child: Opacity(
+          opacity: vm.opacity,
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (vm.isMe || isSelected)
@@ -543,7 +575,8 @@ class _RacerAvatarWidget extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   String _getShortName(String fullName) {
