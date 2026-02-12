@@ -292,6 +292,7 @@ class GameService {
                final newData = Map<String, dynamic>.from(data);
                newData['prizeAmount'] = rpcRes['prize'];
                newData['position'] = rpcRes['position'];
+               // CRITICAL: Ensure this flag is passed up
                newData['raceCompletedGlobal'] = rpcRes['race_completed'];
                return newData;
             }

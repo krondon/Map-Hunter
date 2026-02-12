@@ -117,11 +117,10 @@ class GameProvider extends ChangeNotifier implements IResettable {
 
   void _setRaceCompleted(bool completed, String source) {
     if (_isRaceCompleted != completed) {
-      if (completed && totalClues <= 0) {
-        debugPrint(
-            '⚠️ Warning: Race completion ignored because totalClues is 0 or not loaded.');
-        return;
-      }
+      // REMOVED CHECK: if (completed && totalClues <= 0)
+      // Reason: If the event is marked completed globally (via Realtime 'events' table), 
+      // we must respect it even if local clues are not fully loaded (e.g. spectator or late joiner).
+      
       debugPrint('--- RACE STATUS CHANGE: $completed (via $source) ---');
       _isRaceCompleted = completed;
       notifyListeners();
@@ -631,18 +630,17 @@ class GameProvider extends ChangeNotifier implements IResettable {
       if (data != null) {
         // Success
         // Success
-        if (data['raceCompleted'] == true) {
-          debugPrint("🏆 Race Completed in GameProvider!");
-
-          if (data['prizeAmount'] != null) {
-            _currentPrizeWon = (data['prizeAmount'] as num).toInt();
-            debugPrint("🏆 Prize Stored in Provider: $_currentPrizeWon");
+          // CRITICAL FIX: Only treat as Globally Completed if backend says so (raceCompletedGlobal)
+          // 'raceCompleted' in previous logic might have meant "User Finished".
+          // We rely on 'raceCompletedGlobal' which comes from the RPC.
+          if (data['raceCompletedGlobal'] == true) {
+             debugPrint("🏆 GLOBAL Race Completed confirmed by RPC!");
+             _setRaceCompleted(true, 'Clue Completion (RPC)');
           } else {
-            _currentPrizeWon = null;
+             debugPrint("👤 User finished clues, but Race is NOT globally finished yet.");
+             // Ensure we DO NOT set _isRaceCompleted = true here.
+             // The user should go to Waiting Room.
           }
-
-          _setRaceCompleted(true, 'Clue Completion');
-        }
 
         await fetchClues(silent: true);
         fetchLeaderboard();

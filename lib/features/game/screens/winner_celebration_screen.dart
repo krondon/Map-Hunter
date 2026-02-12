@@ -130,11 +130,16 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       if (currentUser.completedCluesCount < widget.totalCluesCompleted) {
         debugPrint(
             "⏳ Podium Sync: Leaderboard stale (Server: ${currentUser.completedCluesCount} vs Local: ${widget.totalCluesCompleted}). Waiting...");
-        // Do NOT stop loading yet. Trigger another fetch if not loading.
+        
+        // RETRY LOGIC: If data is stale, we MUST force a refresh, even if isLoading is false.
+        // We use a debounce to avoid spamming.
         if (!gameProvider.isLoading) {
-          // Use a small delay to avoid spamming
-          Future.delayed(const Duration(milliseconds: 500),
-              () => gameProvider.fetchLeaderboard(silent: true));
+           Future.delayed(const Duration(milliseconds: 1000), () {
+              if (mounted) {
+                 debugPrint("🔄 Podium Sync: Retrying fetchLeaderboard...");
+                 gameProvider.fetchLeaderboard(silent: true);
+              }
+           });
         }
         return;
       }
@@ -164,12 +169,14 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
         }
       }
     } else {
-      // Leaderboard empty/failed? If we waited long enough (timeout), _isLoading handles it.
-      // But if we are done loading and it's empty, maybe just show?
+      // Leaderboard empty/failed?
       if (!gameProvider.isLoading && _isLoading) {
-        // Wait for timeout or retry? Let's retry once.
-        if (!gameProvider.isLoading)
-          gameProvider.fetchLeaderboard(silent: true);
+         debugPrint("⚠️ Podium Sync: Leaderboard empty. Retrying...");
+         Future.delayed(const Duration(seconds: 2), () {
+             if (mounted && !gameProvider.isLoading) {
+                 gameProvider.fetchLeaderboard(silent: true);
+             }
+         });
       }
     }
   }

@@ -36,7 +36,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
         gameProvider.addListener(_onGameProviderChange);
         
         // Check immediately
-        _checkIfRaceCompleted();
+        // Force check against server just in case
+        gameProvider.checkRaceStatus(); 
       }
     });
   }
@@ -144,6 +145,35 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                   ],
                 ),
               ),
+
+              // Position Display (NEW)
+              const SizedBox(height: 20),
+              Consumer<GameProvider>(builder: (context, game, child) {
+                 final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                 final myId = playerProvider.currentPlayer?.userId;
+                 int myRank = 0;
+                 if (game.leaderboard.isNotEmpty && myId != null) {
+                    final idx = game.leaderboard.indexWhere((p) => p.userId == myId || p.id == myId);
+                    if (idx >= 0) myRank = idx + 1;
+                 }
+                 
+                 if (myRank == 0) return const SizedBox.shrink();
+
+                 return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.accentGold)
+                    ),
+                    child: Column(
+                      children: [
+                        const Text("TU POSICIÓN PARCIAL", style: TextStyle(color: AppTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text("#$myRank", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                 );
+              }),
 
               const SizedBox(height: 30),
 
