@@ -70,8 +70,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     
                     const SizedBox(height: 24),
                     
-                    // 2. TEMPORAL STAMPS (SELLOS) - NEW ANIMATED SECTION
-                    _buildTemporalStampsSection(gameProvider, isDarkMode),
+                    // 2. TRÉBOLES DORADOS - NEW ANIMATED SECTION
+                    _buildGoldenCloversSection(gameProvider, isDarkMode),
                     
                     const SizedBox(height: 24),
                     
@@ -721,14 +721,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
 
-  Widget _buildTemporalStampsSection(GameProvider gameProvider, bool isDarkMode) {
+  Widget _buildGoldenCloversSection(GameProvider gameProvider, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("SELLOS TEMPORALES",
+            const Text("TRÉBOLES DORADOS",
                 style: TextStyle(
                     color: AppTheme.accentGold,
                     letterSpacing: 2,
@@ -748,7 +748,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: gameProvider.clues.isEmpty
               ? const Center(
-                  child: Text("Inicia una misión para recolectar sellos",
+                  child: Text("Inicia una misión para recolectar tréboles",
                       style: TextStyle(color: Colors.white24, fontSize: 12)))
               : ListView.builder(
                   scrollDirection: Axis.horizontal,
@@ -814,7 +814,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
           const SizedBox(height: 6),
-          Text("S${index + 1}",
+          Text("T${index + 1}",
               style: TextStyle(
                   fontSize: 10,
                   color: isCollected ? Colors.white70 : Colors.white10,
@@ -892,33 +892,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   IconData _getStampIcon(int index) {
-    const icons = [
-      Icons.extension,
-      Icons.lock_open,
-      Icons.history_edu,
-      Icons.warning_amber,
-      Icons.cable,
-      Icons.palette,
-      Icons.visibility,
-      Icons.settings_suggest,
-      Icons.flash_on
-    ];
-    return icons[index % icons.length];
+    return Icons.eco;
   }
 
   List<Color> _getStampGradient(int index) {
-    const gradients = [
-      [Color(0xFF3B82F6), Color(0xFF06B6D4)],
-      [Color(0xFF06B6D4), Color(0xFF10B981)],
-      [Color(0xFF10B981), Color(0xFF84CC16)],
-      [Color(0xFF84CC16), Color(0xFFF59E0B)],
-      [Color(0xFFF59E0B), Color(0xFFEF4444)],
-      [Color(0xFFEF4444), Color(0xFFEC4899)],
-      [Color(0xFFEC4899), Color(0xFFD946EF)],
-      [Color(0xFFD946EF), Color(0xFF8B5CF6)],
-      [Color(0xFF8B5CF6), Color(0xFF6366F1)]
-    ];
-    return gradients[index % gradients.length];
+    return [const Color(0xFFFFD700), const Color(0xfff5c71a)];
   }
 
   Widget _buildBottomNavBar() {

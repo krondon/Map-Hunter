@@ -28,49 +28,49 @@ class _TimeStampAnimationState extends State<TimeStampAnimation>
 
   final List<TimeStampData> _stamps = [
     TimeStampData(
-      title: 'Sello Temporal 1',
-      icon: Icons.extension,
-      gradient: [const Color(0xFF3B82F6), const Color(0xFF06B6D4)],
+      title: 'Trébol Dorado 1',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 2',
-      icon: Icons.lock_open,
-      gradient: [const Color(0xFF06B6D4), const Color(0xFF10B981)],
+      title: 'Trébol Dorado 2',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 3',
-      icon: Icons.history_edu,
-      gradient: [const Color(0xFF10B981), const Color(0xFF84CC16)],
+      title: 'Trébol Dorado 3',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 4',
-      icon: Icons.warning_amber,
-      gradient: [const Color(0xFF84CC16), const Color(0xFFF59E0B)],
+      title: 'Trébol Dorado 4',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 5',
-      icon: Icons.cable,
-      gradient: [const Color(0xFFF59E0B), const Color(0xFFEF4444)],
+      title: 'Trébol Dorado 5',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 6',
-      icon: Icons.palette,
-      gradient: [const Color(0xFFEF4444), const Color(0xFFEC4899)],
+      title: 'Trébol Dorado 6',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 7',
-      icon: Icons.visibility,
-      gradient: [const Color(0xFFEC4899), const Color(0xFFD946EF)],
+      title: 'Trébol Dorado 7',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 8',
-      icon: Icons.settings_suggest,
-      gradient: [const Color(0xFFD946EF), const Color(0xFF8B5CF6)],
+      title: 'Trébol Dorado 8',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
     TimeStampData(
-      title: 'Sello Temporal 9',
-      icon: Icons.flash_on,
-      gradient: [const Color(0xFF8B5CF6), const Color(0xFF6366F1)],
+      title: 'Trébol Dorado 9',
+      icon: Icons.eco,
+      gradient: [const Color(0xFFFFD700), const Color(0xfff5c71a)],
     ),
   ];
   
@@ -234,7 +234,7 @@ class _TimeStampAnimationState extends State<TimeStampAnimation>
               ),
             ),
             const Text(
-              "SELLO OBTENIDO",
+              "TRÉBOL OBTENIDO",
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white70,

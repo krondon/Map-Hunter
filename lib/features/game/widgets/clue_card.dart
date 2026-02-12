@@ -165,32 +165,10 @@ class ClueCard extends StatelessWidget {
     );
   }
   IconData _getStampIcon(int index) {
-    const icons = [
-      Icons.extension,
-      Icons.lock_open,
-      Icons.history_edu,
-      Icons.warning_amber,
-      Icons.cable,
-      Icons.palette,
-      Icons.visibility,
-      Icons.settings_suggest,
-      Icons.flash_on,
-    ];
-    return icons[index % icons.length];
+    return Icons.eco;
   }
 
   List<Color> _getStampGradient(int index) {
-    const gradients = [
-      [Color(0xFF3B82F6), Color(0xFF06B6D4)],
-      [Color(0xFF06B6D4), Color(0xFF10B981)],
-      [Color(0xFF10B981), Color(0xFF84CC16)],
-      [Color(0xFF84CC16), Color(0xFFF59E0B)],
-      [Color(0xFFF59E0B), Color(0xFFEF4444)],
-      [Color(0xFFEF4444), Color(0xFFEC4899)],
-      [Color(0xFFEC4899), Color(0xFFD946EF)],
-      [Color(0xFFD946EF), Color(0xFF8B5CF6)],
-      [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-    ];
-    return gradients[index % gradients.length];
+    return [const Color(0xFFFFD700), const Color(0xfff5c71a)];
   }
 }

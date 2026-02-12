@@ -751,7 +751,7 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
     return;
   }
 
-  // 1. Mostrar la Animación del Sello Temporal
+  // 1. Mostrar la Animación del Trébol Dorado
   // [FIX] Usar Completer para asegurar que onComplete se ejecute una sola vez
   bool sealCompleted = false;
   try {
@@ -1267,7 +1267,7 @@ Widget _buildMinigameScaffold(
                     children: [
                       // AppBar Personalizado
                       Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         child: Row(
                           children: [
                             if (player?.role == 'spectator')
@@ -1310,7 +1310,7 @@ Widget _buildMinigameScaffold(
                               const SizedBox(width: 8),
                               IconButton(
                                 icon: const Icon(Icons.flag,
-                                    color: AppTheme.dangerRed, size: 20),
+                                    color: AppTheme.dangerRed, size: 28),
                                 tooltip: 'Rendirse',
                                 onPressed: () =>
                                     showSkipDialog(context, onFinish),
@@ -1352,7 +1352,8 @@ Widget _buildMinigameScaffold(
                           totalClues: game.clues.length,
                           onSurrender: () => showSkipDialog(context, onFinish),
                           compact: clue.puzzleType == PuzzleType.tetris ||
-                              clue.puzzleType == PuzzleType.hangman,
+                              clue.puzzleType == PuzzleType.hangman ||
+                              clue.puzzleType == PuzzleType.fastNumber,
                         ),
                       ),
 

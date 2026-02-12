@@ -183,11 +183,7 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
       _isVictory = true;
     });
     HapticFeedback.heavyImpact();
-    _showOverlayState(
-      title: "¡LO ENCONTRASTE!",
-      message: "Has seguido el objetivo con precisión.",
-      victory: true,
-    );
+    widget.onSuccess();
   }
 
   void _loseLife(String reason) async {
@@ -361,7 +357,6 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
               }
             } : null,
             onExit: () {
-              if (_isVictory) widget.onSuccess();
               Navigator.pop(context);
             },
           ),
