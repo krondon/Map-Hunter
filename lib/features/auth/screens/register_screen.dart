@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import 'login_screen.dart';
 
+// RE-FORCE CLEAN VERSION - NO _isDarkMode
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -210,9 +211,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  bool _isDarkMode = false; // Inicia en Modo Día
-
-  void _showTermsDialog() {
+  void _showTermsDialog(bool isDarkMode) {
     const Color dSurface1 = Color(0xFF1A1A1D);
     const Color lSurface1 = Color(0xFFFFFFFF);
     const Color lTextPrimary = Color(0xFF1A1A1D);
@@ -220,10 +219,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: _isDarkMode ? dSurface1 : lSurface1,
+        backgroundColor: isDarkMode ? dSurface1 : lSurface1,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Términos y Condiciones", 
-          style: TextStyle(color: _isDarkMode ? Colors.white : lTextPrimary)
+          style: TextStyle(color: isDarkMode ? Colors.white : lTextPrimary, fontWeight: FontWeight.bold)
         ),
         content: SingleChildScrollView(
           child: Text(
@@ -231,13 +232,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             "1. Uso del servicio...\n"
             "2. Privacidad de datos...\n"
             "3. Responsabilidades...",
-            style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
+            style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black87),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cerrar"),
+            child: Text("Cerrar", style: TextStyle(color: isDarkMode ? Colors.white70 : lTextPrimary)),
           ),
         ],
       ),
@@ -246,6 +247,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final playerProvider = context.watch<PlayerProvider>();
+    final isDarkMode = playerProvider.isDarkMode;
+
     // Definición local de la paleta de colores del "Sistema Cromático"
     const Color dSurface0 = Color(0xFF0D0D0F);
     const Color dSurface1 = Color(0xFF1A1A1D);
@@ -263,21 +267,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     const Color lTextPrimary = Color(0xFF1A1A1D);
     const Color lTextSecondary = Color(0xFF4A4A5A);
 
-    final Color currentSurface0 = _isDarkMode ? dSurface0 : lSurface0;
-    final Color currentSurface1 = _isDarkMode ? dSurface1 : lSurface1;
-    final Color currentBrand = _isDarkMode ? dMysticPurple : lMysticPurple;
-    final Color currentBrandDeep = _isDarkMode ? dMysticPurpleDeep : lMysticPurpleDeep;
-    final Color currentBorder = _isDarkMode ? dBorderGray : lBorderGray;
-    final Color currentText = _isDarkMode ? Colors.white : lTextPrimary;
-    final Color currentTextSec = _isDarkMode ? Colors.white70 : lTextSecondary;
+    final Color currentSurface0 = isDarkMode ? dSurface0 : lSurface0;
+    final Color currentSurface1 = isDarkMode ? dSurface1 : lSurface1;
+    final Color currentBrand = isDarkMode ? dMysticPurple : lMysticPurple;
+    final Color currentBorder = isDarkMode ? dBorderGray : lBorderGray;
+    final Color currentText = isDarkMode ? Colors.white : lTextPrimary;
+    final Color currentTextSec = isDarkMode ? Colors.white70 : lTextSecondary;
 
     return Theme(
       data: Theme.of(context).copyWith(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: currentSurface1,
+          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFFFF8E1),
           labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6), fontSize: 14),
-          prefixIconColor: currentBrand,
+          prefixIconColor: isDarkMode ? dGoldMain : lMysticPurple,
           suffixIconColor: currentTextSec.withOpacity(0.6),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -285,7 +288,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: currentBrand, width: 2),
+            borderSide: BorderSide(color: isDarkMode ? dGoldMain : lMysticPurple, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -300,20 +303,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onTap: () => FocusScope.of(context).unfocus(),
           child: Stack(
             children: [
-              // Fondo con degradado
               Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.8, -0.6),
-                      radius: 1.5,
-                      colors: [
-                        currentBrandDeep,
-                        currentSurface0,
-                      ],
-                    ),
-                  ),
-                ),
+                child: isDarkMode
+                    ? Opacity(
+                        opacity: 0.7,
+                        child: Image.asset(
+                          'assets/images/hero.png',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          Image.asset(
+                            'assets/images/loginclaro.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
+                          Container(
+                            color: Colors.black.withOpacity(0.2),
+                          ),
+                        ],
+                      ),
               ),
               SafeArea(
                 child: Column(
@@ -324,18 +337,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            icon: Icon(Icons.arrow_back, color: _isDarkMode ? Colors.white : lMysticPurple),
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
                             onPressed: () => Navigator.pop(context),
                           ),
                           IconButton(
                             icon: Icon(
-                              _isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
-                              color: _isDarkMode ? Colors.white : lMysticPurple,
+                              isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
+                              color: Colors.white,
                             ),
-                            onPressed: () => setState(() => _isDarkMode = !_isDarkMode),
+                            onPressed: () {
+                              playerProvider.toggleDarkMode(!isDarkMode);
+                            },
                           ),
                           IconButton(
-                            icon: Icon(Icons.help_outline, color: _isDarkMode ? Colors.white : lMysticPurple),
+                            icon: const Icon(Icons.help_outline, color: Colors.white),
                             onPressed: () => _showTutorial(context),
                           ),
                         ],
@@ -353,7 +368,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 Text(
                                   'CREAR CUENTA',
                                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: currentText,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 3,
                                     fontSize: 24,
@@ -364,7 +379,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   "Únete a la aventura ☘️",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: currentTextSec,
+                                    color: Colors.white.withOpacity(0.9),
                                     fontWeight: FontWeight.w400,
                                     letterSpacing: 2.0,
                                   ),
@@ -372,11 +387,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 const SizedBox(height: 30),
 
                                 // Cédula / RIF
-                                // Cédula / RIF (Split V/E - Number)
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Selector de Nacionalidad (V/E)
                                     SizedBox(
                                       width: 80,
                                       child: DropdownButtonFormField<String>(
@@ -398,23 +411,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         decoration: InputDecoration(
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                                           filled: true,
-                                          fillColor: currentSurface1,
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide(color: currentBorder, width: 1.5),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide(color: currentBrand, width: 2),
-                                          ),
+                                          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFFFF8E1),
                                         ),
-                                        dropdownColor: currentSurface1,
+                                        dropdownColor: isDarkMode ? const Color(0xFF1A1A1D) : Colors.white,
                                         style: TextStyle(color: currentText),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
                                     
-                                    // Campo Numérico
                                     Expanded(
                                       child: TextFormField(
                                         controller: _cedulaController,
@@ -424,21 +428,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           FilteringTextInputFormatter.digitsOnly,
                                           LengthLimitingTextInputFormatter(9),
                                         ],
-                                        decoration: InputDecoration(
+                                        decoration: const InputDecoration(
                                           labelText: 'CÉDULA/PASAPORTE',
-                                          prefixIcon: const Icon(Icons.badge_outlined),
+                                          prefixIcon: Icon(Icons.badge_outlined),
                                           hintText: '12345678',
-                                          hintStyle: TextStyle(color: currentTextSec.withOpacity(0.3), fontSize: 13),
-                                          filled: true,
-                                          fillColor: currentSurface1,
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide(color: currentBorder, width: 1.5),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide(color: currentBrand, width: 2),
-                                          ),
                                         ),
                                         validator: (value) {
                                           if (value == null || value.isEmpty) return 'Ingresa tu cédula';
@@ -456,24 +449,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   style: TextStyle(color: currentText),
                                   keyboardType: TextInputType.number, 
                                   inputFormatters: [
-                                    // Esta es la clave: bloquea cualquier carácter que no sea un dígito
                                     FilteringTextInputFormatter.digitsOnly,
-                                    // Opcional: limitar a 11 caracteres máximo
                                     LengthLimitingTextInputFormatter(11),
                                   ],
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     labelText: 'TELÉFONO',
-                                    prefixIcon: const Icon(Icons.phone_android_outlined),
+                                    prefixIcon: Icon(Icons.phone_android_outlined),
                                     hintText: '04121234567',
-                                    hintStyle: TextStyle(color: currentTextSec.withOpacity(0.3), fontSize: 13),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) return 'Ingresa tu teléfono';
-                                    String pattern = r'(^[0-9]{11}$)';
-                                    RegExp regExp = RegExp(pattern);
-                                    if (!regExp.hasMatch(value.trim().replaceAll(' ', '').replaceAll('-', ''))) {
-                                      return 'Ingresa el número completo (Ej: 04121234567)';
-                                    }
+                                    if (value.length < 11) return 'Ingresa el número completo';
                                     return null;
                                   },
                                 ),
@@ -561,32 +547,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 // Términos y condiciones
                                 Theme(
                                   data: ThemeData(
-                                    unselectedWidgetColor: _isDarkMode ? Colors.white30 : Colors.black38,
+                                    unselectedWidgetColor: Colors.white30,
                                   ),
                                   child: CheckboxListTile(
                                     contentPadding: EdgeInsets.zero,
                                     title: RichText(
                                       text: TextSpan(
                                         children: [
-                                          TextSpan(
+                                          const TextSpan(
                                             text: "Acepto los ",
-                                            style: TextStyle(color: currentTextSec, fontSize: 13),
+                                            style: TextStyle(color: Colors.white70, fontSize: 13),
                                           ),
                                           TextSpan(
                                             text: "términos y condiciones de uso.",
                                             style: TextStyle(
-                                              color: _isDarkMode ? dGoldMain : lMysticPurple, 
+                                              color: isDarkMode ? dGoldMain : dGoldLight, 
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
                                             ),
-                                            recognizer: TapGestureRecognizer()..onTap = _showTermsDialog,
+                                            recognizer: TapGestureRecognizer()..onTap = () => _showTermsDialog(isDarkMode),
                                           ),
                                         ],
                                       ),
                                     ),
                                     value: _acceptedTerms,
-                                    activeColor: currentBrand,
-                                    checkColor: Colors.white,
+                                    activeColor: isDarkMode ? dGoldMain : lMysticPurple,
+                                    checkColor: isDarkMode ? Colors.black : Colors.white,
                                     onChanged: (newValue) => setState(() => _acceptedTerms = newValue ?? false),
                                     controlAffinity: ListTileControlAffinity.leading,
                                   ),

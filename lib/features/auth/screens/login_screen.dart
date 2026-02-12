@@ -663,7 +663,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     Text(
                                       'INICIA TU AVENTURA',
                                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                        color: currentText,
+                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 3,
                                         fontSize: 12,
@@ -725,7 +725,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                         child: Text(
                                           '¿Olvidaste tu contraseña?',
                                           style: TextStyle(
-                                            color: currentTextSec,
+                                            color: Colors.white.withOpacity(0.8),
                                             fontWeight: FontWeight.normal,
                                             fontSize: 13,
                                           ),
@@ -783,7 +783,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       children: [
                                         Text(
                                           '¿No tienes cuenta? ',
-                                          style: TextStyle(color: currentTextSec),
+                                          style: TextStyle(color: Colors.white.withOpacity(0.8)),
                                         ),
                                         TextButton(
                                           onPressed: () {
