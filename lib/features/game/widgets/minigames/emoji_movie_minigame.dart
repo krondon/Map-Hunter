@@ -304,94 +304,91 @@ class _EmojiMovieMinigameState extends State<EmojiMovieMinigame>
 
     return Stack(
       children: [
-        Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Timer
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: isLowTime
-                        ? AppTheme.dangerRed.withOpacity(0.2)
-                        : Colors.black45,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Timer
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: isLowTime
+                      ? AppTheme.dangerRed.withOpacity(0.2)
+                      : Colors.black45,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color:
+                          isLowTime ? AppTheme.dangerRed : AppTheme.accentGold),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.timer,
                         color: isLowTime
                             ? AppTheme.dangerRed
                             : AppTheme.accentGold),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    const SizedBox(width: 5),
+                    Text("$minutes:$seconds",
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontFamily: 'monospace')),
+                  ],
+                ),
+              ),
+
+              // Emojis Display
+              Text(
+                _displayEmojis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 48,
+                  letterSpacing: 4,
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // MULTIPLE CHOICE BUTTONS (2x2 GRID)
+              if (_options.length >= 4)
+                AnimatedBuilder(
+                  animation: _shakeController,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(
+                          _shakeAnimation.value *
+                              (_shakeController.status ==
+                                      AnimationStatus.forward
+                                  ? 1
+                                  : -1),
+                          0),
+                      child: child,
+                    );
+                  },
+                  child: Column(
                     children: [
-                      Icon(Icons.timer,
-                          color: isLowTime
-                              ? AppTheme.dangerRed
-                              : AppTheme.accentGold),
-                      const SizedBox(width: 5),
-                      Text("$minutes:$seconds",
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontFamily: 'monospace')),
+                      Row(
+                        children: [
+                          Expanded(child: _buildOptionButton(_options[0])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildOptionButton(_options[1])),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildOptionButton(_options[2])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildOptionButton(_options[3])),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-
-                // Emojis Display
-                Text(
-                  _displayEmojis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 48,
-                    letterSpacing: 4,
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // MULTIPLE CHOICE BUTTONS (2x2 GRID)
-                if (_options.length >= 4)
-                  AnimatedBuilder(
-                    animation: _shakeController,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: Offset(
-                            _shakeAnimation.value *
-                                (_shakeController.status ==
-                                        AnimationStatus.forward
-                                    ? 1
-                                    : -1),
-                            0),
-                        child: child,
-                      );
-                    },
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: _buildOptionButton(_options[0])),
-                            const SizedBox(width: 12),
-                            Expanded(child: _buildOptionButton(_options[1])),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(child: _buildOptionButton(_options[2])),
-                            const SizedBox(width: 12),
-                            Expanded(child: _buildOptionButton(_options[3])),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         ),
 

@@ -13,10 +13,12 @@ class MinigameCountdownOverlay extends StatefulWidget {
   });
 
   @override
-  State<MinigameCountdownOverlay> createState() => _MinigameCountdownOverlayState();
+  State<MinigameCountdownOverlay> createState() =>
+      _MinigameCountdownOverlayState();
 }
 
-class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay> with TickerProviderStateMixin {
+class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay>
+    with TickerProviderStateMixin {
   int _counter = 3;
   bool _isFinished = false;
   late AnimationController _controller;
@@ -36,7 +38,9 @@ class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay> wit
     );
 
     _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.7, 1.0, curve: Curves.easeOut)),
+      CurvedAnimation(
+          parent: _controller,
+          curve: const Interval(0.7, 1.0, curve: Curves.easeOut)),
     );
 
     _startCountdown();
@@ -51,13 +55,13 @@ class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay> wit
   void _startCountdown() async {
     // Show "3"
     await _playPulse();
-    
+
     setState(() => _counter = 2);
     await _playPulse();
-    
+
     setState(() => _counter = 1);
     await _playPulse();
-    
+
     setState(() => _counter = 0); // "YA!"
     await _playPulse();
 
@@ -84,8 +88,8 @@ class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay> wit
 
     return Container(
       width: double.infinity,
-      height: double.infinity,
-      color: Colors.black.withOpacity(0.8),
+      constraints: const BoxConstraints(minHeight: 500),
+      color: Colors.black45,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -110,12 +114,17 @@ class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay> wit
                   child: Text(
                     displayText,
                     style: TextStyle(
-                      color: _counter == 0 ? AppTheme.successGreen : AppTheme.accentGold,
+                      color: _counter == 0
+                          ? AppTheme.successGreen
+                          : AppTheme.accentGold,
                       fontSize: 80,
                       fontWeight: FontWeight.w900,
                       shadows: [
                         Shadow(
-                          color: (_counter == 0 ? AppTheme.successGreen : AppTheme.accentGold).withOpacity(0.5),
+                          color: (_counter == 0
+                                  ? AppTheme.successGreen
+                                  : AppTheme.accentGold)
+                              .withOpacity(0.5),
                           blurRadius: 20,
                         ),
                       ],

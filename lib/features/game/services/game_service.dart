@@ -517,4 +517,42 @@ class GameService {
       return false;
     }
   }
+
+  /// Obtiene los datos del minijuego de capitales desde Supabase.
+  Future<List<Map<String, String>>> fetchMinigameCapitals() async {
+    try {
+      final List<dynamic> response =
+          await _supabase.from('minigame_capitals').select('flag, capital');
+
+      return response
+          .map((e) => {
+                'flag': e['flag'].toString(),
+                'capital': e['capital'].toString(),
+              })
+          .toList();
+    } catch (e) {
+      debugPrint('GameService: Error fetching minigame capitals: $e');
+      return [];
+    }
+  }
+
+  /// Obtiene los datos del minijuego verdadero/falso desde Supabase.
+  Future<List<Map<String, dynamic>>> fetchMinigameTrueFalse() async {
+    try {
+      final List<dynamic> response = await _supabase
+          .from('minigame_true_false')
+          .select('statement, is_true, correction');
+
+      return response
+          .map((e) => {
+                'statement': e['statement'].toString(),
+                'isTrue': e['is_true'] as bool,
+                'correction': e['correction']?.toString() ?? '',
+              })
+          .toList();
+    } catch (e) {
+      debugPrint('GameService: Error fetching minigame true/false: $e');
+      return [];
+    }
+  }
 }

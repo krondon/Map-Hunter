@@ -227,47 +227,44 @@ class _PercentageCalculationMinigameState
 
               const SizedBox(height: 10),
 
-              // 2. Question Area (Flexible)
-              Expanded(
-                flex: 4,
-                child: Center(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                        color: Colors.indigo.shade900,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.indigo.withOpacity(0.5),
-                              blurRadius: 20)
-                        ]),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "$_percentage%",
-                            style: const TextStyle(
-                                fontSize: 50,
-                                color: Colors.amberAccent,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const Text("DE",
-                              style: TextStyle(
-                                  color: Colors.white54, fontSize: 16)),
-                          Text(
-                            "$_baseNumber",
-                            style: const TextStyle(
-                                fontSize: 40,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+              const SizedBox(height: 20),
+              Center(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                      color: Colors.indigo.shade900,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.indigo.withOpacity(0.5),
+                            blurRadius: 20)
+                      ]),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "$_percentage%",
+                          style: const TextStyle(
+                              fontSize: 50,
+                              color: Colors.amberAccent,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const Text("DE",
+                            style:
+                                TextStyle(color: Colors.white54, fontSize: 16)),
+                        Text(
+                          "$_baseNumber",
+                          style: const TextStyle(
+                              fontSize: 40,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -275,64 +272,67 @@ class _PercentageCalculationMinigameState
 
               const SizedBox(height: 10),
 
-              // 3. Options Area (Flexible)
-              Expanded(
-                flex: 5,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: LayoutBuilder(builder: (context, constraints) {
-                    // Exact calculation to fit GridView in available space
-                    // Height = 2 * itemHeight + 1 * mainAxisSpacing (15)
-                    double availableHeight = constraints.maxHeight;
-                    double rows = 2;
-                    double mainAxisSpacing = 15;
-                    // Calculate item height to fit exactly:
-                    double itemHeight =
-                        (availableHeight - (rows - 1) * mainAxisSpacing) / rows;
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: Center(
+                  child: SizedBox(
+                    height: 250, // Fixed height for options grid
+                    child: LayoutBuilder(builder: (context, constraints) {
+                      // Exact calculation to fit GridView in available space
+                      // Height = 2 * itemHeight + 1 * mainAxisSpacing (15)
+                      double availableHeight = constraints.maxHeight;
+                      double rows = 2;
+                      double mainAxisSpacing = 15;
+                      // Calculate item height to fit exactly:
+                      double itemHeight =
+                          (availableHeight - (rows - 1) * mainAxisSpacing) /
+                              rows;
 
-                    // Width = 2 * itemWidth + 1 * crossAxisSpacing (15)
-                    double availableWidth = constraints.maxWidth;
-                    double crossAxisSpacing = 15;
-                    double itemWidth =
-                        (availableWidth - (2 - 1) * crossAxisSpacing) / 2;
+                      // Width = 2 * itemWidth + 1 * crossAxisSpacing (15)
+                      double availableWidth = constraints.maxWidth;
+                      double crossAxisSpacing = 15;
+                      double itemWidth =
+                          (availableWidth - (2 - 1) * crossAxisSpacing) / 2;
 
-                    // Protect against negative or zero values
-                    if (itemHeight <= 0 || itemWidth <= 0)
-                      return const SizedBox.shrink();
+                      // Protect against negative or zero values
+                      if (itemHeight <= 0 || itemWidth <= 0)
+                        return const SizedBox.shrink();
 
-                    double childAspectRatio = itemWidth / itemHeight;
+                      double childAspectRatio = itemWidth / itemHeight;
 
-                    return GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 15,
-                      mainAxisSpacing: 15,
-                      childAspectRatio: childAspectRatio,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: _options.map((opt) {
-                        return GestureDetector(
-                          onTap: () => _handleSelection(opt),
-                          child: Container(
-                            decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: Colors.white24)),
-                            child: Center(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  "$opt",
-                                  style: const TextStyle(
-                                      fontSize: 28,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 15,
+                        mainAxisSpacing: 15,
+                        childAspectRatio: childAspectRatio,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: _options.map((opt) {
+                          return GestureDetector(
+                            onTap: () => _handleSelection(opt),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(color: Colors.white24)),
+                              child: Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    "$opt",
+                                    style: const TextStyle(
+                                        fontSize: 28,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  }),
+                          );
+                        }).toList(),
+                      );
+                    }),
+                  ),
                 ),
               ),
             ],

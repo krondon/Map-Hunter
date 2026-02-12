@@ -228,37 +228,42 @@ class _MissingOperatorMinigameState extends State<MissingOperatorMinigame> {
                     BoxShadow(
                         color: Colors.blue.withOpacity(0.3), blurRadius: 20)
                   ]),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("$_operand1",
-                      style:
-                          const TextStyle(fontSize: 40, color: Colors.white)),
-                  const SizedBox(width: 15),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.amber)),
-                    child: const Center(
-                      child: Text("?",
-                          style: TextStyle(fontSize: 30, color: Colors.amber)),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min, // Ensure it shrinks if needed
+                  children: [
+                    Text("$_operand1",
+                        style:
+                            const TextStyle(fontSize: 40, color: Colors.white)),
+                    const SizedBox(width: 10), // Reduced spacing
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.amber)),
+                      child: const Center(
+                        child: Text("?",
+                            style:
+                                TextStyle(fontSize: 30, color: Colors.amber)),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 15),
-                  Text("$_operand2",
-                      style:
-                          const TextStyle(fontSize: 40, color: Colors.white)),
-                  const SizedBox(width: 15),
-                  const Text("=",
-                      style: TextStyle(fontSize: 40, color: Colors.white)),
-                  const SizedBox(width: 15),
-                  Text("$_result",
-                      style: const TextStyle(
-                          fontSize: 40, color: Colors.greenAccent)),
-                ],
+                    const SizedBox(width: 10),
+                    Text("$_operand2",
+                        style:
+                            const TextStyle(fontSize: 40, color: Colors.white)),
+                    const SizedBox(width: 10),
+                    const Text("=",
+                        style: TextStyle(fontSize: 40, color: Colors.white)),
+                    const SizedBox(width: 10),
+                    Text("$_result",
+                        style: const TextStyle(
+                            fontSize: 40, color: Colors.greenAccent)),
+                  ],
+                ),
               ),
             ),
 

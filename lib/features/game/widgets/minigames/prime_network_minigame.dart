@@ -238,59 +238,63 @@ class _PrimeNetworkMinigameState extends State<PrimeNetworkMinigame> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Network Lines (Background)
-        CustomPaint(
-          size: Size.infinite,
-          painter: NetworkPainter(nodes: _nodes),
-        ),
-
-        // Nodes
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Stack(
-              children: _nodes.map((node) {
-                return Positioned(
-                  left: node.position.dx * constraints.maxWidth -
-                      30, // center 60px node
-                  top: node.position.dy * constraints.maxHeight - 30,
-                  child: GestureDetector(
-                    onTap: () => _handleNodeTap(node),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                          color: node.isSecured
-                              ? Colors.green
-                              : Colors.blueGrey[800],
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: node.isSecured
-                                  ? Colors.lightGreenAccent
-                                  : Colors.cyan,
-                              width: 2),
-                          boxShadow: [
-                            BoxShadow(
+        // Network play area
+        SizedBox(
+          height: 500,
+          child: Stack(
+            children: [
+              CustomPaint(
+                size: Size.infinite,
+                painter: NetworkPainter(nodes: _nodes),
+              ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    children: _nodes.map((node) {
+                      return Positioned(
+                        left: node.position.dx * constraints.maxWidth - 30,
+                        top: node.position.dy * constraints.maxHeight - 30,
+                        child: GestureDetector(
+                          onTap: () => _handleNodeTap(node),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
                                 color: node.isSecured
-                                    ? Colors.green.withOpacity(0.5)
-                                    : Colors.cyan.withOpacity(0.3),
-                                blurRadius: 10)
-                          ]),
-                      child: Center(
-                        child: Text(
-                          "${node.value}",
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold),
+                                    ? Colors.green
+                                    : Colors.blueGrey[800],
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: node.isSecured
+                                        ? Colors.lightGreenAccent
+                                        : Colors.cyan,
+                                    width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: node.isSecured
+                                          ? Colors.green.withOpacity(0.5)
+                                          : Colors.cyan.withOpacity(0.3),
+                                      blurRadius: 10)
+                                ]),
+                            child: Center(
+                              child: Text(
+                                "${node.value}",
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
 
         // HUD

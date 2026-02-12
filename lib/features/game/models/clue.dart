@@ -32,7 +32,11 @@ enum PuzzleType {
   holographicPanels,
   missingOperator,
   primeNetwork,
-  percentageCalculation;
+  percentageCalculation,
+  chronologicalOrder,
+  capitalCities,
+  trueFalse,
+  matchThree;
 
   String get dbValue => toString().split('.').last;
 
@@ -78,6 +82,14 @@ enum PuzzleType {
         return '🕸️ Red de Primos';
       case PuzzleType.percentageCalculation:
         return '💯 Porcentajes';
+      case PuzzleType.chronologicalOrder:
+        return '📅 Orden Cronológico';
+      case PuzzleType.capitalCities:
+        return '🌍 Capitales';
+      case PuzzleType.trueFalse:
+        return '✅❌ Verdadero o Falso';
+      case PuzzleType.matchThree:
+        return '🍬 Match 3';
       case PuzzleType.memorySequence:
         return '🧠 Secuencia de Memoria (Simon)';
       case PuzzleType.drinkMixer:
@@ -114,6 +126,10 @@ enum PuzzleType {
       case PuzzleType.missingOperator:
       case PuzzleType.primeNetwork:
       case PuzzleType.percentageCalculation:
+      case PuzzleType.chronologicalOrder:
+      case PuzzleType.capitalCities:
+      case PuzzleType.trueFalse:
+      case PuzzleType.matchThree:
         return true;
       default:
         return false;
@@ -172,6 +188,14 @@ enum PuzzleType {
         return 'Toca solo los números primos.';
       case PuzzleType.percentageCalculation:
         return 'Calcula el porcentaje correcto.';
+      case PuzzleType.chronologicalOrder:
+        return 'Ordena los eventos cronológicamente.';
+      case PuzzleType.capitalCities:
+        return 'Selecciona la capital correcta.';
+      case PuzzleType.trueFalse:
+        return 'Responde correctamente 5 afirmaciones.';
+      case PuzzleType.matchThree:
+        return 'Combina 3 elementos iguales.';
     }
   }
 }

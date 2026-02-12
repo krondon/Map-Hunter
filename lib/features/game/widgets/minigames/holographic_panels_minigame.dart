@@ -243,23 +243,20 @@ class _HolographicPanelsMinigameState extends State<HolographicPanelsMinigame>
                   fontSize: 18,
                   fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 40),
-
+            const SizedBox(height: 20),
             // Panels
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: _buildPanel(_leftEquation,
-                            () => _handleSelection(true), Colors.cyanAccent)),
-                    const SizedBox(width: 20),
-                    Expanded(
-                        child: _buildPanel(_rightEquation,
-                            () => _handleSelection(false), Colors.pinkAccent)),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _buildPanel(_leftEquation,
+                          () => _handleSelection(true), Colors.cyanAccent)),
+                  const SizedBox(width: 20),
+                  Expanded(
+                      child: _buildPanel(_rightEquation,
+                          () => _handleSelection(false), Colors.pinkAccent)),
+                ],
               ),
             ),
             const SizedBox(height: 50),
@@ -308,15 +305,17 @@ class _HolographicPanelsMinigameState extends State<HolographicPanelsMinigame>
                         spreadRadius: 2)
                   ]),
               child: Center(
-                child: Text(
-                  text,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Courier' // Monospace for digital look
-                      ),
-                ),
+                child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Courier' // Monospace for digital look
+                          ),
+                    )),
               ),
             ),
           ),
