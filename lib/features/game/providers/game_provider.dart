@@ -455,15 +455,10 @@ class GameProvider extends ChangeNotifier implements IResettable {
       _activePowerEffects =
           await _gameService.getActivePowers(_currentEventId!);
 
-      // Check for victory in leaderboard data
-      if (totalClues > 0) {
-        for (var player in _leaderboard) {
-          if (player.totalXP >= totalClues) {
-            _setRaceCompleted(true, 'Leaderboard Polling');
-            break;
-          }
-        }
-      }
+      // FIX: Removed legacy client-side race completion logic.
+      // The server (via 'events' table status) is the only source of truth for race completion.
+      // This checking was causing premature "Race Completed" state even if more winners were needed.
+
 
       notifyListeners();
     } catch (e) {

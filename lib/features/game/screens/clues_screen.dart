@@ -17,6 +17,7 @@ import 'winner_celebration_screen.dart'; // Import for celebration screen
 import '../../../shared/widgets/exit_protection_wrapper.dart'; // Protection
 import '../services/clue_navigator_service.dart'; // New Service
 import 'puzzle_screen.dart';
+import 'waiting_room_screen.dart'; // NEW IMPORT
 
 class CluesScreen extends StatefulWidget {
   // 1. Recibimos el ID del evento obligatorio
@@ -66,10 +67,16 @@ class _CluesScreenState extends State<CluesScreen> {
         // 2. LUEGO comprobar si la carrera ya terminó en el servidor
         await gameProvider.checkRaceStatus();
 
-        // 3. Si ya terminó, redirigir
+        // 3. Si ya terminó GLOBALMENTE, redirigir a Winner
         if (gameProvider.isRaceCompleted && mounted) {
           _navigateToWinnerScreen();
           return;
+        }
+
+        // 3.5 Si NO terminó globalmente, pero YO ya terminé todo -> Waiting Room
+        if (gameProvider.hasCompletedAllClues && mounted) {
+           _navigateToWaitingRoom();
+           return;
         }
 
         // 4. FINALMENTE iniciar el polling de ranking
@@ -197,6 +204,14 @@ class _CluesScreenState extends State<CluesScreen> {
 
     final index = leaderboard.indexWhere((p) => p.id == currentPlayerId);
     return index >= 0 ? index + 1 : leaderboard.length + 1;
+  }
+
+  void _navigateToWaitingRoom() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => WaitingRoomScreen(eventId: widget.eventId),
+      ),
+    );
   }
 
   // NUEVO MÉTODO: Muestra la pista en modo "Solo Lectura"

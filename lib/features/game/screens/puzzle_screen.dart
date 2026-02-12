@@ -52,6 +52,7 @@ import '../../../shared/widgets/time_stamp_animation.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../widgets/no_lives_widget.dart';
+import 'waiting_room_screen.dart'; // NEW IMPORT
 
 class PuzzleScreen extends StatefulWidget {
   final Clue clue;
@@ -699,7 +700,25 @@ void _showSuccessDialog(BuildContext context, Clue clue) async {
         playerPosition = 999; // Safe default
       }
 
-      // Navigate to winner celebration screen using captured navigator
+      // 🏆 LOGIC UPDATE: WAITING ROOM vs WINNER SCREEN
+      // If the race is NOT globally completed yet (still active), but user finished -> Waiting Room
+      // If the race IS globally completed -> Winner Screen
+      
+      if (!gameProvider.isRaceCompleted && gameProvider.hasCompletedAllClues) {
+         debugPrint("🏆 User finished, but Race is still ACTIVE -> Going to Waiting Room");
+         if (navigator.mounted) {
+            navigator.pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => WaitingRoomScreen(
+                  eventId: gameProvider.currentEventId ?? '',
+                ),
+              ),
+            );
+         }
+         return;
+      }
+
+      // Navigate to winner celebration screen if race IS completed
       if (navigator.mounted) {
         navigator.pushAndRemoveUntil(
           MaterialPageRoute(
