@@ -61,7 +61,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1050), // Speed of the flying number
+      duration: const Duration(milliseconds: 1700), // Adjusted speed - slightly faster
     );
     
     _flyAnimation = Tween<Offset>(
@@ -175,6 +175,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
       _handleWin();
     } else {
       setState(() {
+        _isError = true;
         _attemptsRemaining--;
         _statusMessage = "CÓDIGO INCORRECTO";
         _statusColor = AppTheme.dangerRed;
@@ -185,7 +186,10 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
         HapticFeedback.vibrate();
         // Wait a small moment to show the error before restarting
         Future.delayed(const Duration(milliseconds: 1000), () {
-          if (mounted) _startPreparation();
+          if (mounted) {
+            setState(() => _isError = false);
+            _startPreparation();
+          }
         });
       } else {
         _loseLife("Se agotaron los intentos.");
@@ -201,11 +205,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
       _isVictory = true;
     });
     HapticFeedback.heavyImpact();
-    _showOverlayState(
-      title: "CÓDIGO CAPTURADO",
-      message: "Has interceptado el paquete de datos.",
-      victory: true,
-    );
+    widget.onSuccess();
   }
 
   void _loseLife(String reason) async {
@@ -287,7 +287,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
 
             // FLYING AREA
             Expanded(
-              flex: 3,
+              flex: 2,
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
@@ -323,14 +323,19 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
 
             // INPUT AREA
             Expanded(
-              flex: 4,
+              flex: 3,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
                 child: Column(
                   children: [
                     // Display current input
                     Container(
-                      height: 60,
+                      height: 50,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.black26,
@@ -349,16 +354,16 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     // Keypad
                     Expanded(
                       child: GridView.builder(
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
-                          childAspectRatio: 1.8,
+                          childAspectRatio: 2.3,
                           crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
+                          mainAxisSpacing: 8,
                         ),
                         itemCount: 12,
                         itemBuilder: (context, index) {
@@ -426,14 +431,27 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
       },
       child: Container(
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.2)),
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold, decoration: TextDecoration.none),
+          style: TextStyle(
+            color: color, 
+            fontSize: 22, 
+            fontWeight: FontWeight.w900, 
+            letterSpacing: 1,
+            decoration: TextDecoration.none
+          ),
         ),
       ),
     );

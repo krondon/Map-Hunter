@@ -19,7 +19,7 @@ class StoryMoment {
 class StoryData {
   static final List<StoryMoment> moments = [
     StoryMoment(
-      title: 'Sello Temporal 1',
+      title: 'Trébol Dorado 1',
       subtitle: 'Fragmentos de Memoria',
       description:
           'El mapa de tu reino está corrupto en la base de datos del futuro. Deberás reconstruirlo pieza por pieza para calibrar tu brújula temporal.',
@@ -27,7 +27,7 @@ class StoryData {
       gradient: [const Color(0xFF3B82F6), const Color(0xFF06B6D4)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 2',
+      title: 'Trébol Dorado 2',
       subtitle: 'El Código de Acceso',
       description:
           'La terminal de seguridad no reconoce tu lenguaje antiguo. Deberás descifrar las palabras clave antes de que el sistema te bloquee permanentemente.',
@@ -35,7 +35,7 @@ class StoryData {
       gradient: [const Color(0xFF06B6D4), const Color(0xFF10B981)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 3',
+      title: 'Trébol Dorado 3',
       subtitle: 'Archivos Históricos',
       description:
           'Para confirmar tu procedencia, el ordenador central te pondrá a prueba sobre los símbolos de los reinos que dejaron de existir hace siglos.',
@@ -43,7 +43,7 @@ class StoryData {
       gradient: [const Color(0xFF10B981), const Color(0xFF84CC16)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 4',
+      title: 'Trébol Dorado 4',
       subtitle: 'Campo de Desechos Nanobot',
       description:
           'El camino hacia la zona de carga está plagado de peligros ocultos. Deberás avanzar con extrema precaución para no activar las defensas automáticas.',
@@ -51,7 +51,7 @@ class StoryData {
       gradient: [const Color(0xFF84CC16), const Color(0xFFF59E0B)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 5',
+      title: 'Trébol Dorado 5',
       subtitle: 'Sobrecarga de Datos',
       description:
           'Los circuitos de la ciudad están al límite. Deberás navegar por el flujo de información sin tocar las paredes de datos o el sistema colapsará.',
@@ -59,7 +59,7 @@ class StoryData {
       gradient: [const Color(0xFFF59E0B), const Color(0xFFEF4444)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 6',
+      title: 'Trébol Dorado 6',
       subtitle: 'Restauración de Legado',
       description:
           'Una imagen de tu castillo está fragmentada por el tiempo. Deberás restaurarla completamente para anclar tu mente al pasado.',
@@ -67,7 +67,7 @@ class StoryData {
       gradient: [const Color(0xFFEF4444), const Color(0xFFEC4899)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 7',
+      title: 'Trébol Dorado 7',
       subtitle: 'Falla en la Simulación',
       description:
           'El futuro está intentando engañarte con una copia falsa de tu realidad. Deberás encontrar las anomalías en la matriz para romper el encantamiento.',
@@ -75,7 +75,7 @@ class StoryData {
       gradient: [const Color(0xFFEC4899), const Color(0xFFD946EF)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 8',
+      title: 'Trébol Dorado 8',
       subtitle: 'Sincronización de Núcleo',
       description:
           'Un último ajuste de sistemas antes de la gran apertura del portal. Cada segundo cuenta.',
@@ -83,7 +83,7 @@ class StoryData {
       gradient: [const Color(0xFFD946EF), const Color(0xFF8B5CF6)],
     ),
     StoryMoment(
-      title: 'Sello Temporal 9',
+      title: 'Trébol Dorado 9',
       subtitle: 'El Salto de Fe',
       description:
           'La realidad se está desmoronando mientras el portal se abre. Deberás estabilizar la brecha cuántica con precisión perfecta para permitir tu regreso a Asthoria.',

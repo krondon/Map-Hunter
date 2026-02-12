@@ -132,11 +132,7 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
       _isVictory = true;
     });
     HapticFeedback.heavyImpact();
-    _showOverlayState(
-      title: "ARCHIVO RESTAURADO",
-      message: "Has ordenado todos los núcleos de datos.",
-      victory: true,
-    );
+    widget.onSuccess();
   }
 
   void _loseLife(String reason) async {
@@ -326,7 +322,6 @@ class _LibrarySortMinigameState extends State<LibrarySortMinigame> {
               }
             } : null,
             onExit: () {
-               if (_isVictory) widget.onSuccess();
                Navigator.pop(context);
             },
           ),

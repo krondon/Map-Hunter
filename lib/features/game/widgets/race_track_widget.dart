@@ -121,8 +121,8 @@ class RaceTrackWidget extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 20),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(vertical: compact ? 10 : 20),
+      padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
         color: currentCard,
         borderRadius: BorderRadius.circular(20),
@@ -151,7 +151,7 @@ class RaceTrackWidget extends StatelessWidget {
                         style: TextStyle(
                           color: AppTheme.accentGold,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: compact ? 16 : 14,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -201,7 +201,7 @@ class RaceTrackWidget extends StatelessWidget {
 
               // --- RACE TRACK (RENDERING ONLY via RaceViewData) ---
               SizedBox(
-                height: compact ? 60 : 120,
+                height: compact ? 95 : 120,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return Stack(
@@ -226,8 +226,8 @@ class RaceTrackWidget extends StatelessWidget {
                         ),
 
                         // Markers
-                        Positioned(left: 0, top: 65, child: Text("START", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
-                        Positioned(right: 0, top: 65, child: Text("META", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
+                        Positioned(left: 0, top: compact ? 45 : 65, child: Text("START", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
+                        Positioned(right: 0, top: compact ? 45 : 65, child: Text("META", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
 
                         // Flag
                         const Positioned(
@@ -404,7 +404,7 @@ class _RacerAvatarWidget extends StatelessWidget {
     
     final double avatarSize = (vm.isMe || isSelected) ? 40 : 30;
     final double maxScroll = trackWidth - avatarSize;
-    final double topPosition = (compact ? 30 : 60) + laneOffset - (avatarSize / 2);
+    final double topPosition = (compact ? 40 : 60) + laneOffset - (avatarSize / 2);
 
     return Positioned(
       left: maxScroll * progress,

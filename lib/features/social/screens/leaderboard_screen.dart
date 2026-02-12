@@ -81,7 +81,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                     const SizedBox(height: 5),
                     const Text(
-                      "Ha recolectado TODOS los sellos",
+                      "Ha recolectado TODOS los tréboles",
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],

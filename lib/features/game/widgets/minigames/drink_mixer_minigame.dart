@@ -181,11 +181,7 @@ class _DrinkMixerMinigameState extends State<DrinkMixerMinigame> {
         _isVictory = true;
       });
       HapticFeedback.heavyImpact();
-      _showOverlayState(
-        title: "¡MAESTRO COCTELERO!",
-        message: "Has servido los $_targetCocktails cócteles con éxito.",
-        victory: true,
-      );
+      widget.onSuccess();
     } else {
       HapticFeedback.mediumImpact();
       _generateTarget();
@@ -417,7 +413,6 @@ class _DrinkMixerMinigameState extends State<DrinkMixerMinigame> {
               }
             } : null,
             onExit: () {
-               if (_isVictory) widget.onSuccess();
                Navigator.pop(context);
             },
           ),

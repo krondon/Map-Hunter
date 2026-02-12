@@ -115,23 +115,29 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
               children: [
                 // Fondo unificado estático (IGUAL AL LOGIN - SIN ANIMACIONES)
                 Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: isDarkMode ? const LinearGradient(
-                        colors: [dSurface0, dSurface1],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ) : LinearGradient(
-                        colors: [
-                          lSurface0,
-                          const Color(0xFFE0E0E6),
-                          lSurface1,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
+                  child: isDarkMode
+                      ? Opacity(
+                          opacity: 0.7,
+                          child: Image.asset(
+                            'assets/images/hero.png',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          ),
+                        )
+                      : Stack(
+                          children: [
+                            Image.asset(
+                              'assets/images/loginclaro.png',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                            Container(
+                              color: Colors.black.withOpacity(0.2),
+                            ),
+                          ],
+                        ),
                 ),
                 
                 SafeArea(
@@ -194,12 +200,12 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                                   }
                                 }
                               },
-                              icon: Icon(Icons.arrow_back_ios_new, color: currentAction),
+                              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
                             ),
                             const Spacer(),
                             IconButton(
                               onPressed: () => _showTutorial(context),
-                              icon: Icon(Icons.help_outline, color: currentAction),
+                              icon: const Icon(Icons.help_outline, color: Colors.white),
                             ),
                           ],
                         ),
@@ -211,14 +217,14 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                             fontSize: 26,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 2,
-                            color: currentText,
+                            color: Colors.white,
                             fontFamily: 'Inter',
-                            shadows: isDarkMode ? [
+                            shadows: [
                               Shadow(
-                                color: currentAction.withOpacity(0.5),
-                                blurRadius: 15,
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 10,
                               ),
-                            ] : [],
+                            ],
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -226,7 +232,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                           '¿Cómo deseas participar hoy?',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: currentTextSec,
+                            color: Colors.white.withOpacity(0.9),
                             fontSize: 16,
                           ),
                         ),
