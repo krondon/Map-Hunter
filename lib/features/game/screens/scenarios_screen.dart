@@ -2202,8 +2202,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                                 : "INSCRIBETE (${scenario.entryFee} 🍀)"),
                                                                   ),
                                                                 ),
-                                                                if (!scenario
-                                                                    .isCompleted) ...[
+                                                                if (!scenario.isCompleted &&
+                                                                    _participantStatusMap[scenario.id] != true) ...[
                                                                   const SizedBox(
                                                                       height:
                                                                           8),

@@ -80,6 +80,7 @@ class GameAccessService {
     if (role == UserRole.spectator) {
       return _checkSpectatorAccess(
         playerProvider: playerProvider,
+        requestProvider: requestProvider,
         scenario: scenario,
       );
     }
@@ -217,6 +218,7 @@ class GameAccessService {
   /// They bypass GPS, participation, and payment checks.
   Future<GameAccessResult> _checkSpectatorAccess({
     required PlayerProvider playerProvider,
+    required GameRequestProvider requestProvider,
     required Scenario scenario,
   }) async {
     // 1. Auth Session Check (spectators still need to be logged in)
@@ -229,9 +231,30 @@ class GameAccessService {
 
     final String userId = playerProvider.currentPlayer!.userId;
 
-    // 2. Check if user is banned from the event
-    // Even spectators shouldn't be allowed if banned
-    // This could be expanded with a repository call if needed
+    // 2. Check if user is ALREADY a participant (Active Player)
+    // If they are a player, they should NOT be in spectator mode.
+    // However, if they are 'banned' or 'suspended', they ARE allowed to spectate (existing logic).
+    
+    try {
+      final participantData = await requestProvider.isPlayerParticipant(userId, scenario.id);
+      final isParticipant = participantData['isParticipant'] as bool;
+      final status = participantData['status'] as String?;
+
+      if (isParticipant) {
+        // If suspended or banned, allow spectator (readonly)
+        if (status == 'suspended' || status == 'banned') {
+           // Allow flow to continue to spectatorAllowed
+        } else {
+           // Active player trying to spectate -> Redirect to Player Mode
+           debugPrint('[GameAccessService] User $userId is active player. Redirecting to player mode.');
+           return GameAccessResult.player(
+              data: {'isParticipant': true}, 
+           );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking participant status for spectator: $e');
+    }
 
     debugPrint('[GameAccessService] Spectator access granted for user $userId');
 

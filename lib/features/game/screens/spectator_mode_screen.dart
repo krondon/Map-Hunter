@@ -4,6 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../providers/spectator_feed_provider.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
+import '../providers/game_request_provider.dart'; // ADDED
+import '../../layouts/screens/home_screen.dart'; // ADDED
 import '../../auth/services/power_service.dart';
 import '../widgets/race_track_widget.dart';
 import '../models/race_view_data.dart';
@@ -43,7 +45,41 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-      
+      final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
+
+      // --- SECURITY CHECK: Redirect Active Players ---
+      final userId = playerProvider.currentPlayer?.userId;
+      if (userId != null) {
+        final participantData = await requestProvider.isPlayerParticipant(userId, widget.eventId);
+        final isParticipant = participantData['isParticipant'] as bool;
+        final status = participantData['status'] as String?;
+
+        // If user is a player (active/pending) and NOT spectator/banned/suspended
+        // They should be in the game, not spectating.
+        if (isParticipant && 
+            status != 'spectator' && 
+            status != 'banned' && 
+            status != 'suspended') {
+            
+            if (!mounted) return;
+            debugPrint('🚫 SpectatorMode: User is active player. Redirecting to HomeScreen...');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Redirigiendo al modo Jugador...'),
+                backgroundColor: AppTheme.primaryPurple,
+                duration: Duration(seconds: 2),
+              )
+            );
+            
+            playerProvider.setSpectatorRole(false);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId))
+            );
+            return;
+        }
+      }
+      // -----------------------------------------------
+
       // Activar modo espectador en el provider para usar el flujo de compra correcto
       playerProvider.setSpectatorRole(true);
       
