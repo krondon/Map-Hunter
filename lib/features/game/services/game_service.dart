@@ -121,8 +121,13 @@ class GameService {
                 .maybeSingle();
 
             if (myData != null) {
-              leaderboardData.add(myData);
-              debugPrint("👻 Current user added to leaderboard list.");
+              // FIX: Ensure we don't inject spectators into the race view
+              if (myData['status'] != 'spectator') {
+                leaderboardData.add(myData);
+                debugPrint("👻 Current user added to leaderboard list.");
+              } else {
+                 debugPrint("👻 Current user found but is SPECTATOR. Not adding to race view.");
+              }
             } else {
               debugPrint(
                   "⚠️ Current user has NO game_player record for this event.");
