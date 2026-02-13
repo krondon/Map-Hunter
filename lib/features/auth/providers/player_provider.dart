@@ -489,7 +489,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       }
 
       if (result.success) {
-        _currentPlayer!.coins -= cost;
+        if (_isSpectatorSession) {
+          // Espectadores pagan con tréboles (profiles.clovers)
+          if (result.newClovers != null) {
+            _currentPlayer!.clovers = result.newClovers!;
+          } else {
+            _currentPlayer!.clovers -= cost;
+          }
+        } else {
+          // Jugadores activos pagan con monedas de sesión (game_players.coins)
+          _currentPlayer!.coins -= cost;
+        }
         await fetchInventory(_currentPlayer!.userId, eventId);
         notifyListeners();
       }

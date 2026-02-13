@@ -799,7 +799,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               const Spacer(),
               Consumer<PlayerProvider>(
                 builder: (context, playerProvider, child) {
-                  final coins = playerProvider.currentPlayer?.coins ?? 0;
+                  final clovers = playerProvider.currentPlayer?.clovers ?? 0;
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -808,10 +808,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                        const Text('🍀', style: TextStyle(fontSize: 14)),
                         const SizedBox(width: 4),
                         Text(
-                          '$coins',
+                          '$clovers',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -827,7 +827,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Apuesta por el ganador de la carrera. Monto fijo: 100 monedas.',
+            'Apuesta por el ganador de la carrera. Monto fijo: 100 tréboles.',
             style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
           const SizedBox(height: 16),
@@ -1003,7 +1003,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               const Spacer(),
               Consumer<PlayerProvider>(
                 builder: (context, playerProvider, child) {
-                  final coins = playerProvider.currentPlayer?.coins ?? 0;
+                  final clovers = playerProvider.currentPlayer?.clovers ?? 0;
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -1012,10 +1012,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                        const Text('🍀', style: TextStyle(fontSize: 14)),
                         const SizedBox(width: 4),
                         Text(
-                          '$coins',
+                          '$clovers',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1124,7 +1124,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.monetization_on, color: Colors.amber, size: 14),
+                      const Text('🍀', style: TextStyle(fontSize: 12)),
                       const SizedBox(width: 4),
                       Text(
                         '${power.cost}',
@@ -1146,6 +1146,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   }
 
   void _showPurchaseDialog(PowerItem power) {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final currentClovers = playerProvider.currentPlayer?.clovers ?? 0;
+    final canAfford = currentClovers >= power.cost;
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1182,10 +1186,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                  const Text('🍀', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
                   Text(
-                    '${power.cost} monedas',
+                    '${power.cost} tréboles',
                     style: const TextStyle(
                       color: AppTheme.accentGold,
                       fontSize: 18,
@@ -1194,7 +1198,46 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              // Saldo actual del usuario
+              Text(
+                'Tu saldo: $currentClovers 🍀',
+                style: TextStyle(
+                  color: canAfford ? Colors.white54 : Colors.redAccent,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Advertencia de moneda paga
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.amber, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'Los tréboles son moneda premium',
+                      style: TextStyle(color: Colors.amber, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (!canAfford)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Tréboles insuficientes. Recarga en la tienda.',
+                    style: TextStyle(color: Colors.redAccent.shade100, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               Row(
                 children: [
                   Expanded(
@@ -1210,18 +1253,21 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await _purchasePower(power.id, power.name, power.cost);
-                      },
+                      onPressed: canAfford
+                          ? () async {
+                              Navigator.pop(context);
+                              await _purchasePower(power.id, power.name, power.cost);
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.accentGold,
+                        backgroundColor: canAfford ? AppTheme.accentGold : Colors.grey,
+                        disabledBackgroundColor: Colors.grey.shade800,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
-                        'Comprar',
+                      child: Text(
+                        canAfford ? 'Confirmar Compra' : 'Sin Saldo',
                         style: TextStyle(
-                          color: Colors.black,
+                          color: canAfford ? Colors.black : Colors.white38,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1238,12 +1284,12 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
 
   Future<void> _purchasePower(String powerId, String powerName, int price) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final currentCoins = playerProvider.currentPlayer?.coins ?? 0;
+    final currentClovers = playerProvider.currentPlayer?.clovers ?? 0;
 
-    if (currentCoins < price) {
+    if (currentClovers < price) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No tienes suficientes monedas'),
+          content: Text('No tienes tréboles suficientes. Recarga en la tienda.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1261,7 +1307,12 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('¡$powerName comprado exitosamente!'),
+            content: Row(
+              children: [
+                const Text('🍀 ', style: TextStyle(fontSize: 16)),
+                Text('¡$powerName comprado con $price tréboles!'),
+              ],
+            ),
             backgroundColor: Colors.green,
           ),
         );
