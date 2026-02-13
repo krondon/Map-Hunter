@@ -268,6 +268,7 @@ class EventService {
       entryFee: (data['entry_fee'] as num?)?.toInt() ?? 0, // NEW: Read persistence fix
       currentParticipants: (data['current_participants'] as num?)?.toInt() ?? 0,
       configuredWinners: (data['configured_winners'] as num?)?.toInt() ?? 3,
+      pot: (data['pot'] as num?)?.toInt() ?? 0, // FIX: Map pot from DB
     );
   }
 

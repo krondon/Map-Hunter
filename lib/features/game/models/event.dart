@@ -20,6 +20,7 @@ class GameEvent {
   final int entryFee;
   final int currentParticipants;
   final int configuredWinners; // NEW: Controls how many people get prizes (1, 2, or 3)
+  final int pot; // NEW: Total accumulated pot from DB
 
   GameEvent({
     required this.id,
@@ -41,6 +42,7 @@ class GameEvent {
     this.entryFee = 0,
     this.currentParticipants = 0,
     this.configuredWinners = 3,
+    this.pot = 0, // NEW: Initialize
   });
 
   LatLng get location => LatLng(latitude, longitude);
@@ -70,6 +72,7 @@ class GameEvent {
       entryFee: (json['entry_fee'] as num?)?.toInt() ?? 0,
       currentParticipants: (json['current_participants'] as num?)?.toInt() ?? 0,
       configuredWinners: (json['configured_winners'] as num?)?.toInt() ?? 3,
+      pot: (json['pot'] as num?)?.toInt() ?? 0, // NEW: Read from DB
     );
   }
 
@@ -93,6 +96,7 @@ class GameEvent {
       'type': type,
       'entry_fee': entryFee,
       'current_participants': currentParticipants,
+      'pot': pot, // NEW: Include pot in serialization
     };
   }
 }

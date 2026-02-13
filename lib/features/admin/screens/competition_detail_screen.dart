@@ -78,6 +78,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
   XFile? _selectedImage;
   bool _isLoading = false;
   bool _prizesDistributed = false; // New state
+  int _pot = 0; // State for pot
   List<Map<String, dynamic>> _leaderboardData = [];
 
   // Search state for participants tab
@@ -156,6 +157,24 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     }
   }
 
+  Future<void> _fetchEventDetails() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('events')
+          .select('pot')
+          .eq('id', widget.event.id)
+          .single();
+      
+      if (mounted) {
+        setState(() {
+          _pot = (data['pot'] as num?)?.toInt() ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error refreshing event details: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -177,6 +196,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     _maxParticipants = widget.event.maxParticipants;
     _entryFee = widget.event.entryFee; // NEW: Init
     _selectedDate = widget.event.date;
+    _pot = widget.event.pot; // Init pot
 
     // Load requests for this event
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -222,6 +242,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
                 if (mounted) {
                   _fetchPlayerStatuses(adminService);
+                  _fetchEventDetails(); // Refresh pot on player changes
                 }
               },
             )
@@ -639,11 +660,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
         .length;
   }
 
-  double get _currentPot {
-    // Si el evento está completado, idealmente deberíamos mostrar el bote final guardado.
-    // Pero como no guardamos el bote en BD, lo recalculamos.
-    return (_activeParticipantCount * _entryFee * 0.70);
-  }
+  // Use the local state pot
+  int get _currentPot => _pot;
 
   void _loadData() {
     setState(() {});
@@ -651,6 +669,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     _fetchLeaderboard();
     _fetchPlayerStatuses();
     _checkPrizeStatus(); // Re-check status on reload
+    _fetchEventDetails(); // Refresh pot
   }
 
   Future<void> _distributePrizes() async {
@@ -666,7 +685,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bote Acumulado: ${_currentPot.toStringAsFixed(0)} 🍀',
+              'Pote Acumulado: $_currentPot 🍀',
               style: const TextStyle(
                   color: AppTheme.accentGold,
                   fontSize: 18,
@@ -721,7 +740,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Bote Total: ${result['pot']} 🍀',
+                    Text('Pote Total: ${result['pot']} 🍀',
                         style: const TextStyle(
                             color: AppTheme.accentGold,
                             fontWeight: FontWeight.bold)),
@@ -981,7 +1000,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 ),
                 child: Column(
                   children: [
-                    const Text('BOTE ACUMULADO',
+                    const Text('POTE ACUMULADO',
                         style: TextStyle(
                             color: AppTheme.accentGold,
                             fontSize: 12,
@@ -994,7 +1013,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                             fontSize: 32,
                             fontWeight: FontWeight.w900)),
                     Text(
-                        'Total: $_activeParticipantCount x $_entryFee | Reparto Dinámico (Tiers)',
+                        'Total Acumulado en Base de Datos',
                         style: const TextStyle(
                             color: Colors.white38, fontSize: 12)),
                   ],
