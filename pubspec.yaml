@@ -68,5 +68,6 @@ flutter:
     - .env
     - assets/audio/
     - assets/images/
+    - assets/images/personajesgrupal.png
     - assets/images/avatars/
     - assets/escenarios.avatar/

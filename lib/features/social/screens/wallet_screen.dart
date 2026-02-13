@@ -128,71 +128,108 @@ class _WalletScreenState extends State<WalletScreen> {
                       // Balance Card with Custom Clover Icon
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              const Color(0xFF10B981).withOpacity(0.3),
-                              const Color(0xFF059669).withOpacity(0.2),
+                              const Color(0xFF10B981).withOpacity(0.15),
+                              const Color(0xFF10B981).withOpacity(0.05),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: const Color(0xFF10B981).withOpacity(0.5),
-                            width: 2,
+                            color: const Color(0xFF10B981).withOpacity(0.4),
+                            width: 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.3),
-                              blurRadius: 30,
-                              spreadRadius: 5,
+                              color: const Color(0xFF10B981).withOpacity(0.1),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            Text(
-                              'TRÉBOLES',
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white70 : Colors.black54,
-                                fontSize: 12,
-                                letterSpacing: 4,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            
-                            // Custom Clover Icon (4-leaf clover made with circles)
-                            Transform.scale(
-                              scale: 0.6,
-                              child: _buildCustomCloverIcon(),
-                            ),
-                            
-                            const SizedBox(height: 6),
-                            
-                            // Balance Amount
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  cloverBalance.toString(),
+                                  'TRÉBOLES:',
                                   style: TextStyle(
                                     color: isDarkMode ? Colors.white : Colors.black87,
-                                    fontSize: 36,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.w900,
-                                    height: 1,
+                                    letterSpacing: 1.2,
                                   ),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      cloverBalance.toString(),
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.white : Colors.black87,
+                                        fontSize: 42,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "🍀",
+                                      style: TextStyle(fontSize: 28),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            // Massive Conversion info
-                            const SizedBox(height: 12),
-                            
+                            const SizedBox(height: 20),
+                            // Conversion pill
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.yellow.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.yellow.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    "1",
+                                    style: TextStyle(
+                                      color: Colors.yellow,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Text("🍀", style: TextStyle(fontSize: 18)),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    "=",
+                                    style: TextStyle(
+                                      color: Colors.yellow,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    "1\$",
+                                    style: TextStyle(
+                                      color: Colors.yellow,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -237,63 +274,30 @@ class _WalletScreenState extends State<WalletScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? AppTheme.cardBg.withOpacity(0.5) : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
                           ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.history,
-                                      color: AppTheme.accentGold,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'ÚLTIMOS MOVIMIENTOS',
-                                      style: TextStyle(
-                                        color: isDarkMode ? Colors.white : Colors.black87,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ],
+                                Icon(
+                                  Icons.history,
+                                  color: Colors.yellow.withOpacity(0.8),
+                                  size: 18,
                                 ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const TransactionHistoryScreen(),
-                                      ),
-                                    ).then((_) => _loadRecentTransactions()); // Refresh on return
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        'Ver todo',
-                                        style: TextStyle(
-                                          color: AppTheme.accentGold,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        color: AppTheme.accentGold,
-                                        size: 10,
-                                      ),
-                                    ],
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Historial de transacciones',
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
@@ -533,40 +537,40 @@ class _WalletScreenState extends State<WalletScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              color.withOpacity(0.3),
-              color.withOpacity(0.1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: color.withOpacity(0.5),
-            width: 2,
+            color: color.withOpacity(0.6),
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 15,
+              color: color.withOpacity(0.1),
+              blurRadius: 10,
               spreadRadius: 1,
             ),
           ],
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 18),
+            ),
+            const SizedBox(width: 10),
             Text(
               label,
               style: TextStyle(
                 color: color,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1,
               ),
             ),
           ],
