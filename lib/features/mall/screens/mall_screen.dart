@@ -114,14 +114,7 @@ class _MallScreenState extends State<MallScreen> {
                  }
              },
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryPurple,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text("SIMULAR ESCANEO"),
-          ),
+
         ],
       ),
     );

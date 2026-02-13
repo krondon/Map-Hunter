@@ -31,8 +31,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   late AnimationController _pulseController;
   late AnimationController _shakeController;
 
-  // Debug
-  bool _forceProximity = false;
+
 
   @override
   void initState() {
@@ -208,7 +207,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   // --- UI HELPERS ---
 
   String get _temperatureStatus {
-    double dist = _forceProximity ? 5.0 : _distanceToTarget;
+    double dist = _distanceToTarget;
     if (dist > 500) return "CONGELADO";
     if (dist > 200) return "FRÍO";
     if (dist > 50) return "TIBIO";
@@ -218,7 +217,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
   Color get _temperatureColor {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    double dist = _forceProximity ? 5.0 : _distanceToTarget;
+    double dist = _distanceToTarget;
     if (dist > 500) return isDarkMode ? Colors.cyanAccent : Colors.blue.shade900;
     if (dist > 200) return isDarkMode ? Colors.blue : Colors.blue.shade700;
     if (dist > 50) return Colors.orange;
@@ -227,7 +226,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   }
 
   IconData get _temperatureIcon {
-    double dist = _forceProximity ? 5.0 : _distanceToTarget;
+    double dist = _distanceToTarget;
     if (dist > 200) return Icons.ac_unit;
     if (dist > 50) return Icons.device_thermostat;
     return Icons.local_fire_department;
@@ -269,7 +268,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   @override
   Widget build(BuildContext context) {
     // Current Distance Logic
-    double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
+    double currentDistance = _distanceToTarget;
     bool showInput = currentDistance <= 35;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -405,54 +404,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                         )
                       : const SizedBox.shrink(),
                 ),
-                // === BOTONES DE DESARROLLADOR ===
-                if (true) // Developer Button Enabled
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Column(
-                      children: [
-                        const Divider(color: Colors.orange),
-                        const Text(
-                          "🔧 MODO DESARROLLADOR",
-                          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                onPressed: () {
-                                  setState(() => _forceProximity = true);
-                                },
-                                icon: const Icon(Icons.location_on, size: 18),
-                                label: const Text("Forzar Proximidad", style: TextStyle(fontSize: 12)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(context, true); // Simula escaneo exitoso
-                                },
-                                icon: const Icon(Icons.skip_next, size: 18),
-                                label: const Text("Saltar QR", style: TextStyle(fontSize: 12)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+
               ],
             ),
           ),

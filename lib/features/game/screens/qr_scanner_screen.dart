@@ -113,27 +113,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 ),
               ),
             ),
-            // === BOTÓN DE DESARROLLADOR ===
-            if (true) // Developer Button Enabled
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 80, right: 20),
-                  child: FloatingActionButton.extended(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.black,
-                    onPressed: () {
-                      // Simula un código QR válido genérico
-                      final fakeCode = widget.expectedClueId != null 
-                          ? "CLUE:${widget.expectedClueId}" 
-                          : "DEV_SKIP_CODE";
-                      Navigator.pop(context, fakeCode);
-                    },
-                    icon: const Icon(Icons.developer_mode),
-                    label: const Text("DEV: Saltar"),
-                  ),
-                ),
-              ),
+
           ],
         ),
       ),

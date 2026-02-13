@@ -151,11 +151,6 @@ class ClueNavigatorService {
   
   /// Validate QR code against expected clue ID.
   static bool _validateQRCode(String scannedCode, String clueId) {
-    // Developer bypass
-    if (scannedCode == 'DEV_SKIP_CODE') {
-      debugPrint('[ClueNavigator] Developer bypass accepted');
-      return true;
-    }
     
     // Direct match with CLUE: prefix
     if (scannedCode.startsWith('CLUE:')) {

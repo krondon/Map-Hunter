@@ -392,13 +392,7 @@ class _ChargeShakerMinigameState extends State<ChargeShakerMinigame>
 
                     const SizedBox(height: 20),
 
-                    // Debug/Accessibility Button (Hidden in Prod usually, but good for testing on emulator)
-                    // Only visible if running in debug mode or specific flag
-                    if (false) // Set to true to test on emulator
-                      ElevatedButton(
-                        onPressed: _addCharge,
-                        child: const Text("Simular Shake (Debug)"),
-                      ),
+
                   ],
                 ),
               ),

@@ -224,7 +224,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
     final now = DateTime.now();
     
     // Debug info
-    print("Countdown Debug: Event Date: ${event.date} vs Now: $now");
+
 
     if (event.date.isAfter(now)) {
       if (mounted) {
@@ -1104,56 +1104,8 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                   ),
                                 ),
                               
-                              // === BOTÓN DE DESARROLLADOR ===
-                              if (kDebugMode &&
-                                  _gameRequest != null &&
-                                  !_gameRequest!.isApproved)
-                                Container(
-                                  margin: const EdgeInsets.only(top: 12),
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: Colors.orange.withOpacity(0.5)),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        "🔧 MODO DESARROLLADOR",
-                                        style: TextStyle(
-                                            color: Colors.orange,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.orange,
-                                            foregroundColor: Colors.black,
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 12),
-                                          ),
-                                          onPressed: () {
-                                            // Simular aprobación navegando directamente al HomeScreen
-                                            Navigator.of(context).pushReplacement(
-                                              MaterialPageRoute(
-                                                  builder: (_) => HomeScreen(
-                                                      eventId: widget.eventId!)),
-                                            );
-                                          },
-                                          icon: const Icon(Icons.check_circle,
-                                              size: 18),
-                                          label: const Text(
-                                              "DEV: Simular Aprobación",
-                                              style: TextStyle(fontSize: 13)),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+
+
 
                               const SizedBox(height: 16),
 

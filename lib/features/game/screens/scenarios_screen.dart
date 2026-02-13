@@ -251,7 +251,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   @override
   void initState() {
     super.initState();
-    print("DEBUG: ScenariosScreen initState");
+
 
     _pageController = PageController(viewportFraction: 0.85);
 
@@ -369,7 +369,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   Future<void> _loadEvents() async {
-    print("DEBUG: _loadEvents start");
+
     final eventProvider = Provider.of<EventProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final requestProvider =
@@ -401,7 +401,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       }
     }
 
-    print("DEBUG: _loadEvents end. Mounted: $mounted");
+
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -1454,7 +1454,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   @override
   Widget build(BuildContext context) {
-    print("DEBUG: ScenariosScreen build. isLoading: $_isLoading");
+
     final eventProvider = Provider.of<EventProvider>(context);
     final appMode = Provider.of<AppModeProvider>(context);
     final playerProvider = Provider.of<PlayerProvider>(context);

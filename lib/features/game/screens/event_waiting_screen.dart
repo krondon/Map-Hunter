@@ -185,41 +185,8 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                           ],
                         ),
                       ),
-                      // === BOTÓN DE DESARROLLADOR ===
-                      if (true)
-                        Container(
-                          margin: const EdgeInsets.only(top: 30),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.withOpacity(0.5)),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "🔧 MODO DESARROLLADOR",
-                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange,
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onPressed: () {
-                                    widget.onTimerFinished(); // Simula fin del timer
-                                  },
-                                  icon: const Icon(Icons.skip_next, size: 18),
-                                  label: const Text("DEV: Saltar Espera", style: TextStyle(fontSize: 13)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+
+
                     ],
                   ),
                 ),
