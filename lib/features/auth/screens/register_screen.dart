@@ -35,6 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptedTerms = false;
+  bool _isRegistering = false;
   
   // Opciones de nacionalidad
   final List<String> _nationalityTypes = ['V', 'E'];
@@ -102,112 +103,108 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (_formKey.currentState!.validate()) {
-      if (!_acceptedTerms) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debes aceptar los términos y condiciones para continuar.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
+    if (_isRegistering) return; // Prevent double-tap
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (!_acceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes aceptar los términos y condiciones para continuar.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
-      try {
-        final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-        
-        // 1. Mostrar indicador de carga
-        LoadingOverlay.show(context);
+    setState(() => _isRegistering = true);
 
-        final cedulaToSend = '$_selectedNationalityType${_cedulaController.text.trim()}';
-        
-        // Just send exact user input (sanitized)
-        final phoneToSend = _phoneController.text.trim().replaceAll(' ', '').replaceAll('-', '');
+    try {
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
-        debugPrint('REGISTER PAYLOAD: Cedula: $cedulaToSend, Phone: $phoneToSend');
+      // Sanitización estricta de datos
+      final cedulaToSend = '$_selectedNationalityType${_cedulaController.text.trim()}'.toUpperCase();
+      final phoneToSend = _phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
+      final emailToSend = _emailController.text.trim().toLowerCase();
+      final nameToSend = _nameController.text.trim();
 
-        // 2. Ejecutar registro
-        await playerProvider.register(
-          _nameController.text.trim(),
-          _emailController.text.trim(),
-          _passwordController.text,
-          cedula: cedulaToSend,
-          phone: phoneToSend,
-        );
-        
-        if (!mounted) return;
-        
-        // 3. Cerrar el indicador de carga
-        LoadingOverlay.hide(context);
+      debugPrint('REGISTER PAYLOAD: Cedula: $cedulaToSend, Phone: $phoneToSend, Email: $emailToSend');
 
-        // 4. Mostrar mensaje claro de éxito y validación
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.mark_email_read_outlined, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '¡Registro exitoso!',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      Text(
-                        'Por favor, revisa tu correo para activar tu cuenta antes de iniciar sesión.',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
+      await playerProvider.register(
+        nameToSend,
+        emailToSend,
+        _passwordController.text,
+        cedula: cedulaToSend,
+        phone: phoneToSend,
+      );
+
+      if (!mounted) return;
+
+      // Mostrar mensaje claro de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.mark_email_read_outlined, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '¡Registro exitoso!',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    Text(
+                      'Por favor, revisa tu correo para activar tu cuenta antes de iniciar sesión.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            backgroundColor: AppTheme.successGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(20),
-            duration: const Duration(seconds: 5),
+              ),
+            ],
           ),
-        );
+          backgroundColor: AppTheme.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 5),
+        ),
+      );
 
-        // 5. Redirigir al Login tras un breve delay o inmediatamente
-        // Usamos pushReplacementNamed para que no puedan volver atrás
-        await Future.delayed(const Duration(milliseconds: 1500));
-        if (!mounted) return;
+      // Redirigir al Login tras un breve delay
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!mounted) return;
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
 
-      } catch (e) {
-        if (!mounted) return;
-        LoadingOverlay.hide(context); // Cierra el indicador de carga si hubo error
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    ErrorHandler.getFriendlyErrorMessage(e),
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  ErrorHandler.getFriendlyErrorMessage(e),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
-              ],
-            ),
-            backgroundColor: AppTheme.dangerRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(20),
-            duration: const Duration(seconds: 4),
+              ),
+            ],
           ),
-        );
-      }
+          backgroundColor: AppTheme.dangerRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isRegistering = false);
     }
   }
 
@@ -435,6 +432,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                         validator: (value) {
                                           if (value == null || value.isEmpty) return 'Ingresa tu cédula';
+                                          if (value.length < 6) return 'Mínimo 6 dígitos';
                                           return null;
                                         },
                                       ),
@@ -459,7 +457,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) return 'Ingresa tu teléfono';
-                                    if (value.length < 11) return 'Ingresa el número completo';
+                                    if (value.length < 11) return 'Ingresa el número completo (11 dígitos)';
+                                    final prefixRegex = RegExp(r'^04(12|14|24|16|26|22)');
+                                    if (!prefixRegex.hasMatch(value)) return 'Prefijo inválido (ej: 0412...)';
                                     return null;
                                   },
                                 ),
@@ -480,6 +480,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   validator: (value) {
                                     if (value == null || value.isEmpty) return 'Ingresa tu nombre';
                                     if (!value.trim().contains(' ')) return 'Ingresa Nombre y Apellido';
+                                    final lowerName = value.toLowerCase();
+                                    for (final word in _bannedWords) {
+                                      if (lowerName.contains(word)) return 'El nombre contiene palabras no permitidas';
+                                    }
                                     return null;
                                   },
                                 ),
@@ -496,7 +500,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) return 'Ingresa tu email';
-                                    if (!value.contains('@')) return 'Email inválido';
+                                    final emailRegex = RegExp(r'^[\w\.\-]+@[\w\.\-]+\.[a-zA-Z]{2,}$');
+                                    if (!emailRegex.hasMatch(value.trim())) return 'Formato de email inválido';
                                     return null;
                                   },
                                 ),
@@ -601,16 +606,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ],
                                     ),
                                     child: ElevatedButton(
-                                      onPressed: _handleRegister,
+                                      onPressed: _isRegistering ? null : _handleRegister,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.transparent,
                                         shadowColor: Colors.transparent,
                                         foregroundColor: Colors.black,
+                                        disabledBackgroundColor: Colors.transparent,
+                                        disabledForegroundColor: Colors.black45,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                       ),
-                                      child: const Text(
+                                      child: _isRegistering
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                                            ),
+                                          )
+                                        : const Text(
                                         'CREAR CUENTA',
                                         style: TextStyle(
                                           fontSize: 16,

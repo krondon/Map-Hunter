@@ -38,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   final _passwordFocus = FocusNode();
 
   bool _isPasswordVisible = false;
+  bool _isLoggingIn = false;
   late AnimationController _shimmerTitleController;
 
   @override
@@ -84,7 +85,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
+    if (_isLoggingIn) return; // Prevent double-tap
+    if (!_formKey.currentState!.validate()) return;
+
       // 1. Unfocus specific fields
       _emailFocus.unfocus();
       _passwordFocus.unfocus();
@@ -95,9 +98,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       // 3. Force system hide (just to be sure)
       SystemChannels.textInput.invokeMethod('TextInput.hide'); 
 
-      // NO DELAY - User wants immediate action
       // Force autofill save before processing login
       TextInput.finishAutofillContext(shouldSave: true);
+
+    setState(() => _isLoggingIn = true);
 
       try {
         final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
@@ -108,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         LoadingOverlay.show(context);
 
         await playerProvider.login(
-            _emailController.text.trim(), _passwordController.text);
+            _emailController.text.trim().toLowerCase(), _passwordController.text);
 
         if (!mounted) return;
         LoadingOverlay.hide(context); // Dismiss loading
@@ -228,8 +232,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             duration: const Duration(seconds: 4),
           ),
         );
+      } finally {
+        if (mounted) setState(() => _isLoggingIn = false);
       }
-    }
   }
 
   Future<void> _showForgotPasswordDialog() async {
@@ -755,16 +760,27 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                           ],
                                         ),
                                         child: ElevatedButton(
-                                          onPressed: _handleLogin,
+                                          onPressed: _isLoggingIn ? null : _handleLogin,
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.transparent,
                                             shadowColor: Colors.transparent,
                                             foregroundColor: Colors.black,
+                                            disabledBackgroundColor: Colors.transparent,
+                                            disabledForegroundColor: Colors.black45,
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(12),
                                             ),
                                           ),
-                                          child: const Text(
+                                          child: _isLoggingIn
+                                            ? const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2.5,
+                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                                                ),
+                                              )
+                                            : const Text(
                                             'INICIAR SESIÓN',
                                             style: TextStyle(
                                               fontSize: 16,

@@ -33,6 +33,11 @@ class AuthService {
 
       if (response.status != 200) {
         final error = response.data['error'] ?? 'Error desconocido';
+        
+        // 403 = email not verified → clean up any local session state
+        if (response.status == 403) {
+          try { await _supabase.auth.signOut(); } catch (_) {}
+        }
         throw error;
       }
 
@@ -44,10 +49,10 @@ class AuthService {
         if (data['user'] != null) {
           final user = data['user'];
           
-          // Verificar si el email ha sido confirmado
+          // Verificar si el email ha sido confirmado (redundant safety check)
           if (user['email_confirmed_at'] == null) {
             await logout(); // Limpiar cualquier sesión parcial
-            throw 'Tu correo aún no ha sido verificado. Por favor, revisa tu bandeja de entrada.';
+            throw 'Tu cuenta aún no está activa. Por favor, verifica tu correo electrónico.';
           }
 
           return user['id'] as String;
@@ -115,6 +120,8 @@ class AuthService {
 
       if (response.status != 200) {
         final error = response.data['error'] ?? 'Error desconocido';
+        // 409 = user already exists (race condition handled gracefully)
+        // Just rethrow the user-friendly message from the server
         throw error;
       }
 
@@ -272,6 +279,13 @@ class AuthService {
         errorMsg.contains('already exists')) {
       return 'Este correo ya está registrado. Intenta iniciar sesión.';
     }
+    if (errorMsg.contains('profiles_id_fkey') ||
+        errorMsg.contains('foreign key constraint')) {
+      return 'Este correo ya está registrado. Intenta iniciar sesión.';
+    }
+    if (errorMsg.contains('is invalid') && errorMsg.contains('email')) {
+      return 'Este correo ya está registrado. Intenta iniciar sesión.';
+    }
     if (errorMsg.contains('password should be at least 6 characters')) {
       return 'La contraseña debe tener al menos 6 caracteres.';
     }
@@ -280,6 +294,9 @@ class AuthService {
     }
     if (errorMsg.contains('email not confirmed')) {
       return 'Debes confirmar tu correo electrónico antes de entrar.';
+    }
+    if (errorMsg.contains('aún no está activa')) {
+      return 'Tu cuenta aún no está activa. Por favor, verifica tu correo electrónico.';
     }
     if (errorMsg.contains('rate limit') || errorMsg.contains('too many requests')) {
       return 'Demasiados intentos. Por favor espera unos minutos antes de intentar de nuevo.';

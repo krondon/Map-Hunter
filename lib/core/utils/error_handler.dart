@@ -1,9 +1,21 @@
 import 'dart:io';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ErrorHandler {
   static String getFriendlyErrorMessage(Object error) {
     if (error is SocketException) {
       return 'Revisa tu conexión a internet, la aventura no puede comenzar sin conexión.';
+    }
+
+    // FunctionException: extract the friendly message from details['error']
+    // instead of showing the raw exception toString.
+    if (error is FunctionException) {
+      final details = error.details;
+      if (details is Map && details['error'] is String) {
+        final serverMsg = details['error'] as String;
+        // The server already sends a user-friendly message, return it directly
+        return serverMsg;
+      }
     }
 
     final String message = error.toString().toLowerCase();
@@ -33,6 +45,13 @@ class ErrorHandler {
     if (message.contains('user already registered') || 
         message.contains('unique violation')) {
       return 'Ya existe una cuenta registrada con este correo.';
+    }
+    if (message.contains('profiles_id_fkey') || 
+        message.contains('foreign key constraint')) {
+      return 'Este correo ya está registrado. Intenta iniciar sesión.';
+    }
+    if (message.contains('is invalid') && message.contains('email')) {
+      return 'Este correo ya está registrado. Intenta iniciar sesión.';
     }
     
     if (message.contains('password should be at least')) {
