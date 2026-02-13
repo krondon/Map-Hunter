@@ -12,6 +12,8 @@ import '../../game/screens/scenarios_screen.dart';
 import '../../../core/utils/input_sanitizer.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/utils/global_keys.dart';
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import '../../../shared/widgets/master_tutorial_content.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool hideScaffold;
@@ -298,12 +300,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 12),
 
           // Support Button
+          // Support Button
           Row(
             children: [
               Expanded(
                 child: _buildProfileButton(
+                  icon: Icons.logout,
+                  label: "Cerrar Sesión",
+                  color: AppTheme.dangerRed,
+                  onTap: () async {
+                    HapticFeedback.mediumImpact();
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: AppTheme.cardBg,
+                        title: const Text("Cerrar Sesión", style: TextStyle(color: Colors.white)),
+                        content: const Text("¿Estás seguro que deseas salir?", style: TextStyle(color: Colors.white70)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text("Salir", style: TextStyle(color: AppTheme.dangerRed)),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && mounted) {
+                      await context.read<PlayerProvider>().logout();
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildProfileButton(
                   icon: Icons.support_agent,
-                  label: "Ayuda y Soporte",
+                  label: "Soporte",
                   color: AppTheme.accentGold,
                   onTap: _showSupportDialog,
                 ),
@@ -989,23 +1025,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? AppTheme.cardBg : Colors.white,
-        title: Text('Soporte y Mantenimiento', style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
-        content: SingleChildScrollView(
-          child: Text(
-            "Si tienes algún problema o sugerencia, contáctanos:\n\n"
-            "📧 Email: soporte@maphunter.com\n"
-            "📞 Teléfono: +58 xxx xxx xxx\n\n"
-            "Estamos disponibles de Lunes a Viernes, 9:00 AM - 5:00 PM.",
-            style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
-          ),
+        backgroundColor: AppTheme.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar'),
-          ),
-        ],
+        title: const Row(
+          children: [
+            Icon(Icons.help_outline, color: AppTheme.accentGold),
+            SizedBox(width: 12),
+            Text("Centro de Ayuda", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "¿Necesitas ayuda con el protocolo Asthoria?",
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            _buildSupportOption(
+              icon: Icons.chat_bubble_outline,
+              label: "Contactar Soporte Técnico",
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Contactando con el sistema central..."), backgroundColor: AppTheme.primaryPurple),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportOption({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppTheme.accentGold, size: 20),
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            const Spacer(),
+            const Icon(Icons.chevron_right, color: Colors.white24, size: 16),
+          ],
+        ),
       ),
     );
   }

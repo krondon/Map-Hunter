@@ -812,6 +812,39 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   /// This should ONLY be called on explicit Login or App Start.
   Future<void> restoreSession(String userId) async {
     await _fetchProfile(userId, restoreSessionContext: true);
+    await _checkTutorialStatus();
+  }
+
+  /// Checks if the user is an existing legacy user and marks tutorials as seen.
+  Future<void> _checkTutorialStatus() async {
+    if (_currentPlayer == null || _currentPlayer!.createdAt == null) return;
+
+    // FECHA DE CORTE: 12 de Febrero 2026
+    // Usuarios creados ANTES de esta fecha se consideran "Veteranos" y no ven tutoriales.
+    final cutoffDate = DateTime(2026, 2, 12); 
+
+    if (_currentPlayer!.createdAt!.isBefore(cutoffDate)) {
+      debugPrint("PlayerProvider: 🛡️ Legacy user detected (Created: ${_currentPlayer!.createdAt}). Marking tutorials as seen.");
+      final prefs = await SharedPreferences.getInstance();
+      
+      final tutorialKeys = [
+        'has_seen_tutorial_MODE_SELECTOR',
+        'has_seen_tutorial_SCENARIOS',
+        'has_seen_tutorial_CODE_FINDER',
+        'has_seen_tutorial_CLUE_SCANNER',
+        'has_seen_tutorial_HOME',
+        'has_seen_tutorial_INVENTORY',
+        'has_seen_tutorial_PUZZLE',
+        'has_seen_tutorial_RANKING',
+        'has_seen_tutorial_CLUES',
+      ];
+
+      for (var key in tutorialKeys) {
+        if (!prefs.containsKey(key)) {
+           await prefs.setBool(key, true);
+        }
+      }
+    }
   }
 
   /// Internal fetch method.

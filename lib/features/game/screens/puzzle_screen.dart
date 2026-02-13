@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -61,6 +62,8 @@ import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../widgets/no_lives_widget.dart';
 import 'waiting_room_screen.dart'; // NEW IMPORT
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import '../../../shared/widgets/master_tutorial_content.dart';
 
 class PuzzleScreen extends StatefulWidget {
   final Clue clue;
@@ -128,6 +131,36 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
       // MOVED: _checkGlobalLivesGameOver monitoring is now started inside _checkLives
       // to avoid race conditions during initialization.
+      
+      // MOVED: Tutorial trigger
+      _showMinigameTutorial();
+    });
+  }
+
+  void _showMinigameTutorial() async {
+    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
+    if (player?.role == 'spectator') return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeen = prefs.getBool('has_seen_tutorial_PUZZLE') ?? false;
+    if (hasSeen) return;
+
+    final steps = MasterTutorialContent.getStepsForSection('PUZZLE', context);
+    if (steps.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => CyberTutorialOverlay(
+          steps: steps,
+          onFinish: () {
+            Navigator.pop(context);
+            prefs.setBool('has_seen_tutorial_PUZZLE', true);
+          },
+        ),
+      );
     });
   }
 

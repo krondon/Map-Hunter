@@ -16,6 +16,9 @@ import '../../../shared/widgets/sabotage_overlay.dart';
 import '../../game/providers/power_interfaces.dart';
 import '../../game/screens/spectator_mode_screen.dart'; // ADDED
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import '../../../shared/widgets/master_tutorial_content.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   final String eventId;
@@ -94,6 +97,49 @@ class _HomeScreenState extends State<HomeScreen> {
     _playerProviderRef = Provider.of<PlayerProvider>(context, listen: false);
   }
 
+  bool _isTutorialShowing = false;
+
+  void _checkAndShowTutorial({bool force = false}) async {
+    if (_isTutorialShowing) return;
+    
+    String section;
+    switch (_currentIndex) {
+      case 0: section = 'CLUES'; break;
+      case 1: section = 'INVENTORY'; break;
+      case 2: section = 'RANKING'; break;
+      default: return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final String tutorialKey = 'has_seen_tutorial_$section';
+    final hasSeen = prefs.getBool(tutorialKey) ?? false;
+
+    if (!force && hasSeen) return;
+    
+    final steps = MasterTutorialContent.getStepsForSection(section, context);
+    if (steps.isEmpty) return;
+
+    _isTutorialShowing = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => CyberTutorialOverlay(
+          steps: steps,
+          onFinish: () {
+            Navigator.pop(context);
+            _isTutorialShowing = false;
+            prefs.setBool(tutorialKey, true); // Mark as seen
+          },
+        ),
+      );
+    });
+  }
+
+  // Removed _showWelcomeTutorial as it is no longer required in Home/Mode selection
+  
   @override
   void dispose() {
     // Usamos la referencia guardada, no el context
@@ -106,6 +152,48 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge); // REMOVED: Conflicts with Logout transition
     super.dispose();
+  }
+
+  void _showExitDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.accentGold),
+            SizedBox(width: 10),
+            Text("Salir del Evento", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Text(
+          "¿Estás seguro de que deseas salir del evento actual? Tu progreso se guardará, pero dejarás la carrera momentáneamente.",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCELAR", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.dangerRed,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx); // Close dialog
+              Navigator.pop(context); // Exit HomeScreen (back to selector)
+            },
+            child: const Text("SALIR", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -141,6 +229,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final isSpectator = player?.role == 'spectator';
+    
+    // Trigger tutorial for the current section
+    if (!isSpectator) {
+      _checkAndShowTutorial();
+    }
 
     Widget content = Scaffold(
       body: _screens[_currentIndex],
@@ -159,10 +252,20 @@ class _HomeScreenState extends State<HomeScreen> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (index) {
+              // Calculate index of the "Exit" item
+              final exitIndex = isSpectator ? 4 : 3;
+              
+              if (index == exitIndex) {
+                 _showExitDialog();
+                 return;
+              }
+
               if (player == null || (!player.isFrozen && !player.isBlinded)) {
                 setState(() {
                   _currentIndex = index;
                 });
+                // When tab changes, we might want to show tutorial again if it's the first time for that tab
+                _checkAndShowTutorial(force: false);
               }
             },
             type: BottomNavigationBarType.fixed,
@@ -195,6 +298,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icon(Icons.leaderboard_outlined),
                 activeIcon: Icon(Icons.leaderboard, size: 28),
                 label: 'Ranking',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.sensor_door_outlined),
+                activeIcon: Icon(Icons.sensor_door, color: AppTheme.dangerRed),
+                label: 'Salir',
               ),
             ],
           ),

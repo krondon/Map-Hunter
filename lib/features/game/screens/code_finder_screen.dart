@@ -10,6 +10,9 @@ import 'game_request_screen.dart';
 import 'qr_scanner_screen.dart'; // Import scanner
 import 'event_waiting_screen.dart'; // Import Waiting Screen
 import '../models/event.dart'; // Import GameEvent
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import '../../../shared/widgets/master_tutorial_content.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CodeFinderScreen extends StatefulWidget {
   final Scenario scenario;
@@ -58,12 +61,37 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     // Iniciar rastreo SOLO si es presencial
     if (widget.scenario.type != 'online') {
       _startLocationUpdates();
+      _showCodeFinderTutorial();
     } else {
       // Si es online, 'simulamos' que estamos cerca para activar la UI
       setState(() {
         _distanceToTarget = 0; // Distancia 0 para activar todo
       });
     }
+  }
+
+  void _showCodeFinderTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeen = prefs.getBool('has_seen_tutorial_CODE_FINDER') ?? false;
+    if (hasSeen) return;
+
+    final steps = MasterTutorialContent.getStepsForSection('CODE_FINDER', context);
+    if (steps.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => CyberTutorialOverlay(
+          steps: steps,
+          onFinish: () {
+            Navigator.pop(context);
+            prefs.setBool('has_seen_tutorial_CODE_FINDER', true);
+          },
+        ),
+      );
+    });
   }
 
   Future<void> _startLocationUpdates() async {

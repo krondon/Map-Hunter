@@ -6,6 +6,9 @@ import 'dart:math' as math;
 import '../models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 import 'qr_scanner_screen.dart';
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import '../../../shared/widgets/master_tutorial_content.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ClueFinderScreen extends StatefulWidget {
   final Clue clue; // Changed from PhysicalClue to Clue
@@ -45,6 +48,31 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     );
     
     _startLocationUpdates();
+    _showClueScannerTutorial();
+  }
+
+  void _showClueScannerTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeen = prefs.getBool('has_seen_tutorial_CLUE_SCANNER') ?? false;
+    if (hasSeen) return;
+
+    final steps = MasterTutorialContent.getStepsForSection('CLUE_SCANNER', context);
+    if (steps.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => CyberTutorialOverlay(
+          steps: steps,
+          onFinish: () {
+            Navigator.pop(context);
+            prefs.setBool('has_seen_tutorial_CLUE_SCANNER', true);
+          },
+        ),
+      );
+    });
   }
 
   Future<void> _startLocationUpdates() async {

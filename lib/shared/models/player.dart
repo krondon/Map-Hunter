@@ -28,6 +28,7 @@ class Player implements ITargetable {
   final String? phone;
   final String? documentType; // Added for Payment Profile
   Map<String, dynamic> stats;
+  final DateTime? createdAt;
 
   Player({
     required this.userId,
@@ -55,6 +56,7 @@ class Player implements ITargetable {
     this.cedula,
     this.phone,
     this.documentType,
+    this.createdAt,
   })  : _avatarUrl = avatarUrl ?? '',
         inventory = inventory ?? [],
         stats = stats ??
@@ -162,6 +164,7 @@ class Player implements ITargetable {
       // Map 'dni' (int) from DB to 'cedula' (String) in model if 'cedula' is null
       cedula: dniVal,
       phone: json['phone'],
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
     );
   }
 
@@ -294,6 +297,7 @@ class Player implements ITargetable {
     String? cedula,
     String? phone,
     String? documentType,
+    DateTime? createdAt,
   }) {
     return Player(
       userId: userId ?? this.userId,
@@ -321,6 +325,7 @@ class Player implements ITargetable {
       cedula: cedula ?? this.cedula,
       phone: phone ?? this.phone,
       documentType: documentType ?? this.documentType,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

@@ -5,7 +5,8 @@ import '../../features/auth/providers/player_provider.dart';
 import '../../core/theme/app_theme.dart';
 
 class ProgressHeader extends StatelessWidget {
-  const ProgressHeader({super.key});
+  final VoidCallback? onExit;
+  const ProgressHeader({super.key, this.onExit});
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +174,23 @@ class ProgressHeader extends StatelessWidget {
                       ],
                     ),
                   ),
+                  
+                  if (onExit != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.exit_to_app, color: Colors.white, size: 20),
+                        onPressed: onExit,
+                        tooltip: "Salir del Evento",
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               
