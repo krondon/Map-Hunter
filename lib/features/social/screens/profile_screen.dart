@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -68,7 +69,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     // 1. GAMER CARD WITH NEON GLOW
-                    _buildGamerCard(player, isDarkMode),
+                    _buildGamerCard(player, isDarkMode, playerProvider),
                     
                     const SizedBox(height: 24),
                     
@@ -133,220 +134,232 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildGamerCard(dynamic player, bool isDarkMode) {
+  Widget _buildGamerCard(dynamic player, bool isDarkMode, PlayerProvider playerProvider) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppTheme.cardBg.withOpacity(0.8) : Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.primaryPurple.withOpacity(isDarkMode ? 0.3 : 0.1)),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(isDarkMode ? 0.2 : 0.1), 
-            blurRadius: 30, 
-            offset: const Offset(0, 10)
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 40,
+            spreadRadius: 5,
           )
-        ]
+        ],
       ),
-      child: Column(
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: CircularProgressIndicator(
-                  value: player.experienceProgress,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.white10,
-                  valueColor: const AlwaysStoppedAnimation(AppTheme.accentGold),
-                ),
-              ),
-              Container(
-                width: 95,
-                height: 95,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryPurple, AppTheme.secondaryPink],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF150826).withOpacity(0.4),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Stack(
+              children: [
+                // Level Badge (Top Right)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentGold,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.accentGold.withOpacity(0.4),
+                          blurRadius: 10,
+                        )
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.5), blurRadius: 15)
-                    ]),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(47.5),
-                  child: Builder(
-                    builder: (context) {
-                      final avatarId = player.avatarId;
-
-                      // 1. Prioridad: Avatar Local
-                      if (avatarId != null && avatarId.isNotEmpty) {
-                        return Image.asset(
-                          'assets/images/avatars/$avatarId.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                              _getAvatarIcon(player.profession),
-                              size: 55,
-                              color: Colors.white),
-                        );
-                      }
-
-                      // 2. Fallback: Foto de perfil (URL)
-                      if (player.avatarUrl != null &&
-                          player.avatarUrl!.startsWith('http')) {
-                        return Image.network(
-                          player.avatarUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                              _getAvatarIcon(player.profession),
-                              size: 55,
-                              color: Colors.white),
-                        );
-                      }
-
-                      // 3. Fallback: Icono de profesión
-                      return Icon(_getAvatarIcon(player.profession),
-                          size: 55, color: Colors.white);
-                    },
+                    child: Text(
+                      "LVL ${player.level}",
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 0,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: AppTheme.accentGold,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(blurRadius: 8, color: Colors.black45)
-                      ]),
-                  child: Text("LVL ${player.level}",
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Avatar Section
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 3,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [AppTheme.primaryPurple, AppTheme.secondaryPink.withOpacity(0.5)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(55),
+                              child: Builder(
+                                builder: (context) {
+                                  final avatarId = player.avatarId;
+                                  if (avatarId != null && avatarId.isNotEmpty) {
+                                    return Image.asset(
+                                      'assets/images/avatars/$avatarId.png',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.person,
+                                          size: 55,
+                                          color: Colors.white),
+                                    );
+                                  }
+                                  if (player.avatarUrl != null && player.avatarUrl!.startsWith('http')) {
+                                    return Image.network(
+                                      player.avatarUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.person,
+                                          size: 55,
+                                          color: Colors.white),
+                                    );
+                                  }
+                                  return const Icon(Icons.person, size: 55, color: Colors.white);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Camera Overlay
+                        Positioned(
+                          bottom: 5,
+                          right: 5,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryPurple,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFF1A1A1D), width: 2),
+                            ),
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 10),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Name and Profession
+                    Text(
+                      player.name.toUpperCase(),
+                      textAlign: TextAlign.left,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black)),
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                        fontFamily: 'Orbitron',
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      player.profession.toUpperCase(),
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 11,
+                        letterSpacing: 6,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Stats Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatWidget(const Icon(Icons.stars, color: AppTheme.secondaryPink, size: 28), "${player.totalXP}", "XP Total"),
+                        _buildStatWidget(const Text("🍀", style: TextStyle(fontSize: 24)), "${player.clovers}", "Tréboles"),
+                        _buildStatWidget(const Icon(Icons.emoji_events, color: AppTheme.accentGold, size: 28), "${player.eventsCompleted?.length ?? 0}", "Eventos"),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+                    
+                    Divider(color: Colors.white.withOpacity(0.1), height: 1),
+                    
+                    const SizedBox(height: 32),
+
+                    // Buttons Row 1
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildProfileButton(
+                            icon: Icons.edit_outlined,
+                            label: "Editar Perfil",
+                            color: AppTheme.primaryPurple,
+                            onTap: () => _showEditProfileSheet(player),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildProfileButton(
+                            icon: Icons.backspace_outlined,
+                            label: "Borrar Cuenta",
+                            color: AppTheme.dangerRed,
+                            onTap: () => _showDeleteConfirmation(),
+                            isRed: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Buttons Row 2
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildProfileButton(
+                            icon: Icons.logout,
+                            label: "Cerrar Sesión",
+                            color: Colors.orangeAccent,
+                            onTap: () {
+                              _showLogoutDialog(playerProvider);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildProfileButton(
+                            icon: Icons.support_agent,
+                            label: "Soporte",
+                            color: AppTheme.accentGold,
+                            onTap: _showSupportDialog,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              )
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(player.name.toUpperCase(), 
-            style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 2)),
-          const SizedBox(height: 4),
-          Text(player.profession.toUpperCase(),
-              style: const TextStyle(
-                  color: AppTheme.secondaryPink,
-                  fontSize: 12,
-                  letterSpacing: 4,
-                  fontWeight: FontWeight.w300)),
-
-          const SizedBox(height: 30),
-
-          // Single Stats Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatCompact(Icons.star, "${player.totalXP}", "XP TOTAL", AppTheme.secondaryPink, isDarkMode),
-              _buildVerticalDivider(),
-              _buildStatCompact(Icons.eco, "${player.clovers}", "TRÉBOLES", Colors.green, isDarkMode),
-              _buildVerticalDivider(),
-              _buildStatCompact(Icons.emoji_events, "${player.eventsCompleted?.length ?? 0}", "EVENTOS", Colors.cyan, isDarkMode),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Horizontal Divider
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Divider(
-              color: isDarkMode ? Colors.white.withOpacity(0.2) : Colors.black12,
-              thickness: 1,
+              ],
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // Edit/Delete Profile Buttons
-          Row(
-            children: [
-              Expanded(
-                child: _buildProfileButton(
-                  icon: Icons.edit,
-                  label: "Editar Perfil",
-                  color: AppTheme.primaryPurple,
-                  onTap: () => _showEditProfileSheet(player),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildProfileButton(
-                  icon: Icons.delete_outline,
-                  label: "Borrar Cuenta",
-                  color: AppTheme.dangerRed,
-                  onTap: () => _showDeleteConfirmation(),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Support Button
-          // Support Button
-          Row(
-            children: [
-              Expanded(
-                child: _buildProfileButton(
-                  icon: Icons.logout,
-                  label: "Cerrar Sesión",
-                  color: AppTheme.dangerRed,
-                  onTap: () async {
-                    HapticFeedback.mediumImpact();
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: AppTheme.cardBg,
-                        title: const Text("Cerrar Sesión", style: TextStyle(color: Colors.white)),
-                        content: const Text("¿Estás seguro que deseas salir?", style: TextStyle(color: Colors.white70)),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text("Salir", style: TextStyle(color: AppTheme.dangerRed)),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirm == true && mounted) {
-                      await context.read<PlayerProvider>().logout();
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildProfileButton(
-                  icon: Icons.support_agent,
-                  label: "Soporte",
-                  color: AppTheme.accentGold,
-                  onTap: _showSupportDialog,
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -356,25 +369,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String label,
     required Color color,
     required VoidCallback onTap,
+    bool isRed = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withOpacity(0.5),
+            width: 1.5,
+          ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: color,
+                color: isRed ? color : Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -764,40 +781,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("TRÉBOLES DORADOS",
+            const Text("SELLOS TEMPORALES",
                 style: TextStyle(
                     color: AppTheme.accentGold,
                     letterSpacing: 2,
-                    fontSize: 12,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900)),
-            Text("${gameProvider.completedClues}/${gameProvider.totalClues}",
-                style: const TextStyle(color: Colors.white38, fontSize: 12)),
+            const Text("0/0", // Placeholder matching reference
+                style: TextStyle(color: Colors.white38, fontSize: 12)),
           ],
         ),
         const SizedBox(height: 16),
         Container(
-          height: 110,
+          width: double.infinity,
+          height: 150,
           decoration: BoxDecoration(
-            color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
+            color: Colors.black.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          child: gameProvider.clues.isEmpty
-              ? const Center(
-                  child: Text("Inicia una misión para recolectar tréboles",
-                      style: TextStyle(color: Colors.white24, fontSize: 12)))
-              : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                  itemCount: gameProvider.clues.length,
-                  itemBuilder: (context, index) {
-                    final clue = gameProvider.clues[index];
-                    final bool isCollected = clue.isCompleted;
-
-                    return _buildStampItem(clue, isCollected, index);
-                  },
-                ),
+          child: const Center(
+            child: Text("Inicia una visión recolectar sellos",
+                style: TextStyle(color: Colors.white24, fontSize: 14)))
         ),
       ],
     );
@@ -895,13 +900,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCompact(IconData icon, String value, String label, Color color, bool isDarkMode) {
+  Widget _buildStatWidget(Widget icon, String value, String label) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(height: 6),
-        Text(value, style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontWeight: FontWeight.w900, fontSize: 18)),
-        Text(label, style: TextStyle(color: isDarkMode ? Colors.white38 : Colors.black38, fontSize: 9, letterSpacing: 1)),
+        SizedBox(height: 30, child: Center(child: icon)),
+        const SizedBox(height: 8),
+        Text(value, 
+          style: const TextStyle(
+            color: Colors.white, 
+            fontWeight: FontWeight.w900, 
+            fontSize: 24
+          )
+        ),
+        const SizedBox(height: 4),
+        Text(label, 
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5), 
+            fontSize: 11, 
+            letterSpacing: 1
+          )
+        ),
       ],
     );
   }
