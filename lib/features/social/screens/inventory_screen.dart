@@ -83,9 +83,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
       body: Stack(
         children: [
           AnimatedCyberBackground(
-            child: SafeArea(
-              child: Column(
-                children: [
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/fotogrupalnoche.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.6),
+                  ),
+                ),
+                SafeArea(
+                  child: Column(
+                    children: [
                   // Header
                   Padding(
                     padding: const EdgeInsets.all(20.0),
@@ -235,10 +249,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             },
                           ),
                   ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
+        ),
           
           if (_isLoading)
             Container(

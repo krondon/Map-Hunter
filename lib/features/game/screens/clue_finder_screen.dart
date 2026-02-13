@@ -266,6 +266,49 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
         false;
   }
 
+  List<Widget> _buildBackgroundElements() {
+    final status = _temperatureStatus;
+    IconData icon;
+    Color color = _temperatureColor.withOpacity(0.12); // Slightly more visible
+    
+    if (status == "CONGELADO" || status == "FRÍO") {
+      icon = Icons.ac_unit;
+    } else if (status == "CALIENTE" || status == "TIBIO") {
+      icon = Icons.local_fire_department;
+    } else {
+      return []; // No bg elements for "¡AQUÍ ESTÁ!"
+    }
+
+    // Fixed positions for a nice decorative spread
+    final List<math.Point> positions = [
+      const math.Point(0.1, 0.2),
+      const math.Point(0.8, 0.15),
+      const math.Point(0.2, 0.5),
+      const math.Point(0.75, 0.45),
+      const math.Point(0.15, 0.8),
+      const math.Point(0.85, 0.75),
+      const math.Point(0.5, 0.1),
+      const math.Point(0.45, 0.9),
+    ];
+
+    return positions.map((p) {
+      return Positioned(
+        left: MediaQuery.of(context).size.width * p.x - 75,
+        top: MediaQuery.of(context).size.height * p.y - 75,
+        child: IgnorePointer(
+          child: Opacity(
+            opacity: 0.6,
+            child: Icon(
+              icon,
+              size: 150,
+              color: color,
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Current Distance Logic
@@ -302,6 +345,10 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                 ),
               ),
             ),
+
+            // BG DECORATIVE ELEMENTS (Snowflakes or Fire)
+            ..._buildBackgroundElements(),
+
             SafeArea(
               child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -185,51 +185,7 @@ class _WalletScreenState extends State<WalletScreen> {
                               ],
                             ),
                             const SizedBox(height: 20),
-                            // Conversion pill
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.yellow.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.yellow.withOpacity(0.5),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    "1",
-                                    style: TextStyle(
-                                      color: Colors.yellow,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text("🍀", style: TextStyle(fontSize: 18)),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    "=",
-                                    style: TextStyle(
-                                      color: Colors.yellow,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    "1\$",
-                                    style: TextStyle(
-                                      color: Colors.yellow,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            // Conversion pill removed as requested
                           ],
                         ),
                       ),

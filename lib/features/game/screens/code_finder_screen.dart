@@ -374,6 +374,52 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
         false;
   }
 
+  List<Widget> _buildBackgroundElements() {
+    // Si es online, no mostramos elementos térmicos
+    if (widget.scenario.type == 'online') return [];
+
+    final status = _temperatureStatus;
+    IconData icon;
+    Color color = _temperatureColor.withOpacity(0.12);
+    
+    if (status == "CONGELADO" || status == "FRÍO") {
+      icon = Icons.ac_unit;
+    } else if (status == "CALIENTE" || status == "TIBIO") {
+      icon = Icons.local_fire_department;
+    } else {
+      return []; // No bg elements for "¡AQUÍ ESTÁ!"
+    }
+
+    // Pattern of decorative icons
+    final List<math.Point> positions = [
+      const math.Point(0.1, 0.2),
+      const math.Point(0.8, 0.15),
+      const math.Point(0.2, 0.5),
+      const math.Point(0.75, 0.45),
+      const math.Point(0.15, 0.8),
+      const math.Point(0.85, 0.75),
+      const math.Point(0.5, 0.1),
+      const math.Point(0.45, 0.9),
+    ];
+
+    return positions.map((p) {
+      return Positioned(
+        left: MediaQuery.of(context).size.width * p.x - 75,
+        top: MediaQuery.of(context).size.height * p.y - 75,
+        child: IgnorePointer(
+          child: Opacity(
+            opacity: 0.6,
+            child: Icon(
+              icon,
+              size: 150,
+              color: color,
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Only show input if close enough (e.g., < 20 meters)
@@ -422,6 +468,10 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                 ),
               ),
             ),
+
+            // BG DECORATIVE ELEMENTS (Snowflakes or Fire)
+            ..._buildBackgroundElements(),
+
             // Content
             SafeArea(
             child: LayoutBuilder(
