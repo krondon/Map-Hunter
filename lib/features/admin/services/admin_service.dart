@@ -220,12 +220,33 @@ class AdminService {
     }
   }
 
+  /// Obtiene todos los perfiles con rol de 'admin'.
+  Future<List<Player>> fetchAdmins() async {
+    try {
+      debugPrint('AdminService: Fetching admins...');
+      final response = await _supabase
+          .from('profiles')
+          .select()
+          .eq('role', 'admin')
+          .order('name', ascending: true);
+          
+      final data = response as List;
+      debugPrint('AdminService: Found ${data.length} admins.');
+      return data.map((json) => Player.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint('AdminService: Error fetching admins: $e');
+      return [];
+    }
+  }
+
   /// Recupera los logs de auditoría con paginación y filtros opcionales.
   Future<List<AuditLog>> getAuditLogs({
     int limit = 20,
     int offset = 0,
     String? actionType,
     String? adminId,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
       // 1. Start with select (PostgrestFilterBuilder)
@@ -240,6 +261,14 @@ class AdminService {
       
       if (adminId != null && adminId.isNotEmpty) {
         query = query.eq('admin_id', adminId);
+      }
+
+      if (startDate != null) {
+        query = query.gte('created_at', startDate.toIso8601String());
+      }
+
+      if (endDate != null) {
+        query = query.lte('created_at', endDate.toIso8601String());
       }
 
       // 3. Apply sort and pagination (Returns PostgrestTransformBuilder)

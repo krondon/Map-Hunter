@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import '../services/admin_service.dart';
 import '../models/audit_log.dart';
+import '../../../shared/models/player.dart';
 
 class AuditLogsScreen extends StatefulWidget {
   const AuditLogsScreen({super.key});
@@ -24,10 +26,15 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   final List<String> _actionTypes = [
     'INSERT', 'UPDATE', 'DELETE', 'PLAYER_ACCEPTED', 'UPDATE_SENSITIVE'
   ];
+  
+  String? _selectedAdminId;
+  List<Player> _admins = [];
+  DateTimeRange? _selectedDateRange;
 
   @override
   void initState() {
     super.initState();
+    _loadAdmins();
     _loadLogs();
     _scrollController.addListener(_onScroll);
   }
@@ -43,6 +50,20 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
         !_isLoading &&
         _hasMore) {
       _loadLogs();
+    }
+  }
+
+  Future<void> _loadAdmins() async {
+    try {
+      final adminService = Provider.of<AdminService>(context, listen: false);
+      final admins = await adminService.fetchAdmins();
+      if (mounted) {
+        setState(() {
+          _admins = admins;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading admins: $e');
     }
   }
 
@@ -64,6 +85,9 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
         limit: _limit,
         offset: _offset,
         actionType: _selectedActionType,
+        adminId: _selectedAdminId,
+        startDate: _selectedDateRange?.start,
+        endDate: _selectedDateRange?.end,
       );
 
       setState(() {
@@ -81,6 +105,35 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2025),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.deepPurpleAccent,
+              onPrimary: Colors.white,
+              surface: Color(0xFF1E1E2C),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+      _loadLogs(refresh: true);
     }
   }
 
@@ -107,32 +160,97 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
       body: Column(
         children: [
           // Filter Bar
-          Padding(
+          Container(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
+            color: Colors.black12,
+            child: Column(
               children: [
-                const Text('Filtrar por Acción: '),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: _selectedActionType,
-                  hint: const Text('Todos'),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('Todos')),
-                    ..._actionTypes.map((type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(type),
-                    )),
+                Row(
+                  children: [
+                    // Action Type Filter
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedActionType,
+                        decoration: const InputDecoration(
+                          labelText: 'Acción',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                        ),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('Todas')),
+                          ..._actionTypes.map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedActionType = value;
+                          });
+                          _loadLogs(refresh: true);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Admin Filter
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedAdminId,
+                        decoration: const InputDecoration(
+                          labelText: 'Admin',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                        ),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('Todos')),
+                          ..._admins.map((p) => DropdownMenuItem(
+                            value: p.userId,
+                            child: Text(p.name.isNotEmpty ? p.name : p.email),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedAdminId = value;
+                          });
+                          _loadLogs(refresh: true);
+                        },
+                      ),
+                    ),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedActionType = value;
-                    });
-                    _loadLogs(refresh: true);
-                  },
+                ),
+                const SizedBox(height: 10),
+                // Date Range Filter
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.date_range),
+                        label: Text(_selectedDateRange == null
+                            ? 'Seleccionar Fechas'
+                            : '${DateFormat('dd/MM').format(_selectedDateRange!.start)} - ${DateFormat('dd/MM').format(_selectedDateRange!.end)}'),
+                        onPressed: _selectDateRange,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white24),
+                        ),
+                      ),
+                    ),
+                    if (_selectedDateRange != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _selectedDateRange = null;
+                          });
+                          _loadLogs(refresh: true);
+                        },
+                      ),
+                  ],
                 ),
               ],
             ),
           ),
+          
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -156,7 +274,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                     ),
                     title: Text(log.actionType, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      'Admin: ${log.adminEmail ?? log.adminId ?? 'Sistema'} \nTarget: ${log.targetTable} (${log.targetId})',
+                      'Admin: ${log.adminEmail ?? log.adminId ?? 'Sistema'} \nTarget: ${log.targetTable}',
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: Text(
@@ -194,7 +312,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+    return DateFormat('dd/MM/yyyy HH:mm').format(date);
   }
 
   String _prettyPrintJson(Map<String, dynamic> json) {
