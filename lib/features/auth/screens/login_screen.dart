@@ -589,10 +589,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               Positioned.fill(
                 child: isDarkMode
                     ? Opacity(
-                        opacity: 0.7, // Opacidad para mejor legibilidad
+                        opacity: 0.6, // Opacidad para mejor legibilidad
                         child: Image.asset(
                           'assets/images/hero.png',
-                          fit: BoxFit.cover, // Cubre toda la pantalla sin espacios
+                          fit: BoxFit.cover,
                           alignment: Alignment.center,
                         ),
                       )

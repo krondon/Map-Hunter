@@ -40,9 +40,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final Color currentSurface = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
     
     return AnimatedCyberBackground(
-      child: SafeArea(
-        child: Column(
-          children: [
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/fotogrupalnoche.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.6),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
             // Winner Celebration Section
             if (leaderboard.isNotEmpty && leaderboard[0].totalXP >= gameProvider.totalClues && gameProvider.totalClues > 0)
               Container(
@@ -207,10 +221,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 },
               ),
             ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
   
   Widget _buildPodiumPosition(dynamic player, int position, double height, Color color) {

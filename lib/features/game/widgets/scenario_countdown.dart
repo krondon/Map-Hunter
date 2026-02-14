@@ -55,21 +55,27 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
   Widget build(BuildContext context) {
     if (_isStarted) {
       return Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: Colors.green.withOpacity(0.2),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
         ),
-        child: const Text(
-          "EN CURSO",
-          style: TextStyle(
-            color: Colors.greenAccent,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            letterSpacing: 1,
-          ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.play_circle_outline, color: Colors.greenAccent, size: 14),
+            SizedBox(width: 4),
+            Text(
+              "EN CURSO",
+              style: TextStyle(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -77,8 +83,7 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
     if (_timeLeft == null) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.8),
         borderRadius: BorderRadius.circular(30),
@@ -87,14 +92,14 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
-          const SizedBox(width: 8),
+          const Icon(Icons.timer_outlined, color: Colors.white, size: 14),
+          const SizedBox(width: 4),
           Text(
             "${_timeLeft!.inDays}d ${_timeLeft!.inHours % 24}h ${_timeLeft!.inMinutes % 60}m ${_timeLeft!.inSeconds % 60}s",
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 12, // Reduced from 16 to be slightly bigger than labels but smaller than before
               fontFeatures: [FontFeature.tabularFigures()],
               letterSpacing: 1.0,
             ),

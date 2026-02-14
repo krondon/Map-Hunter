@@ -91,7 +91,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final content = widget.hideScaffold 
         ? mainScroll 
-        : AnimatedCyberBackground(child: mainScroll);
+        : AnimatedCyberBackground(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/fotogrupalnoche.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.6),
+                  ),
+                ),
+                mainScroll,
+              ],
+            ),
+          );
 
     if (widget.hideScaffold) return content;
 
