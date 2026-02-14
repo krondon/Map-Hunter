@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/player.dart';
 import '../models/admin_stats.dart';
+import '../models/audit_log.dart';
 
 /// Servicio de administración que encapsula la lógica de gestión de usuarios.
 ///
@@ -216,6 +217,43 @@ class AdminService {
     } catch (e) {
       debugPrint('AdminService: Error checking prize distribution status: $e');
       return false; // Assume false on error to not block UI
+    }
+  }
+
+  /// Recupera los logs de auditoría con paginación y filtros opcionales.
+  Future<List<AuditLog>> getAuditLogs({
+    int limit = 20,
+    int offset = 0,
+    String? actionType,
+    String? adminId,
+  }) async {
+    try {
+      // 1. Start with select (PostgrestFilterBuilder)
+      var query = _supabase
+          .from('admin_audit_logs')
+          .select('*, profiles(email)');
+
+      // 2. Apply filters
+      if (actionType != null && actionType.isNotEmpty) {
+        query = query.eq('action_type', actionType);
+      }
+      
+      if (adminId != null && adminId.isNotEmpty) {
+        query = query.eq('admin_id', adminId);
+      }
+
+      // 3. Apply sort and pagination (Returns PostgrestTransformBuilder)
+      final transformQuery = query
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      final response = await transformQuery;
+      final data = response as List;
+      
+      return data.map((json) => AuditLog.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint('AdminService: Error fetching audit logs: $e');
+      return [];
     }
   }
 }

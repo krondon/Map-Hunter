@@ -16,6 +16,7 @@ import '../../auth/screens/login_screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import 'minigames/sequence_config_screen.dart';
 import 'minigames/drink_mixer_config_screen.dart';
+import 'audit_logs_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -36,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     "Retiros",
     "Reportes",
     "Minijuegos",
+    "Auditoría",
     "Configuración"
   ];
 
@@ -48,6 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.money_off,
     Icons.bar_chart,
     Icons.games,
+    Icons.history_edu,
     Icons.settings,
   ];
 
@@ -122,7 +125,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Text('Reportes - En desarrollo',
               style: TextStyle(color: Colors.white54))), // Index 6 - Reportes
       const _MinigamesListView(), // Index 7 - Minijuegos
-      const GlobalConfigScreen(), // Index 8 - Configuración
+      const AuditLogsScreen(), // Index 8 - Auditoría
+      const GlobalConfigScreen(), // Index 9 - Configuración
     ];
 
     return LayoutBuilder(

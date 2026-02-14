@@ -80,6 +80,21 @@ BEGIN
       VALUES (v_user_id, v_event_id, 'active', 3, NOW());
     END IF;
 
+    -- ── Log Admin Action (Audit) ──
+    INSERT INTO admin_audit_logs (admin_id, action_type, target_table, target_id, details)
+    VALUES (
+      auth.uid(), 
+      'PLAYER_ACCEPTED', 
+      'game_players', 
+      p_request_id,
+      jsonb_build_object(
+        'event_id', v_event_id,
+        'user_id', v_user_id,
+        'fee', 0,
+        'type', 'free_event'
+      )
+    );
+
     RETURN json_build_object('success', true, 'paid', false, 'amount', 0);
   END IF;
 
@@ -117,6 +132,21 @@ BEGIN
 
   -- 6c. Increment event pot
   UPDATE events SET pot = COALESCE(pot, 0) + v_entry_fee WHERE id = v_event_id;
+
+  -- ── Step 7: Log Admin Action (Audit) ──
+  INSERT INTO admin_audit_logs (admin_id, action_type, target_table, target_id, details)
+  VALUES (
+    auth.uid(), 
+    'PLAYER_ACCEPTED', 
+    'game_players', 
+    p_request_id, -- Using request ID as temporary target or we could query the game_player ID
+    jsonb_build_object(
+      'event_id', v_event_id,
+      'user_id', v_user_id,
+      'fee', v_entry_fee,
+      'pot_contribution', v_entry_fee
+    )
+  );
 
   RETURN json_build_object(
     'success', true,
