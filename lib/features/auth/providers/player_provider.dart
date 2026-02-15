@@ -722,7 +722,11 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     try {
       // --- EXCLUSIVITY CHECK ---
-      if (!effectProvider.canActivateDefensePower(powerSlug)) {
+      // Fix: Only apply exclusivity check for DEFENSE powers.
+      // Offensive powers can be used while protected (e.g. while invisible or shielded).
+      final isDefensivePower = ['shield', 'invisibility', 'return'].contains(powerSlug);
+
+      if (isDefensivePower && !effectProvider.canActivateDefensePower(powerSlug)) {
         debugPrint(
             'PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
         return PowerUseResult.error;

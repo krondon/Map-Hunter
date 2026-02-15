@@ -182,26 +182,21 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   }
 
   void armReturn() {
-    _isProtected = true;
     _activeDefenseSlug = 'return';
     notifyListeners();
-    debugPrint('↩️ Return ARMED (Optimistic, waiting for server confirmation)');
   }
 
   Future<void> armShield() async {
-    // Optimistic UI Update (will be confirmed by game_players stream)
-    _isProtected = true;
+    // FIX: Do NOT set _isProtected = true here.
+    // Rely on game_players stream as Source of Truth.
     _activeDefenseSlug = 'shield';
     _shieldLastArmedAt = DateTime.now(); 
     notifyListeners();
-    debugPrint('🛡️ Shield ACTIVATING (Waiting for server confirmation)');
   }
 
   void armInvisibility() {
-    _isProtected = true;
     _activeDefenseSlug = 'invisibility';
     notifyListeners();
-    debugPrint('👻 Invisibility ARMED (Optimistic, waiting for server confirmation)');
   }
 
   /// Deactivates the current defense power server-side.
