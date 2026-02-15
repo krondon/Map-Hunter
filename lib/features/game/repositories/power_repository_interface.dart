@@ -26,4 +26,8 @@ abstract class PowerRepository {
     required String targetId,
     required String powerSlug,
   });
+
+  /// Deactivates the current defense power for the given player.
+  /// Clears is_protected and removes expired defense rows from active_powers.
+  Future<void> deactivateDefense({required String gamePlayerId});
 }

@@ -126,4 +126,16 @@ class PowerRepositoryImpl implements PowerRepository {
       return false; // Fail safe
     }
   }
+
+  @override
+  Future<void> deactivateDefense({required String gamePlayerId}) async {
+    try {
+      final result = await _supabase.rpc('deactivate_defense', params: {
+        'p_game_player_id': gamePlayerId,
+      });
+      debugPrint('[PowerRepository] deactivateDefense result: $result');
+    } catch (e) {
+      debugPrint('[PowerRepository] deactivateDefense error: $e');
+    }
+  }
 }

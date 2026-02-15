@@ -71,6 +71,8 @@ abstract class PowerEffectManager implements PowerEffectReader {
   void setManualCasting(bool value);
   void armReturn();
   Future<void> armShield();
+  void armInvisibility();
+  Future<void> deactivateDefense();
   void setShielded(bool value, {String? sourceSlug});
   void clearActiveEffect();
   

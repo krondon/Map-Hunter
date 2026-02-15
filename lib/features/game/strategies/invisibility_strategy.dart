@@ -35,9 +35,9 @@ class InvisibilityStrategy implements PowerStrategy {
     debugPrint("👻 Invisibilidad activada - Eres indetectable.");
     HapticFeedback.lightImpact();
     
-    // La lógica de invisibilidad es principalmente estado y preservación
-    // El provider ya maneja _activePowerSlug asignado en el flujo principal,
-    // pero si hay lógica adicional específica, iría aquí.
+    // FIX: Arm invisibility in the unified defense state machine
+    // This sets _isProtected=true and _activeDefenseSlug='invisibility'
+    provider.armInvisibility();
   }
 
   @override

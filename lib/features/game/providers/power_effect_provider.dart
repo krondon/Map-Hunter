@@ -58,8 +58,8 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   String? get listeningForId => _listeningForId;
   
   bool _isManualCasting = false;
-  bool _returnArmed = false;
-  bool _shieldArmed = false;
+  bool _isProtected = false;
+  String? _activeDefenseSlug; // 'shield', 'return', or 'invisibility'
   DateTime? _shieldLastArmedAt; // Grace period for optimistic UI
   
 
@@ -83,23 +83,14 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   String? get returnedPowerSlug => _returnedPowerSlug;
 
   // --- MUTUAL EXCLUSIVITY FOR DEFENSE POWERS ---
-  // Now simpler: _shieldArmed is the truthful 'isProtected' state from DB
-  bool get isDefenseActive => _shieldArmed || _returnArmed || isEffectActive('shield') || isEffectActive('return') || isEffectActive('invisibility');
+  // FIX: Single source of truth from game_players.is_protected
+  bool get isDefenseActive => _isProtected;
   
-  String? get activeDefensePower {
-      if (_shieldArmed) return 'shield'; // Generic protection (could be return too, but shield implies protection)
-      if (isEffectActive('shield')) return 'shield';
-      if (_returnArmed) return 'return';
-      if (isEffectActive('return')) return 'return'; // Fallback
-      if (isEffectActive('invisibility')) return 'invisibility';
-      // if (isEffectActive('extra_life')) return 'extra_life'; 
-      return null;
-  }
+  String? get activeDefensePower => _isProtected ? _activeDefenseSlug : null;
 
   bool canActivateDefensePower(String powerSlug) {
       // STRICT EXCLUSIVITY: If any defense is active, NO defense power can be used.
-      // logic: isDefenseActive checks isProtected (synced from DB) or local states.
-      if (isDefenseActive) return false;
+      if (_isProtected) return false;
       return true;
   }
 
@@ -118,8 +109,9 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   DateTime? get activePowerExpiresAt => activePowerSlug != null ? _timerService.getExpiration(activePowerSlug!) : null;
 
   bool isEffectActive(String slug) {
-    if (slug == 'shield') return _shieldArmed;
-    if (slug == 'return') return _returnArmed;
+    if (slug == 'shield') return _isProtected && _activeDefenseSlug == 'shield';
+    if (slug == 'return') return _isProtected && _activeDefenseSlug == 'return';
+    if (slug == 'invisibility') return _isProtected && _activeDefenseSlug == 'invisibility';
     return _timerService.isActive(slug);
   }
   
@@ -136,8 +128,8 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
   }
   
   DateTime? getPowerExpiration(String slug) {
-    if (slug == 'shield' && _shieldArmed) return null; // Infinite until broken
-    if (slug == 'return' && _returnArmed) return null; // Infinite until triggered
+    if (slug == 'shield' && _isProtected && _activeDefenseSlug == 'shield') return null; // Infinite until broken
+    if (slug == 'return' && _isProtected && _activeDefenseSlug == 'return') return null; // Infinite until triggered
     return _timerService.getExpiration(slug);
   }
   
@@ -175,32 +167,53 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
 
   // REMOVED: _supabaseClient getter - now using injected _supabase (DIP compliance)
 
-  bool get isReturnArmed => _returnArmed;
-  bool get isShieldArmed => _shieldArmed;
+  bool get isReturnArmed => _isProtected && _activeDefenseSlug == 'return';
+  bool get isShieldArmed => _isProtected && (_activeDefenseSlug == 'shield' || _activeDefenseSlug == 'return');
 
   void setManualCasting(bool value) => _isManualCasting = value;
 
   void setShielded(bool value, {String? sourceSlug}) {
      if (value) armShield();
      else {
-        _shieldArmed = false;
+        _isProtected = false;
+        _activeDefenseSlug = null;
         notifyListeners();
      }
   }
 
   void armReturn() {
-    _returnArmed = true;
-    _shieldArmed = false; // Mutual exclusivity
+    _isProtected = true;
+    _activeDefenseSlug = 'return';
     notifyListeners();
+    debugPrint('↩️ Return ARMED (Optimistic, waiting for server confirmation)');
   }
 
   Future<void> armShield() async {
     // Optimistic UI Update (will be confirmed by game_players stream)
-    _shieldArmed = true; 
+    _isProtected = true;
+    _activeDefenseSlug = 'shield';
     _shieldLastArmedAt = DateTime.now(); 
-    _returnArmed = false; 
     notifyListeners();
     debugPrint('🛡️ Shield ACTIVATING (Waiting for server confirmation)');
+  }
+
+  void armInvisibility() {
+    _isProtected = true;
+    _activeDefenseSlug = 'invisibility';
+    notifyListeners();
+    debugPrint('👻 Invisibility ARMED (Optimistic, waiting for server confirmation)');
+  }
+
+  /// Deactivates the current defense power server-side.
+  /// Called when a timed defense (invisibility) expires locally.
+  @override
+  Future<void> deactivateDefense() async {
+    if (_listeningForId == null) return;
+    debugPrint('🛡️ [DEACTIVATE] Calling deactivate_defense RPC for $_listeningForId');
+    _isProtected = false;
+    _activeDefenseSlug = null;
+    notifyListeners();
+    await _repository.deactivateDefense(gamePlayerId: _listeningForId!);
   }
 
   void configureLifeStealVictimHandler(Future<void> Function(String effectId, String? casterGamePlayerId, String targetGamePlayerId) handler) {
@@ -246,24 +259,27 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
 
     debugPrint('🛡️ PowerEffectProvider STARTING LISTENING: localId=$myGamePlayerId, eventId=$eventId');
 
-    // 0. Listen for Game Player Updates (PROTECTION STATE) - SHIELD CONSISTENCY FIX
+    // 0. Listen for Game Player Updates (PROTECTION STATE) - DEFENSE MUTUAL EXCLUSIVITY FIX
     _repository.getGamePlayerStream(playerId: myGamePlayerId)
         .listen((Map<String, dynamic>? player) {
            if (player != null) {
               // DEBUG: Check if column exists
               if (!player.containsKey('is_protected')) {
                  debugPrint('⚠️ [PROTECTION-SYNC] Payload missing is_protected column! Keys: ${player.keys.toList()}');
-                 // Do NOT overwrite optimistic state if column is missing
                  return;
               }
 
               final bool isProtected = player['is_protected'] ?? false;
-              if (_shieldArmed != isProtected) {
-                 _shieldArmed = isProtected;
-                 // Mutual Exclusivity: If protected, ensure Return is off
-                 if (_shieldArmed) _returnArmed = false; 
+              if (_isProtected != isProtected) {
+                 _isProtected = isProtected;
+                 if (!isProtected) {
+                   // Server cleared protection — reset defense slug
+                   _activeDefenseSlug = null;
+                 }
+                 // Note: _activeDefenseSlug is set by armShield/armReturn/armInvisibility
+                 // or inferred from active_powers stream
                  notifyListeners();
-                 debugPrint('🛡️ [PROTECTION-SYNC] Shield State Updated: $_shieldArmed');
+                 debugPrint('🛡️ [PROTECTION-SYNC] Protected: $_isProtected, Slug: $_activeDefenseSlug');
               }
            } else {
              debugPrint('🛡️ [STREAM] game_players returned NULL for id=$myGamePlayerId');
@@ -296,11 +312,18 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
            debugPrint('PowerEffectProvider combat_events stream error: $e');
         });
 
-    // 4. Listen for Timer Expiration Events (CRITICAL for UI unlock)
+    // 4. Listen for Timer Expiration Events (CRITICAL for UI unlock + defense deactivation)
     _timerEventSubscription?.cancel();
     _timerEventSubscription = _timerService.effectStream.listen((event) {
       if (event.type == EffectEventType.expired || event.type == EffectEventType.removed) {
         debugPrint('🔓 [UI-UNLOCK] Removiendo bloqueo de pantalla para efecto: ${event.slug}');
+        
+        // FIX: If a timed defense (invisibility) expires, clear is_protected server-side
+        if (event.slug == _activeDefenseSlug && _isProtected) {
+          debugPrint('🛡️ [DEFENSE-EXPIRE] Timed defense "${event.slug}" expired, calling deactivate_defense RPC');
+          deactivateDefense();
+        }
+        
         // Notify listeners so SabotageOverlay can react immediately
         notifyListeners();
       }
@@ -342,15 +365,16 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
 
     if (resultType == 'shield_blocked') {
         debugPrint('[COMBAT] 🛡️💥 SHIELD_BLOCKED event processed!');
-        debugPrint('[COMBAT]    - Shield Armed Before: $_shieldArmed');
+        debugPrint('[COMBAT]    - Protected Before: $_isProtected ($_activeDefenseSlug)');
         
         // Server confirmed shield blocked an attack
-        _shieldArmed = false; // Sync local state
+        _isProtected = false;
+        _activeDefenseSlug = null;
         // Force remove effect locally in case stream hasn't updated yet
         _removeEffect('shield'); 
-        _ignoreShieldUntil = DateTime.now().add(const Duration(seconds: 5)); // Reduced from 10s to 5s for responsiveness
+        _ignoreShieldUntil = DateTime.now().add(const Duration(seconds: 5));
         
-        debugPrint('[COMBAT]    - Shield Armed After Update: $_shieldArmed');
+        debugPrint('[COMBAT]    - Protected After Update: $_isProtected');
         
         _registerDefenseAction(DefenseAction.shieldBroken);
         _feedbackStreamController.add(PowerFeedbackEvent(
@@ -360,12 +384,12 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
         debugPrint('[COMBAT] 🛡️ Shield broken feedback emitted');
     } else if (resultType == 'reflected') {
         final targetId = event['target_id']?.toString();
-        // If I am the target, it means *I* reflected the attack (I was the intended victim of the original attack)
+        // If I am the target, it means *I* reflected the attack
         if (targetId == _listeningForId) {
              debugPrint('[COMBAT] ↩️ RETURN ACTIVATED! Syncing local state.');
             
-            _returnArmed = false;
-            _shieldArmed = false; // ⚡ CRITICAL FIX: Backend consumes is_protected, so we must specificially clear it locally to unblock UI
+            _isProtected = false;
+            _activeDefenseSlug = null;
             _removeEffect('return');
             
             // EXTRACT DATA FOR FEEDBACK
@@ -473,11 +497,10 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
     debugPrint('[PowerEffectProvider] Removing effect: $slug');
     _timerService.removeEffect(slug);
     
-    // Specfic cleanup for defense flags
-    if (slug == 'shield') {
-       _shieldArmed = false;
-    } else if (slug == 'return') {
-       _returnArmed = false;
+    // Defense cleanup: if removing the active defense, clear protection
+    if (slug == _activeDefenseSlug) {
+       _isProtected = false;
+       _activeDefenseSlug = null;
     }
     
     notifyListeners();
