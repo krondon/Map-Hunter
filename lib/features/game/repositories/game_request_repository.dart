@@ -23,6 +23,9 @@ abstract class IGameRequestRepository {
   Future<Map<String, dynamic>> approveAndPayEntry(String requestId);
   /// Calls the atomic RPC join_online_paid_event (self-service for online events).
   Future<Map<String, dynamic>> joinOnlinePaidEventRPC(String userId, String eventId);
+  /// Calls the atomic RPC join_online_free_event (create game_player and approved game_request).
+  Future<Map<String, dynamic>> joinOnlineFreeEventRPC(String userId, String eventId);
+
   /// Calls secure_clover_payment RPC directly (generic atomic clover deduction).
   Future<Map<String, dynamic>> callSecureCloverPayment(String userId, int amount, String reason);
   Future<int> getCurrentClovers(String userId);
@@ -218,6 +221,20 @@ class GameRequestRepository implements IGameRequestRepository {
       return Map<String, dynamic>.from(result as Map);
     } catch (e) {
       debugPrint('GameRequestRepository: Error in joinOnlinePaidEventRPC: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> joinOnlineFreeEventRPC(String userId, String eventId) async {
+    try {
+      final result = await _supabase.rpc('join_online_free_event', params: {
+        'p_user_id': userId,
+        'p_event_id': eventId,
+      });
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      debugPrint('GameRequestRepository: Error in joinOnlineFreeEventRPC: $e');
       rethrow;
     }
   }
