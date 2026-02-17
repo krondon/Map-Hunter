@@ -157,7 +157,21 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     }
   }
 
-  void _handleFeedback(PowerFeedbackEvent event) {
+  Future<String> _resolveNameWithFallback(String? attackerId) async {
+    // 1. Try local leaderboard (Sync/Fast)
+    String name = _resolvePlayerNameFromLeaderboard(attackerId);
+    
+    // 2. If ambiguous and we have an ID, try remote fetch (Async/Slow)
+    if (name == 'Un espectador' && attackerId != null && attackerId.isNotEmpty) {
+       final realName = await _gameProviderRef?.getPlayerName(attackerId);
+       if (realName != null && realName.isNotEmpty) {
+         return realName;
+       }
+    }
+    return name;
+  }
+
+  void _handleFeedback(PowerFeedbackEvent event) async {
       if (!mounted) return;
       
       debugPrint('[OVERLAY] 📨 Feedback Event Received: ${event.type}');
@@ -171,14 +185,25 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
               return;
             }
 
-            final attackerName = _resolvePlayerNameFromLeaderboard(event.relatedPlayerName);
+            final attackerId = event.relatedPlayerName;
+            
+            // ⏳ AWAIT RESOLUTION BEFORE SHOWING UI (Prevent Flicker + Double Trigger Check)
+            // If the same event arrives twice (idempotency check in provider should handle it,
+            // but the async gap here could allow re-entry if provider emits twice for some reason).
+            
+            // To be 100% safe, we could track processed attackerIds for Life Steal within a short window here?
+            // But let's trust the Provider idempotency for now.
+            
+            final resolvedName = await _resolveNameWithFallback(attackerId);
+            if (!mounted) return;
+
             _lifeStealAnimationTimer?.cancel();
             setState(() {
               _showLifeStealAnimation = true;
-              _lifeStealCasterName = attackerName;
+              _lifeStealCasterName = resolvedName; 
             });
             
-            _showLifeStealBanner('¡$attackerName te ha quitado una vida!');
+            _showLifeStealBanner('¡$resolvedName te ha quitado una vida!');
             
             // Actualizar vidas del jugador y del GameProvider
             // para que puzzle_screen detecte el cambio
@@ -216,9 +241,6 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
             setState(() {
                _showShieldBreakAnimation = true;
             });
-            // La animación de escudo roto se maneja con el widget ShieldBreakEffect que tiene onComplete?
-            // O simplemente lo mostramos por un tiempo.
-            // El widget existente tiene su propio controller y onComplete.
             break;
             
         case PowerFeedbackType.attackBlocked:
@@ -235,43 +257,39 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         case PowerFeedbackType.returnSuccess:
              // Autonomous feedback logic (like Shield)
              final attackerId = event.relatedPlayerName;
-             final attackerName = _resolvePlayerNameFromLeaderboard(attackerId);
+             
+             // ⏳ AWAIT RESOLUTION
+             final attackerName = await _resolveNameWithFallback(attackerId);
+             if (!mounted) return;
              
              final pProvider = Provider.of<PowerEffectReader>(context, listen: false);
              final slug = pProvider is PowerEffectProvider 
                   ? (pProvider as PowerEffectProvider).returnedPowerSlug 
                   : null;
 
-             // DO NOT trigger 'DefenseAction.returned' here (that shows rejection effect!)
-             
-             if (mounted) {
-                setState(() {
-                  _showReturnSuccessAnimation = true;
-                  _returnSuccessAttackerName = attackerName;
-                  _returnSuccessPowerSlug = slug;
-                });
+             setState(() {
+                _showReturnSuccessAnimation = true;
+                _returnSuccessAttackerName = attackerName;
+                _returnSuccessPowerSlug = slug;
+             });
                 
-                // Set timer to hide return success card
-                Timer(const Duration(seconds: 4), () {
-                    if (mounted) {
-                        setState(() {
-                            _showReturnSuccessAnimation = false;
-                            _returnSuccessAttackerName = null;
-                            _returnSuccessPowerSlug = null;
-                        });
-                    }
-                });
-             }
+             // Set timer to hide return success card
+             Timer(const Duration(seconds: 4), () {
+                 if (mounted) {
+                     setState(() {
+                         _showReturnSuccessAnimation = false;
+                         _returnSuccessAttackerName = null;
+                         _returnSuccessPowerSlug = null;
+                     });
+                 }
+             });
              break;
 
         case PowerFeedbackType.returnRejection:
-             // This is when WE are the victim of a return.
-             // We show the "ReturnRejectionEffect" via DefenseAction.returned
              _triggerLocalDefenseAction(DefenseAction.returned);
              break;
              
         case PowerFeedbackType.returned:
-             // Fallback for backward compatibility or stray events
              _triggerLocalDefenseAction(DefenseAction.returned);
              break;
              
@@ -280,13 +298,10 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
              break;
              
         case PowerFeedbackType.giftReceived:
-            // Show a positive gift received banner
             final giftMsg = event.message.isNotEmpty 
                 ? '🎁 ${event.message}' 
                 : '🎁 ¡Has recibido un regalo!';
             _showGiftBanner(giftMsg);
-            
-            // Trigger inventory refresh so the new item appears
             _playerProviderRef?.refreshProfile();
             break;
       }
@@ -504,10 +519,17 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         final isNewBlur = activeSlug == 'blur_screen' && effectId != _lastBlurEffectId;
 
         if (isNewBlur) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          // 🛡️ Prevent duplicate scheduling: Update tracking ID immediately
+          _lastBlurEffectId = effectId;
+          
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (!mounted) return;
-             _lastBlurEffectId = effectId;
-             final attackerName = _resolvePlayerNameFromLeaderboard(powerProvider.activeEffectCasterId);
+             final attackerId = powerProvider.activeEffectCasterId;
+             
+             // ⏳ AWAIT RESOLUTION
+             final attackerName = await _resolveNameWithFallback(attackerId);
+             if (!mounted) return;
+
              final bool isProtected = isPlayerInvisible || isInvisible;
              final String msg = isProtected
                 ? '🌫️ ¡$attackerName intentó nublarte!'

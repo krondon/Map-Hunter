@@ -590,4 +590,51 @@ class GameService {
       return [];
     }
   }
+  /// Obtiene el estado de un game_player específico por su ID.
+  /// Retorna el string del estado ('active', 'spectator', etc) o null si no existe.
+  Future<String?> getGamePlayerStatus(String gamePlayerId) async {
+    try {
+      final response = await _supabase
+          .from('game_players')
+          .select('status')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['status'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('GameService: Error getting game player status: $e');
+      return null;
+    }
+  }
+
+  /// Obtiene el nombre de un game_player específico por su ID.
+  Future<String?> getPlayerName(String gamePlayerId) async {
+    try {
+      // 1. Get user_id from game_players
+      final gp = await _supabase
+          .from('game_players')
+          .select('user_id')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
+      
+      if (gp == null) return null;
+      
+      final userId = gp['user_id'];
+      
+      // 2. Get name from profiles
+      final profile = await _supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', userId)
+          .maybeSingle();
+          
+      return profile?['name'] as String?;
+    } catch (e) {
+      debugPrint('GameService: Error getting player name: $e');
+      return null;
+    }
+  }
 }

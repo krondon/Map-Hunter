@@ -829,6 +829,16 @@ class GameProvider extends ChangeNotifier implements IResettable {
     }
   }
 
+  /// Helper para obtener el estado de un jugador (útil para diferenciar spectadores de invisibles)
+  Future<String?> getPlayerStatus(String gamePlayerId) async {
+    return await _gameService.getGamePlayerStatus(gamePlayerId);
+  }
+
+  /// Helper para obtener el nombre real de un jugador (incluso si está invisible)
+  Future<String?> getPlayerName(String gamePlayerId) async {
+    return await _gameService.getPlayerName(gamePlayerId);
+  }
+
   /// Carga los datos de los minijuegos desde Supabase si no han sido cargados.
   Future<void> loadMinigameData() async {
     if (_minigameCapitals.isNotEmpty && _minigameTFStatements.isNotEmpty)

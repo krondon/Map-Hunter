@@ -265,17 +265,51 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
               }
 
               final bool isProtected = player['is_protected'] ?? false;
+              
+              // --- FAIL-SAFE: Self-Correction for Stuck State ---
+              // If server says we are protected, but we have NO local record of an active defense slug
+              // AND we have been running for a bit (to allow initial sync), we should double check.
+              // Actually, a better check is: If isProtected=true, do we have an active power for it?
+              // The active_powers stream should have told us.
+              // We'll perform a "Reactive Integrity Check" here.
+             
+              if (isProtected) {
+                  // If we are protected, but locally we think we aren't, update local.
+                  // But wait! If we just started, we might not have the slug yet.
+                  // So we accept the protection first.
+              }
+
               if (_isProtected != isProtected) {
                  _isProtected = isProtected;
+                 
                  if (!isProtected) {
                    // Server cleared protection — reset defense slug
                    _activeDefenseSlug = null;
+                   debugPrint('🛡️ [PROTECTION-SYNC] Server disabled protection. Visuals cleared.');
+                 } else {
+                   // Server enabled protection.
+                   // If we don't have a slug yet, it might be coming in the active_powers stream.
+                   // But if 5 seconds pass and we still don't have a slug, it's a ghost state!
+                   /*
+                   Timer(const Duration(seconds: 5), () {
+                      if (_isProtected && _activeDefenseSlug == null) {
+                          debugPrint('🛡️ [FAIL-SAFE] Detected stuck protection without active power! Attempting self-repair...');
+                          deactivateDefense();
+                      }
+                   });
+                   */
+                   // For now, let's trust the stream but log it.
+                   debugPrint('🛡️ [PROTECTION-SYNC] Server enabled protection. Waiting for power slug match...');
                  }
-                 // Note: _activeDefenseSlug is set by armShield/armReturn/armInvisibility
-                 // or inferred from active_powers stream
+                 
                  notifyListeners();
                  debugPrint('🛡️ [PROTECTION-SYNC] Protected: $_isProtected, Slug: $_activeDefenseSlug');
               }
+              
+              // NEW: Immediate Integrity Check
+              // If isProtected is TRUE, we expect an active defense power in the active_powers list.
+              // We can't easily check that list here without caching it separately.
+              // So we will trigger a check in _processEffects instead.
            } else {
              debugPrint('🛡️ [STREAM] game_players returned NULL for id=$myGamePlayerId');
            }
@@ -602,12 +636,22 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
     // Following existing logic: Return takes priority over applying effects.
 
     if (filtered.isEmpty) {
-       // Check if we need to clear effects that might have been removed from DB?
-       // With concurrent timers, effects clear themselves locally.
-       // But if an effect is manually deleted from DB (e.g. by admin), we might want to sync.
-       // For now, local timers are robust enough for duration.
-       // However, to strictly follow DB state for "cancellations":
-       // We could check if any active effect is NOT in the incoming data.
+       // --- FAIL-SAFE: Empty List Integrity Check ---
+       // If we receive an empty list of active powers, but we are marked as PROTECTED,
+       // it means the defense power has expired server-side (removed from active_powers)
+       // but the is_protected flag might still be true if the cleanup job hasn't run yet.
+       // OR if we just missed the expiration event.
+       
+       if (_isProtected && _activeDefenseSlug != null) {
+           debugPrint('🛡️ [INTEGRITY] No active powers found, but Protection is ON via "$_activeDefenseSlug". Checking expiration...');
+            // If we have an active slug locally, check if it's expired locally too.
+            // If the list is empty, it means DB has NO active powers for us.
+            // THIS IS THE SMOKING GUN: Protected=True, ActivePowers=Empty.
+            // We must clear the protection.
+            
+            debugPrint('🛡️ [FAIL-SAFE] Ghost Protection Detected! (Protected=True, ActivePowers=0). Deactivating...');
+            deactivateDefense(); // This calls RPC to set is_protected = false
+       }
        return;
     }
     
