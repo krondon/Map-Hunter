@@ -649,7 +649,21 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       );
 
       if (mounted) {
-        if (result == PowerUseResult.success) {
+        if (result == PowerUseResult.gifted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🎁 ¡Regalo enviado a $targetName!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (result == PowerUseResult.blocked) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🛡️ ¡Ataque bloqueado por escudo!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        } else if (result == PowerUseResult.success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('¡Has saboteado a $targetName con ${_getPowerName(powerSlug)}!'),

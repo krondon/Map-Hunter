@@ -1,4 +1,5 @@
--- Function: use_power_mechanic (Synced with migration 20260216_spectator_gifting.sql)
+-- Migration: Spectator Defense Gifting Logic (Final)
+-- Based on: 20260216_spectator_rpc_update.sql
 -- Date: 2026-02-16
 -- Purpose: 
 -- Allow spectators (and players targeting others) to "gift" defense powers (Shield, Return, Invisibility).

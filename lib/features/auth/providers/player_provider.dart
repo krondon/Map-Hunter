@@ -14,7 +14,7 @@ import '../services/power_service.dart';
 import '../../admin/services/admin_service.dart';
 import '../../game/strategies/power_response.dart';
 
-enum PowerUseResult { success, reflected, error, blocked, gameFinished, targetFinished }
+enum PowerUseResult { success, reflected, error, blocked, gameFinished, targetFinished, gifted }
 
 /// Core Player Provider - Handles player identity, session, and coordination.
 ///
@@ -722,11 +722,12 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     try {
       // --- EXCLUSIVITY CHECK ---
-      // Fix: Only apply exclusivity check for DEFENSE powers.
-      // Offensive powers can be used while protected (e.g. while invisible or shielded).
+      // Fix: Only apply exclusivity check for DEFENSE powers when SELF-CASTING.
+      // When gifting (caster != target), skip this check — server handles it.
       final isDefensivePower = ['shield', 'invisibility', 'return'].contains(powerSlug);
+      final isSelfCast = casterGamePlayerId == targetGamePlayerId;
 
-      if (isDefensivePower && !effectProvider.canActivateDefensePower(powerSlug)) {
+      if (isDefensivePower && isSelfCast && !effectProvider.canActivateDefensePower(powerSlug)) {
         debugPrint(
             'PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
         return PowerUseResult.error;
@@ -789,6 +790,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           return PowerUseResult.reflected;
 
         case PowerUseResultType.success:
+          debugPrint("DEBUG: usePower success. Gifted? ${response.gifted}");
+          if (response.gifted) {
+             // No effects on self, just inventory sync
+             await syncRealInventory(effectProvider: effectProvider);
+             return PowerUseResult.gifted;
+          }
+
           if (response.stealFailed) {
             effectProvider.notifyStealFailed();
           }

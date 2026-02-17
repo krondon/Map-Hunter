@@ -423,6 +423,40 @@ class PowerEffectProvider extends ChangeNotifier implements PowerEffectReader, P
                  relatedPlayerName: attackerId,
              ));
          }
+    } else if (resultType == 'gifted') {
+       // A spectator (or another player) gifted us a defense power
+       final attackerId = event['attacker_id']?.toString();
+       final giftPowerSlug = event['power_slug']?.toString();
+       
+       debugPrint('[COMBAT] 🎁 GIFT RECEIVED! Power: $giftPowerSlug from $attackerId');
+       
+       final gifterName = _resolveGifterName(attackerId);
+       final powerDisplayName = _getPowerDisplayName(giftPowerSlug);
+       
+       _feedbackStreamController.add(PowerFeedbackEvent(
+           PowerFeedbackType.giftReceived,
+           message: '¡$gifterName te ha regalado un $powerDisplayName!',
+           relatedPlayerName: gifterName,
+       ));
+    }
+  }
+
+  /// Resolves a gifter's display name from their game_player_id.
+  /// For spectators this may not resolve via leaderboard, so we fall back gracefully.
+  String _resolveGifterName(String? gamePlayerId) {
+    if (gamePlayerId == null || gamePlayerId.isEmpty) return 'Un espectador';
+    // The name resolution will be done by SabotageOverlay's leaderboard lookup
+    // or by the relatedPlayerName field. We return the ID for now.
+    return gamePlayerId;
+  }
+
+  /// Maps a power slug to a user-friendly name in Spanish.
+  String _getPowerDisplayName(String? slug) {
+    switch (slug) {
+      case 'shield': return 'Escudo';
+      case 'return': return 'Reflejo';
+      case 'invisibility': return 'Invisibilidad';
+      default: return slug ?? 'poder';
     }
   }
 

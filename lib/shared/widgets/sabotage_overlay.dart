@@ -41,6 +41,10 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
   String? _lastLifeStealEffectId;
   String? _lastBlurEffectId; // Track blur to avoid duplicate notifications
   
+  // Gift received banner
+  String? _giftBannerText;
+  Timer? _giftBannerTimer;
+  
   // Control de animación LifeSteal (desacoplado de expiración en BD)
   bool _showLifeStealAnimation = false;
   String? _lifeStealCasterName;
@@ -274,6 +278,17 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
         case PowerFeedbackType.stealFailed:
              _triggerLocalDefenseAction(DefenseAction.stealFailed);
              break;
+             
+        case PowerFeedbackType.giftReceived:
+            // Show a positive gift received banner
+            final giftMsg = event.message.isNotEmpty 
+                ? '🎁 ${event.message}' 
+                : '🎁 ¡Has recibido un regalo!';
+            _showGiftBanner(giftMsg);
+            
+            // Trigger inventory refresh so the new item appears
+            _playerProviderRef?.refreshProfile();
+            break;
       }
   }
 
@@ -311,10 +326,25 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
     }
   }
 
+  void _showGiftBanner(String message,
+      {Duration duration = const Duration(seconds: 4)}) {
+    _giftBannerTimer?.cancel();
+    setState(() {
+      _giftBannerText = message;
+    });
+    _giftBannerTimer = Timer(duration, () {
+      if (!mounted) return;
+      setState(() {
+        _giftBannerText = null;
+      });
+    });
+  }
+
   @override
   void dispose() {
     _lifeStealBannerTimer?.cancel();
     _lifeStealAnimationTimer?.cancel();
+    _giftBannerTimer?.cancel();
     _feedbackSubscription?.cancel();
     _localDefenseActionTimer?.cancel();
     _timerEventSubscription?.cancel(); // NEW: Cancel timer event subscription
@@ -592,7 +622,49 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                   ),
                 ),
               ),
-              
+
+            // 🎁 Gift Received Banner
+            if (_giftBannerText != null)
+              Positioned(
+                top: 50,
+                left: 12,
+                right: 12,
+                child: Material(
+                  color: Colors.transparent,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      key: ValueKey(_giftBannerText),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade800.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.greenAccent.withOpacity(0.6)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.card_giftcard, color: Colors.white),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _giftBannerText!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                decoration: TextDecoration.none,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+               
             if (_showNoLivesFromSteal)
                _buildGameOverOverlay(),
           ],
