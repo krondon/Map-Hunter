@@ -1076,7 +1076,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
           Expanded(
             child: Consumer<PlayerProvider>(
               builder: (context, playerProvider, child) {
-                final powers = playerProvider.shopItems;
+                final powers = playerProvider.shopItems.where((p) => p.id != 'extra_life').toList();
                 
                 if (powers.isEmpty) {
                   return Center(
@@ -1407,8 +1407,6 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         return '🔄';
       case 'black_screen':
         return '🕶️';
-      case 'extra_life':
-        return '❤️';
       default:
         return '⚡';
     }
