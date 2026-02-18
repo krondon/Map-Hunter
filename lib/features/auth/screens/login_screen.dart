@@ -68,6 +68,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    
+    // Precargar ambas imágenes de fondo para transiciones suaves
+    precacheImage(const AssetImage('assets/images/hero.png'), context);
+    precacheImage(const AssetImage('assets/images/loginclaro.png'), context);
+    
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     if (playerProvider.banMessage != null) {
       final msg = playerProvider.banMessage!;
@@ -550,7 +555,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       data: Theme.of(context).copyWith(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFFFF8E1), // Gris oscuro en noche, Beige en día
+          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : Colors.white, // Gris oscuro en noche, Blanco en día
           labelStyle: TextStyle(
             color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
             fontSize: 14,

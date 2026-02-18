@@ -12,7 +12,7 @@ import 'player_group_selector.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 
 /// RaceTrackWidget displays the race progress with interactive avatar selection.
-/// 
+///
 /// Implements tactical interactions following SOLID principles:
 /// - SRP: Widget only handles rendering, delegates logic to RaceLogicService
 /// - ISP: Power filtering based on target type (attack vs defense)
@@ -39,36 +39,38 @@ class RaceTrackWidget extends StatelessWidget {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final effectProvider = Provider.of<PowerEffectManager>(context);
     final gameProvider = Provider.of<GameProvider>(context);
-    
+
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
-    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    final Color currentText =
+        isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+    final Color currentTextSec =
+        isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final Color currentCard =
+        isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
     final String? myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
     // --- LOGIC LAYER (Service Use) ---
     final raceService = RaceLogicService();
-    
+
     // SOLID: Widget consumes View Model via Service. No business logic here.
     final raceView = raceService.buildRaceView(
-      leaderboard: leaderboard, 
-      currentUserId: currentPlayerId, 
-      activePowers: gameProvider.activePowerEffects, 
-      totalClues: totalClues
-    );
+        leaderboard: leaderboard,
+        currentUserId: currentPlayerId,
+        activePowers: gameProvider.activePowerEffects,
+        totalClues: totalClues);
 
     /// Handles avatar tap: Opens power selector or player group selector
     Future<void> handleAvatarTap(RacerViewModel vm) async {
       if (gameProvider.isPowerActionLoading) return;
-      
+
       final me = playerProvider.currentPlayer;
       if (me == null || myGamePlayerId == null) return;
 
       // Check if this avatar is part of a group (overlapping players)
       final group = raceView.getGroupForPlayer(vm.data.id);
-      
+
       RacerViewModel selectedRacer = vm;
-      
+
       // If group has multiple members, show player selector first
       if (group != null && group.hasOverlap) {
         final selected = await PlayerGroupSelector.show(
@@ -80,9 +82,10 @@ class RaceTrackWidget extends StatelessWidget {
       }
 
       // Check if target is finished (UI Check before attempting logic)
-      final bool isTargetFinished = totalClues > 0 && selectedRacer.data.completedCluesCount >= totalClues;
+      final bool isTargetFinished = totalClues > 0 &&
+          selectedRacer.data.completedCluesCount >= totalClues;
       if (isTargetFinished) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('⛔ Este jugador ya terminó la carrera.'),
             backgroundColor: Colors.grey,
@@ -95,12 +98,15 @@ class RaceTrackWidget extends StatelessWidget {
       // Determine if target is self
       final normalizedMyId = myGamePlayerId.trim().toLowerCase();
       final normalizedTargetId = selectedRacer.data.id.trim().toLowerCase();
-      final isTargetSelf = selectedRacer.isMe || (normalizedMyId == normalizedTargetId);
+      final isTargetSelf =
+          selectedRacer.isMe || (normalizedMyId == normalizedTargetId);
 
       // Show power selector with ISP filtering
       final selectedPower = await PowerSelectorBottomSheet.show(
         context: context,
-        targetName: selectedRacer.isMe ? 'Ti mismo' : (selectedRacer.data.label ?? 'Rival'),
+        targetName: selectedRacer.isMe
+            ? 'Ti mismo'
+            : (selectedRacer.data.label ?? 'Rival'),
         isTargetSelf: isTargetSelf,
         inventory: me.inventory,
       );
@@ -122,182 +128,216 @@ class RaceTrackWidget extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.symmetric(vertical: compact ? 10 : 20),
-      padding: EdgeInsets.all(compact ? 12 : 16),
+      padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
       decoration: BoxDecoration(
-        color: currentCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.2 : 0.05),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppTheme.secondaryPink.withOpacity(0.2),
+          width: 1,
+        ),
       ),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '🏁 CARRERA EN VIVO',
-                        style: TextStyle(
-                          color: AppTheme.accentGold,
-                          fontWeight: FontWeight.bold,
-                          fontSize: compact ? 16 : 14,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const _LiveIndicator(),
-                    ],
-                  ),
-                  if (onSurrender != null)
-                    GestureDetector(
-                      onTap: onSurrender,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.dangerRed.withOpacity(0.1),
-                          border: Border.all(
-                              color: AppTheme.dangerRed.withOpacity(0.5)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'RENDIRSE',
+      child: Container(
+        padding: EdgeInsets.all(compact ? 12 : 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF151517), // Solid Dark
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.secondaryPink.withOpacity(0.5),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '🏁 CARRERA EN VIVO',
                           style: TextStyle(
-                            color: AppTheme.dangerRed,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                            color: AppTheme.accentGold,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Orbitron',
+                            fontSize: compact ? 14 : 12,
+                            letterSpacing: 1.2,
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        const _LiveIndicator(),
+                      ],
                     ),
-                ],
-              ),
-              
-              // Tactical hint - HIDDEN IN COMPACT MODE
-              if (!compact)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    '👆 Toca un avatar para usar poderes',
-                    style: TextStyle(
-                      color: currentTextSec.withOpacity(0.6),
-                      fontSize: 10,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              
-              SizedBox(height: compact ? 8 : 16),
-
-              // --- RACE TRACK (RENDERING ONLY via RaceViewData) ---
-              SizedBox(
-                height: compact ? 95 : 120,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Stack(
-                      alignment: Alignment.centerLeft,
-                      clipBehavior: Clip.none,
-                      children: [
-                        // 1. Base Line
-                        Center(
-                          child: Container(
-                            height: 8,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-                              borderRadius: BorderRadius.circular(4),
-                              gradient: LinearGradient(
-                                colors: isDarkMode 
-                                  ? [Colors.grey[800]!, Colors.grey[700]!]
-                                  : [Colors.grey[300]!, Colors.grey[200]!],
-                              ),
+                    if (onSurrender != null)
+                      GestureDetector(
+                        onTap: onSurrender,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.dangerRed.withOpacity(0.1),
+                            border: Border.all(
+                                color: AppTheme.dangerRed.withOpacity(0.5)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'RENDIRSE',
+                            style: TextStyle(
+                              color: AppTheme.dangerRed,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-
-                        // Markers
-                        Positioned(left: 0, top: compact ? 45 : 65, child: Text("START", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
-                        Positioned(right: 0, top: compact ? 45 : 65, child: Text("META", style: TextStyle(fontSize: 8, color: currentTextSec.withOpacity(0.5)))),
-
-                        // Flag
-                        const Positioned(
-                          right: -8,
-                          top: 25,
-                          child: Icon(Icons.flag_circle, color: AppTheme.accentGold, size: 36),
-                        ),
-
-                        // 2. Render View Models (Using ITargetable, decoupled from Player)
-                        ...raceView.racers.map((vm) => _RacerAvatarWidget(
-                          vm: vm,
-                          trackWidth: constraints.maxWidth,
-                          totalClues: totalClues,
-                          isSelected: gameProvider.targetPlayerId == vm.data.id, 
-                          onTap: () => handleAvatarTap(vm),
-                          compact: compact,
-                        )),
-                      ],
-                    );
-                  },
-                ),
-              ),
-
-
-
-              // Dynamic legend (Pre-calculated in Service) - HIDDEN IN COMPACT MODE
-              if (!compact) ...[
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    raceView.motivationText,
-                    style: TextStyle(
-                      color: currentTextSec.withOpacity(0.7),
-                      fontSize: 10,
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          
-          // Loading overlay
-          if (gameProvider.isPowerActionLoading)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const LoadingIndicator(fontSize: 14),
-                      SizedBox(height: 8),
-                      Text(
-                        'Ejecutando poder...',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
                       ),
-                    ],
+                  ],
+                ),
+
+                // Tactical hint
+                if (!compact)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 8),
+                    child: Text(
+                      '👆 Toca un avatar para usar poderes',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 10,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+
+                SizedBox(height: compact ? 8 : 12),
+
+                // --- RACE TRACK (RENDERING ONLY via RaceViewData) ---
+                SizedBox(
+                  height: compact ? 95 : 120,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        alignment: Alignment.centerLeft,
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 1. Base Line (The Track)
+                          Center(
+                            child: Container(
+                              height: 6,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+
+                          // 2. Goal Flag (Meta)
+                          Positioned(
+                            right: -10,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFD700),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(color: Color(0x66FFD700), blurRadius: 10, spreadRadius: 2)
+                                    ]
+                                  ),
+                                  child: const Icon(Icons.flag, color: Colors.black, size: 24),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  "META",
+                                  style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Markers
+                          Positioned(
+                              left: 0,
+                              top: compact ? 45 : 65,
+                              child: Text("START",
+                                  style: TextStyle(
+                                      fontSize: 8,
+                                      color: currentTextSec.withOpacity(0.5)))),
+
+                          // 2. Render View Models (Using ITargetable, decoupled from Player)
+                          ...raceView.racers.map((vm) => _RacerAvatarWidget(
+                                vm: vm,
+                                trackWidth: constraints.maxWidth,
+                                totalClues: totalClues,
+                                isSelected:
+                                    gameProvider.targetPlayerId == vm.data.id,
+                                onTap: () => handleAvatarTap(vm),
+                                compact: compact,
+                              )),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+
+                // Dynamic legend (Pre-calculated in Service) - HIDDEN IN COMPACT MODE
+                if (!compact) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      raceView.motivationText,
+                      style: TextStyle(
+                        color: currentTextSec.withOpacity(0.7),
+                        fontSize: 10,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+
+            // Loading overlay
+            if (gameProvider.isPowerActionLoading)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const LoadingIndicator(fontSize: 14),
+                        SizedBox(height: 8),
+                        Text(
+                          'Ejecutando poder...',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -338,21 +378,22 @@ class RaceTrackWidget extends StatelessWidget {
       } else if (result == PowerUseResult.blocked) {
         // Handled by SabotageOverlay via PowerEffectProvider.notifyAttackBlocked()
       } else if (result == PowerUseResult.gameFinished) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('¡Carrera terminada! No puedes usar poderes.'),
             backgroundColor: Colors.grey,
           ),
         );
       } else if (result == PowerUseResult.targetFinished) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('El objetivo ya terminó la carrera.'),
             backgroundColor: Colors.grey,
           ),
         );
       } else if (success) {
-        final suppressed = effectProvider.lastDefenseAction == DefenseAction.stealFailed;
+        final suppressed =
+            effectProvider.lastDefenseAction == DefenseAction.stealFailed;
         if (!suppressed) {
           showDialog(
             context: context,
@@ -391,192 +432,247 @@ class _RacerAvatarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
-    
+    const Color currentText = Colors.white; // Explicitly white for that premium look
+    const Color currentTextSec = Colors.white70; // Always white for consistency
+
     // Calculo visual puro usando ITargetable.progress (double)
     final double count = vm.data.progress;
-    final progress = totalClues > 0 ? (count / totalClues).clamp(0.0, 1.0) : 0.0;
-    
+    final progress =
+        totalClues > 0 ? (count / totalClues).clamp(0.0, 1.0) : 0.0;
+
     double laneOffset = 0;
     if (vm.lane == -1) laneOffset = -35;
     if (vm.lane == 1) laneOffset = 35;
-    
+
     final double avatarSize = (vm.isMe || isSelected) ? 40 : 30;
     final double maxScroll = trackWidth - avatarSize;
-    final double topPosition = (compact ? 40 : 60) + laneOffset - (avatarSize / 2);
+    final double topPosition =
+        (compact ? 40 : 60) + laneOffset - (avatarSize / 2);
 
     return Positioned(
       left: maxScroll * progress,
       top: topPosition,
       child: ColorFiltered(
         // Apply darken filter if player finished race
-        colorFilter: (totalClues > 0 && vm.data.completedCluesCount >= totalClues)
-            ? const ColorFilter.mode(Colors.black54, BlendMode.darken)
-            : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
+        colorFilter:
+            (totalClues > 0 && vm.data.completedCluesCount >= totalClues)
+                ? const ColorFilter.mode(Colors.black54, BlendMode.darken)
+                : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
         child: Opacity(
           opacity: vm.opacity,
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (vm.isMe || isSelected)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Icon(Icons.arrow_drop_down,
-                    color: isSelected ? Colors.redAccent : AppTheme.accentGold, 
-                    size: 18),
-              ),
-            
-            GestureDetector(
-              onTap: onTap,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Highlight ring for targetable avatars
-                  if (vm.isTargetable || vm.isMe)
-                    Container(
-                      width: avatarSize + 6,
-                      height: avatarSize + 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: vm.isMe 
-                              ? AppTheme.successGreen.withOpacity(0.5)
-                              : AppTheme.dangerRed.withOpacity(0.3),
-                          width: 2,
-                          strokeAlign: BorderSide.strokeAlignOutside,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (vm.isMe || isSelected)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.arrow_drop_down,
+                      color:
+                          isSelected ? Colors.redAccent : AppTheme.accentGold,
+                      size: 18),
+                ),
+              GestureDetector(
+                onTap: onTap,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Highlight ring for targetable avatars
+                    if (vm.isTargetable || vm.isMe)
+                      Container(
+                        width: avatarSize + 6,
+                        height: avatarSize + 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: vm.isMe
+                                ? AppTheme.successGreen.withOpacity(0.5)
+                                : AppTheme.dangerRed.withOpacity(0.3),
+                            width: 2,
+                            strokeAlign: BorderSide.strokeAlignOutside,
+                          ),
                         ),
                       ),
-                    ),
-                  Container(
-                    width: avatarSize,
-                    height: avatarSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected 
-                           ? Colors.redAccent 
-                           : (vm.isMe
-                               ? AppTheme.accentGold
-                               : (vm.isLeader ? Colors.amber : (isDarkMode ? Colors.white24 : Colors.black26))),
-                        width: (vm.isMe || isSelected) ? 2 : 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isSelected 
-                              ? Colors.red.withOpacity(0.5)
-                              : (vm.isMe
-                                ? AppTheme.accentGold.withOpacity(0.3)
-                                : Colors.black26),
-                          blurRadius: (vm.isMe || isSelected) ? 8 : 4,
-                          spreadRadius: 1,
-                        )
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(avatarSize / 2),
-                      child: Container(
-                        color: vm.isMe ? AppTheme.primaryPurple : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
-                        child: Builder(
-                          builder: (context) {
-                            // 1. Prioridad: Avatar Local
-                            if (vm.data.avatarId != null && vm.data.avatarId!.isNotEmpty) {
-                              return Image.asset(
-                                'assets/images/avatars/${vm.data.avatarId}.png',
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Text(
-                                      (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
-                                      style: TextStyle(color: Colors.white, fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
-                                    ),
-                                  );
-                                },
-                              );
-                            }
-                            
-                            // 2. Fallback: Foto de perfil (URL)
-                            if (vm.data.avatarUrl != null && vm.data.avatarUrl!.startsWith('http')) {
-                              return Image.network(
-                                vm.data.avatarUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Center(
-                                  child: Text(
-                                    (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
-                                    style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              );
-                            }
-                            
-                            // 3. Fallback: Iniciales
-                            return Center(
-                              child: Text(
-                                (vm.data.label?.isNotEmpty == true) ? vm.data.label![0].toUpperCase() : '?',
-                                style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: avatarSize * 0.4, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Status Icon Overlay
-                  if (vm.statusIcon != null)
                     Container(
                       width: avatarSize,
                       height: avatarSize,
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.redAccent
+                              : (vm.isMe
+                                  ? AppTheme.accentGold
+                                  : (vm.isLeader
+                                      ? Colors.amber
+                                      : _getAvatarColor(vm.data.label ?? ''))), // Random color for others
+                          width: (vm.isMe || isSelected) ? 2 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isSelected
+                                ? Colors.red.withOpacity(0.5)
+                                : (vm.isMe
+                                    ? AppTheme.accentGold.withOpacity(0.3)
+                                    : Colors.black26),
+                            blurRadius: (vm.isMe || isSelected) ? 8 : 4,
+                            spreadRadius: 1,
+                          )
+                        ],
                       ),
-                      child: Icon(vm.statusIcon, color: vm.statusColor ?? Colors.white, size: avatarSize * 0.6),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(avatarSize / 2),
+                        child: Container(
+                          color: vm.isMe
+                              ? AppTheme.primaryPurple
+                              : (isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.grey[200]),
+                          child: Builder(
+                            builder: (context) {
+                              // 1. Prioridad: Avatar Local
+                              if (vm.data.avatarId != null &&
+                                  vm.data.avatarId!.isNotEmpty) {
+                                return Image.asset(
+                                  'assets/images/avatars/${vm.data.avatarId}.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Text(
+                                        (vm.data.label?.isNotEmpty == true)
+                                            ? vm.data.label![0].toUpperCase()
+                                            : '?',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: avatarSize * 0.4,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }
+
+                              // 2. Fallback: Foto de perfil (URL)
+                              if (vm.data.avatarUrl != null &&
+                                  vm.data.avatarUrl!.startsWith('http')) {
+                                return Image.network(
+                                  vm.data.avatarUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Center(
+                                    child: Text(
+                                      (vm.data.label?.isNotEmpty == true)
+                                          ? vm.data.label![0].toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                          color: isDarkMode
+                                              ? Colors.white
+                                              : const Color(0xFF1A1A1D),
+                                          fontSize: avatarSize * 0.4,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              // 3. Fallback: Iniciales
+                              return Center(
+                                child: Text(
+                                  (vm.data.label?.isNotEmpty == true)
+                                      ? vm.data.label![0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A1D),
+                                      fontSize: avatarSize * 0.4,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ),
-                ],
+
+                    // Status Icon Overlay
+                    if (vm.statusIcon != null)
+                      Container(
+                        width: avatarSize,
+                        height: avatarSize,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(vm.statusIcon,
+                            color: vm.statusColor ?? Colors.white,
+                            size: avatarSize * 0.6),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 3),
-            Container(
-               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-               decoration: BoxDecoration(
-                 color: isSelected ? Colors.red : (vm.isMe ? AppTheme.accentGold : (isDarkMode ? Colors.black.withOpacity(0.7) : Colors.white.withOpacity(0.85))),
-                 borderRadius: BorderRadius.circular(6),
-                 boxShadow: [
-                   if (!isDarkMode) BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
-                 ],
-               ),
-               child: Row(
-                 mainAxisSize: MainAxisSize.min,
-                 children: [
-                   Text(
-                     vm.isMe ? 'TÚ' : (vm.isLeader ? 'TOP 1' : _getShortName(vm.data.label ?? 'J')),
-                     style: TextStyle(
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.red
+                      : (vm.isMe
+                          ? AppTheme.accentGold
+                          : Colors.black.withOpacity(0.6)), // Semi-transparent black for others
+                  border: Border.all(
+                      color: isSelected || vm.isMe
+                          ? Colors.transparent
+                          : _getAvatarColor(vm.data.label ?? '').withOpacity(0.5), // Match border with avatar ring
+                      width: 1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      vm.isMe
+                          ? 'TÚ'
+                          : _getShortName(vm.data.label ?? 'J'),
+                      style: TextStyle(
                         color: vm.isMe ? Colors.black : currentText,
-                        fontSize: 9, 
+                        fontSize: 9,
                         fontWeight: FontWeight.w700,
-                     ),
-                   ),
-                   if (vm.isMe || vm.isLeader || isSelected) ...[
-                     const SizedBox(width: 3),
-                     Text(
-                       '${vm.data.progress.toInt()}', // Display count
-                       style: TextStyle(
-                         color: vm.isMe ? Colors.black87 : currentTextSec,
-                         fontSize: 9, 
-                         fontWeight: FontWeight.w500,
-                       ),
-                     )
-                   ]
-                 ],
-               ),
-            )
-          ],
+                      ),
+                    ),
+                    if (vm.isMe || vm.isLeader || isSelected) ...[
+                      const SizedBox(width: 3),
+                      Text(
+                        '${vm.data.progress.toInt()}', // Display count
+                        style: TextStyle(
+                          color: vm.isMe ? Colors.black87 : currentTextSec,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    ]
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Color _getAvatarColor(String label) {
+    if (label.isEmpty) return Colors.white;
+    final colors = [
+      Colors.cyanAccent,
+      Colors.purpleAccent,
+      Colors.orangeAccent,
+      Colors.greenAccent,
+      Colors.pinkAccent,
+      Colors.blueAccent,
+      Colors.tealAccent,
+      Colors.indigoAccent,
+    ];
+    return colors[label.hashCode.abs() % colors.length];
   }
 
   String _getShortName(String fullName) {
@@ -584,7 +680,7 @@ class _RacerAvatarWidget extends StatelessWidget {
     final parts = fullName.split(' ');
     if (parts.isNotEmpty) {
       String name = parts[0];
-      if (name.length > 5) name = name.substring(0, 5); 
+      if (name.length > 5) name = name.substring(0, 5);
       return name;
     }
     return fullName.substring(0, 3);
@@ -622,20 +718,20 @@ class _LiveIndicatorState extends State<_LiveIndicator>
     return FadeTransition(
       opacity: _controller,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(4),
+            color: const Color(0xFFE33E5D), // Cyber Red
+            borderRadius: BorderRadius.circular(8),
             boxShadow: [
-              BoxShadow(color: Colors.red.withOpacity(0.5), blurRadius: 6)
+              BoxShadow(color: const Color(0xFFE33E5D).withOpacity(0.4), blurRadius: 8)
             ]),
         child: const Text(
           'LIVE',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 8,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
           ),
         ),
       ),
@@ -648,7 +744,7 @@ class _PowerExecutedDialog extends StatefulWidget {
   final String targetName;
   final String? customTitle;
   final Color? customColor;
-  
+
   const _PowerExecutedDialog({
     required this.isAttack,
     required this.targetName,
@@ -724,7 +820,10 @@ class _PowerExecutedDialogState extends State<_PowerExecutedDialog>
                   Material(
                     color: Colors.transparent,
                     child: Text(
-                      widget.customTitle ?? (widget.isAttack ? '¡ATAQUE ENVIADO!' : '¡PODER ACTIVADO!'),
+                      widget.customTitle ??
+                          (widget.isAttack
+                              ? '¡ATAQUE ENVIADO!'
+                              : '¡PODER ACTIVADO!'),
                       style: TextStyle(
                         color: widget.customColor ?? AppTheme.accentGold,
                         fontSize: 20,
@@ -738,10 +837,11 @@ class _PowerExecutedDialogState extends State<_PowerExecutedDialog>
                     Material(
                       color: Colors.transparent,
                       child: Text(
-                        widget.isAttack 
+                        widget.isAttack
                             ? 'Objetivo: ${widget.targetName}'
                             : 'Aplicado a: ${widget.targetName}',
-                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 10),
                       ),
                     ),
                   ],

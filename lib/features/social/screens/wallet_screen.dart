@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -78,7 +79,8 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
 
-    final isDarkMode = playerProvider.isDarkMode;
+    // FORCED TO TRUE: Always use dark mode colors in wallet, even in day mode
+    final isDarkMode = true; // Previously: playerProvider.isDarkMode;
     final player = playerProvider.currentPlayer;
     final cloverBalance = player?.clovers ?? 0;
 
@@ -109,9 +111,9 @@ class _WalletScreenState extends State<WalletScreen> {
                           ),
                         ),
                       
-                      // Centered Logo
+                      // Always use dark mode logo
                       Image.asset(
-                        playerProvider.isDarkMode ? 'assets/images/maphunter_titulo.png' : 'assets/images/logocopia2.png',
+                        'assets/images/maphunter_titulo.png',
                         height: 65,
                         fit: BoxFit.contain,
                       ),
@@ -125,68 +127,70 @@ class _WalletScreenState extends State<WalletScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      // Balance Card with Custom Clover Icon
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF10B981).withOpacity(0.15),
-                              const Color(0xFF10B981).withOpacity(0.05),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: const Color(0xFF10B981).withOpacity(0.4),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 2,
+                      // Balance Card with Custom Clover Icon - GLASSMORPISM STYLE
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(34),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(34),
+                              border: Border.all(
+                                color: const Color(0xFF10B981).withOpacity(0.6),
+                                width: 1.5,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'TRÉBOLES:',
-                                  style: TextStyle(
-                                    color: isDarkMode ? Colors.white : Colors.black87,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: const Color(0xFF10B981).withOpacity(0.2),
+                                  width: 1.0,
                                 ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      cloverBalance.toString(),
-                                      style: TextStyle(
-                                        color: isDarkMode ? Colors.white : Colors.black87,
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.w900,
+                                color: const Color(0xFF10B981).withOpacity(0.02),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'TRÉBOLES:',
+                                        style: TextStyle(
+                                          color: isDarkMode ? Colors.white : Colors.black87,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.2,
+                                          fontFamily: 'Orbitron',
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "🍀",
-                                      style: TextStyle(fontSize: 28),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                      Row(
+                                        children: [
+                                          Text(
+                                            cloverBalance.toString(),
+                                            style: TextStyle(
+                                              color: isDarkMode ? Colors.white : Colors.black87,
+                                              fontSize: 42,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "🍀",
+                                            style: const TextStyle(fontSize: 28),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 20),
-                            // Conversion pill removed as requested
-                          ],
+                          ),
                         ),
                       ),
 
@@ -224,41 +228,60 @@ class _WalletScreenState extends State<WalletScreen> {
 
                       const SizedBox(height: 40),
 
-                      // Transaction History Section (Placeholder -> Entry Point)
-                      // Recent Transactions Section
+                      // Recent Transactions Section - PREVIOUS STYLE (DOUBLE BORDER)
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(24),
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(28),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withOpacity(0.2),
                             width: 1,
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.history,
-                                  color: Colors.yellow.withOpacity(0.8),
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Historial de transacciones',
-                                  style: TextStyle(
-                                    color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 2,
                             ),
-                            const SizedBox(height: 20),
+                          ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.accentGold.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: AppTheme.accentGold.withOpacity(0.2)),
+                                      ),
+                                      child: const Icon(
+                                        Icons.history,
+                                        color: AppTheme.accentGold,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'HISTORIAL RECIENTE',
+                                      style: TextStyle(
+                                        color: isDarkMode ? Colors.white : Colors.black87,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Orbitron',
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
                             
                             if (_isLoadingHistory)
                                const Center(child: LoadingIndicator(fontSize: 14))
@@ -322,7 +345,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                             );
                                             
                                             if (confirm != true) return;
-
+ 
                                             setState(() => _isLoadingHistory = true);
                                             final success = await _transactionRepository.cancelOrder(_recentTransactions[index].id);
                                             if (mounted) {
@@ -338,8 +361,9 @@ class _WalletScreenState extends State<WalletScreen> {
                                         : null,
                                   );
                                 },
-                              ),
-                          ],
+                               ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -357,7 +381,7 @@ class _WalletScreenState extends State<WalletScreen> {
     if (widget.hideScaffold) return content;
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: const Color(0xFF151517),
       extendBody: true,
       bottomNavigationBar: _buildBottomNavBar(),
       body: content,
@@ -492,44 +516,60 @@ class _WalletScreenState extends State<WalletScreen> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withOpacity(0.6),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 10,
-              spreadRadius: 1,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: color.withOpacity(0.6),
+                width: 1.5,
+              ),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: color.withOpacity(0.2),
+                  width: 1.0,
+                ),
+                color: color.withOpacity(0.02),
               ),
-              child: Icon(icon, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: color.withOpacity(0.4)),
+                    ),
+                    child: Icon(icon, color: color, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: 'Orbitron',
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -627,129 +667,206 @@ class _WalletScreenState extends State<WalletScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-            ),
-            title: Row(
-              children: [
-                Icon(Icons.add_circle, color: AppTheme.accentGold),
-                const SizedBox(width: 12),
-                const Text(
-                  'Comprar Tréboles',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: AppTheme.accentGold.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppTheme.accentGold.withOpacity(0.2), width: 1),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151517),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.accentGold.withOpacity(0.5), width: 1.5),
                 ),
-              ],
-            ),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: FutureBuilder<List<dynamic>>(
-                future: combinedFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 200,
-                      child: LoadingIndicator(),
-                    );
-                  }
-                  
-                  if (snapshot.hasError) {
-                    return SizedBox(
-                      height: 100,
-                      child: Center(
-                        child: Text(
-                          'Error cargando planes: ${snapshot.error}',
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  final plans = (snapshot.data?[0] as List<CloverPlan>?) ?? [];
-                  final gatewayFee = (snapshot.data?[1] as double?) ?? 0.0;
-                  
-                  if (plans.isEmpty) {
-                    return const SizedBox(
-                      height: 100,
-                      child: Center(
-                        child: Text(
-                          'No hay planes disponibles',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  return Column(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SingleChildScrollView(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Title
+                      Row(
+                        children: [
+                          Icon(Icons.add_circle, color: AppTheme.accentGold, size: 22),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Comprar Tréboles',
+                            style: TextStyle(
+                              color: Colors.white, 
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 18,
+                              fontFamily: 'Orbitron',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
                       const Text(
                         'Selecciona un plan de tréboles:',
-                        style: TextStyle(color: Colors.white70),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
-                      if (gatewayFee > 0) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Nota: La pasarela cobra +${gatewayFee.toStringAsFixed(1)}% de comisión',
-                          style: TextStyle(color: Colors.amber.withOpacity(0.8), fontSize: 11),
-                        ),
-                      ],
                       const SizedBox(height: 16),
-                      // Plan Cards Grid
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: plans.map((plan) {
-                          return SizedBox(
-                            width: (MediaQuery.of(context).size.width - 140) / 2,
-                            child: CloverPlanCard(
+
+                      FutureBuilder<List<dynamic>>(
+                        future: combinedFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 150,
+                              child: LoadingIndicator(),
+                            );
+                          }
+                          
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                              ),
+                            );
+                          }
+                          
+                          final plans = (snapshot.data?[0] as List<CloverPlan>?) ?? [];
+                          
+                          // Ensure specific order: Basico, Pro (top) and Elite (bottom)
+                          // Sorting by quantity: 50, 150, 500
+                          plans.sort((a, b) => a.cloversQuantity.compareTo(b.cloversQuantity));
+                          
+                          final gatewayFee = (snapshot.data?[1] as double?) ?? 0.0;
+                          
+                          // Helper to build a plan card with consistent styling
+                          Widget buildPlanItem(CloverPlan plan) {
+                            return CloverPlanCard(
                               plan: plan,
                               isSelected: selectedPlanId == plan.id,
                               feePercentage: gatewayFee,
                               onTap: () {
                                 setState(() => selectedPlanId = plan.id);
                               },
-                            ),
+                            );
+                          }
+
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (gatewayFee > 0) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.orange.withOpacity(0.6), width: 1.2),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        'Nota:',
+                                        style: TextStyle(
+                                          color: Colors.orangeAccent, 
+                                          fontWeight: FontWeight.w900, 
+                                          fontSize: 14,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'La pasarela cobra el ${gatewayFee.toStringAsFixed(0)}% de comisión',
+                                        style: const TextStyle(
+                                          color: Colors.orangeAccent, 
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+
+                              if (plans.length >= 3)
+                                Column(
+                                  children: [
+                                    // Row 1: Basico & Pro
+                                    Row(
+                                      children: [
+                                        Expanded(child: buildPlanItem(plans[0])),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: buildPlanItem(plans[1])),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    // Row 2: Elite (Centered)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 150, // Fixed width for the last one to stay centered
+                                          child: buildPlanItem(plans[2]),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              else
+                                // Fallback for fewer plans
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: plans.map((p) => SizedBox(width: 150, child: buildPlanItem(p))).toList(),
+                                ),
+                            ],
                           );
-                        }).toList(),
+                        },
                       ),
-                      if (_isLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20.0),
-                          child: LoadingIndicator(fontSize: 14),
-                        ),
+                      
+                      const SizedBox(height: 32),
+
+                      // Actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: _isLoading ? null : () => Navigator.pop(ctx),
+                            child: const Text('Cancelar', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: (_isLoading || selectedPlanId == null) ? null : () async {
+                              setState(() => _isLoading = true);
+                              await _initiatePayment(context, selectedPlanId!);
+                              if (mounted) {
+                                setState(() => _isLoading = false);
+                                Navigator.pop(ctx);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentGold,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            child: _isLoading 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                              : const Text('Pagar', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: _isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
-              ),
-              ElevatedButton(
-                onPressed: (_isLoading || selectedPlanId == null) ? null : () async {
-                  setState(() => _isLoading = true);
-                  
-                  await _initiatePayment(context, selectedPlanId!);
-
-                  if (mounted) {
-                    setState(() => _isLoading = false);
-                    Navigator.pop(ctx);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentGold,
-                  foregroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.grey.withOpacity(0.3),
-                ),
-                child: const Text('Pagar'),
-              ),
-            ],
           );
         }
       ),
@@ -897,14 +1014,14 @@ class _WalletScreenState extends State<WalletScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            backgroundColor: AppTheme.cardBg,
+            backgroundColor: const Color(0xFF1A1A1D),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: AppTheme.secondaryPink.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(24),
+              side: const BorderSide(color: AppTheme.secondaryPink, width: 1),
             ),
             title: Row(
               children: [
-                const Icon(Icons.monetization_on, color: AppTheme.secondaryPink),
+                const Icon(Icons.publish_rounded, color: AppTheme.secondaryPink, size: 28),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1102,7 +1219,14 @@ class _WalletScreenState extends State<WalletScreen> {
             actions: [
               TextButton(
                 onPressed: _isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+                child: const Text(
+                  'Cancelar', 
+                  style: TextStyle(
+                    color: Colors.white54, 
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
               ),
               FutureBuilder<List<dynamic>>(
                 future: combinedFuture,

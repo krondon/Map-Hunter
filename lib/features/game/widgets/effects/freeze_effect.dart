@@ -39,9 +39,10 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
         child: Container(
           decoration: BoxDecoration(
             gradient: RadialGradient(
-              colors: isDarkMode 
-                ? [Colors.blue.withOpacity(0.3), Colors.blue.shade900.withOpacity(0.8)]
-                : [Colors.blue.withOpacity(0.1), Colors.blue.shade200.withOpacity(0.6)],
+              colors: [
+                Colors.blue.withOpacity(0.3),
+                Colors.blue.shade900.withOpacity(0.8)
+              ],
               radius: 1.5,
             ),
           ),
@@ -54,7 +55,8 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
                 return AnimatedBuilder(
                   animation: _controller,
                   builder: (context, child) {
-                    final progress = (_controller.value * speed + (index * 0.1)) % 1.0;
+                    final progress =
+                        (_controller.value * speed + (index * 0.1)) % 1.0;
                     return Positioned(
                       top: (progress * size.height) - 10,
                       left: startX + (index % 2 == 0 ? 5 : -5) * (index % 3),
@@ -62,10 +64,12 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
                         width: 2 + (index % 3).toDouble(),
                         height: 2 + (index % 3).toDouble(),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? Colors.white.withOpacity(0.6) : Colors.blueAccent.withOpacity(0.4),
+                          color: Colors.white.withOpacity(0.6),
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Colors.white.withOpacity(isDarkMode ? 0.8 : 0.4), blurRadius: 4),
+                            BoxShadow(
+                                color: Colors.white.withOpacity(0.8),
+                                blurRadius: 4),
                           ],
                         ),
                       ),
@@ -75,13 +79,41 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
               }),
 
               // 2. ICONOS DE COPOS DE NIEVE ESTÁTICOS (Distribuidos)
-              _StaticSnowflake(top: size.height * 0.1, left: size.width * 0.15, size: 40, opacity: 0.3),
-              _StaticSnowflake(top: size.height * 0.12, right: size.width * 0.2, size: 55, opacity: 0.2),
-              _StaticSnowflake(top: size.height * 0.4, left: size.width * 0.05, size: 30, opacity: 0.25),
-              _StaticSnowflake(top: size.height * 0.35, right: size.width * 0.1, size: 45, opacity: 0.15),
-              _StaticSnowflake(bottom: size.height * 0.2, left: size.width * 0.1, size: 50, opacity: 0.2),
-              _StaticSnowflake(bottom: size.height * 0.15, right: size.width * 0.15, size: 35, opacity: 0.3),
-              _StaticSnowflake(bottom: size.height * 0.4, right: size.width * 0.05, size: 25, opacity: 0.2),
+              _StaticSnowflake(
+                  top: size.height * 0.1,
+                  left: size.width * 0.15,
+                  size: 40,
+                  opacity: 0.3),
+              _StaticSnowflake(
+                  top: size.height * 0.12,
+                  right: size.width * 0.2,
+                  size: 55,
+                  opacity: 0.2),
+              _StaticSnowflake(
+                  top: size.height * 0.4,
+                  left: size.width * 0.05,
+                  size: 30,
+                  opacity: 0.25),
+              _StaticSnowflake(
+                  top: size.height * 0.35,
+                  right: size.width * 0.1,
+                  size: 45,
+                  opacity: 0.15),
+              _StaticSnowflake(
+                  bottom: size.height * 0.2,
+                  left: size.width * 0.1,
+                  size: 50,
+                  opacity: 0.2),
+              _StaticSnowflake(
+                  bottom: size.height * 0.15,
+                  right: size.width * 0.15,
+                  size: 35,
+                  opacity: 0.3),
+              _StaticSnowflake(
+                  bottom: size.height * 0.4,
+                  right: size.width * 0.05,
+                  size: 25,
+                  opacity: 0.2),
 
               // 3. CONTENIDO CENTRAL
               Center(
@@ -89,22 +121,48 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Icono central con rotación muy lenta (casi estática)
-                    Icon(
-                      Icons.ac_unit_rounded,
-                      color: isDarkMode ? Colors.white : Colors.blue.shade900,
-                      size: 110,
-                      shadows: [
-                        Shadow(blurRadius: 30, color: Colors.blueAccent, offset: const Offset(0, 0)),
-                        if (isDarkMode) const Shadow(blurRadius: 15, color: Colors.white, offset: Offset(0, 0)),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blueAccent.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.ac_unit_rounded,
+                        color: Colors.white,
+                        size: 110,
+                        shadows: [
+                          Shadow(
+                              blurRadius: 30,
+                              color: Colors.blueAccent,
+                              offset: Offset(0, 0)),
+                          Shadow(
+                              blurRadius: 15,
+                              color: Colors.white,
+                              offset: Offset(0, 0)),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 30),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? Colors.blue.shade900.withOpacity(0.5) : Colors.white.withOpacity(0.8),
+                        color: Colors.blue.shade900.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.blueAccent.withOpacity(0.3), width: 1.5),
+                        border: Border.all(
+                            color: Colors.blueAccent.withOpacity(0.3),
+                            width: 1.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.blue.withOpacity(0.3),
@@ -117,13 +175,13 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
                         "¡CONGELADO!",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isDarkMode ? Colors.white : Colors.blue.shade900,
+                          color: Colors.white,
                           fontSize: 34,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 4,
                           decoration: TextDecoration.none,
                           shadows: [
-                            Shadow(color: isDarkMode ? Colors.blue : Colors.blueAccent.withOpacity(0.3), blurRadius: 15),
+                            Shadow(color: Colors.blue, blurRadius: 15),
                           ],
                         ),
                       ),
@@ -132,10 +190,11 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
                       const SizedBox(height: 48),
                       EffectTimer(
                         expiresAt: widget.expiresAt!,
-                        backgroundColor: isDarkMode ? Colors.blue.shade900.withOpacity(0.6) : Colors.white.withOpacity(0.8),
+                        backgroundColor:
+                            Colors.blue.shade900.withOpacity(0.6),
                         borderColor: Colors.blueAccent.withOpacity(0.5),
-                        iconColor: isDarkMode ? Colors.cyanAccent : Colors.blue.shade900,
-                        textColor: isDarkMode ? Colors.white : Colors.blue.shade900,
+                        iconColor: Colors.cyanAccent,
+                        textColor: Colors.white,
                       ),
                     ],
                   ],

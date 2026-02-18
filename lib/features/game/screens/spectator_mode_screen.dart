@@ -42,58 +42,59 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       timerService: EffectTimerService(),
       strategyFactory: PowerStrategyFactory(supabase),
     );
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
-      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-      final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
+      final requestProvider =
+          Provider.of<GameRequestProvider>(context, listen: false);
 
       // --- SECURITY CHECK: Redirect Active Players ---
       final userId = playerProvider.currentPlayer?.userId;
       if (userId != null) {
-        final participantData = await requestProvider.isPlayerParticipant(userId, widget.eventId);
+        final participantData =
+            await requestProvider.isPlayerParticipant(userId, widget.eventId);
         final isParticipant = participantData['isParticipant'] as bool;
         final status = participantData['status'] as String?;
 
         // If user is a player (active/pending) and NOT spectator/banned/suspended
         // They should be in the game, not spectating.
-        if (isParticipant && 
-            status != 'spectator' && 
-            status != 'banned' && 
+        if (isParticipant &&
+            status != 'spectator' &&
+            status != 'banned' &&
             status != 'suspended') {
-            
-            if (!mounted) return;
-            debugPrint('🚫 SpectatorMode: User is active player. Redirecting to HomeScreen...');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('⚠️ Redirigiendo al modo Jugador...'),
-                backgroundColor: AppTheme.primaryPurple,
-                duration: Duration(seconds: 2),
-              )
-            );
-            
-            playerProvider.setSpectatorRole(false);
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => HomeScreen(eventId: widget.eventId))
-            );
-            return;
+          if (!mounted) return;
+          debugPrint(
+              '🚫 SpectatorMode: User is active player. Redirecting to HomeScreen...');
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('⚠️ Redirigiendo al modo Jugador...'),
+            backgroundColor: AppTheme.primaryPurple,
+            duration: Duration(seconds: 2),
+          ));
+
+          playerProvider.setSpectatorRole(false);
+          Navigator.of(context).pushReplacement(MaterialPageRoute(
+              builder: (_) => HomeScreen(eventId: widget.eventId)));
+          return;
         }
       }
       // -----------------------------------------------
 
       // Activar modo espectador en el provider para usar el flujo de compra correcto
       playerProvider.setSpectatorRole(true);
-      
+
       // Los espectadores no necesitan inicializar el juego (startGame), solo ver los datos
-      gameProvider.fetchClues(eventId: widget.eventId); 
+      gameProvider.fetchClues(eventId: widget.eventId);
       gameProvider.startLeaderboardUpdates();
-      
+
       // Registrarse como espectador para habilitar compras/sabotajes
       await playerProvider.joinAsSpectator(widget.eventId);
-      
+
       // Inicializar listener de efectos si el espectador tiene gamePlayerId (ahora debería tenerlo)
       if (playerProvider.currentPlayer?.gamePlayerId != null) {
-        _powerEffectProvider.startListening(playerProvider.currentPlayer!.gamePlayerId);
+        _powerEffectProvider
+            .startListening(playerProvider.currentPlayer!.gamePlayerId);
       }
     });
   }
@@ -103,119 +104,144 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     // Restaurar rol de espectador al salir
     // Usamos microtask para asegurar que se ejecute sin erores de contexto
     Future.microtask(() {
-       try {
-         // Nota: Esto asume que el provider sigue vivo. 
-         // Si se desmonta todo el árbol, el provider se limpia solo.
-         // Pero es buena práctica intentar limpiar el flag.
-         // Sin embargo, acceder a context en dispose es riesgoso. 
-         // Lo dejamos así, ya que al logout o cambiar de pantalla el provider debería resetearse o no importar.
-         // Pero para seguridad, si Provider está arriba, lo intentamos.
-       } catch (_) {}
+      try {
+        // Nota: Esto asume que el provider sigue vivo.
+        // Si se desmonta todo el árbol, el provider se limpia solo.
+        // Pero es buena práctica intentar limpiar el flag.
+        // Sin embargo, acceder a context en dispose es riesgoso.
+        // Lo dejamos así, ya que al logout o cambiar de pantalla el provider debería resetearse o no importar.
+        // Pero para seguridad, si Provider está arriba, lo intentamos.
+      } catch (_) {}
     });
-    
+
     _powerEffectProvider.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final playerProvider = Provider.of<PlayerProvider>(context);
+    final isDarkMode = playerProvider.isDarkMode;
+
     return ChangeNotifierProvider(
       create: (_) => SpectatorFeedProvider(widget.eventId),
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0A0E27),
-        appBar: AppBar(
-          backgroundColor: AppTheme.cardBg,
-          elevation: 0,
-          title: Row(
-            children: [
-              const Icon(Icons.visibility, color: AppTheme.secondaryPink),
-              const SizedBox(width: 8),
-              Expanded(
-                child: const Text(
-                  'MODO ESPECTADOR',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.circle, color: Colors.red, size: 8),
-                    SizedBox(width: 4),
-                    Text(
-                      'EN VIVO',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+      child: Theme(
+        data: AppTheme.darkTheme,
+        child: Scaffold(
+          backgroundColor: isDarkMode ? const Color(0xFF0A0E27) : Colors.black,
+          appBar: AppBar(
+            backgroundColor: AppTheme.cardBg,
+            elevation: 0,
+            title: Row(
+              children: [
+                const Icon(Icons.visibility, color: AppTheme.secondaryPink),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: const Text(
+                    'MODO ESPECTADOR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
                     ),
-                  ],
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Banner de Victoria
-              _buildVictoryBanner(),
-              
-              // Vista de la carrera (Cabezal dinámico - Ajustado para evitar overflow)
-              SizedBox(
-                height: 300, // Aumentado a 300 por seguridad para evitar overflow en cualquier dispositivo
-                child: _buildRaceView(),
-              ),
-              
-              // Sección inferior con tabs (Más espacio para interacción)
-              Expanded(
-                child: Container(
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardBg.withOpacity(0.9),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(30),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
+                    color: Colors.red.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red),
                   ),
-                  child: Column(
+                  child: const Row(
                     children: [
-                      // El tab de inventario ahora es una pequeña franja superior si estamos en Actividad
-                      if (_selectedTab == 0) _buildMiniInventoryHeader(),
-
-                      // Tabs selector principal
-                      _buildTabSelector(),
-                      
-                      // Contenido del tab
-                      Expanded(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _selectedTab == 2
-                              ? _buildStoreView()
-                              : _selectedTab == 1
-                                  ? _buildBettingView()
-                                  : _buildLiveFeed(),
+                      Icon(Icons.circle, color: Colors.red, size: 8),
+                      SizedBox(width: 4),
+                      Text(
+                        'EN VIVO',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  isDarkMode
+                      ? 'assets/images/fotogrupalnoche.png'
+                      : 'assets/images/personajesgrupal.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.6),
+                ),
+              ),
+              SafeArea(
+                child: Column(
+                  children: [
+                    // Banner de Victoria
+                    _buildVictoryBanner(),
+
+                    // Vista de la carrera (Cabezal dinámico - Ajustado para evitar overflow)
+                    SizedBox(
+                      height: 300,
+                      child: _buildRaceView(),
+                    ),
+
+                    // Sección inferior con tabs (Más espacio para interacción)
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardBg.withOpacity(0.9),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(30),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, -5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // El tab de inventario ahora es una pequeña franja superior si estamos en Actividad
+                            if (_selectedTab == 0) _buildMiniInventoryHeader(),
+
+                            // Tabs selector principal
+                            _buildTabSelector(),
+
+                            // Contenido del tab
+                            Expanded(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: _selectedTab == 2
+                                    ? _buildStoreView()
+                                    : _selectedTab == 1
+                                        ? _buildBettingView()
+                                        : _buildLiveFeed(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -280,8 +306,9 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   Widget _buildRaceView() {
     return Consumer<GameProvider>(
       builder: (context, gameProvider, child) {
-        final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-        
+        final playerProvider =
+            Provider.of<PlayerProvider>(context, listen: false);
+
         if (gameProvider.isLoading) {
           return const Center(
             child: CircularProgressIndicator(color: AppTheme.secondaryPink),
@@ -291,7 +318,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         final leaderboard = gameProvider.leaderboard;
         final totalClues = gameProvider.totalClues;
         final currentPlayerId = playerProvider.currentPlayer?.userId ?? '';
-        
+
         if (leaderboard.isEmpty) {
           return Center(
             child: Column(
@@ -321,7 +348,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             leaderboard: leaderboard,
             currentPlayerId: currentPlayerId,
             totalClues: totalClues,
-            compact: false, // Usamos la versión completa que ya tiene estilo premium
+            compact:
+                false, // Usamos la versión completa que ya tiene estilo premium
           ),
         );
       },
@@ -438,7 +466,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                 itemCount: inventoryMap.length,
                 itemBuilder: (context, index) {
                   final entry = inventoryMap.entries.elementAt(index);
-                   // Asegurarse de que el key es un String
+                  // Asegurarse de que el key es un String
                   final String powerSlug = entry.key;
                   final int count = entry.value;
 
@@ -450,7 +478,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                       decoration: BoxDecoration(
                         color: AppTheme.primaryPurple.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)),
+                        border: Border.all(
+                            color: AppTheme.primaryPurple.withOpacity(0.5)),
                         boxShadow: [
                           BoxShadow(
                             color: AppTheme.primaryPurple.withOpacity(0.1),
@@ -462,7 +491,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(_getPowerIcon(powerSlug), style: const TextStyle(fontSize: 20)),
+                          Text(_getPowerIcon(powerSlug),
+                              style: const TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -594,28 +624,35 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.05),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(0.1)),
                                   ),
                                   child: ListTile(
                                     leading: CircleAvatar(
-                                      backgroundColor: Colors.redAccent.withOpacity(0.2),
-                                      backgroundImage: player.avatarUrl.isNotEmpty
-                                          ? NetworkImage(player.avatarUrl)
-                                          : null,
+                                      backgroundColor:
+                                          Colors.redAccent.withOpacity(0.2),
+                                      backgroundImage:
+                                          player.avatarUrl.isNotEmpty
+                                              ? NetworkImage(player.avatarUrl)
+                                              : null,
                                       child: player.avatarUrl.isEmpty
                                           ? Text(player.name[0].toUpperCase(),
-                                              style: const TextStyle(color: Colors.white))
+                                              style: const TextStyle(
+                                                  color: Colors.white))
                                           : null,
                                     ),
                                     title: Text(
                                       player.name,
-                                      style: const TextStyle(color: Colors.white),
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                     ),
                                     trailing: IconButton(
-                                      icon: const Icon(Icons.flash_on, color: Colors.redAccent),
+                                      icon: const Icon(Icons.flash_on,
+                                          color: Colors.redAccent),
                                       onPressed: () {
                                         Navigator.pop(context);
-                                        _usePower(powerSlug, player.gamePlayerId!, player.name);
+                                        _usePower(powerSlug,
+                                            player.gamePlayerId!, player.name);
                                       },
                                     ),
                                   ),
@@ -626,7 +663,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                      child: const Text('Cancelar',
+                          style: TextStyle(color: Colors.white54)),
                     ),
                   ],
                 ),
@@ -638,9 +676,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     );
   }
 
-  Future<void> _usePower(String powerSlug, String targetId, String targetName) async {
+  Future<void> _usePower(
+      String powerSlug, String targetId, String targetName) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     try {
       final result = await playerProvider.usePower(
         powerSlug: powerSlug,
@@ -672,14 +711,14 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             ),
           );
         } else if (result == PowerUseResult.reflected) {
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('¡El ataque a $targetName fue reflejado!'),
               backgroundColor: Colors.orange,
             ),
           );
         } else {
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Error al usar el poder'),
               backgroundColor: Colors.red,
@@ -755,7 +794,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
 
   Widget _buildFeedEventCard(GameFeedEvent event) {
     final color = _getEventColor(event.type);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
@@ -799,7 +838,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                     ),
                     Text(
                       DateFormat('HH:mm:ss').format(event.timestamp),
-                      style: const TextStyle(color: Colors.white38, fontSize: 9),
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 9),
                     ),
                   ],
                 ),
@@ -829,7 +869,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.monetization_on, color: AppTheme.accentGold, size: 20),
+              const Icon(Icons.monetization_on,
+                  color: AppTheme.accentGold, size: 20),
               const SizedBox(width: 8),
               const Text(
                 'APUESTAS EN VIVO',
@@ -845,7 +886,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                 builder: (context, playerProvider, child) {
                   final clovers = playerProvider.currentPlayer?.clovers ?? 0;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       gradient: AppTheme.primaryGradient,
                       borderRadius: BorderRadius.circular(20),
@@ -879,7 +921,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             child: Consumer<GameProvider>(
               builder: (context, gameProvider, child) {
                 final players = gameProvider.leaderboard;
-                
+
                 if (players.isEmpty) {
                   return Center(
                     child: Text(
@@ -898,32 +940,38 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.1)),
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.secondaryPink.withOpacity(0.2),
-                          backgroundImage: player.avatarUrl.isNotEmpty 
-                              ? NetworkImage(player.avatarUrl) 
+                          backgroundColor:
+                              AppTheme.secondaryPink.withOpacity(0.2),
+                          backgroundImage: player.avatarUrl.isNotEmpty
+                              ? NetworkImage(player.avatarUrl)
                               : null,
-                          child: player.avatarUrl.isEmpty 
-                              ? Text(player.name[0].toUpperCase(), style: const TextStyle(color: Colors.white))
+                          child: player.avatarUrl.isEmpty
+                              ? Text(player.name[0].toUpperCase(),
+                                  style: const TextStyle(color: Colors.white))
                               : null,
                         ),
                         title: Text(
                           player.name,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           'Nivel ${player.level} • XP: ${player.totalXP}',
-                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12),
                         ),
                         trailing: ElevatedButton(
                           onPressed: () => _showBetDialog(player.name, 100),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.accentGold,
                             foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
                           child: const Text('Apostar'),
@@ -951,8 +999,6 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     );
   }
 
-
-
   Widget _buildStoreView() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -961,7 +1007,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.shopping_bag, color: AppTheme.accentGold, size: 20),
+              const Icon(Icons.shopping_bag,
+                  color: AppTheme.accentGold, size: 20),
               const SizedBox(width: 8),
               const Text(
                 'TIENDA DE PODERES',
@@ -977,7 +1024,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                 builder: (context, playerProvider, child) {
                   final clovers = playerProvider.currentPlayer?.clovers ?? 0;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       gradient: AppTheme.primaryGradient,
                       borderRadius: BorderRadius.circular(20),
@@ -1087,7 +1135,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.accentGold.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -1135,7 +1184,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.accentGold.withOpacity(0.5), width: 2),
+            border: Border.all(
+                color: AppTheme.accentGold.withOpacity(0.5), width: 2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1182,7 +1232,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               const SizedBox(height: 6),
               // Advertencia de moneda paga
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.amber.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -1206,7 +1257,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
                     'Tréboles insuficientes. Recarga en la tienda.',
-                    style: TextStyle(color: Colors.redAccent.shade100, fontSize: 12),
+                    style: TextStyle(
+                        color: Colors.redAccent.shade100, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -1228,11 +1280,13 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                       onPressed: canAfford
                           ? () async {
                               Navigator.pop(context);
-                              await _purchasePower(power.id, power.name, power.cost);
+                              await _purchasePower(
+                                  power.id, power.name, power.cost);
                             }
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: canAfford ? AppTheme.accentGold : Colors.grey,
+                        backgroundColor:
+                            canAfford ? AppTheme.accentGold : Colors.grey,
                         disabledBackgroundColor: Colors.grey.shade800,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -1254,14 +1308,16 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     );
   }
 
-  Future<void> _purchasePower(String powerId, String powerName, int price) async {
+  Future<void> _purchasePower(
+      String powerId, String powerName, int price) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final currentClovers = playerProvider.currentPlayer?.clovers ?? 0;
 
     if (currentClovers < price) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No tienes tréboles suficientes. Recarga en la tienda.'),
+          content:
+              Text('No tienes tréboles suficientes. Recarga en la tienda.'),
           backgroundColor: Colors.red,
         ),
       );

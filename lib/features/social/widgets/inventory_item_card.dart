@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../mall/models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
 
 class InventoryItemCard extends StatelessWidget {
   final PowerItem item;
@@ -22,24 +24,17 @@ class InventoryItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
-    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
+    const Color currentCard = AppTheme.dSurface1; // Reverted to dark theme
+    const Color currentText = Colors.white;
+    const Color currentTextSec = Colors.white70;
 
     return Stack(
       children: [
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                currentCard,
-                currentCard.withOpacity(0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: currentCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: AppTheme.primaryPurple.withOpacity(0.3),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/models/player.dart';
-import '../../game/providers/game_provider.dart';
-import '../../auth/providers/player_provider.dart';
+import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
 import '../../mall/models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
@@ -27,10 +27,10 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   bool _isLoading = false;
 
-  bool get isDarkMode => Theme.of(context).brightness == Brightness.dark;
-  Color get currentCard => isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
-  Color get currentText => isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-  Color get currentTextSec => isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+  bool get isDarkMode => Provider.of<PlayerProvider>(context).isDarkMode;
+  Color get currentCard => isDarkMode ? AppTheme.dSurface1 : Colors.white.withOpacity(0.9);
+  Color get currentText => isDarkMode ? Colors.white : AppTheme.dSurface0;
+  Color get currentTextSec => isDarkMode ? Colors.white70 : Colors.black54;
 
   @override
   void initState() {
@@ -62,6 +62,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const bool isDarkMode = true;
     final playerProvider = Provider.of<PlayerProvider>(context);
     final player = playerProvider.currentPlayer;
 
@@ -82,23 +83,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final uniqueItems = inventoryCounts.keys.toList()..sort();
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           AnimatedCyberBackground(
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/fotogrupalnoche.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                  ),
-                ),
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.6),
-                  ),
-                ),
+                 Positioned.fill(
+                   child: Image.asset(
+                     'assets/images/personajesgrupal.png', // Always force this image as requested
+                     fit: BoxFit.cover,
+                     alignment: Alignment.center,
+                   ),
+                 ), // Added comma explicitly
+                 // Removed dark overlay as requested
+                 // Removed dark overlay as requested
                 SafeArea(
                   child: Column(
                     children: [
@@ -107,15 +106,62 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
                       children: [
+                        // Cyberpunk Back Button
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: 42,
+                              height: 42,
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppTheme.accentGold.withOpacity(0.3),
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF0D0D0F),
+                                  border: Border.all(
+                                    color: AppTheme.accentGold,
+                                    width: 2.0,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.accentGold.withOpacity(0.5),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Inventario',
-                                style: Theme.of(context).textTheme.displayMedium,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'Orbitron',
+                                  letterSpacing: 1.5,
+                                ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               Row(
                                 children: [
                                   Container(
@@ -153,8 +199,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: currentCard,
+                            color: const Color(0xFF1A1A1D), // Explicitly dark
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.2)),
                           ),
                           child: Column(
                             children: [
@@ -256,7 +303,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
             ],
           ),
-        ),
+        ), // Added comma explicitly
           
           if (_isLoading)
             Container(
@@ -295,6 +342,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         label: Text(Provider.of<AppModeProvider>(context).isOnlineMode ? 'Mall' : 'Ir al Mall'),
         icon: const Icon(Icons.store),
         backgroundColor: AppTheme.accentGold,
+        foregroundColor: Colors.black, // Ensure text is visible on gold background
       ),
     );
   }
@@ -629,7 +677,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Icon(
             Icons.shopping_bag_outlined,
             size: 80,
-            color: currentTextSec.withOpacity(0.3),
+            color: Colors.white.withOpacity(0.8), // Visible icon
           ),
           const SizedBox(height: 20),
           Text(

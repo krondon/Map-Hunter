@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../game/models/event.dart';
+import '../../../shared/widgets/animated_cyber_background.dart';
 
 class EventWaitingScreen extends StatefulWidget {
   final GameEvent event;
@@ -78,18 +79,14 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     if (_timeLeft == null) return const Scaffold(backgroundColor: Colors.black);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    const bool isDarkMode = true;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.mainGradient(context),
-        ),
+      backgroundColor: Colors.transparent,
+      body: AnimatedCyberBackground(
         child: SafeArea(
           child: Stack(
             children: [
-              // Background particles or decoration (optional, keeping clean for now)
-              
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(30.0),
@@ -103,11 +100,11 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                           padding: const EdgeInsets.all(30),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppTheme.primaryPurple.withOpacity(0.2),
+                            color: AppTheme.secondaryPink.withOpacity(0.1),
                             border: Border.all(color: AppTheme.accentGold.withOpacity(0.5), width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primaryPurple.withOpacity(0.4),
+                                color: AppTheme.secondaryPink.withOpacity(0.2),
                                 blurRadius: 30,
                                 spreadRadius: 10,
                               ),
@@ -126,28 +123,30 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                         "PREPÁRATE",
                         style: TextStyle(
                           color: AppTheme.accentGold,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Orbitron',
                           letterSpacing: 3,
                           fontSize: 18,
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        "La aventura aún no comienza",
+                      const Text(
+                        "LA AVENTURA COMIENZA PRONTO",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Orbitron',
+                          fontSize: 24,
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        "Por favor, espera con paciencia.\nEl tesoro aguarda valientemente.",
+                      const Text(
+                        "El tesoro aguarda por el más valiente.\nMantente alerta.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
-                          fontSize: 16,
+                          color: Colors.white70,
+                          fontSize: 14,
                           height: 1.5,
                         ),
                       ),
@@ -156,11 +155,11 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
 
                       // Countdown
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 25),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.white.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: isDarkMode ? Colors.white10 : AppTheme.lBorder),
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.3), width: 1.5),
                         ),
                         child: Column(
                           children: [
@@ -168,18 +167,21 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
                               "TIEMPO RESTANTE",
                               style: TextStyle(
                                 color: Colors.white54,
-                                fontSize: 12,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                fontFamily: 'Orbitron',
                                 letterSpacing: 1.5,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 16),
                             Text(
                               "${_timeLeft!.inDays}d ${_timeLeft!.inHours % 24}h ${_timeLeft!.inMinutes % 60}m ${_timeLeft!.inSeconds % 60}s",
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white : AppTheme.lBrandMain,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                fontFeatures: const [FontFeature.tabularFigures()],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                fontFamily: 'Orbitron',
+                                fontFeatures: [FontFeature.tabularFigures()],
                               ),
                             ),
                           ],

@@ -84,174 +84,243 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   void _showLogoutDialog() {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final isDarkMode = playerProvider.isDarkMode;
-
-    final Color currentSurface =
-        isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
-    final Color currentText =
-        isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec =
-        isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    const Color currentRed = Color(0xFFE33E5D);
+    const Color cardBg = Color(0xFF151517);
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: currentSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.5)),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.logout, color: AppTheme.dangerRed),
-            const SizedBox(width: 12),
-            Text('Cerrar Sesión',
-                style:
-                    TextStyle(color: currentText, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(
-          '¿Estás seguro que deseas cerrar sesión?',
-          style: TextStyle(color: currentTextSec),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style: TextStyle(color: currentTextSec.withOpacity(0.6))),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentRed.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentRed.withOpacity(0.5), width: 1),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.dangerRed,
-              foregroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentRed, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: currentRed.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await playerProvider.logout();
-              if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
-            child: const Text('SALIR'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: currentRed, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: currentRed,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Cerrar Sesión',
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '¿Estás seguro que deseas cerrar sesión?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('CANCELAR', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await playerProvider.logout();
+                          if (mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              (route) => false,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: currentRed,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('SALIR', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   void _showAboutDialog() {
+    const Color currentOrange = Color(0xFFFF9800);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor:
-            Provider.of<PlayerProvider>(context, listen: false).isDarkMode
-                ? AppTheme.cardBg
-                : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.info_outline, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            Text('Conócenos',
-                style: TextStyle(
-                    color: Provider.of<PlayerProvider>(context, listen: false)
-                            .isDarkMode
-                        ? Colors.white
-                        : const Color(0xFF1A1A1D),
-                    fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(
-          'MapHunter es una experiencia de búsqueda del tesoro con realidad aumentada. '
-          '¡Explora, resuelve pistas y compite por premios increíbles!',
-          style: TextStyle(
-              color:
-                  Provider.of<PlayerProvider>(context, listen: false).isDarkMode
-                      ? Colors.white70
-                      : const Color(0xFF4A4A5A)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Entendido', style: TextStyle(color: AppTheme.accentGold)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentOrange.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
           ),
-        ],
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentOrange, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, color: currentOrange, size: 40),
+                const SizedBox(height: 16),
+                const Text('Conócenos', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text(
+                  'MapHunter es una experiencia de búsqueda del tesoro con realidad aumentada. ¡Explora, resuelve pistas y compite por premios increíbles!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ENTENDIDO', style: TextStyle(color: currentOrange, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   void _showTermsDialog() {
+    const Color currentOrange = Color(0xFFFF9800);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.description_outlined, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            const Text('Términos y Condiciones',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Al utilizar MapHunter, aceptas nuestros términos de servicio y política de privacidad. '
-            'Para más información, visita nuestro sitio web.',
-            style: TextStyle(color: Colors.white70),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentOrange.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentOrange, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.description_outlined, color: currentOrange, size: 40),
+                const SizedBox(height: 16),
+                const Text('Términos y Condiciones', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                const SingleChildScrollView(
+                  child: Text(
+                    'Al utilizar MapHunter, aceptas nuestros términos de servicio y política de privacidad. Para más información, visita nuestro sitio web.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ENTENDIDO', style: TextStyle(color: currentOrange, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Entendido', style: TextStyle(color: AppTheme.accentGold)),
-          ),
-        ],
       ),
     );
   }
 
   void _showSupportDialog() {
+    const Color currentOrange = Color(0xFFFF9800);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.support_agent_outlined, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            const Text('Soporte',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Text(
-          '¿Necesitas ayuda? Contáctanos a través de nuestro correo de soporte: soporte@maphunter.com',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Entendido', style: TextStyle(color: AppTheme.accentGold)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentOrange.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
           ),
-        ],
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentOrange, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.support_agent_outlined, color: currentOrange, size: 40),
+                const SizedBox(height: 16),
+                const Text('Soporte', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text(
+                  '¿Necesitas ayuda? Contáctanos a través de nuestro correo de soporte: soporte@maphunter.com',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ENTENDIDO', style: TextStyle(color: currentOrange, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -310,6 +379,15 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       VideoPreloadService()
           .preloadVideo('assets/escenarios.avatar/explorer_m_scene.mp4');
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Precargar imágenes de fondo para transiciones suaves
+    precacheImage(const AssetImage('assets/images/personajesgrupal.png'), context);
+    precacheImage(const AssetImage('assets/images/fotogrupalnoche.png'), context);
   }
 
   Future<void> _checkFirstTime() async {
@@ -960,215 +1038,190 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               builder: (ctx) {
                 final isDarkMode = Theme.of(ctx).brightness == Brightness.dark;
                 return BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Dialog(
                     backgroundColor: Colors.transparent,
-                    insetPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 24),
+                    insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                     child: Container(
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDarkMode
-                              ? [
-                                  const Color(0xFF1A1F3A).withOpacity(0.95),
-                                  const Color(0xFF0A0E27).withOpacity(0.95)
-                                ]
-                              : [
-                                  Colors.white.withOpacity(0.98),
-                                  const Color(0xFFF0F0F7).withOpacity(0.98)
-                                ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AppTheme.secondaryPink.withOpacity(0.5),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.secondaryPink.withOpacity(0.15),
-                            blurRadius: 25,
-                            spreadRadius: 2,
-                          ),
-                        ],
+                        color: AppTheme.secondaryPink.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.5), width: 1),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header area with a subtle glow
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppTheme.secondaryPink.withOpacity(0.05),
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(22)),
-                                ),
-                              ),
-                              Column(
-                                children: [
-                                  const SizedBox(height: 20),
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppTheme.secondaryPink,
-                                          AppTheme.secondaryPink
-                                              .withOpacity(0.7),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.secondaryPink
-                                              .withOpacity(0.4),
-                                          blurRadius: 15,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.group_off_rounded,
-                                      color: Colors.white,
-                                      size: 36,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          Text(
-                            '¡EVENTO LLENO!',
-                            style: TextStyle(
-                              color: isDarkMode
-                                  ? Colors.white
-                                  : AppTheme.secondaryPink,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF151517),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppTheme.secondaryPink, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.secondaryPink.withOpacity(0.1),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Content
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: Column(
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Header area with a subtle glow (Restaurado)
+                            Stack(
+                              alignment: Alignment.center,
                               children: [
-                                Text(
-                                  result.message ??
-                                      'El cupo de jugadores activos (${scenario.maxPlayers}) ha sido alcanzado.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : const Color(0xFF2D3436),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                Container(
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondaryPink.withOpacity(0.05),
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No te preocupes, aún puedes vivir la experiencia desde el modo espectador.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? Colors.white70
-                                        : const Color(0xFF636E72),
-                                    fontSize: 14,
-                                    height: 1.6,
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-
-                                // Main Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 56,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          AppTheme.secondaryPink,
-                                          Color(0xFFFF4081)
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.secondaryPink
-                                              .withOpacity(0.35),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
+                                Column(
+                                  children: [
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTheme.secondaryPink,
+                                            AppTheme.secondaryPink.withOpacity(0.7),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                         ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.transparent,
-                                        shadowColor: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                      ),
-                                      child: const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.visibility_rounded,
-                                              color: Colors.white),
-                                          SizedBox(width: 12),
-                                          Text(
-                                            'MODO ESPECTADOR',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1.2,
-                                            ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.secondaryPink.withOpacity(0.4),
+                                            blurRadius: 15,
+                                            spreadRadius: 2,
                                           ),
                                         ],
                                       ),
+                                      child: const Icon(
+                                        Icons.group_off_rounded,
+                                        color: Colors.white,
+                                        size: 36,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                                const SizedBox(height: 16),
-
-                                // Cancel Button
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.white38,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12, horizontal: 24),
-                                  ),
-                                  child: Text(
-                                    'VOLVER AL INICIO',
-                                    style: TextStyle(
-                                      color: isDarkMode
-                                          ? Colors.white38
-                                          : Colors.grey,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
                               ],
                             ),
-                          ),
-                        ],
+
+                            Text(
+                              '¡EVENTO LLENO!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Content
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 30),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    result.message ??
+                                        'El cupo de jugadores activos (${scenario.maxPlayers}) ha sido alcanzado.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'No te preocupes, aún puedes vivir la experiencia desde el modo espectador.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  // Main Button (Restaurado con degradado original)
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            AppTheme.secondaryPink,
+                                            Color(0xFFFF4081)
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.secondaryPink.withOpacity(0.35),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.visibility_rounded, color: Colors.white),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'MODO ESPECTADOR',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Cancel Button (Restaurado)
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white38,
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                                    ),
+                                    child: const Text(
+                                      'VOLVER AL INICIO',
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1256,7 +1309,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   void _showErrorDialog(String msg, {String title = 'Atención'}) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // FORCED TO TRUE: Scenarios screen is always dark
+    const isDarkMode = true;
     final Color currentText =
         isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
     final Color currentCard =
@@ -1345,7 +1399,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(0, Icons.storefront_outlined, 'Local'),
-                  _buildNavItem(1, Icons.explore_outlined, 'Simulador'), // Renamed to match simulator/game context
+                  _buildNavItem(1, Icons.explore_outlined, 'Escenarios'),
                   _buildNavItem(2, Icons.account_balance_wallet_outlined, 'Wallet'),
                   _buildNavItem(3, Icons.person_outline, 'Perfil'),
                 ],
@@ -1536,7 +1590,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final eventProvider = Provider.of<EventProvider>(context);
     final appMode = Provider.of<AppModeProvider>(context);
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final isDarkMode = playerProvider.isDarkMode;
+    // FORCED TO TRUE: Always use dark mode colors in scenarios section (including dialogs)
+    final isDarkMode = true; // Previously: playerProvider.isDarkMode;
 
     // Colores según el modo
     final Color currentBg =
@@ -1610,11 +1665,12 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       child: AnimatedCyberBackground(
         child: Stack(
           children: [
-            // Fondo con degradado radial dinámico (Compartido para todas las pestañas)
-            // Fondo con imagen personalizada (personajesgrupal.png)
+            // Fondo con imagen dinámica (Diferente para Día y Noche)
             Positioned.fill(
               child: Image.asset(
-                'assets/images/fotogrupalnoche.png',
+                playerProvider.isDarkMode 
+                    ? 'assets/images/fotogrupalnoche.png' 
+                    : 'assets/images/personajesgrupal.png',
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
               ),
@@ -1670,13 +1726,11 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               title == 'Local'
                   ? "UN MODO DE JUEGO PARA JUGAR EN CASA"
                   : "PRÓXIMAMENTE",
-              style: TextStyle(
-                color: Provider.of<PlayerProvider>(context).isDarkMode
-                    ? Colors.white70
-                    : const Color(0xFF4A4A5A),
-                letterSpacing: title == 'Local' ? 2 : 8,
+              style: const TextStyle(
+                color: Colors.white70, // Always use dark mode color
+                letterSpacing: 2, // Simplified: was conditional
                 fontWeight: FontWeight.bold,
-                fontSize: title == 'Local' ? 14 : 12,
+                fontSize: 14, // Simplified: was conditional
               )),
           const SizedBox(height: 40),
           ElevatedButton(
@@ -1694,9 +1748,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   Widget _buildScenariosContent(List<Scenario> scenarios) {
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final isDarkMode = playerProvider.isDarkMode;
+    // FORCED TO TRUE: Always use dark mode colors in scenarios/simulator section
+    final isDarkMode = true; // Previously: playerProvider.isDarkMode;
 
-    // Colores dinámicos
+    // Colores dinámicos (ahora siempre serán los del modo oscuro)
     final Color currentSurface =
         isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
     final Color currentText =
@@ -1900,7 +1955,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                     ),
 
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(40, 40, 40, 20),
+                      padding: const EdgeInsets.fromLTRB(30, 20, 30, 10),
                       child: Text(
                         '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
                         textAlign: TextAlign.center,
@@ -1939,8 +1994,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                             isActive: _selectedFilter == 'active',
                             onTap: () =>
                                 setState(() => _selectedFilter = 'active'),
-                            activeColor: currentAction,
-                            textColor: isDarkMode ? Colors.black : Colors.white,
+                            activeColor: AppTheme.dGoldMain, // Forzado a dorado oscuro
+                            textColor: Colors.black, // Negro sobre dorado
                           ),
                           const SizedBox(width: 12),
                           _buildFilterChip(
@@ -1949,7 +2004,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                             onTap: () =>
                                 setState(() => _selectedFilter = 'pending'),
                             activeColor: Colors.blueAccent,
-                            textColor: Colors.white,
+                            textColor: Colors.white, // Blanco sobre azul
                           ),
                           const SizedBox(width: 12),
                           _buildFilterChip(
@@ -1957,10 +2012,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                             isActive: _selectedFilter == 'completed',
                             onTap: () =>
                                 setState(() => _selectedFilter = 'completed'),
-                            activeColor: isDarkMode
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade400,
-                            textColor: Colors.white,
+                            activeColor: Colors.grey.shade700, // Forzado a gris oscuro
+                            textColor: Colors.white, // Blanco sobre gris
                           ),
                         ],
                       ),
@@ -2010,7 +2063,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                   child: SizedBox(
                                                     height: Curves.easeOut
                                                             .transform(value) *
-                                                        constraints.maxHeight * 0.85, // Reduced height factor
+                                                        constraints.maxHeight * 0.88, // Increased height factor
                                                     width: Curves.easeOut
                                                             .transform(value) *
                                                         340,
@@ -2106,48 +2159,29 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                             ),
                                                           ),
                                                         ),
-
-
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(24.0),
-                                                          child: Column(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              const SizedBox(
-                                                                  height: 12),
-                                                              Text(
-                                                                  scenario.name,
-                                                                  style: const TextStyle(
-                                                                      color: Colors
-                                                                          .white,
-                                                                      fontSize:
-                                                                          24,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold)),
-                                                              const SizedBox(
-                                                                  height: 4),
-                                                              Text(
-                                                                  scenario
-                                                                      .description,
-                                                                  style: const TextStyle(
-                                                                      color: Colors
-                                                                          .white70,
-                                                                      fontSize:
-                                                                          12),
-                                                                  maxLines: 2,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis),
-                                                              const SizedBox(
-                                                                  height: 10),
+                                                        Align(
+                                                          alignment: Alignment.bottomCenter,
+                                                          child: SingleChildScrollView(
+                                                            padding: const EdgeInsets.all(24.0),
+                                                            child: Column(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Text(
+                                                                    scenario.name,
+                                                                    style: const TextStyle(
+                                                                        color: Colors.white,
+                                                                        fontSize: 22,
+                                                                        fontWeight: FontWeight.bold)),
+                                                                const SizedBox(height: 4),
+                                                                Text(
+                                                                    scenario.description,
+                                                                    style: const TextStyle(
+                                                                        color: Colors.white70,
+                                                                        fontSize: 12),
+                                                                    maxLines: 2,
+                                                                    overflow: TextOverflow.ellipsis),
+                                                                const SizedBox(height: 12),
                                                                 Center(
                                                                   child: SingleChildScrollView(
                                                                     scrollDirection: Axis.horizontal,
@@ -2335,6 +2369,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                             ],
                                                           ),
                                                         ),
+                                                      ),
                                                       ],
                                                     ),
                                                   ),
@@ -2390,14 +2425,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final backgroundColor = isActive ? activeColor : Colors.transparent;
     final borderColor = isActive
         ? activeColor
-        : (Provider.of<PlayerProvider>(context).isDarkMode
-            ? Colors.white24
-            : Colors.black12);
+        : Colors.white24; // Siempre usar color claro para el borde ya que el fondo es oscuro
     final labelColor = isActive
         ? textColor
-        : (Provider.of<PlayerProvider>(context).isDarkMode
-            ? Colors.white60
-            : Colors.black54);
+        : Colors.white60; // Siempre usar color claro para el texto ya que el fondo es oscuro
     final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
 
     return GestureDetector(

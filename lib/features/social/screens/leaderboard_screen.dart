@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../game/providers/game_provider.dart';
+import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
 import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
 import '../widgets/leaderboard_card.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
@@ -75,14 +76,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/fotogrupalnoche.png',
+              isDarkMode ? 'assets/images/fotogrupalnoche.png' : 'assets/images/personajesgrupal.png',
               fit: BoxFit.cover,
               alignment: Alignment.center,
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.6),
             ),
           ),
           SafeArea(
@@ -138,20 +134,45 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  // Botón para volver a escenarios
-                  Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () {
-                         // Si estamos en HomeScreen (tabs), esto hará pop del HomeScreen entero
-                         // devolviéndonos a ScenariosScreen (si fue pushed).
-                         Navigator.of(context).pop();
-                      },
+                  // Cyberpunk Back Button
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.accentGold.withOpacity(0.3),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF0D0D0F),
+                            border: Border.all(
+                              color: AppTheme.accentGold,
+                              width: 2.0,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.accentGold.withOpacity(0.5),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   
@@ -161,12 +182,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       children: [
                         Text(
                           'Ranking',
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(color: currentText),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Orbitron',
+                            letterSpacing: 1.5,
+                          ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
-                          'Más pistas completadas', // Cambio de texto para reflejar la lógica
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: currentTextSec),
+                          'Más pistas completadas',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -250,20 +281,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     isTopThree: index < 3,
                   );
                 },
+                ),
               ),
-            ),
             ],
           ),
         ),
       ],
     ),
   );
-  }
+}
   
   Widget _buildPodiumPosition(dynamic player, int position, double height, Color color) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    const bool isDarkMode = true;
+    const Color currentText = Colors.white;
+    const Color currentTextSec = Colors.white70;
 
     return Column(
       children: [

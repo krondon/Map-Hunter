@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/game/providers/game_provider.dart';
@@ -15,30 +16,47 @@ class ProgressHeader extends StatelessWidget {
       final player = playerProvider.currentPlayer;
       if (player == null) return const SizedBox.shrink();
 
-      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-      final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-      final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
-      final Color currentSurface = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+      final isDarkMode = playerProvider.isDarkMode;
+      const Color currentText = Colors.white; // Reverted to dark theme
+      const Color currentTextSec = Colors.white70;
+      const Color currentSurface = AppTheme.dSurface1;
 
       // ✅ SINGLE SOURCE OF TRUTH: Solo GameProvider para vidas globales
       final int displayLives = gameProvider.lives;
         
         return Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(20),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(4), // Space for outer border effect
           decoration: BoxDecoration(
-            gradient: AppTheme.mainGradient(context),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: (isDarkMode ? AppTheme.primaryPurple : Colors.indigo).withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            color: AppTheme.primaryPurple.withOpacity(0.15), // Increased from 0.05
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(
+              color: AppTheme.primaryPurple.withOpacity(0.5), // Increased from 0.2
+              width: 1.5, // Slightly thicker
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF150826).withOpacity(0.7), // Increased from 0.4
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                      color: AppTheme.primaryPurple, // Solid purple (removed opacity)
+                      width: 2.5), // Thicker border
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryPurple.withOpacity(0.3),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -225,7 +243,10 @@ class ProgressHeader extends StatelessWidget {
               ),
             ],
           ),
-        );
+        ),
+      ),
+    ),
+  );
       },
     );
   }

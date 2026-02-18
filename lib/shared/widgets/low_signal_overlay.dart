@@ -38,112 +38,173 @@ class _LowSignalOverlayState extends State<LowSignalOverlay>
 
   @override
   Widget build(BuildContext context) {
+    const Color currentOrange = Color(0xFFFF9800);
+    const Color cardBg = Color(0xFF151517);
+
     return Material(
-      color: Colors.black.withOpacity(0.75),
+      color: Colors.black.withOpacity(0.85),
       child: SafeArea(
         child: Center(
           child: Container(
-            margin: const EdgeInsets.all(32),
-            padding: const EdgeInsets.all(24),
+            margin: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
             decoration: BoxDecoration(
-              color: AppTheme.cardBg,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.orange.withOpacity(0.5),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withOpacity(0.2),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
+              color: currentOrange.withOpacity(0.2), // Tono naranja suave exterior
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
             ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: currentOrange,
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: currentOrange.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icono animado de señal baja
-                AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 1.0 + (_pulseController.value * 0.1),
-                      child: Icon(
-                        Icons.signal_wifi_statusbar_connected_no_internet_4,
-                        size: 80,
-                        color: Color.lerp(
-                          Colors.orange,
-                          Colors.red,
-                          _pulseController.value,
+                // Icono Satélite + WiFi (Ajustado para evitar colisión)
+                SizedBox(
+                  height: 120,
+                  width: 140, // Más ancho para dar espacio a la derecha
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Satélite inclinado
+                      Transform.rotate(
+                        angle: -0.15,
+                        child: const Icon(
+                          Icons.satellite_alt_rounded,
+                          size: 90,
+                          color: Color(0xFFFF9800),
                         ),
                       ),
-                    );
-                  },
+                      // WiFi movido bien a la derecha y arriba
+                      const Positioned(
+                        top: -5,
+                        right: 5,
+                        child: Icon(
+                          Icons.wifi,
+                          size: 38,
+                          color: Color(0xFFFF9800),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // Título
                 const Text(
                   'CONEXIÓN INESTABLE',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
                 // Mensaje
                 Text(
-                  'Intentando reconectar...',
+                  'Intentando reconectar ...',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.4),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-                // Contador con barra de progreso
-                _buildCountdownIndicator(),
+                // Contador con círculo oscuro (como en la imagen)
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${widget.secondsRemaining}s',
+                    style: const TextStyle(
+                      color: Color(0xFFFF9800),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
 
                 const SizedBox(height: 16),
 
-                // Advertencia
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.2),
+                // Barra de progreso naranja
+                SizedBox(
+                  width: 180,
+                  child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.3),
+                    child: LinearProgressIndicator(
+                      value: widget.secondsRemaining / 25.0,
+                      minHeight: 10,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFFFF9800),
+                      ),
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+
+                const SizedBox(height: 40),
+
+                // Advertencia Inferior Estilizada
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF721C24).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFE33E5D).withOpacity(0.4),
+                    ),
+                  ),
+                  child: Column(
                     children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.red.shade300,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Serás desconectado si no se recupera',
-                          style: TextStyle(
-                            color: Colors.red.shade300,
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFE33E5D)),
                         ),
+                        child: const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFE33E5D),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Serás desconectado si no se recupera la conexión',
+                        style: TextStyle(
+                          color: Color(0xFFE33E5D),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -153,46 +214,7 @@ class _LowSignalOverlayState extends State<LowSignalOverlay>
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCountdownIndicator() {
-    final progress = widget.secondsRemaining / 25.0;
-    
-    return Column(
-      children: [
-        // Número grande
-        Text(
-          '${widget.secondsRemaining}s',
-          style: TextStyle(
-            color: widget.secondsRemaining <= 5 
-                ? Colors.red 
-                : Colors.orange,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Barra de progreso
-        SizedBox(
-          width: 200,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                widget.secondsRemaining <= 5 
-                    ? Colors.red 
-                    : Colors.orange,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+    ),
+  );
+}
 }

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 
-import 'package:provider/provider.dart'; // IMPORT AGREGADO
-import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
+import 'package:provider/provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
+import '../../../core/providers/app_mode_provider.dart';
 
 class ClueCard extends StatelessWidget {
   final Clue clue;
@@ -21,10 +22,10 @@ class ClueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Check mode
     final isOnline = Provider.of<AppModeProvider>(context).isOnlineMode;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color currentCard = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
-    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
+    const Color currentCard = AppTheme.dSurface1; // Reverted to dark theme
+    const Color currentText = Colors.white;
+    const Color currentTextSec = Colors.white70;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -37,19 +38,26 @@ class ClueCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: clue.isCompleted
-                  ? AppTheme.successGreen.withOpacity(0.1)
+                  ? const Color(0xFF0A3D2A) // Dark matrix/cyber green background
                   : isLocked
-                      ? currentCard.withOpacity(0.5)
-                      : currentCard,
+                      ? const Color(0xFF1A1A1D)
+                      : const Color(0xFF151517),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: clue.isCompleted
-                    ? AppTheme.successGreen
+                    ? const Color(0xFF00FF88) // Neon/cyber green border
                     : isLocked
-                        ? (isDarkMode ? Colors.white12 : Colors.black12)
-                        : AppTheme.primaryPurple.withOpacity(0.3),
-                width: 2,
+                        ? Colors.white12
+                        : AppTheme.secondaryPink.withOpacity(0.5),
+                width: 1.5,
               ),
+              boxShadow: isLocked ? [] : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -75,9 +83,9 @@ class ClueCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: clue.isCompleted
-                        ? const Text('✓', style: TextStyle(fontSize: 28))
+                        ? const Icon(Icons.check_circle_rounded, color: Colors.white, size: 32)
                         : isLocked
-                            ? const Text('🔒', style: TextStyle(fontSize: 28))
+                            ? const Icon(Icons.lock_rounded, color: Colors.white24, size: 32)
                             : (clue.type == ClueType.minigame)
                                 ? Icon(
                                     _getStampIcon(clue.sequenceIndex),
@@ -103,9 +111,11 @@ class ClueCard extends StatelessWidget {
                       Text(
                         clue.title,
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isLocked ? currentText.withOpacity(0.4) : currentText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Orbitron',
+                          letterSpacing: 1.0,
+                          color: isLocked ? Colors.white24 : Colors.white,
                         ),
                       ),
                       const SizedBox(height: 4),

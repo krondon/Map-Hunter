@@ -29,18 +29,16 @@ class LeaderboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color currentText = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec = isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
-    final Color currentSurface = isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+    const bool isDarkMode = true;
+    const Color currentText = Colors.white;
+    const Color currentTextSec = Colors.white70;
+    const Color currentSurface = AppTheme.dSurface1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isTopThree
-            ? currentSurface.withOpacity(0.8)
-            : currentSurface.withOpacity(0.5),
+        color: currentSurface,
         borderRadius: BorderRadius.circular(12),
         border: isTopThree
             ? Border.all(color: _getRankColor().withOpacity(0.3), width: 2)

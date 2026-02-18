@@ -102,6 +102,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Precargar ambas imágenes de fondo para transiciones suaves
+    precacheImage(const AssetImage('assets/images/hero.png'), context);
+    precacheImage(const AssetImage('assets/images/loginclaro.png'), context);
+  }
+
   Future<void> _handleRegister() async {
     if (_isRegistering) return; // Prevent double-tap
     if (!_formKey.currentState!.validate()) return;
@@ -275,7 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       data: Theme.of(context).copyWith(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFFFF8E1),
+          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : Colors.white,
           labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6), fontSize: 14),
           prefixIconColor: isDarkMode ? dGoldMain : lMysticPurple,
           suffixIconColor: currentTextSec.withOpacity(0.6),
@@ -408,7 +417,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         decoration: InputDecoration(
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                                           filled: true,
-                                          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFFFF8E1),
+                                          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : Colors.white,
                                         ),
                                         dropdownColor: isDarkMode ? const Color(0xFF1A1A1D) : Colors.white,
                                         style: TextStyle(color: currentText),

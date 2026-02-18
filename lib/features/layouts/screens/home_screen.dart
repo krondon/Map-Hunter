@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../auth/providers/player_provider.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../game/screens/clues_screen.dart';
-import '../../game/screens/event_waiting_screen.dart';
-import '../../game/providers/event_provider.dart';
-import '../../game/providers/game_provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
+import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
+import 'package:treasure_hunt_rpg/features/game/screens/clues_screen.dart';
+import 'package:treasure_hunt_rpg/features/game/screens/event_waiting_screen.dart';
+import 'package:treasure_hunt_rpg/features/game/providers/event_provider.dart';
+import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
 import '../../game/providers/spectator_feed_provider.dart'; // NEW
 import '../../game/screens/live_feed_screen.dart'; // NEW
 import '../../social/screens/inventory_screen.dart';
@@ -155,43 +155,104 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showExitDialog() {
+    const Color currentRed = Color(0xFFE33E5D);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.accentGold),
-            SizedBox(width: 10),
-            Text("Salir del Evento", style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: const Text(
-          "¿Estás seguro de que deseas salir del evento actual? Tu progreso se guardará, pero dejarás la carrera momentáneamente.",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("CANCELAR", style: TextStyle(color: Colors.white54)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
+          decoration: BoxDecoration(
+            color: currentRed.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentRed.withOpacity(0.5), width: 1),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.dangerRed,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentRed, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: currentRed.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            onPressed: () {
-              Navigator.pop(ctx); // Close dialog
-              Navigator.pop(context); // Exit HomeScreen (back to selector)
-            },
-            child: const Text("SALIR", style: TextStyle(color: Colors.white)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: currentRed, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: currentRed,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Salir del Evento',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '¿Estás seguro de que deseas salir del evento actual? Tu progreso se guardará, pero dejarás la carrera momentáneamente.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text(
+                          'CANCELAR',
+                          style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: currentRed,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'SALIR',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -200,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final player = Provider.of<PlayerProvider>(context).currentPlayer;
     final eventProvider = Provider.of<EventProvider>(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
 
     try {
       final event =
@@ -235,8 +296,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _checkAndShowTutorial();
     }
 
-    Widget content = Scaffold(
-      body: _screens[_currentIndex],
+    Widget content = AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Color(0xFF151517),
+        systemNavigationBarIconBrightness: Brightness.light,
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        extendBody: true, // Allow body to show behind rounded corners of bottom nav
+        backgroundColor: Colors.transparent,
+        body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -269,9 +339,9 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             type: BottomNavigationBarType.fixed,
-            backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+            backgroundColor: const Color(0xFF151517), // Match logout modal background
             selectedItemColor: AppTheme.secondaryPink,
-            unselectedItemColor: isDarkMode ? Colors.white54 : Colors.black45,
+            unselectedItemColor: Colors.white54,
             showUnselectedLabels: true,
             elevation: 0,
             items: [
@@ -308,7 +378,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
 
     if (isSpectator) {
       content = ChangeNotifierProvider(

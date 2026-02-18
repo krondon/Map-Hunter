@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
-import '../../game/providers/game_provider.dart';
-import '../../auth/providers/player_provider.dart';
+import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../widgets/race_track_widget.dart';
@@ -106,39 +106,53 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: AnimatedCyberBackground(
-        child: SafeArea(
-          child: Column(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                isDarkMode ? 'assets/images/fotogrupalnoche.png' : 'assets/images/personajesgrupal.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+            SafeArea(
+              child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Header Message
               const SizedBox(height: 20),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.accentGold.withOpacity(0.5)),
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.5), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.accentGold.withOpacity(0.2),
-                      blurRadius: 10,
+                      color: AppTheme.secondaryPink.withOpacity(0.1),
+                      blurRadius: 15,
                       spreadRadius: 2,
                     )
                   ]
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.check_circle_outline, color: AppTheme.successGreen, size: 50),
-                    const SizedBox(height: 10),
+                    const Icon(Icons.check_circle_rounded, color: AppTheme.successGreen, size: 40),
+                    const SizedBox(height: 16),
                     const Text(
-                      "¡CARRERA COMPLETADA!",
+                      "DESAFÍO COMPLETADO",
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppTheme.successGreen,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        letterSpacing: 1.2
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Orbitron',
+                        fontSize: 20,
+                        letterSpacing: 1.5
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -147,22 +161,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      // FALLBACK POLLING INDICATOR (Debug/Visual aid)
-                      Consumer<GameProvider>(
-                         builder: (context, gp, _) {
-                            return gp.isLoading 
-                              ? const SizedBox(
-                                  height: 20, 
-                                  width: 20, 
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24)
-                                ) 
-                              : const SizedBox.shrink();
-                         }
-                      )
+                    const SizedBox(height: 16),
+                    const CircularProgressIndicator(color: AppTheme.accentGold, strokeWidth: 3),
                   ],
                 ),
               ),
@@ -179,21 +182,37 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                  }
                  
                  if (myRank == 0) return const SizedBox.shrink();
-
+ 
                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.accentGold)
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.accentGold.withOpacity(0.3), width: 1.5)
                     ),
                     child: Column(
                       children: [
-                        const Text("TU POSICIÓN PARCIAL", style: TextStyle(color: AppTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold)),
-                        Text("#$myRank", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        const Text("TU POSICIÓN PARCIAL", 
+                          style: TextStyle(
+                            color: AppTheme.accentGold, 
+                            fontSize: 10, 
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Orbitron',
+                            letterSpacing: 1.0,
+                          )
+                        ),
+                        const SizedBox(height: 8),
+                        Text("#$myRank", 
+                          style: const TextStyle(
+                            color: Colors.white, 
+                            fontSize: 36, 
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Orbitron',
+                          )
+                        ),
                       ],
                     ),
-                 );
+                  );
               }),
 
               const SizedBox(height: 30),
@@ -258,7 +277,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
             ],
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 }
