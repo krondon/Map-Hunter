@@ -576,6 +576,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
+      final ext = image.name.split('.').last.toLowerCase();
+      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '⚠️ Formato no soportado (.$ext). Solo se permiten imágenes JPG o PNG.'),
+              backgroundColor: Colors.orange.shade800,
+            ),
+          );
+        }
+        return;
+      }
       setState(() {
         _selectedImage = image;
       });
