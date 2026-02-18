@@ -815,7 +815,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.darkBg,
-        title: Text(widget.event.title),
+        title: Text(
+          widget.event.title,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.restart_alt, color: Colors.orangeAccent),
