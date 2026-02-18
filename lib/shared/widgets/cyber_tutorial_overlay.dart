@@ -68,7 +68,7 @@ class _CyberTutorialOverlayState extends State<CyberTutorialOverlay> {
               margin: const EdgeInsets.all(20),
               constraints: const BoxConstraints(maxWidth: 500),
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1A1A1D) : Colors.white,
+                color: const Color(0xFF1A1A1D), // Siempre oscuro
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(color: AppTheme.accentGold.withOpacity(0.3), width: 1.5),
                 boxShadow: [
@@ -120,8 +120,8 @@ class _CyberTutorialOverlayState extends State<CyberTutorialOverlay> {
                     Text(
                       step.title,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
+                      style: const TextStyle(
+                        color: Colors.white, // Siempre blanco
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
@@ -133,8 +133,8 @@ class _CyberTutorialOverlayState extends State<CyberTutorialOverlay> {
                     Text(
                       step.description,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
+                      style: const TextStyle(
+                        color: Colors.white70, // Siempre blanco70
                         fontSize: 15,
                         height: 1.5,
                       ),
@@ -169,14 +169,14 @@ class _CyberTutorialOverlayState extends State<CyberTutorialOverlay> {
                           Expanded(
                             child: TextButton(
                               onPressed: () => setState(() => _currentIndex--),
-                              child: Text(
-                                'ATRÁS',
-                                style: TextStyle(
-                                  color: isDarkMode ? Colors.white38 : Colors.black38, 
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12
+                                child: const Text(
+                                  'ATRÁS',
+                                  style: TextStyle(
+                                    color: Colors.white38, // Siempre blanco38 
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12
+                                  ),
                                 ),
-                              ),
                             ),
                           ),
                         const SizedBox(width: 12),
