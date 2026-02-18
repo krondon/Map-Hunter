@@ -120,7 +120,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           .eq('event_id', widget.event.id)
           .neq('status', 'spectator')
           .order('completed_clues_count', ascending: false);
-      
+
       if (playersData.isEmpty) {
         if (mounted) setState(() => _leaderboardData = []);
         return;
@@ -149,7 +149,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
       if (mounted) {
         setState(() {
-            _leaderboardData = List<Map<String, dynamic>>.from(enrichedData);
+          _leaderboardData = List<Map<String, dynamic>>.from(enrichedData);
         });
       }
     } catch (e) {
@@ -164,7 +164,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           .select('pot')
           .eq('id', widget.event.id)
           .single();
-      
+
       if (mounted) {
         setState(() {
           _pot = (data['pot'] as num?)?.toInt() ?? 0;
@@ -260,15 +260,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
         debugPrint(
             '🔔 CompetitionDetailScreen: Failed to setup subscription: $e');
       }
-      
+
       _checkPrizeStatus(adminService); // Check on init
     });
   }
 
   Future<void> _checkPrizeStatus([AdminService? service]) async {
     try {
-      final adminService = service ?? Provider.of<AdminService>(context, listen: false);
-      final distributed = await adminService.checkPrizeDistributionStatus(widget.event.id);
+      final adminService =
+          service ?? Provider.of<AdminService>(context, listen: false);
+      final distributed =
+          await adminService.checkPrizeDistributionStatus(widget.event.id);
       if (mounted) {
         setState(() => _prizesDistributed = distributed);
       }
@@ -1012,8 +1014,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                             color: Colors.white,
                             fontSize: 32,
                             fontWeight: FontWeight.w900)),
-                    Text(
-                        'Total Acumulado en Base de Datos',
+                    Text('Total Acumulado en Base de Datos',
                         style: const TextStyle(
                             color: Colors.white38, fontSize: 12)),
                   ],
@@ -1266,35 +1267,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-
-            if (_isEventActive || _prizesDistributed) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: (_prizesDistributed) ? null : _distributePrizes,
-                  icon: Icon(
-                    _prizesDistributed ? Icons.check_circle : Icons.emoji_events, 
-                    color: _prizesDistributed ? Colors.white38 : Colors.black
-                  ),
-                  label: Text(
-                      _prizesDistributed ? "PREMIOS YA DISTRIBUIDOS" : "FINALIZAR Y PREMIAR",
-                      style: TextStyle(
-                          color: _prizesDistributed ? Colors.white38 : Colors.black, 
-                          fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _prizesDistributed ? Colors.white10 : AppTheme.accentGold,
-                    foregroundColor: _prizesDistributed ? Colors.white38 : Colors.black,
-                    disabledBackgroundColor: Colors.white10,
-                    disabledForegroundColor: Colors.white38,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
 
             const SizedBox(height: 40),
           ],
