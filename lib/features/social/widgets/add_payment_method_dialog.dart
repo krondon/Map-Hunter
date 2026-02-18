@@ -54,12 +54,10 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
 
     try {
       final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-      
-      // We pass the selected bank code here
       await playerProvider.addPaymentMethod(bankCode: _selectedBankCode!);
 
       if (mounted) {
-        Navigator.pop(context, true); // Return true on success
+        Navigator.pop(context, true);
          ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Método de pago agregado correctamente'),
@@ -84,111 +82,146 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
   @override
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final isDarkMode = playerProvider.isDarkMode;
     final player = playerProvider.currentPlayer;
     final dni = player?.cedula ?? 'No definido';
     final phone = player?.phone ?? 'No definido';
 
     return Dialog(
-      backgroundColor: isDarkMode ? AppTheme.cardBg : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       child: Container(
-        padding: const EdgeInsets.all(20),
-        constraints: BoxConstraints(
-          maxWidth: 400,
-          maxHeight: MediaQuery.of(context).size.height * 0.8, // Force scroll if too tall
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: AppTheme.accentGold.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppTheme.accentGold.withOpacity(0.2), width: 1),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Title
-              Row(
-                children: [
-                  const Icon(Icons.credit_card, color: AppTheme.accentGold),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Agregar Pago Móvil',
-                    style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Content
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF151517),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.accentGold.withOpacity(0.5), width: 1.5),
+          ),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Se usará tu Cédula y Teléfono del perfil.',
-                      style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A), fontSize: 13),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentGold.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                      ),
+                      child: const Icon(Icons.account_balance_rounded, color: AppTheme.accentGold, size: 20),
                     ),
-                    const SizedBox(height: 16),
-        
-                    // Read-only Info
-                     _buildInfoRow(Icons.badge, 'Cédula', dni, isDarkMode),
-                    const SizedBox(height: 12),
-                    _buildInfoRow(Icons.phone_android, 'Teléfono', phone, isDarkMode),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Bank Dropdown
-                    DropdownButtonFormField<String>(
-                      dropdownColor: isDarkMode ? AppTheme.cardBg : Colors.white,
-                      style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D)),
-                      decoration: _inputDecoration('Banco', isDarkMode),
-                      value: _selectedBankCode,
-                      isExpanded: true, // Fix horizontal overflow
-                      menuMaxHeight: 300, // Limit menu height
-                      items: _banks.map((bank) {
-                        return DropdownMenuItem(
-                          value: bank['code'],
-                          child: Text(
-                            '${bank['code']} - ${bank['name']}',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) => setState(() => _selectedBankCode = val),
-                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Requerido';
-                        return null;
-                      },
+                    const SizedBox(width: 15),
+                    const Text(
+                      'AÑADIR PAGO MÓVIL',
+                      style: TextStyle(
+                        color: Colors.white, 
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 15,
+                        fontFamily: 'Orbitron',
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              
-              const SizedBox(height: 24),
-
-              // Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: _isLoading ? null : () => Navigator.pop(context, false),
-                    child: Text('Cancelar', style: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black45)),
+                const SizedBox(height: 24),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Se vincularán estos datos para tus retiros:',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      const SizedBox(height: 20),
+                      _buildInfoRow(Icons.badge, 'CÉDULA', dni, true),
+                      const SizedBox(height: 12),
+                      _buildInfoRow(Icons.phone_android, 'TELÉFONO', phone, true),
+                      const SizedBox(height: 24),
+                      DropdownButtonFormField<String>(
+                        dropdownColor: const Color(0xFF1C1C1E),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        hint: const Text(
+                          'Selecciona tu banco',
+                          style: TextStyle(color: Colors.white60, fontSize: 14),
+                        ),
+                        decoration: _inputDecoration('Banco Emisor', true),
+                        value: _selectedBankCode,
+                        isExpanded: true,
+                        menuMaxHeight: 300,
+                        selectedItemBuilder: (BuildContext context) {
+                          return _banks.map<Widget>((bank) {
+                            return Text(
+                              '${bank['code']} - ${bank['name']}',
+                              style: const TextStyle(color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          }).toList();
+                        },
+                        items: _banks.map((bank) {
+                          return DropdownMenuItem(
+                            value: bank['code'],
+                            child: Text(
+                              '${bank['code']} - ${bank['name']}',
+                              style: const TextStyle(color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) => setState(() => _selectedBankCode = val),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Requerido';
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _saveMethod,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentGold,
-                      foregroundColor: Colors.black,
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: _isLoading ? null : () => Navigator.pop(context, false),
+                        child: const Text('CANCELAR', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
                     ),
-                    child: _isLoading 
-                      ? const LoadingIndicator(fontSize: 10, color: Colors.black)
-                      : const Text('Guardar'),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _saveMethod,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accentGold,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading 
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            )
+                          : const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -222,9 +255,11 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
   InputDecoration _inputDecoration(String label, bool isDarkMode) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: isDarkMode ? Colors.white60 : Colors.black54),
+      labelStyle: const TextStyle(color: Colors.white60),
+      filled: true,
+      fillColor: const Color(0xFF1C1C1E),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.2)),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         borderRadius: BorderRadius.circular(10),
       ),
       focusedBorder: OutlineInputBorder(
@@ -239,6 +274,7 @@ class _AddPaymentMethodDialogState extends State<AddPaymentMethodDialog> {
         borderSide: const BorderSide(color: AppTheme.dangerRed),
         borderRadius: BorderRadius.circular(10),
       ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
 }

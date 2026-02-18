@@ -122,32 +122,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLogoutDialog(PlayerProvider playerProvider) {
+    const Color currentRed = Color(0xFFE33E5D);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? AppTheme.cardBg : Colors.white,
-        title: Text('Cerrar Sesión',
-            style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
-        content: Text(
-          '¿Estás seguro que deseas cerrar sesión?',
-          style: TextStyle(color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
+          decoration: BoxDecoration(
+            color: currentRed.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentRed.withOpacity(0.5), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentRed, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: currentRed.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: currentRed, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: currentRed,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Cerrar Sesión',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '¿Estás seguro que deseas cerrar sesión?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text(
+                          'CANCELAR',
+                          style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          playerProvider.logout();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: currentRed,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'SALIR',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar',
-                style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx); // Close dialog
-              playerProvider.logout();
-              // AuthMonitor will handle navigation
-            },
-            child: const Text('Salir',
-                style: TextStyle(color: AppTheme.dangerRed)),
-          ),
-        ],
       ),
     );
   }
@@ -155,15 +226,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildGamerCard(dynamic player, bool isDarkMode, PlayerProvider playerProvider) {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 40,
-            spreadRadius: 5,
-          )
-        ],
+        color: AppTheme.primaryPurple.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(36),
+        border: Border.all(
+          color: AppTheme.primaryPurple.withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
@@ -174,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF150826).withOpacity(0.4),
               borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.6), width: 2), // Borde morado sólido interno
             ),
             child: Stack(
               children: [
@@ -612,180 +682,162 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final passwordController = TextEditingController();
     bool isDeleting = false;
     bool obscurePassword = true;
+    const Color currentRed = Color(0xFFE33E5D);
+    const Color cardBg = Color(0xFF151517);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.cardBg,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.3)),
-          ),
-          title: Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: AppTheme.dangerRed, size: 28),
-              const SizedBox(width: 12),
-              const Flexible(
-                child: Text(
-                  "Borrar Cuenta",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Esta acción ELIMINARÁ permanentemente:",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "• Todo tu progreso\n"
-                  "• Tus items y monedas\n"
-                  "• Tu historial de eventos\n"
-                  "• Todos tus datos",
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  "Ingresa tu contraseña:",
-                  style: TextStyle(
-                      color: AppTheme.dangerRed,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passwordController,
-                  obscureText: obscurePassword,
-                  enabled: !isDeleting,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: "Contraseña",
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.05),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                          color: AppTheme.dangerRed.withOpacity(0.3)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.dangerRed),
-                    ),
-                    prefixIcon: const Icon(Icons.lock,
-                        color: AppTheme.dangerRed, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.white.withOpacity(0.5),
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        setDialogState(
-                            () => obscurePassword = !obscurePassword);
-                      },
-                    ),
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: currentRed.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: currentRed.withOpacity(0.5), width: 1),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: currentRed, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: currentRed.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 2,
                   ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: currentRed, size: 28),
+                        const SizedBox(width: 12),
+                        const Flexible(
+                          child: Text(
+                            "Borrar Cuenta",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Esta acción ELIMINARÁ permanentemente:",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "• Todo tu progreso\n"
+                      "• Tus items y monedas\n"
+                      "• Tu historial de eventos\n"
+                      "• Todos tus datos",
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Ingresa tu contraseña:",
+                      style: TextStyle(color: currentRed, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      enabled: !isDeleting,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "Contraseña",
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: currentRed.withOpacity(0.3)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: currentRed),
+                        ),
+                        prefixIcon: const Icon(Icons.lock, color: currentRed, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.white.withOpacity(0.5),
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setDialogState(() => obscurePassword = !obscurePassword);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+                            child: const Text("Cancelar", style: TextStyle(color: Colors.white54)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: isDeleting ? null : () async {
+                              final password = passwordController.text.trim();
+                              if (password.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Debes ingresar tu contraseña"), backgroundColor: currentRed),
+                                );
+                                return;
+                              }
+                              setDialogState(() => isDeleting = true);
+                              try {
+                                final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                                await playerProvider.deleteAccount(password);
+                                if (!ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+                                if (context.mounted) {
+                                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                                }
+                              } catch (e) {
+                                if (!ctx.mounted) return;
+                                setDialogState(() => isDeleting = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Error: $e"), backgroundColor: currentRed),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: currentRed,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: isDeleting
+                                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Text("Borrar", style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: isDeleting
-                  ? null
-                  : () {
-                      passwordController.dispose();
-                      Navigator.pop(ctx);
-                    },
-              child: const Text("Cancelar",
-                  style: TextStyle(color: Colors.white54)),
-            ),
-            ElevatedButton(
-              onPressed: isDeleting
-                  ? null
-                  : () async {
-                      final password = passwordController.text.trim();
-
-                      if (password.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Debes ingresar tu contraseña"),
-                            backgroundColor: AppTheme.dangerRed,
-                          ),
-                        );
-                        return;
-                      }
-
-                      setDialogState(() => isDeleting = true);
-
-                      try {
-                        final playerProvider =
-                            Provider.of<PlayerProvider>(context, listen: false);
-                        await playerProvider.deleteAccount(password);
-
-                        if (!ctx.mounted) return;
-                        passwordController.dispose();
-                        Navigator.pop(ctx); // Cerrar diálogo
-
-                        // Restablecer modo UI inmersivo antes de navegar
-                        SystemChrome.setEnabledSystemUIMode(
-                            SystemUiMode.immersiveSticky);
-
-                        // Forzar navegación al login
-                        if (context.mounted) {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                              '/login', (route) => false);
-                        }
-                      } catch (e) {
-                        if (!ctx.mounted) return;
-
-                        setDialogState(() => isDeleting = false);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Error: $e"),
-                            backgroundColor: AppTheme.dangerRed,
-                          ),
-                        );
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.dangerRed,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              child: isDeleting
-                  ? const SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text("Borrar",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
         ),
       ),
     );
@@ -812,15 +864,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
-          height: 150,
+          padding: const EdgeInsets.all(4), // Efecto de doble borde
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
           ),
-          child: const Center(
-            child: Text("Inicia una visión recolectar sellos",
-                style: TextStyle(color: Colors.white24, fontSize: 14)))
+          child: Container(
+            width: double.infinity,
+            height: 150,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 2), // Borde sólido interno
+            ),
+            child: const Center(
+              child: Text("Inicia una visión recolectar sellos",
+                  style: TextStyle(color: Colors.white24, fontSize: 14)))
+          ),
         ),
       ],
     );
@@ -1059,41 +1120,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSupportDialog() {
+    const Color currentGold = AppTheme.accentGold;
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.help_outline, color: AppTheme.accentGold),
-            SizedBox(width: 12),
-            Text("Centro de Ayuda", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "¿Necesitas ayuda con el protocolo Asthoria?",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentGold.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentGold.withOpacity(0.5), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentGold, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: currentGold.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            _buildSupportOption(
-              icon: Icons.chat_bubble_outline,
-              label: "Contactar Soporte Técnico",
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Contactando con el sistema central..."), backgroundColor: AppTheme.primaryPurple),
-                );
-              },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Row(
+                    children: [
+                      const Icon(Icons.help_outline, color: currentGold),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Centro de Ayuda", 
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close, color: Colors.white38, size: 20),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "¿Necesitas ayuda con el protocolo Asthoria?",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSupportOption(
+                    icon: Icons.chat_bubble_outline,
+                    label: "Contactar Soporte Técnico",
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Contactando con el sistema central..."), 
+                          backgroundColor: AppTheme.primaryPurple
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSupportOption(
+                    icon: Icons.description_outlined,
+                    label: "Términos y Condiciones",
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showTermsDialog();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -1113,10 +1222,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(icon, color: AppTheme.accentGold, size: 20),
             const SizedBox(width: 12),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             const Icon(Icons.chevron_right, color: Colors.white24, size: 16),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showTermsDialog() {
+    const Color currentGold = AppTheme.accentGold;
+    const Color cardBg = Color(0xFF151517);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentGold.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentGold.withOpacity(0.5), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentGold, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.description_outlined, color: currentGold),
+                    const SizedBox(width: 12),
+                    const Text('Términos',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close, color: Colors.white38, size: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(
+                  height: 200,
+                  child: SingleChildScrollView(
+                    child: Text(
+                      'Al utilizar el protocolo Asthoria, aceptas que toda actividad de exploración queda bajo tu responsabilidad. '
+                      'El equipo de MapHunter no se hace responsable por encuentros con entidades digitales o físicas durante la recolección de sellos.\n\n'
+                      'Tus datos están protegidos por encriptación de grado militar y nunca serán compartidos fuera de la red local del evento. '
+                      'Cualquier intento de sabotaje o hackeo del sistema resultará en la expulsión inmediata y pérdida deXP.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: currentGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('ENTENDIDO', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

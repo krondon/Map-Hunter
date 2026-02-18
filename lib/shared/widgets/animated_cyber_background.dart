@@ -60,20 +60,20 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final color = widget.gridColor ?? (isDarkMode ? const Color(0xFF6366F1) : AppTheme.lBrandMain);
+    final color = widget.gridColor ?? const Color(0xFF6366F1); // Always use dark mode color
 
     return Stack(
       children: [
-        // 0. Background Base (from Login)
+        // 0. Background Base
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-0.8, -0.6),
+              gradient: const RadialGradient(
+                center: Alignment(-0.8, -0.6),
                 radius: 1.5,
                 colors: [
-                  isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface0,
-                  isDarkMode ? AppTheme.dSurface0 : Colors.white,
+                  AppTheme.dSurface1,
+                  AppTheme.dSurface0,
                 ],
               ),
             ),
@@ -113,7 +113,7 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
                 radius: 1.2,
                 colors: [
                   Colors.transparent,
-                  (widget.vignetteColor ?? (isDarkMode ? Colors.black : Colors.white)).withOpacity(isDarkMode ? 0.4 : 0.2),
+                  (widget.vignetteColor ?? Colors.black).withOpacity(0.4),
                 ],
               ),
             ),

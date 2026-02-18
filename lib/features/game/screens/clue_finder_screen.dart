@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -219,8 +220,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   Color get _temperatureColor {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     double dist = _forceProximity ? 5.0 : _distanceToTarget;
-    if (dist > 500) return isDarkMode ? Colors.cyanAccent : Colors.blue.shade900;
-    if (dist > 200) return isDarkMode ? Colors.blue : Colors.blue.shade700;
+    if (dist > 500) return Colors.cyanAccent;
+    if (dist > 200) return Colors.blue;
     if (dist > 50) return Colors.orange;
     if (dist > 20) return Colors.deepOrange;
     return AppTheme.successGreen;
@@ -229,38 +230,118 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   IconData get _temperatureIcon {
     double dist = _forceProximity ? 5.0 : _distanceToTarget;
     if (dist > 200) return Icons.ac_unit;
-    if (dist > 50) return Icons.device_thermostat;
+    // Use fire icon for both Tibio and Caliente as requested
     return Icons.local_fire_department;
   }
 
   Future<bool> _onWillPop() async {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    const Color goldAccent = AppTheme.accentGold;
+    const Color cardBg = Color(0xFF151517);
+
     return (await showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
-            title: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                const SizedBox(width: 10),
-                Text('¿Salir de la búsqueda?', style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
-              ],
-            ),
-            content: Text(
-              'Si sales ahora, interrumpirás la búsqueda del objetivo.\n\n¿Estás seguro de que deseas salir?',
-              style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text('CANCELAR', style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain)),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: goldAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: goldAccent.withOpacity(0.3), width: 1),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('SALIR', style: TextStyle(color: Colors.white)),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: goldAccent, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: goldAccent.withOpacity(0.1),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: goldAccent.withOpacity(0.1),
+                        border: Border.all(color: goldAccent.withOpacity(0.5)),
+                      ),
+                      child: const Icon(Icons.warning_amber_rounded,
+                          color: goldAccent, size: 40),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      '¿SALIR DE LA BÚSQUEDA?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: goldAccent,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        fontFamily: 'Orbitron',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Si sales ahora, interrumpirás la búsqueda del objetivo y tu progreso actual.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text(
+                              'CANCELAR',
+                              style: TextStyle(
+                                  color: Colors.white54,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade900,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              side: BorderSide(
+                                  color: Colors.redAccent.withOpacity(0.5)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text(
+                              'SALIR',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         )) ??
         false;
@@ -281,26 +362,21 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
     // Fixed positions for a nice decorative spread
     final List<math.Point> positions = [
-      const math.Point(0.1, 0.2),
-      const math.Point(0.8, 0.15),
-      const math.Point(0.2, 0.5),
-      const math.Point(0.75, 0.45),
-      const math.Point(0.15, 0.8),
-      const math.Point(0.85, 0.75),
-      const math.Point(0.5, 0.1),
-      const math.Point(0.45, 0.9),
+      const math.Point(0.9, 0.15), // Superior derecha
+      const math.Point(0.1, 0.85), // Inferior izquierda
     ];
 
     return positions.map((p) {
+      const double iconSize = 250;
       return Positioned(
-        left: MediaQuery.of(context).size.width * p.x - 75,
-        top: MediaQuery.of(context).size.height * p.y - 75,
+        left: MediaQuery.of(context).size.width * p.x - (iconSize / 2),
+        top: MediaQuery.of(context).size.height * p.y - (iconSize / 2),
         child: IgnorePointer(
           child: Opacity(
             opacity: 0.6,
             child: Icon(
               icon,
-              size: 150,
+              size: iconSize,
               color: color,
             ),
           ),
@@ -312,22 +388,85 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   @override
   Widget build(BuildContext context) {
     // Current Distance Logic
-    double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
-    bool showInput = currentDistance <= 35;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
+    final bool showInput = currentDistance <= 35;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // Determine if we should force dark styling (for cold states or when target is reached)
+    final bool shouldForceDark = isDarkMode ||
+        _temperatureStatus == "CONGELADO" ||
+        _temperatureStatus == "FRÍO" ||
+        _temperatureStatus == "¡AQUÍ ESTÁ!";
+    final bool useDarkStyle = shouldForceDark;
+    final Color effectiveTextColor =
+        useDarkStyle ? Colors.white : const Color(0xFF1A1A1D);
+    final Color effectiveSecondaryTextColor =
+        useDarkStyle ? Colors.white70 : const Color(0xFF4A4A5A);
+    final Color effectiveHintTextColor =
+        useDarkStyle ? Colors.white : const Color(0xFF2D3436);
 
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.clue.title.toUpperCase(), style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
+        leadingWidth: 80,
+        leading: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 20.0),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Container(
+                width: 42,
+                height: 42,
+                padding: const EdgeInsets.all(2), // Outer ring space
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppTheme.accentGold.withOpacity(0.3),
+                    width: 1.0,
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.4),
+                    border: Border.all(
+                      color: AppTheme.accentGold.withOpacity(0.5),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        title: Text(widget.clue.title.toUpperCase(),
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: effectiveTextColor)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: AppTheme.mainGradient(context),
+          gradient: shouldForceDark
+              ? const LinearGradient(
+                  colors: [AppTheme.dSurface0, AppTheme.dSurface1],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                )
+              : AppTheme.mainGradient(context),
         ),
         child: Stack(
           children: [
@@ -357,28 +496,57 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.black26,
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.white12),
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 1,
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        const Row(
-                          children: [
-                             Icon(Icons.search, color: AppTheme.accentGold),
-                             SizedBox(width: 8),
-                             Text("OBJETIVO", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
-                          ],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: useDarkStyle
+                                ? Colors.black26
+                                : Colors.black.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                                color: useDarkStyle
+                                    ? Colors.white12
+                                    : Colors.black12),
+                          ),
+                          child: Column(
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.search, color: AppTheme.accentGold),
+                                  SizedBox(width: 8),
+                                  Text("OBJETIVO",
+                                      style: TextStyle(
+                                          color: AppTheme.accentGold,
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                widget.clue.hint.isNotEmpty
+                                    ? widget.clue.hint
+                                    : "Encuentra la ubicación...",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    color: effectiveHintTextColor),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          widget.clue.hint.isNotEmpty ? widget.clue.hint : "Encuentra la ubicación...",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 18, color: isDarkMode ? Colors.white : const Color(0xFF2D3436)),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -409,7 +577,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                       if (!showInput)
                         Text(
                           "${currentDistance.toInt()}m del objetivo",
-                          style: TextStyle(color: isDarkMode ? Colors.white54 : const Color(0xFF636E72)),
+                          style: TextStyle(color: useDarkStyle ? Colors.white54 : const Color(0xFF636E72)),
                         ),
                     ],
                  ),
