@@ -6,6 +6,7 @@ import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../utils/minigame_logic_helper.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../../mall/screens/mall_screen.dart';
@@ -28,7 +29,7 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   // Configuración
   static const int gridSize = 3;
   late List<String> board; // '' empty, 'X' player, 'O' computer
-  
+
   // Overlay State
   bool _showOverlay = false;
   String _overlayTitle = "";
@@ -37,7 +38,12 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   bool _isVictory = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool victory = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool victory = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -47,7 +53,7 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
       _showShopButton = showShop;
     });
   }
-  
+
   // Estado del juego
   late Timer _timer;
   int _secondsRemaining = 45; // 45 segundos para ganar
@@ -70,10 +76,17 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
-      
+
       // Check for freeze state
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return; // Pause timer
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
@@ -106,26 +119,24 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
     setState(() => _isGameOver = true);
 
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
 
       if (!mounted) return;
-      
+
       if (newLives <= 0) {
         _showOverlayState(
-          title: "GAME OVER", 
-          message: "Te has quedado sin vidas.\nVe a la Tienda a comprar más.",
-          retry: false,
-          showShop: true
-        );
+            title: "GAME OVER",
+            message: "Te has quedado sin vidas.\nVe a la Tienda a comprar más.",
+            retry: false,
+            showShop: true);
       } else {
         _showOverlayState(
-          title: "¡FALLASTE!", 
-          message: "$reason\nHas perdido 1 vida.",
-          retry: true,
-          showShop: false
-        );
+            title: "¡FALLASTE!",
+            message: "$reason\nHas perdido 1 vida.",
+            retry: true,
+            showShop: false);
       }
     }
   }
@@ -137,8 +148,17 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     if (gameProvider.isFrozen) return;
 
-    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-    if (_isGameOver || board[index].isNotEmpty || !_isPlayerTurn || (player != null && player.isFrozen)) return;
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
+    final player =
+        Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
+    if (_isGameOver ||
+        board[index].isNotEmpty ||
+        !_isPlayerTurn ||
+        (player != null && player.isFrozen)) return;
 
     setState(() {
       board[index] = 'X';
@@ -162,59 +182,59 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   }
 
   void _computerMove() {
-     if (_isGameOver) return;
-     
-     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-     if (gameProvider.isFrozen) {
-        // If frozen, retry later
-        Future.delayed(const Duration(milliseconds: 500), _computerMove);
-        return;
-     }
+    if (_isGameOver) return;
 
-     // IA Simple: Bloquear o ganar si puede, o random.
-     // 1. Check if AI can win
-     int? winMove = _findWinningMove('O');
-     // 2. Check if AI needs to block
-     int? blockMove = _findWinningMove('X');
-     
-     int moveIndex;
-     if (winMove != null) {
-       moveIndex = winMove;
-     } else if (blockMove != null) {
-       moveIndex = blockMove;
-     } else {
-       // Random valid move
-        List<int> available = [];
-        for (int i = 0; i < board.length; i++) {
-          if (board[i].isEmpty) available.add(i);
-        }
-        if (available.isEmpty) return;
-        moveIndex = available[Random().nextInt(available.length)];
-     }
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    if (gameProvider.isFrozen) {
+      // If frozen, retry later
+      Future.delayed(const Duration(milliseconds: 500), _computerMove);
+      return;
+    }
 
-     setState(() {
-       board[moveIndex] = 'O';
-       _isPlayerTurn = true;
-     });
+    // IA Simple: Bloquear o ganar si puede, o random.
+    // 1. Check if AI can win
+    int? winMove = _findWinningMove('O');
+    // 2. Check if AI needs to block
+    int? blockMove = _findWinningMove('X');
 
-     if (_checkWin('O')) {
-       _stopTimer();
-       _loseLife("¡La vieja te ha ganado!");
-     } else if (!board.contains('')) {
-       _stopTimer();
-       _handleDraw();
-     }
+    int moveIndex;
+    if (winMove != null) {
+      moveIndex = winMove;
+    } else if (blockMove != null) {
+      moveIndex = blockMove;
+    } else {
+      // Random valid move
+      List<int> available = [];
+      for (int i = 0; i < board.length; i++) {
+        if (board[i].isEmpty) available.add(i);
+      }
+      if (available.isEmpty) return;
+      moveIndex = available[Random().nextInt(available.length)];
+    }
+
+    setState(() {
+      board[moveIndex] = 'O';
+      _isPlayerTurn = true;
+    });
+
+    if (_checkWin('O')) {
+      _stopTimer();
+      _loseLife("¡La vieja te ha ganado!");
+    } else if (!board.contains('')) {
+      _stopTimer();
+      _handleDraw();
+    }
   }
 
   void _handleDraw() {
     _stopTimer();
     setState(() => _isGameOver = true);
     _showOverlayState(
-      title: "¡EMPATE!", 
-      message: "Nadie gana esta ronda.\n¡Inténtalo de nuevo!",
-      retry: true,
-      victory: true // Just visually green/yellow
-    );
+        title: "¡EMPATE!",
+        message: "Nadie gana esta ronda.\n¡Inténtalo de nuevo!",
+        retry: true,
+        victory: true // Just visually green/yellow
+        );
   }
 
   int? _findWinningMove(String player) {
@@ -235,15 +255,21 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   bool _checkWin(String player) {
     // Rows
     for (int i = 0; i < 9; i += 3) {
-      if (board[i] == player && board[i+1] == player && board[i+2] == player) return true;
+      if (board[i] == player &&
+          board[i + 1] == player &&
+          board[i + 2] == player) return true;
     }
     // Cols
     for (int i = 0; i < 3; i++) {
-        if (board[i] == player && board[i+3] == player && board[i+6] == player) return true;
+      if (board[i] == player &&
+          board[i + 3] == player &&
+          board[i + 6] == player) return true;
     }
     // Diagonals
-    if (board[0] == player && board[4] == player && board[8] == player) return true;
-    if (board[2] == player && board[4] == player && board[6] == player) return true;
+    if (board[0] == player && board[4] == player && board[8] == player)
+      return true;
+    if (board[2] == player && board[4] == player && board[6] == player)
+      return true;
 
     return false;
   }
@@ -257,7 +283,7 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
   @override
   Widget build(BuildContext context) {
     // final player = Provider.of<PlayerProvider>(context).currentPlayer; // unused
-    
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {},
@@ -268,41 +294,53 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
             children: [
               // Status Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Vidas
-                    Consumer<GameProvider>(
-                      builder: (context, game, _) {
-                        return Row(
-                          children: [
-                            const Icon(Icons.favorite, color: AppTheme.dangerRed),
-                            const SizedBox(width: 5),
-                            Text("x${game.lives}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          ],
-                        );
-                      }
-                    ),
+                    Consumer<GameProvider>(builder: (context, game, _) {
+                      return Row(
+                        children: [
+                          const Icon(Icons.favorite, color: AppTheme.dangerRed),
+                          const SizedBox(width: 5),
+                          Text("x${game.lives}",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      );
+                    }),
                     // Timer
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _secondsRemaining < 10 ? AppTheme.dangerRed.withOpacity(0.2) : Colors.white10,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white24)
-                      ),
+                          color: _secondsRemaining < 10
+                              ? AppTheme.dangerRed.withOpacity(0.2)
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: _secondsRemaining < 10
+                                  ? AppTheme.dangerRed
+                                  : Colors.white24)),
                       child: Row(
                         children: [
-                          Icon(Icons.timer, size: 16, color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white),
+                          Icon(Icons.timer,
+                              size: 16,
+                              color: _secondsRemaining < 10
+                                  ? AppTheme.dangerRed
+                                  : Colors.white),
                           const SizedBox(width: 5),
                           Text(
-                            "${_secondsRemaining ~/ 60}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
-                            style: TextStyle(
-                              color: _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white, 
-                              fontWeight: FontWeight.bold
-                            )
-                          ),
+                              "${_secondsRemaining ~/ 60}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
+                              style: TextStyle(
+                                  color: _secondsRemaining < 10
+                                      ? AppTheme.dangerRed
+                                      : Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -312,7 +350,10 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
 
               const Text(
                 "GANA A LA VIEJA (Tic Tac Toe)",
-                style: TextStyle(color: AppTheme.accentGold, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: AppTheme.accentGold,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
 
@@ -324,15 +365,17 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
                       margin: const EdgeInsets.all(20),
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardBg,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 15)
-                        ]
-                      ),
+                          color: AppTheme.cardBg,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 15)
+                          ]),
                       child: GridView.builder(
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
@@ -348,12 +391,13 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
                             onTap: () => _onTileTap(index),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: cellColor,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                   BoxShadow(color: Colors.black.withOpacity(0.2), offset: const Offset(2,2))
-                                ]
-                              ),
+                                  color: cellColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: const Offset(2, 2))
+                                  ]),
                               child: Center(
                                 child: Text(
                                   cell,
@@ -372,7 +416,7 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
                   ),
                 ),
               ),
-              
+
               // Controles Inferiores
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -380,7 +424,9 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: _showOverlay ? null : _handleGiveUp, // Disable if overlay is up
+                    onPressed: _showOverlay
+                        ? null
+                        : _handleGiveUp, // Disable if overlay is up
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.cardBg,
                       foregroundColor: AppTheme.dangerRed,
@@ -400,32 +446,38 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
               title: _overlayTitle,
               message: _overlayMessage,
               isVictory: _isVictory,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                  _isGameOver = false;
-                  _secondsRemaining = 45;
-                  _initializeGame();
-                  _startTimer();
-                });
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                        _isGameOver = false;
+                        _secondsRemaining = 45;
+                        _initializeGame();
+                        _startTimer();
+                      });
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },

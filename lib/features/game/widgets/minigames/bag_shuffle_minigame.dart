@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../race_track_widget.dart';
@@ -34,19 +35,23 @@ class BagModel {
   Color ballColor;
   int currentPosition; // 0, 1, 2
 
-  BagModel({required this.id, required this.ballColor, required this.currentPosition});
+  BagModel(
+      {required this.id,
+      required this.ballColor,
+      required this.currentPosition});
 }
 
-class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProviderStateMixin {
+class _BagShuffleMinigameState extends State<BagShuffleMinigame>
+    with TickerProviderStateMixin {
   GameState _state = GameState.idle;
   late List<BagModel> _bags;
   late Color _targetColor;
   int _shufflesDone = 0;
   final int _totalShuffles = 15;
-  
+
   // Animation controllers
   late AnimationController _shuffleController;
-  
+
   // Stats
   late Timer _gameTimer;
   int _secondsRemaining = 60;
@@ -68,10 +73,10 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
       BagModel(id: 1, ballColor: Colors.green, currentPosition: 1),
       BagModel(id: 2, ballColor: Colors.blue, currentPosition: 2),
     ];
-    
+
     _shuffleController = AnimationController(
-       vsync: this,
-       duration: const Duration(milliseconds: 400),
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
     );
 
     _startGameTimer();
@@ -90,6 +95,15 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
       if (!mounted) return;
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return;
+
+      if (gameProvider.isFrozen) return;
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
@@ -113,26 +127,27 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
         _bags[i].currentPosition = i;
       }
       // Randomize target
-      _targetColor = [Colors.red, Colors.green, Colors.blue][Random().nextInt(3)];
+      _targetColor =
+          [Colors.red, Colors.green, Colors.blue][Random().nextInt(3)];
     });
 
     // Slow down the memorization phase to 3 seconds
     await Future.delayed(const Duration(milliseconds: 3000));
     if (!mounted) return;
-    
+
     _startShuffling();
   }
 
   void _startShuffling() async {
     setState(() => _state = GameState.shuffling);
-    
+
     // Wait for the bags to slowly cover the balls (entry animation)
     await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
 
     for (int i = 0; i < _totalShuffles; i++) {
       if (!mounted || _isGameOver) return;
-      
+
       int idx1 = Random().nextInt(3);
       int idx2;
       do {
@@ -165,6 +180,11 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
   void _onBagTap(BagModel bag) {
     if (_state != GameState.guessing || _isGameOver) return;
 
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     setState(() => _state = GameState.reveal);
     HapticFeedback.mediumImpact();
 
@@ -188,9 +208,9 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
 
   void _loseLife(String reason) async {
     _gameTimer.cancel();
-    
+
     int livesLeftCount = await MinigameLogicHelper.executeLoseLife(context);
-    
+
     if (mounted) {
       if (livesLeftCount <= 0) {
         setState(() => _isGameOver = true);
@@ -213,7 +233,11 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
     _loseLife("Abandono.");
   }
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool victory = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool victory = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -242,15 +266,23 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Row(
                 children: [
-                  _buildStatPill(Icons.favorite, "x${Provider.of<GameProvider>(context).lives}", AppTheme.dangerRed),
+                  _buildStatPill(
+                      Icons.favorite,
+                      "x${Provider.of<GameProvider>(context).lives}",
+                      AppTheme.dangerRed),
                   const Spacer(),
-                  _buildStatPill(Icons.timer_outlined, "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}", _secondsRemaining < 10 ? AppTheme.dangerRed : Colors.white70),
+                  _buildStatPill(
+                      Icons.timer_outlined,
+                      "${(_secondsRemaining ~/ 60)}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
+                      _secondsRemaining < 10
+                          ? AppTheme.dangerRed
+                          : Colors.white70),
                 ],
               ),
             ),
 
             const SizedBox(height: 10),
-            
+
             // STATUS & TARGET INFO
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -258,16 +290,26 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
                 children: [
                   Expanded(
                     child: Text(
-                      _state == GameState.showing 
-                        ? "MEMORIZA LA POSICIÓN"
-                        : _state == GameState.shuffling
-                          ? "¡AQUÍ VAN!"
-                          : "TOCA LA BOLSA CORRECTA",
-                      style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, decoration: TextDecoration.none),
+                      _state == GameState.showing
+                          ? "MEMORIZA LA POSICIÓN"
+                          : _state == GameState.shuffling
+                              ? "¡AQUÍ VAN!"
+                              : "TOCA LA BOLSA CORRECTA",
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                          decoration: TextDecoration.none),
                     ),
                   ),
                   if (_state != GameState.shuffling) ...[
-                    const Text("BUSCA: ", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+                    const Text("BUSCA: ",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none)),
                     const SizedBox(width: 8),
                     Container(
                       width: 20,
@@ -296,7 +338,7 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: List.generate(3, (index) => _buildSlotMarker()),
                     ),
-                    
+
                     // The Bags
                     ..._bags.map((bag) => _buildAnimatedBag(bag)),
                   ],
@@ -307,7 +349,8 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
             // SHUFFLE PROGRESS
             if (_state == GameState.shuffling)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                 child: Column(
                   children: [
                     LinearProgressIndicator(
@@ -316,11 +359,16 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
                       color: AppTheme.accentGold,
                     ),
                     const SizedBox(height: 5),
-                    const Text("MEZCLANDO...", style: TextStyle(color: AppTheme.accentGold, fontSize: 10, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+                    const Text("MEZCLANDO...",
+                        style: TextStyle(
+                            color: AppTheme.accentGold,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none)),
                   ],
                 ),
               ),
-            
+
             // BOTÓN DE RENDICIÓN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -328,34 +376,41 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
                 onPressed: _handleGiveUp,
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 45),
-                  side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.4), width: 1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  side: BorderSide(
+                      color: AppTheme.dangerRed.withOpacity(0.4), width: 1),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 child: Text(
                   "RENDIRSE",
-                  style: TextStyle(color: AppTheme.dangerRed.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: AppTheme.dangerRed.withOpacity(0.7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),
             const SizedBox(height: 10),
           ],
         ),
-
         if (_showOverlay)
           GameOverOverlay(
             title: _overlayTitle,
             message: _overlayMessage,
             isVictory: _isVictory,
             onRetry: _canRetry ? _resetGame : null,
-            onGoToShop: _showShopButton ? () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
-              if (mounted) {
-                setState(() {
-                  _canRetry = true;
-                  _showShopButton = false;
-                });
-              }
-            } : null,
+            onGoToShop: _showShopButton
+                ? () async {
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()));
+                    if (mounted) {
+                      setState(() {
+                        _canRetry = true;
+                        _showShopButton = false;
+                      });
+                    }
+                  }
+                : null,
             onExit: () {
               Navigator.pop(context);
             },
@@ -402,20 +457,33 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
                       decoration: BoxDecoration(
                         color: bag.ballColor,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: bag.ballColor.withOpacity(0.4), blurRadius: 10)],
+                        boxShadow: [
+                          BoxShadow(
+                              color: bag.ballColor.withOpacity(0.4),
+                              blurRadius: 10)
+                        ],
                       ),
                     ),
                   ),
-                
+
                 // BAG DESIGN (Pouch shape)
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 1200), // Slower entry/covering animation
-                  height: (_state == GameState.showing || _state == GameState.reveal) ? 100 : 160,
+                  duration: const Duration(
+                      milliseconds: 1200), // Slower entry/covering animation
+                  height: (_state == GameState.showing ||
+                          _state == GameState.reveal)
+                      ? 100
+                      : 160,
                   width: 95,
-                  margin: EdgeInsets.only(bottom: (_state == GameState.showing || _state == GameState.reveal) ? 80 : 0),
+                  margin: EdgeInsets.only(
+                      bottom: (_state == GameState.showing ||
+                              _state == GameState.reveal)
+                          ? 80
+                          : 0),
                   child: CustomPaint(
                     painter: BagPainter(
-                      color: const Color(0xFF8B4513).withOpacity(0.9), // Brown leather color
+                      color: const Color(0xFF8B4513)
+                          .withOpacity(0.9), // Brown leather color
                       borderColor: const Color(0xFF5D2E0A),
                     ),
                   ),
@@ -452,7 +520,11 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame> with TickerProv
         children: [
           Icon(icon, color: color, size: 14),
           const SizedBox(width: 6),
-          Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+          Text(text,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13)),
         ],
       ),
     );
@@ -482,37 +554,41 @@ class BagPainter extends CustomPainter {
       ..strokeWidth = 4;
 
     final path = Path();
-    
+
     // Smooth Pouch Shape
     path.moveTo(size.width * 0.35, 0); // Top left neck
     path.lineTo(size.width * 0.65, 0); // Top right neck
-    
+
     // Neck curve
-    path.quadraticBezierTo(size.width * 0.8, size.height * 0.1, size.width * 0.9, size.height * 0.3);
-    
+    path.quadraticBezierTo(size.width * 0.8, size.height * 0.1,
+        size.width * 0.9, size.height * 0.3);
+
     // Belly curve right
-    path.quadraticBezierTo(size.width * 1.0, size.height * 0.7, size.width * 0.8, size.height);
-    
+    path.quadraticBezierTo(
+        size.width * 1.0, size.height * 0.7, size.width * 0.8, size.height);
+
     // Bottom
     path.lineTo(size.width * 0.2, size.height);
-    
+
     // Belly curve left
-    path.quadraticBezierTo(0, size.height * 0.7, size.width * 0.1, size.height * 0.3);
-    
+    path.quadraticBezierTo(
+        0, size.height * 0.7, size.width * 0.1, size.height * 0.3);
+
     // Back to neck
-    path.quadraticBezierTo(size.width * 0.2, size.height * 0.1, size.width * 0.35, 0);
+    path.quadraticBezierTo(
+        size.width * 0.2, size.height * 0.1, size.width * 0.35, 0);
     path.close();
 
     // Fill
     canvas.drawPath(path, paint);
-    
+
     // Gradient overlay for volume
     final rect = Offset.zero & size;
     final gradient = RadialGradient(
       center: const Alignment(-0.2, -0.3),
       colors: [Colors.white.withOpacity(0.2), Colors.black.withOpacity(0.2)],
     ).createShader(rect);
-    
+
     final gradientPaint = Paint()..shader = gradient;
     canvas.drawPath(path, gradientPaint);
 
@@ -522,11 +598,13 @@ class BagPainter extends CustomPainter {
     // Draw the "Tie" (Rope around the neck)
     final ropePath = Path();
     ropePath.moveTo(size.width * 0.25, size.height * 0.15);
-    ropePath.quadraticBezierTo(size.width * 0.5, size.height * 0.2, size.width * 0.75, size.height * 0.15);
+    ropePath.quadraticBezierTo(size.width * 0.5, size.height * 0.2,
+        size.width * 0.75, size.height * 0.15);
     canvas.drawPath(ropePath, ropePaint);
-    
+
     // Small knot/detail
-    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.18), 4, ropePaint..style = PaintingStyle.fill);
+    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.18), 4,
+        ropePaint..style = PaintingStyle.fill);
   }
 
   @override

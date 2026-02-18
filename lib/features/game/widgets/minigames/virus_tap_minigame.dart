@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math';
 import '../../models/clue.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -96,6 +97,13 @@ class _VirusTapMinigameState extends State<VirusTapMinigame> {
         return;
       }
       setState(() {
+        // [FIX] Pause timer if connectivity is bad
+        final connectivityByProvider =
+            Provider.of<ConnectivityProvider>(context, listen: false);
+        if (!connectivityByProvider.isOnline) {
+          return; // Skip tick
+        }
+
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
           // Difficulty Ramp Up
@@ -116,6 +124,13 @@ class _VirusTapMinigameState extends State<VirusTapMinigame> {
         timer.cancel();
         return;
       }
+      // [FIX] Pause game loop if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
+
       _updateGameLoop();
     });
 
@@ -159,6 +174,11 @@ class _VirusTapMinigameState extends State<VirusTapMinigame> {
 
   Future<void> _handleTap(GameItem item) async {
     if (_isGameOver) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
 
     if (item.type == VirusItemType.virus) {
       // Good tap

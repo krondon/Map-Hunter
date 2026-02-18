@@ -5,6 +5,7 @@ import '../../utils/minigame_logic_helper.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 import 'game_over_overlay.dart';
@@ -28,7 +29,7 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
   // Configuración
   final int gridSize = 3;
   late List<int> tiles;
-  
+
   // Estado del juego
   late Timer _timer;
   int _secondsRemaining = 120; // 2 minutos
@@ -41,7 +42,11 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
   bool _canRetry = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -50,7 +55,7 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
       _showShopButton = showShop;
     });
   }
-  
+
   @override
   void initState() {
     super.initState();
@@ -62,23 +67,25 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
     // Generar 8 números y 1 vacío (0)
     tiles = List.generate(gridSize * gridSize, (index) => index);
     // Mezclar hasta que sea resoluble (o simplemente random para demo)
-    // Nota: Un shuffle simple puede crear puzzles irresolubles. 
+    // Nota: Un shuffle simple puede crear puzzles irresolubles.
     // Para simplificar demo: Haremos movimientos válidos aleatorios desde el estado resuelto.
     _shuffleSolvable();
   }
 
   void _shuffleSolvable() {
     // Empezar resuelto
-    tiles = List.generate(gridSize * gridSize, (index) => (index + 1) % (gridSize * gridSize));
+    tiles = List.generate(
+        gridSize * gridSize, (index) => (index + 1) % (gridSize * gridSize));
     tiles[gridSize * gridSize - 1] = 0; // El último es el vacío
 
     // Hacer 50 movimientos aleatorios válidos
     int emptyIndex = tiles.indexOf(0);
     for (int i = 0; i < 50; i++) {
-        final neighbors = _getNeighbors(emptyIndex);
-        final randomNeighbor = neighbors[DateTime.now().microsecond % neighbors.length];
-        _swap(emptyIndex, randomNeighbor);
-        emptyIndex = randomNeighbor;
+      final neighbors = _getNeighbors(emptyIndex);
+      final randomNeighbor =
+          neighbors[DateTime.now().microsecond % neighbors.length];
+      _swap(emptyIndex, randomNeighbor);
+      emptyIndex = randomNeighbor;
     }
   }
 
@@ -91,7 +98,7 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
     if (row < gridSize - 1) neighbors.add(index + gridSize); // Abajo
     if (col > 0) neighbors.add(index - 1); // Izquierda
     if (col < gridSize - 1) neighbors.add(index + 1); // Derecha
-    
+
     return neighbors;
   }
 
@@ -103,6 +110,11 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
 
   void _onTileTap(int index) {
     if (_isGameOver) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
 
     final emptyIndex = tiles.indexOf(0);
     if (_getNeighbors(emptyIndex).contains(index)) {
@@ -130,10 +142,17 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
-      
+
       // Check for freeze state
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return; // Pause timer
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
@@ -160,7 +179,7 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
   void _loseLife(String reason) async {
     _stopTimer(); // Asegurar que el timer se detiene
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
 
@@ -168,18 +187,16 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
 
       if (newLives <= 0) {
         _showOverlayState(
-          title: "GAME OVER", 
-          message: "Te has quedado sin vidas.",
-          retry: false,
-          showShop: true
-        );
+            title: "GAME OVER",
+            message: "Te has quedado sin vidas.",
+            retry: false,
+            showShop: true);
       } else {
         _showOverlayState(
-          title: "¡FALLASTE!", 
-          message: "$reason",
-          retry: true,
-          showShop: false
-        );
+            title: "¡FALLASTE!",
+            message: "$reason",
+            retry: true,
+            showShop: false);
       }
     }
   }
@@ -204,41 +221,53 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
             children: [
               // Status Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Vidas
-                    Consumer<GameProvider>(
-                      builder: (context, game, _) {
-                        return Row(
-                          children: [
-                            const Icon(Icons.favorite, color: AppTheme.dangerRed),
-                            const SizedBox(width: 5),
-                            Text("x${game.lives}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          ],
-                        );
-                      }
-                    ),
+                    Consumer<GameProvider>(builder: (context, game, _) {
+                      return Row(
+                        children: [
+                          const Icon(Icons.favorite, color: AppTheme.dangerRed),
+                          const SizedBox(width: 5),
+                          Text("x${game.lives}",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      );
+                    }),
                     // Timer
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _secondsRemaining < 30 ? AppTheme.dangerRed.withOpacity(0.2) : Colors.white10,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _secondsRemaining < 30 ? AppTheme.dangerRed : Colors.white24)
-                      ),
+                          color: _secondsRemaining < 30
+                              ? AppTheme.dangerRed.withOpacity(0.2)
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: _secondsRemaining < 30
+                                  ? AppTheme.dangerRed
+                                  : Colors.white24)),
                       child: Row(
                         children: [
-                          Icon(Icons.timer, size: 16, color: _secondsRemaining < 30 ? AppTheme.dangerRed : Colors.white),
+                          Icon(Icons.timer,
+                              size: 16,
+                              color: _secondsRemaining < 30
+                                  ? AppTheme.dangerRed
+                                  : Colors.white),
                           const SizedBox(width: 5),
                           Text(
-                            "${_secondsRemaining ~/ 60}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
-                            style: TextStyle(
-                              color: _secondsRemaining < 30 ? AppTheme.dangerRed : Colors.white, 
-                              fontWeight: FontWeight.bold
-                            )
-                          ),
+                              "${_secondsRemaining ~/ 60}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
+                              style: TextStyle(
+                                  color: _secondsRemaining < 30
+                                      ? AppTheme.dangerRed
+                                      : Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -254,12 +283,13 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                       margin: const EdgeInsets.all(20),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.cardBg,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10)
-                        ]
-                      ),
+                          color: AppTheme.cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 10)
+                          ]),
                       child: GridView.builder(
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -270,23 +300,28 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                         itemCount: tiles.length,
                         itemBuilder: (context, index) {
                           final number = tiles[index];
-                          if (number == 0) return const SizedBox.shrink(); // Espacio vacío
+                          if (number == 0)
+                            return const SizedBox.shrink(); // Espacio vacío
 
                           return GestureDetector(
                             onTap: () => _onTileTap(index),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryPurple,
-                                borderRadius: BorderRadius.circular(8),
-                                gradient: const LinearGradient(
-                                  colors: [AppTheme.primaryPurple, AppTheme.secondaryPink],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                boxShadow: [
-                                   BoxShadow(color: Colors.black.withOpacity(0.2), offset: const Offset(2,2))
-                                ]
-                              ),
+                                  color: AppTheme.primaryPurple,
+                                  borderRadius: BorderRadius.circular(8),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      AppTheme.primaryPurple,
+                                      AppTheme.secondaryPink
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        offset: const Offset(2, 2))
+                                  ]),
                               child: Center(
                                 child: Text(
                                   "$number",
@@ -305,7 +340,7 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                   ),
                 ),
               ),
-              
+
               // Controles Inferiores
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -313,7 +348,9 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: _showOverlay ? null : _handleGiveUp, // Disable if overlay is up
+                    onPressed: _showOverlay
+                        ? null
+                        : _handleGiveUp, // Disable if overlay is up
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.cardBg,
                       foregroundColor: AppTheme.dangerRed,
@@ -333,36 +370,43 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
               title: _overlayTitle,
               message: _overlayMessage,
               isVictory: false, // Sliding puzzle failure is always loss here
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                  _isGameOver = false;
-                  _secondsRemaining = 120;
-                  _initializePuzzle();
-                  _startTimer();
-                });
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                
-                // Force Sync
-                await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
-                
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                        _isGameOver = false;
+                        _secondsRemaining = 120;
+                        _initializePuzzle();
+                        _startTimer();
+                      });
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+
+                      // Force Sync
+                      await Provider.of<PlayerProvider>(context, listen: false)
+                          .refreshProfile();
+
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },

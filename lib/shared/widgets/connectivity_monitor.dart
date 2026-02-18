@@ -29,41 +29,46 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
   int _secondsRemaining = 25;
   bool _showOverlay = false;
   bool _hasTriggeredDisconnect = false;
+  ConnectivityProvider? _connectivityProvider;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
+    // Post-frame callback to register listener to avoid building blocking
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectivityProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      _connectivityProvider?.addListener(_onConnectivityChanged);
+      // Check initial status
+      _onConnectivityChanged();
+    });
+  }
 
-    // [FIX] Guard: Skip connectivity monitoring if user is logged out.
-    // Prevents context.read calls during logout teardown.
+  @override
+  void dispose() {
+    _connectivityProvider?.removeListener(_onConnectivityChanged);
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onConnectivityChanged() {
+    if (!mounted || _hasTriggeredDisconnect) return;
+
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     if (playerProvider.currentPlayer == null) {
       _cancelCountdown();
       return;
     }
 
-    final connectivity = Provider.of<ConnectivityProvider>(context);
-    final status = connectivity.status;
+    final status = _connectivityProvider?.status ?? ConnectivityStatus.online;
 
-    // Si volvió online, cancelar todo
     if (status == ConnectivityStatus.online) {
       _cancelCountdown();
-      return;
-    }
-
-    // Si señal baja o offline, iniciar countdown si no está activo
-    if ((status == ConnectivityStatus.lowSignal ||
-            status == ConnectivityStatus.offline) &&
-        !_showOverlay &&
-        !_hasTriggeredDisconnect) {
-      _startCountdown();
-    }
-
-    // Si llegamos a offline y ya pasó el tiempo
-    if (status == ConnectivityStatus.offline &&
-        _secondsRemaining <= 0 &&
-        !_hasTriggeredDisconnect) {
-      _handleDisconnect();
+    } else if (status == ConnectivityStatus.lowSignal ||
+        status == ConnectivityStatus.offline) {
+      if (!_showOverlay) {
+        _startCountdown();
+      }
     }
   }
 
@@ -78,7 +83,9 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          _secondsRemaining--;
+          if (_secondsRemaining > 0) {
+            _secondsRemaining--;
+          }
         });
 
         if (_secondsRemaining <= 0) {
@@ -121,8 +128,9 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
       // 1. Guardar penalización pendiente LOCALMENTE (Por si no hay internet ahora)
       unawaited(SharedPreferences.getInstance().then((prefs) {
         prefs.setBool('pending_life_loss', true);
-        if (eventId != null)
+        if (eventId != null) {
           prefs.setString('pending_life_loss_event', eventId);
+        }
         debugPrint('ConnectivityMonitor: Penalización guardada localmente');
       }));
 
@@ -154,6 +162,15 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
 
     // 3. Detener monitoreo local
     connectivity.stopMonitoring();
+
+    // 4. Resetear estado del overlay y flags para la próxima sesión
+    if (mounted) {
+      setState(() {
+        _showOverlay = false;
+        _secondsRemaining = 25;
+        _hasTriggeredDisconnect = false;
+      });
+    }
   }
 
   void _showDisconnectMessage(String message) {

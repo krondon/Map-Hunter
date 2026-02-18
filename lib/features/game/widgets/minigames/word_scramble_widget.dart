@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:math'; // For shuffling
 import '../../models/clue.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -13,7 +14,8 @@ class WordScrambleWidget extends StatefulWidget {
   final Clue clue;
   final VoidCallback onSuccess;
 
-  const WordScrambleWidget({super.key, required this.clue, required this.onSuccess});
+  const WordScrambleWidget(
+      {super.key, required this.clue, required this.onSuccess});
 
   @override
   State<WordScrambleWidget> createState() => _WordScrambleWidgetState();
@@ -41,24 +43,34 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
   void _onReset() {
     final answer = widget.clue.riddleAnswer?.toUpperCase() ?? "FLUTTER";
     _currentWord = "";
-    
+
     // Create pool of letters (answer + some random noise if needed, but simple scramble is safer)
     List<String> letters = answer.split('');
     letters.shuffle(Random());
     _shuffledLetters = letters;
-    
+
     setState(() {});
   }
 
   void _onLetterTap(String letter) {
     if (_showOverlay) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     setState(() {
       _currentWord += letter;
       _shuffledLetters.remove(letter); // Remove ONE instance of the letter
     });
   }
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -71,6 +83,11 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
   void _checkAnswer() {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     if (gameProvider.isFrozen) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
 
     if (_currentWord == widget.clue.riddleAnswer?.toUpperCase()) {
       // ÉXITO
@@ -97,33 +114,31 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
   void _loseLife(String reason) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
-      
+
       if (!mounted) return;
-      
+
       final playerLives = playerProvider.currentPlayer?.lives ?? 0;
       final gameLives = gameProvider.lives;
 
       if (gameLives <= 0 || playerLives <= 0) {
-         _showOverlayState(
-            title: "GAME OVER", 
+        _showOverlayState(
+            title: "GAME OVER",
             message: "Te has quedado sin vidas.",
             retry: false,
-            showShop: true
-         );
+            showShop: true);
       } else {
-         setState(() {
-           _attempts = 3;
-           _onReset();
-         });
-         _showOverlayState(
-            title: "¡FALLASTE!", 
+        setState(() {
+          _attempts = 3;
+          _onReset();
+        });
+        _showOverlayState(
+            title: "¡FALLASTE!",
             message: "$reason",
             retry: true,
-            showShop: false
-         );
+            showShop: false);
       }
     }
   }
@@ -133,7 +148,7 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
   @override
   Widget build(BuildContext context) {
     final answerLength = widget.clue.riddleAnswer?.length ?? 8;
-    
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {},
@@ -144,7 +159,8 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               children: [
-                const Icon(Icons.shuffle, size: 40, color: AppTheme.secondaryPink),
+                const Icon(Icons.shuffle,
+                    size: 40, color: AppTheme.secondaryPink),
                 const SizedBox(height: 8),
                 const Text(
                   'PALABRA MISTERIOSA',
@@ -155,10 +171,11 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Display de la palabra actual
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
                   decoration: BoxDecoration(
                     color: const Color.fromRGBO(0, 0, 0, 0.3),
                     borderRadius: BorderRadius.circular(10),
@@ -178,7 +195,7 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Letras disponibles
                 Wrap(
                   spacing: 8,
@@ -214,7 +231,7 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
                       .toList(),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Botones de acción
                 Row(
                   children: [
@@ -228,9 +245,11 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
-                        onPressed: _showOverlay ? null : (_currentWord.length == answerLength
-                            ? _checkAnswer
-                            : null), // Disable if overlay is up
+                        onPressed: _showOverlay
+                            ? null
+                            : (_currentWord.length == answerLength
+                                ? _checkAnswer
+                                : null), // Disable if overlay is up
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.successGreen,
                         ),
@@ -248,29 +267,35 @@ class _WordScrambleWidgetState extends State<WordScrambleWidget> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                });
-                // Reset already called in loseLife
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                      });
+                      // Reset already called in loseLife
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },

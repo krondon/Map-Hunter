@@ -7,6 +7,7 @@ import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import 'game_over_overlay.dart';
 import '../../../mall/screens/mall_screen.dart';
 
@@ -31,14 +32,14 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
   bool _isGameOver = false;
 
   late List<Map<String, String>> _shuffledQuestions;
-  
+
   // Timer State
   Timer? _timer;
   int _secondsRemaining = 45; // Menos tiempo para presionar un poco más
-  
+
   // Estado Local
   List<String>? _currentOptions;
-  int _localAttempts = 3; 
+  int _localAttempts = 3;
 
   // Lista de países balanceada (Nivel Intermedio)
   final List<Map<String, String>> _allCountries = [
@@ -84,7 +85,7 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     super.initState();
     _startNewGame();
   }
-  
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -99,6 +100,13 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
       // Check for freeze state
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return; // Pause timer
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (_secondsRemaining > 0) {
         setState(() {
@@ -117,13 +125,13 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     questions.shuffle(random);
     // Tomar suficientes para el target
     _shuffledQuestions = questions.take(_targetScore).toList();
-    
+
     _score = 0;
     _currentQuestionIndex = 0;
     _isGameOver = false;
-    _secondsRemaining = 45; 
-    _currentOptions = null; 
-    _localAttempts = 3; 
+    _secondsRemaining = 45;
+    _currentOptions = null;
+    _localAttempts = 3;
     _startTimer();
     setState(() {});
   }
@@ -134,12 +142,19 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     if (gameProvider.isFrozen) return; // Ignore input if frozen
 
+    if (gameProvider.isFrozen) return; // Ignore input if frozen
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     final correctAnswer = _shuffledQuestions[_currentQuestionIndex]['name'];
-    
+
     if (selectedName == correctAnswer) {
       _score++;
       _currentOptions = null;
-      
+
       if (_score >= _targetScore) {
         _winGame();
       } else {
@@ -159,7 +174,7 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
         setState(() {
           _currentOptions = null;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Incorrecto. Te quedan $_localAttempts intentos."),
@@ -179,7 +194,12 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
   bool _isVictory = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool victory = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool victory = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -193,7 +213,7 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
   void _loseGlobalLife(String reason, {bool timeOut = false}) async {
     _timer?.cancel();
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     // Stop interaction immediately
     setState(() => _isGameOver = true);
 
@@ -203,19 +223,17 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
       if (!mounted) return;
 
       if (newLives <= 0) {
-         _showOverlayState(
-            title: "GAME OVER", 
+        _showOverlayState(
+            title: "GAME OVER",
             message: "Te has quedado sin vidas globales.\n$reason",
             retry: false,
-            showShop: true
-         );
+            showShop: true);
       } else {
-         _showOverlayState(
-            title: "¡FALLASTE!", 
+        _showOverlayState(
+            title: "¡FALLASTE!",
             message: "$reason\nHas perdido 1 vida.",
             retry: true,
-            showShop: false
-         );
+            showShop: false);
       }
     }
   }
@@ -230,7 +248,8 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
     final options = <String>{correctAnswer};
 
     while (options.length < 4) {
-      final randomCountry = _allCountries[random.nextInt(_allCountries.length)]['name']!;
+      final randomCountry =
+          _allCountries[random.nextInt(_allCountries.length)]['name']!;
       options.add(randomCountry);
     }
 
@@ -240,11 +259,11 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
 
   void _winGame() {
     _timer?.cancel();
-    setState(() { 
+    setState(() {
       _isGameOver = true;
     });
-    // For victory, we might still want to call onSuccess directly, 
-    // or show a victory overlay first. Use logic helper's standard if preferred, 
+    // For victory, we might still want to call onSuccess directly,
+    // or show a victory overlay first. Use logic helper's standard if preferred,
     // but here we just follow previous logic:
     widget.onSuccess();
   }
@@ -269,21 +288,33 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
                 children: [
                   // HEADER: TIMER & INTENTOS LOCALES
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: (_secondsRemaining <= 10) ? AppTheme.dangerRed.withOpacity(0.2) : Colors.black45,
+                      color: (_secondsRemaining <= 10)
+                          ? AppTheme.dangerRed.withOpacity(0.2)
+                          : Colors.black45,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: (_secondsRemaining <= 10) ? AppTheme.dangerRed : AppTheme.accentGold),
+                      border: Border.all(
+                          color: (_secondsRemaining <= 10)
+                              ? AppTheme.dangerRed
+                              : AppTheme.accentGold),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.timer, color: (_secondsRemaining <= 10) ? AppTheme.dangerRed : AppTheme.accentGold, size: 20),
+                        Icon(Icons.timer,
+                            color: (_secondsRemaining <= 10)
+                                ? AppTheme.dangerRed
+                                : AppTheme.accentGold,
+                            size: 20),
                         const SizedBox(width: 8),
                         Text(
                           "${(_secondsRemaining / 60).floor().toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}",
                           style: TextStyle(
-                            color: (_secondsRemaining <= 10) ? AppTheme.dangerRed : Colors.white,
+                            color: (_secondsRemaining <= 10)
+                                ? AppTheme.dangerRed
+                                : Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
@@ -292,12 +323,15 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
 
                   const Text(
                     "¿DE QUÉ PAÍS ES ESTA BANDERA?",
-                    style: TextStyle(color: AppTheme.primaryPurple, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: AppTheme.primaryPurple,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 5),
@@ -313,7 +347,9 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
                       Row(
                         children: List.generate(3, (index) {
                           return Icon(
-                            index < _localAttempts ? Icons.favorite : Icons.favorite_border,
+                            index < _localAttempts
+                                ? Icons.favorite
+                                : Icons.favorite_border,
                             color: AppTheme.secondaryPink,
                             size: 20,
                           );
@@ -324,18 +360,23 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
                   const SizedBox(height: 20),
 
                   // Bandera
-                  if (_shuffledQuestions.isNotEmpty && _currentQuestionIndex < _shuffledQuestions.length)
+                  if (_shuffledQuestions.isNotEmpty &&
+                      _currentQuestionIndex < _shuffledQuestions.length)
                     Container(
                       height: 150,
                       width: 250,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.white, width: 2),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.5),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5))
                         ],
                         image: DecorationImage(
                           fit: BoxFit.cover,
-                          image: NetworkImage("https://flagcdn.com/w640/${_shuffledQuestions[_currentQuestionIndex]['code']}.png"),
+                          image: NetworkImage(
+                              "https://flagcdn.com/w640/${_shuffledQuestions[_currentQuestionIndex]['code']}.png"),
                         ),
                       ),
                     ),
@@ -352,13 +393,16 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
                         return ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryPurple,
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 15),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => _handleOptionSelected(option),
                           child: Text(
                             option,
-                            style: const TextStyle(fontSize: 16, color: Colors.white),
+                            style: const TextStyle(
+                                fontSize: 16, color: Colors.white),
                           ),
                         );
                       }).toList(),
@@ -376,32 +420,39 @@ class _FlagsMinigameState extends State<FlagsMinigame> {
               title: _overlayTitle,
               message: _overlayMessage,
               isVictory: _isVictory,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                });
-                _startNewGame();
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                // Force sync
-                await Provider.of<PlayerProvider>(context, listen: false).refreshProfile();
-                
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                      });
+                      _startNewGame();
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+                      // Force sync
+                      await Provider.of<PlayerProvider>(context, listen: false)
+                          .refreshProfile();
+
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },

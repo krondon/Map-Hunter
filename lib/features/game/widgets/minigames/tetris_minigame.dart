@@ -6,6 +6,7 @@ import '../../utils/minigame_logic_helper.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'game_over_overlay.dart';
@@ -29,13 +30,14 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   // Configuración del tablero
   static const int rows = 20;
   static const int columns = 10;
-  List<List<Color?>> board = List.generate(rows, (_) => List.filled(columns, null));
+  List<List<Color?>> board =
+      List.generate(rows, (_) => List.filled(columns, null));
 
   // Pieza actual
   List<Point<int>> currentPiece = [];
   Color currentPieceColor = Colors.transparent;
   Point<int> currentPiecePosition = const Point(0, 0);
-  
+
   // Estado del juego
   Timer? _timer;
   int _score = 0;
@@ -52,7 +54,11 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   bool _canRetry = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -61,26 +67,62 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       _showShopButton = showShop;
     });
   }
-  
+
   // Audio
   late AudioPlayer _audioPlayer;
   bool _isMusicPlaying = false;
   // Usando un link de Archive.org que es muy persistente
   // Usando un link más directo y robusto de GitHub para evitar problemas de carga
-  static const String _tetrisMusicUrl = "https://raw.githubusercontent.com/frodoben85/flutter_tetris/master/assets/audio/tetris.mp3";
-  
+  static const String _tetrisMusicUrl =
+      "https://raw.githubusercontent.com/frodoben85/flutter_tetris/master/assets/audio/tetris.mp3";
+
   // Próxima pieza
   int? _nextPieceIndex;
-  
+
   // Tetrominoes
   final List<List<Point<int>>> _tetrominoes = [
-    [const Point(0, 0), const Point(1, 0), const Point(2, 0), const Point(3, 0)], // I
-    [const Point(0, 0), const Point(1, 0), const Point(0, 1), const Point(1, 1)], // O
-    [const Point(1, 0), const Point(0, 1), const Point(1, 1), const Point(2, 1)], // T
-    [const Point(1, 0), const Point(2, 0), const Point(0, 1), const Point(1, 1)], // S
-    [const Point(0, 0), const Point(1, 0), const Point(1, 1), const Point(2, 1)], // Z
-    [const Point(0, 0), const Point(0, 1), const Point(1, 1), const Point(2, 1)], // J
-    [const Point(2, 0), const Point(0, 1), const Point(1, 1), const Point(2, 1)], // L
+    [
+      const Point(0, 0),
+      const Point(1, 0),
+      const Point(2, 0),
+      const Point(3, 0)
+    ], // I
+    [
+      const Point(0, 0),
+      const Point(1, 0),
+      const Point(0, 1),
+      const Point(1, 1)
+    ], // O
+    [
+      const Point(1, 0),
+      const Point(0, 1),
+      const Point(1, 1),
+      const Point(2, 1)
+    ], // T
+    [
+      const Point(1, 0),
+      const Point(2, 0),
+      const Point(0, 1),
+      const Point(1, 1)
+    ], // S
+    [
+      const Point(0, 0),
+      const Point(1, 0),
+      const Point(1, 1),
+      const Point(2, 1)
+    ], // Z
+    [
+      const Point(0, 0),
+      const Point(0, 1),
+      const Point(1, 1),
+      const Point(2, 1)
+    ], // J
+    [
+      const Point(2, 0),
+      const Point(0, 1),
+      const Point(1, 1),
+      const Point(2, 1)
+    ], // L
   ];
 
   final List<Color> _tetrominoColors = [
@@ -99,7 +141,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     _audioPlayer = AudioPlayer();
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
     _audioPlayer.setVolume(1.0);
-    
+
     // Iniciar lo más rápido posible
     _playMusic();
     _startGame();
@@ -118,7 +160,8 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       debugPrint("ERROR en _playMusic: $e");
       // Intento con fallback si falla el principal
       try {
-        await _audioPlayer.play(UrlSource("https://ia800504.us.archive.org/33/items/TetrisThemeA/Tetris%20Theme%20A.mp3"));
+        await _audioPlayer.play(UrlSource(
+            "https://ia800504.us.archive.org/33/items/TetrisThemeA/Tetris%20Theme%20A.mp3"));
         if (mounted) setState(() => _isMusicPlaying = true);
       } catch (e2) {
         debugPrint("ERROR en fallback music: $e2");
@@ -159,10 +202,17 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     int speed = max(100, 800 - (_level * 50));
     _timer = Timer.periodic(Duration(milliseconds: speed), (timer) {
       if (!mounted) return;
-      
+
       // Check for freeze state
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return; // Pause game loop
+
+      // [FIX] Pause game loop if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (!_isPaused && !_isGameOver) {
         _moveDown();
@@ -172,12 +222,12 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
 
   void _spawnPiece() {
     final random = Random();
-    
+
     // Si no hay próxima pieza (inicio), generamos una
     if (_nextPieceIndex == null) {
       _nextPieceIndex = random.nextInt(_tetrominoes.length);
     }
-    
+
     final index = _nextPieceIndex!;
     currentPiece = List.from(_tetrominoes[index]);
     currentPieceColor = _tetrominoColors[index];
@@ -197,7 +247,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     if (!_isMusicPlaying) {
       _playMusic();
     }
-    
+
     for (var point in piece) {
       final x = position.x + point.x;
       final y = position.y + point.y;
@@ -205,7 +255,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       if (x < 0 || x >= columns || y >= rows) {
         return false;
       }
-      
+
       if (y >= 0 && board[y][x] != null) {
         return false;
       }
@@ -214,9 +264,11 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   }
 
   void _moveDown() {
-    if (_isValidPosition(currentPiece, Point(currentPiecePosition.x, currentPiecePosition.y + 1))) {
+    if (_isValidPosition(currentPiece,
+        Point(currentPiecePosition.x, currentPiecePosition.y + 1))) {
       setState(() {
-        currentPiecePosition = Point(currentPiecePosition.x, currentPiecePosition.y + 1);
+        currentPiecePosition =
+            Point(currentPiecePosition.x, currentPiecePosition.y + 1);
       });
     } else {
       _lockPiece();
@@ -249,15 +301,21 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     }
 
     if (lines > 0) {
-      int points = lines == 1 ? 100 : lines == 2 ? 300 : lines == 3 ? 500 : 800;
+      int points = lines == 1
+          ? 100
+          : lines == 2
+              ? 300
+              : lines == 3
+                  ? 500
+                  : 800;
       _score += points;
       _linesCleared += lines;
-      
+
       if (_linesCleared >= _level * 5) {
         _level++;
         _startTimer(); // Aumentar velocidad
       }
-      
+
       if (_score >= _targetScore) {
         _winGame();
       }
@@ -265,24 +323,36 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   }
 
   void _moveLeft() {
-    if (!_isPaused && !_isGameOver && _isValidPosition(currentPiece, Point(currentPiecePosition.x - 1, currentPiecePosition.y))) {
+    if (!_isPaused &&
+        !_isGameOver &&
+        _isValidPosition(currentPiece,
+            Point(currentPiecePosition.x - 1, currentPiecePosition.y))) {
       setState(() {
-        currentPiecePosition = Point(currentPiecePosition.x - 1, currentPiecePosition.y);
+        currentPiecePosition =
+            Point(currentPiecePosition.x - 1, currentPiecePosition.y);
       });
     }
   }
 
   void _moveRight() {
-    if (!_isPaused && !_isGameOver && _isValidPosition(currentPiece, Point(currentPiecePosition.x + 1, currentPiecePosition.y))) {
+    if (!_isPaused &&
+        !_isGameOver &&
+        _isValidPosition(currentPiece,
+            Point(currentPiecePosition.x + 1, currentPiecePosition.y))) {
       setState(() {
-        currentPiecePosition = Point(currentPiecePosition.x + 1, currentPiecePosition.y);
+        currentPiecePosition =
+            Point(currentPiecePosition.x + 1, currentPiecePosition.y);
       });
     }
   }
 
   void _rotate() {
     if (_isPaused || _isGameOver) return;
-    
+
+    // [FIX] Prevent interaction if offline
+    if (!Provider.of<ConnectivityProvider>(context, listen: false).isOnline)
+      return;
+
     // Simplest rotation: 90 degrees clockwise
     // x' = -y
     // y' = x
@@ -302,22 +372,22 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       // y' = 3 - x (para matriz 4x4)
       // Vamos a usar una rotación simple relativa al primer bloque
     }
-    
+
     // Mejor enfoque: rotar alrededor del centro relativo de la pieza
     // Para 3x3 o 4x4.
     // Usaremos una tabla predefinida o simplemente lógica de matriz
-    
+
     List<Point<int>> rotated = [];
     // Centro de rotación aproximado (1.5, 1.5) no funciona bien con Points enteros.
     // Usamos rotación básica: (x, y) -> (-y, x)
-    
+
     // Vamos a hardcodear algo simple: cambiar ancho por alto
     // Realmente necesitamos rotar cada punto relativo al origen de la pieza
-    
+
     // Estrategia correcta:
     // 1. Encontrar centro
     // 2. Rotar
-    
+
     // Implementación simple:
     List<Point<int>> next = [];
     for (var p in currentPiece) {
@@ -326,20 +396,20 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       // y' = -x
       // Esto rota alrededor de 0,0.
       // La mayoría de piezas giran alrededor de punto 1 (o p[1])
-      Point<int> pivot = currentPiece[1]; 
+      Point<int> pivot = currentPiece[1];
       int dx = p.x - pivot.x;
       int dy = p.y - pivot.y;
-      
+
       int rx = -dy;
       int ry = dx;
-      
+
       next.add(Point(pivot.x + rx, pivot.y + ry));
     }
-    
+
     // Corrección para la pieza cuadrada (O) que no debe rotar o la I que es larga
     // Si es O (amarilla), no rotar.
     if (currentPieceColor == Colors.yellow) return;
-    
+
     // Normalizar para que no se salga mucho
     // Verificar validez
     if (_isValidPosition(next, currentPiecePosition)) {
@@ -359,31 +429,29 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     _timer?.cancel();
     widget.onSuccess();
   }
-  
+
   void _loseLife(String reason) async {
     _timer?.cancel();
     _stopMusic();
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
-      
+
       if (!mounted) return;
-      
+
       if (newLives <= 0) {
         _showOverlayState(
-          title: "GAME OVER", 
-          message: "Te has quedado sin vidas.",
-          retry: false,
-          showShop: true
-        );
+            title: "GAME OVER",
+            message: "Te has quedado sin vidas.",
+            retry: false,
+            showShop: true);
       } else {
         _showOverlayState(
-          title: "¡FALLASTE!", 
-          message: "$reason",
-          retry: true,
-          showShop: false
-        );
+            title: "¡FALLASTE!",
+            message: "$reason",
+            retry: true,
+            showShop: false);
       }
     }
   }
@@ -405,8 +473,13 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
 
   void _handleHorizontalDrag(DragUpdateDetails details) {
     if (_isPaused || _isGameOver) return;
+
+    // [FIX] Prevent interaction if offline
+    if (!Provider.of<ConnectivityProvider>(context, listen: false).isOnline)
+      return;
+
     _horizontalDragAccumulator += details.delta.dx;
-    
+
     if (_horizontalDragAccumulator.abs() > _sensitivity) {
       if (_horizontalDragAccumulator > 0) {
         _moveRight();
@@ -419,6 +492,11 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
 
   void _handleVerticalDrag(DragUpdateDetails details) {
     if (_isPaused || _isGameOver) return;
+
+    // [FIX] Prevent interaction if offline
+    if (!Provider.of<ConnectivityProvider>(context, listen: false).isOnline)
+      return;
+
     _verticalDragAccumulator += details.delta.dy;
 
     if (_verticalDragAccumulator > _sensitivity) {
@@ -457,99 +535,119 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
                       Expanded(
                         flex: 5, // Reduced flex to give more space to sidebar
                         child: Center(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              // Calcular tamaño máximo posible manteniendo aspect ratio 1:2
-                              double height = constraints.maxHeight;
-                              double width = height / 2; // Ratio 10 cols / 20 rows = 0.5
-                              
-                              // Allow wider if possible, limited by container
-                              if (width > constraints.maxWidth) {
-                                width = constraints.maxWidth;
-                                height = width * 2;
-                              }
+                          child: LayoutBuilder(builder: (context, constraints) {
+                            // Calcular tamaño máximo posible manteniendo aspect ratio 1:2
+                            double height = constraints.maxHeight;
+                            double width =
+                                height / 2; // Ratio 10 cols / 20 rows = 0.5
 
-                              return Container(
-                                width: width,
-                                height: height,
-                                margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                                decoration: BoxDecoration(
+                            // Allow wider if possible, limited by container
+                            if (width > constraints.maxWidth) {
+                              width = constraints.maxWidth;
+                              height = width * 2;
+                            }
+
+                            return Container(
+                              width: width,
+                              height: height,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 0),
+                              decoration: BoxDecoration(
                                   color: Colors.black.withOpacity(0.8),
-                                  border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5), width: 1),
+                                  border: Border.all(
+                                      color: AppTheme.primaryPurple
+                                          .withOpacity(0.5),
+                                      width: 1),
                                   boxShadow: [
-                                    BoxShadow(color: AppTheme.primaryPurple.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)
-                                  ]
-                                ),
-                                child: Column(
-                                  children: List.generate(rows, (y) {
-                                    return Expanded(
-                                      child: Row(
-                                        children: List.generate(columns, (x) {
-                                          Color? color = board[y][x];
-                                          bool isCurrentPiece = false;
-                                          
-                                          // Check current piece
-                                          for (var p in currentPiece) {
-                                            if (currentPiecePosition.y + p.y == y && currentPiecePosition.x + p.x == x) {
-                                              color = currentPieceColor;
-                                              isCurrentPiece = true;
-                                              break;
-                                            }
-                                          }
+                                    BoxShadow(
+                                        color: AppTheme.primaryPurple
+                                            .withOpacity(0.1),
+                                        blurRadius: 10,
+                                        spreadRadius: 2)
+                                  ]),
+                              child: Column(
+                                children: List.generate(rows, (y) {
+                                  return Expanded(
+                                    child: Row(
+                                      children: List.generate(columns, (x) {
+                                        Color? color = board[y][x];
+                                        bool isCurrentPiece = false;
 
-                                          if (color == null) {
-                                             return Expanded(
-                                              child: Container(
-                                                margin: const EdgeInsets.all(0),
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(color: Colors.white.withOpacity(0.03), width: 0.5), // Subtle grid
-                                                ),
-                                              ),
-                                            );
+                                        // Check current piece
+                                        for (var p in currentPiece) {
+                                          if (currentPiecePosition.y + p.y ==
+                                                  y &&
+                                              currentPiecePosition.x + p.x ==
+                                                  x) {
+                                            color = currentPieceColor;
+                                            isCurrentPiece = true;
+                                            break;
                                           }
+                                        }
 
+                                        if (color == null) {
                                           return Expanded(
                                             child: Container(
-                                              margin: const EdgeInsets.all(0.5),
+                                              margin: const EdgeInsets.all(0),
                                               decoration: BoxDecoration(
-                                                color: color,
-                                                gradient: LinearGradient(
+                                                border: Border.all(
+                                                    color: Colors.white
+                                                        .withOpacity(0.03),
+                                                    width: 0.5), // Subtle grid
+                                              ),
+                                            ),
+                                          );
+                                        }
+
+                                        return Expanded(
+                                          child: Container(
+                                            margin: const EdgeInsets.all(0.5),
+                                            decoration: BoxDecoration(
+                                              color: color,
+                                              gradient: LinearGradient(
                                                   begin: Alignment.topLeft,
                                                   end: Alignment.bottomRight,
                                                   colors: [
                                                     color!.withOpacity(0.9),
                                                     color!.withOpacity(0.7),
-                                                  ]
-                                                ),
-                                                boxShadow: isCurrentPiece ? [
-                                                  BoxShadow(color: color!.withOpacity(0.6), blurRadius: 4, spreadRadius: 0)
-                                                ] : null,
-                                                borderRadius: BorderRadius.circular(2),
-                                              ),
+                                                  ]),
+                                              boxShadow: isCurrentPiece
+                                                  ? [
+                                                      BoxShadow(
+                                                          color: color!
+                                                              .withOpacity(0.6),
+                                                          blurRadius: 4,
+                                                          spreadRadius: 0)
+                                                    ]
+                                                  : null,
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
                                             ),
-                                          );
-                                        }),
-                                      ),
-                                    );
-                                  }),
-                                ),
-                              );
-                            }
-                          ),
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            );
+                          }),
                         ),
                       ),
-                      
+
                       // Right Sidebar (Integrated)
                       Expanded(
                         flex: 2, // Increased flex for wider score area
                         child: Padding(
-                          padding: const EdgeInsets.only(top: 10, right: 10, left: 10),
+                          padding: const EdgeInsets.only(
+                              top: 10, right: 10, left: 10),
                           child: Column(
                             children: [
                               // Score Block
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.05),
                                   borderRadius: BorderRadius.circular(8),
@@ -559,44 +657,52 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
                                   children: [
                                     const FittedBox(
                                       fit: BoxFit.scaleDown,
-                                      child: Text("META", style: TextStyle(color: AppTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      child: Text("META",
+                                          style: TextStyle(
+                                              color: AppTheme.accentGold,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold)),
                                     ),
                                     const SizedBox(height: 4),
                                     FittedBox(
                                       fit: BoxFit.scaleDown,
                                       child: Text(
-                                        "$_score / $_targetScore", 
-                                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                        "$_score / $_targetScore",
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              
+
                               // Next Piece
                               Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.white10),
-                                  borderRadius: BorderRadius.circular(8)
-                                ),
+                                    border: Border.all(color: Colors.white10),
+                                    borderRadius: BorderRadius.circular(8)),
                                 padding: const EdgeInsets.all(4),
                                 child: Column(
                                   children: [
-                                    const Text("NEXT", style: TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
+                                    const Text("NEXT",
+                                        style: TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 2),
                                     SizedBox(
-                                      height: 35, // Slightly bigger height
-                                      width: 45,  // and width
-                                      child: _buildNextPiecePreview()
-                                    ),
+                                        height: 35, // Slightly bigger height
+                                        width: 45, // and width
+                                        child: _buildNextPiecePreview()),
                                   ],
                                 ),
                               ),
 // ... (rest of sidebar) ...
 
 // ... (rest of build) ...
-
                             ],
                           ),
                         ),
@@ -604,7 +710,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
                     ],
                   ),
                 ),
-                
+
                 // Bottom Controls (Discrete but functional)
                 // Mantenerlos como opción secundaria o para accesibilidad
                 Padding(
@@ -624,12 +730,16 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                       // Left/Right handled by swipe mainly, but buttons can stay small
-                       _buildControlBtn(Icons.arrow_back, _moveLeft, size: 40, iconSize: 20),
-                       _buildControlBtn(Icons.arrow_downward, _moveDown, size: 50, iconSize: 28), // Down is useful
-                       _buildControlBtn(Icons.arrow_forward, _moveRight, size: 40, iconSize: 20),
-                       // Rotate button might be redundant with tap, but good to keep
-                       _buildControlBtn(Icons.rotate_right, _rotate, color: AppTheme.accentGold, size: 50, iconSize: 28),
+                      // Left/Right handled by swipe mainly, but buttons can stay small
+                      _buildControlBtn(Icons.arrow_back, _moveLeft,
+                          size: 40, iconSize: 20),
+                      _buildControlBtn(Icons.arrow_downward, _moveDown,
+                          size: 50, iconSize: 28), // Down is useful
+                      _buildControlBtn(Icons.arrow_forward, _moveRight,
+                          size: 40, iconSize: 20),
+                      // Rotate button might be redundant with tap, but good to keep
+                      _buildControlBtn(Icons.rotate_right, _rotate,
+                          color: AppTheme.accentGold, size: 50, iconSize: 28),
                     ],
                   ),
                 ),
@@ -642,28 +752,34 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                });
-                _startGame();
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                if (!context.mounted) return;
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                      });
+                      _startGame();
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      if (!context.mounted) return;
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },
@@ -673,7 +789,8 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     );
   }
 
-  Widget _buildControlBtn(IconData icon, VoidCallback onTap, {Color color = Colors.white, double size = 50, double iconSize = 28}) {
+  Widget _buildControlBtn(IconData icon, VoidCallback onTap,
+      {Color color = Colors.white, double size = 50, double iconSize = 28}) {
     return GestureDetector(
       onTapDown: (_) => onTap(),
       child: Container(
@@ -691,10 +808,10 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
 
   Widget _buildNextPiecePreview() {
     if (_nextPieceIndex == null) return const SizedBox();
-    
+
     final piece = _tetrominoes[_nextPieceIndex!];
     final color = _tetrominoColors[_nextPieceIndex!];
-    
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.black38,
@@ -710,12 +827,14 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
           if (p.y < minY) minY = p.y;
           if (p.y > maxY) maxY = p.y;
         }
-        
+
         final width = maxX - minX + 1;
         final height = maxY - minY + 1;
-        
-        final size = min(constraints.maxWidth / width, constraints.maxHeight / height) * 0.8;
-        
+
+        final size =
+            min(constraints.maxWidth / width, constraints.maxHeight / height) *
+                0.8;
+
         final totalWidth = width * size;
         final totalHeight = height * size;
 
@@ -744,6 +863,4 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
       }),
     );
   }
-
-
 }

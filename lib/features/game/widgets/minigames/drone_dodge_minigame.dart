@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math';
 import '../../models/clue.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -95,6 +96,13 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
         return;
       }
       setState(() {
+        // [FIX] Pause timer if connectivity is bad
+        final connectivityByProvider =
+            Provider.of<ConnectivityProvider>(context, listen: false);
+        if (!connectivityByProvider.isOnline) {
+          return; // Skip tick
+        }
+
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
 
@@ -129,6 +137,12 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
         timer.cancel();
         return;
       }
+
+      // [FIX] Pause game loop if offline
+      final connectivity =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivity.isOnline) return;
+
       _updateGameLoop();
     });
 
@@ -139,7 +153,12 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
     _spawnTimer?.cancel();
     _spawnTimer = Timer(Duration(milliseconds: _spawnRateMs.toInt()), () {
       if (mounted && !_isGameOver) {
-        _spawnObstacle();
+        // [FIX] Pause spawning if offline
+        final connectivity =
+            Provider.of<ConnectivityProvider>(context, listen: false);
+        if (connectivity.isOnline) {
+          _spawnObstacle();
+        }
         _rescheduleSpawn();
       }
     });
@@ -298,6 +317,10 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
         return GestureDetector(
           onPanUpdate: (details) {
             if (_isGameOver) return;
+            // [FIX] Block movement if offline
+            if (!Provider.of<ConnectivityProvider>(context, listen: false)
+                .isOnline) return;
+
             setState(() {
               _playerX += details.delta.dx / width;
               _playerX = _playerX.clamp(0.1, 0.9);
