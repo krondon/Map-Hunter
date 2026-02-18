@@ -40,7 +40,46 @@ class BettingService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('BettingService: Error fetching user bets: $e');
+      // Uncomment to see error in UI if needed, or inspecting logs.
+      // throw e; 
       return [];
     }
+  }
+  /// Obtiene el monto total apostado en el evento (POTE).
+  Future<int> getEventBettingPot(String eventId) async {
+    try {
+      final response = await _supabase
+          .from('bets')
+          .select('amount')
+          .eq('event_id', eventId);
+
+      final List<dynamic> bets = response;
+      int totalPot = 0;
+      for (var bet in bets) {
+        totalPot += (bet['amount'] as num).toInt();
+      }
+      return totalPot;
+    } catch (e) {
+      debugPrint('BettingService: Error fetching pot: $e');
+      return 0;
+    }
+  }
+
+  /// Realtime subscription to bets table to update pot.
+  RealtimeChannel subscribeToBets(String eventId, Function() callback) {
+    return _supabase
+        .channel('bets_updates:$eventId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'bets',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'event_id',
+            value: eventId,
+          ),
+          callback: (payload) => callback(),
+        )
+        .subscribe();
   }
 }

@@ -22,6 +22,8 @@ import '../widgets/betting_modal.dart';
 import '../widgets/spectator_participants_list.dart';
 import '../../../shared/models/player.dart';
 import '../../social/widgets/leaderboard_card.dart';
+import '../widgets/spectator_betting_pot_widget.dart'; // ADDED
+import '../widgets/my_bets_modal.dart'; // ADDED
 
 
 class SpectatorModeScreen extends StatefulWidget {
@@ -163,7 +165,11 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                            // Banner de Victoria (Solo si terminó)
                            if (event.isCompleted) _buildVictoryBanner(),
                            
-                           // B. Carrera en Curso / Finalizada (Race Tracker siempre visible)
+                           // B. POTE DE APUESTAS (NUEVO)
+                           // Mostrar el pote solo si la carrera no ha terminado o incluso si terminó, como info final.
+                           SpectatorBettingPotWidget(eventId: widget.eventId),
+
+                           // C. Carrera en Curso / Finalizada (Race Tracker siempre visible)
                            SizedBox(
                              height: 300, 
                              child: _buildRaceView(),
@@ -900,6 +906,18 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                           ),
                           child: const Text('Apostar'),
                         ),
+                        const SizedBox(width: 8), // Spacing
+                        OutlinedButton(
+                          onPressed: () => _showMyBetsDialog(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.accentGold,
+                            side: const BorderSide(color: AppTheme.accentGold),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          child: const Text('Mis Apuestas'),
+                        ),
                         const SizedBox(width: 16),
                         Consumer<PlayerProvider>(
                           builder: (context, playerProvider, child) {
@@ -1016,6 +1034,15 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       builder: (context) => BettingModal(
         eventId: widget.eventId,
       ),
+    );
+  }
+
+  void _showMyBetsDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => MyBetsModal(eventId: widget.eventId),
     );
   }
 
