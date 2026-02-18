@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/player.dart';
 
 /// Servicio de autenticación que encapsula la lógica de login, registro y logout.
-/// 
+///
 /// Implementa DIP al recibir [SupabaseClient] por constructor en lugar
 /// de depender de variables globales.
 class AuthService {
@@ -20,7 +20,7 @@ class AuthService {
   }
 
   /// Inicia sesión con email y password.
-  /// 
+  ///
   /// Retorna el ID del usuario autenticado en caso de éxito.
   /// Lanza una excepción con mensaje legible si falla.
   Future<String> login(String email, String password) async {
@@ -33,10 +33,12 @@ class AuthService {
 
       if (response.status != 200) {
         final error = response.data['error'] ?? 'Error desconocido';
-        
+
         // 403 = email not verified → clean up any local session state
         if (response.status == 403) {
-          try { await _supabase.auth.signOut(); } catch (_) {}
+          try {
+            await _supabase.auth.signOut();
+          } catch (_) {}
         }
         throw error;
       }
@@ -48,7 +50,7 @@ class AuthService {
 
         if (data['user'] != null) {
           final user = data['user'];
-          
+
           // Verificar si el email ha sido confirmado (redundant safety check)
           if (user['email_confirmed_at'] == null) {
             await logout(); // Limpiar cualquier sesión parcial
@@ -68,7 +70,7 @@ class AuthService {
   }
 
   /// Inicia sesión como ADMINISTRADOR.
-  /// 
+  ///
   /// Verificas credenciales y ADEMÁS verifica que el usuario tenga rol 'admin'.
   /// Si no es admin, cierra sesión automáticamente y lanza excepción.
   Future<String> loginAdmin(String email, String password) async {
@@ -101,16 +103,17 @@ class AuthService {
   }
 
   /// Registra un nuevo usuario con nombre, email y password.
-  /// 
+  ///
   /// Retorna el ID del usuario creado en caso de éxito.
   /// Lanza una excepción con mensaje legible si falla.
-  Future<String> register(String name, String email, String password, {String? cedula, String? phone}) async {
+  Future<String> register(String name, String email, String password,
+      {String? cedula, String? phone}) async {
     try {
       final response = await _supabase.functions.invoke(
         'auth-service/register',
         body: {
-          'email': email, 
-          'password': password, 
+          'email': email,
+          'password': password,
           'name': name,
           'cedula': cedula,
           'phone': phone,
@@ -138,7 +141,7 @@ class AuthService {
 
         // Delay para permitir que la BD sincronice el perfil (Trigger)
         await Future.delayed(const Duration(seconds: 1));
-        
+
         // Actualización explícita de datos extra en perfil si tenemos sesión
         // Si no tenemos sesión (email sin confirmar), esto fallará por RLS, así que lo omitimos o lo intentamos con catch
         if ((cedula != null || phone != null) && data['session'] != null) {
@@ -164,7 +167,7 @@ class AuthService {
   /// Cierra la sesión del usuario actual y ejecuta los callbacks de limpieza.
   Future<void> logout() async {
     debugPrint('AuthService: Executing Global Logout...');
-    
+
     // 1. Ejecutar limpieza de providers
     for (final callback in _logoutCallbacks) {
       try {
@@ -173,7 +176,7 @@ class AuthService {
         debugPrint('AuthService: Error in logout callback: $e');
       }
     }
-    
+
     // 2. Cerrar sesión en Supabase
     await _supabase.auth.signOut();
   }
@@ -218,11 +221,11 @@ class AuthService {
   }
 
   /// Actualiza la información del perfil del usuario.
-  Future<void> updateProfile(String userId, {String? name, String? email, String? cedula, String? phone}) async {
+  Future<void> updateProfile(String userId,
+      {String? name, String? email, String? cedula, String? phone}) async {
     try {
       // 1. Actualizar datos en la tabla profiles (DNI, Phone, etc.)
       if (name != null || cedula != null || phone != null) {
-        
         // Pass cedula as string directly to 'dni'
         final response = await _supabase.functions.invoke(
           'auth-service/update-profile',
@@ -235,8 +238,9 @@ class AuthService {
         );
 
         if (response.status != 200) {
-           final error = response.data['error'] ?? 'Error desconocido al actualizar perfil';
-           throw error;
+          final error = response.data['error'] ??
+              'Error desconocido al actualizar perfil';
+          throw error;
         }
       }
 
@@ -298,7 +302,8 @@ class AuthService {
     if (errorMsg.contains('aún no está activa')) {
       return 'Tu cuenta aún no está activa. Por favor, verifica tu correo electrónico.';
     }
-    if (errorMsg.contains('rate limit') || errorMsg.contains('too many requests')) {
+    if (errorMsg.contains('rate limit') ||
+        errorMsg.contains('too many requests')) {
       return 'Demasiados intentos. Por favor espera unos minutos antes de intentar de nuevo.';
     }
     if (errorMsg.contains('suspendida') || errorMsg.contains('banned')) {
@@ -324,7 +329,8 @@ class AuthService {
       );
 
       if (response.status != 200) {
-        final error = response.data['error'] ?? 'Error desconocido al guardar método de pago';
+        final error = response.data['error'] ??
+            'Error desconocido al guardar método de pago';
         throw error;
       }
     } catch (e) {
@@ -332,6 +338,7 @@ class AuthService {
       throw _handleAuthError(e);
     }
   }
+
   /// Obtiene el perfil del usuario.
   Future<Player?> getProfile(String userId) async {
     try {
@@ -340,7 +347,7 @@ class AuthService {
           .select()
           .eq('id', userId)
           .maybeSingle();
-      
+
       if (response == null) return null;
       return Player.fromJson(response);
     } catch (e) {
@@ -348,8 +355,9 @@ class AuthService {
       return null;
     }
   }
+
   /// Elimina la cuenta del usuario actual.
-  /// 
+  ///
   /// Invoca a la Edge Function 'auth-service/delete-account'.
   /// Si tiene éxito, el usuario es eliminado de la base de datos.
   Future<void> deleteAccount(String password) async {
@@ -361,17 +369,38 @@ class AuthService {
       );
 
       if (response.status != 200) {
-        final error = response.data['error'] ?? 'Error desconocido al eliminar cuenta';
+        final error =
+            response.data['error'] ?? 'Error desconocido al eliminar cuenta';
         throw error;
       }
-      
+
       // La sesión se cierra automáticamente o debemos forzarlo
       await logout();
-
     } catch (e) {
       debugPrint('AuthService: Error deleting account: $e');
       throw _handleAuthError(e);
     }
   }
-}
 
+  /// Elimina un usuario siendo administrador.
+  ///
+  /// Invoca a la Edge Function 'auth-service/delete-user-admin'.
+  Future<void> adminDeleteUser(String userId) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'auth-service/delete-user-admin',
+        body: {'user_id': userId},
+        method: HttpMethod.delete,
+      );
+
+      if (response.status != 200) {
+        final error = response.data['error'] ??
+            'Error desconocido al eliminar usuario como admin';
+        throw error;
+      }
+    } catch (e) {
+      debugPrint('AuthService: Error in adminDeleteUser: $e');
+      throw _handleAuthError(e);
+    }
+  }
+}

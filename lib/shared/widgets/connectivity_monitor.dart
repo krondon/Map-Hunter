@@ -31,15 +31,17 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
   bool _hasTriggeredDisconnect = false;
 
   @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
+    // [FIX] Guard: Skip connectivity monitoring if user is logged out.
+    // Prevents context.read calls during logout teardown.
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    if (playerProvider.currentPlayer == null) {
+      _cancelCountdown();
+      return;
+    }
+
     final connectivity = Provider.of<ConnectivityProvider>(context);
     final status = connectivity.status;
 
@@ -50,16 +52,16 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     }
 
     // Si señal baja o offline, iniciar countdown si no está activo
-    if ((status == ConnectivityStatus.lowSignal || 
-         status == ConnectivityStatus.offline) && 
-        !_showOverlay && 
+    if ((status == ConnectivityStatus.lowSignal ||
+            status == ConnectivityStatus.offline) &&
+        !_showOverlay &&
         !_hasTriggeredDisconnect) {
       _startCountdown();
     }
 
     // Si llegamos a offline y ya pasó el tiempo
-    if (status == ConnectivityStatus.offline && 
-        _secondsRemaining <= 0 && 
+    if (status == ConnectivityStatus.offline &&
+        _secondsRemaining <= 0 &&
         !_hasTriggeredDisconnect) {
       _handleDisconnect();
     }
@@ -67,7 +69,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
 
   void _startCountdown() {
     if (_countdownTimer != null) return;
-    
+
     setState(() {
       _showOverlay = true;
       _secondsRemaining = 25;
@@ -115,11 +117,12 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     // Si estaba en minijuego, pierde vida
     if (connectivity.isInMinigame) {
       final eventId = connectivity.currentEventId;
-      
+
       // 1. Guardar penalización pendiente LOCALMENTE (Por si no hay internet ahora)
       unawaited(SharedPreferences.getInstance().then((prefs) {
         prefs.setBool('pending_life_loss', true);
-        if (eventId != null) prefs.setString('pending_life_loss_event', eventId);
+        if (eventId != null)
+          prefs.setString('pending_life_loss_event', eventId);
         debugPrint('ConnectivityMonitor: Penalización guardada localmente');
       }));
 
@@ -127,12 +130,15 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
       unawaited(
         playerProvider.loseLife(eventId: eventId).timeout(
               const Duration(seconds: 1),
-              onTimeout: () => debugPrint('ConnectivityMonitor: LoseLife timeout sync'),
+              onTimeout: () =>
+                  debugPrint('ConnectivityMonitor: LoseLife timeout sync'),
             ),
       );
-      message = '¡Perdiste conexión durante el minijuego!\nHas perdido una vida.';
+      message =
+          '¡Perdiste conexión durante el minijuego!\nHas perdido una vida.';
     } else {
-      message = 'Perdiste conexión a internet.\nPor favor, reconéctate e inicia sesión.';
+      message =
+          'Perdiste conexión a internet.\nPor favor, reconéctate e inicia sesión.';
     }
 
     // 1. Mostrar mensaje y redirigir INMEDIATAMENTE
@@ -156,9 +162,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     // Navegar a login
     rootNavigatorKey.currentState!.pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => kIsWeb 
-            ? const AdminLoginScreen() 
-            : const LoginScreen(),
+        builder: (_) => kIsWeb ? const AdminLoginScreen() : const LoginScreen(),
       ),
       (route) => false,
     );
@@ -194,7 +198,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     return Stack(
       children: [
         widget.child,
-        
+
         // Overlay de señal baja
         if (_showOverlay)
           Positioned.fill(

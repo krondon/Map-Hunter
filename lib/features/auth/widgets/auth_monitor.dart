@@ -15,7 +15,7 @@ import 'dart:async';
 
 /// AuthMonitor: Gestiona la navegación basada en el estado de autenticación
 /// y el estado del usuario respecto a eventos (Gatekeeper).
-/// 
+///
 /// Principios SOLID aplicados:
 /// - S: Responsabilidad única - manejar navegación basada en estado
 /// - D: Depende de abstracciones (providers) no implementaciones concretas
@@ -33,6 +33,7 @@ class _AuthMonitorState extends State<AuthMonitor> {
   bool _hasRedirected = false;
   bool _isCheckingStatus = false;
   StreamSubscription<AuthState>? _authSubscription;
+  bool _showMask = false; // [FIX] To hide old screen during logout transition
 
   @override
   void initState() {
@@ -47,7 +48,8 @@ class _AuthMonitorState extends State<AuthMonitor> {
   }
 
   void _subscribeToAuthChanges() {
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
       debugPrint('AuthMonitor: Auth Event: $event');
 
@@ -78,7 +80,7 @@ class _AuthMonitorState extends State<AuthMonitor> {
     // Si detectamos que el usuario está logueado, verificar su estado de evento
     if (isLoggedIn && !_hasRedirected && !_isCheckingStatus) {
       _hasRedirected = false;
-      
+
       // Verificar si es un cold start (primera vez que detectamos login)
       if (_wasLoggedIn == null || _wasLoggedIn == false) {
         _checkUserEventStatusAndNavigate();
@@ -87,16 +89,30 @@ class _AuthMonitorState extends State<AuthMonitor> {
 
     // Detectar Logout (True -> False) y evitar loops con _hasRedirected
     if (_wasLoggedIn == true && !isLoggedIn && !_hasRedirected) {
-      debugPrint("AuthMonitor: Logout detectado. Redirigiendo a Login...");
+      debugPrint(
+          "AuthMonitor: Logout detectado. Iniciando secuencia de redirección...");
       _hasRedirected = true;
-      
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _navigateToLogin();
+
+      // [FIX] Activar máscara inmediatamente para ocultar la pantalla anterior
+      setState(() => _showMask = true);
+
+      // [FIX] Pequeño delay para permitir que diálogos cierren limpiamente
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          debugPrint("AuthMonitor: Ejecutando navegación al Login ahora.");
+          _navigateToLogin();
+
+          // [FIX] Desactivar máscara después de iniciar la navegación
+          // Usamos addPostFrameCallback para asegurar que la nueva ruta ya se está construyendo
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _showMask = false);
+          });
+        }
       });
     }
 
-    // Si el usuario se desloguea, resetear el flag
-    if (!isLoggedIn) {
+    // Si el usuario se loguea, resetear el flag para permitir futuras redirecciones de logout
+    if (isLoggedIn && _wasLoggedIn == false) {
       _hasRedirected = false;
     }
 
@@ -107,14 +123,15 @@ class _AuthMonitorState extends State<AuthMonitor> {
   /// Esta es la lógica principal del Gatekeeper.
   Future<void> _checkUserEventStatusAndNavigate() async {
     if (_isCheckingStatus) return;
-    
+
     _isCheckingStatus = true;
-    
+
     try {
-      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       final player = playerProvider.currentPlayer;
-      
+
       if (player == null) {
         _isCheckingStatus = false;
         return;
@@ -126,11 +143,13 @@ class _AuthMonitorState extends State<AuthMonitor> {
         return; // El LoginScreen ya maneja esto
       }
 
-      debugPrint('AuthMonitor: Checking user event status for ${player.userId}');
+      debugPrint(
+          'AuthMonitor: Checking user event status for ${player.userId}');
 
       // Verificar estado usando el Gatekeeper de GameProvider
-      final statusResult = await gameProvider.checkUserEventStatus(player.userId);
-      
+      final statusResult =
+          await gameProvider.checkUserEventStatus(player.userId);
+
       debugPrint('AuthMonitor: User status is ${statusResult.status}');
 
       if (!mounted) {
@@ -141,7 +160,7 @@ class _AuthMonitorState extends State<AuthMonitor> {
       // Navegar según el estado (con delay para permitir que el widget tree se estabilice)
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        
+
         switch (statusResult.status) {
           // === CASOS DE BLOQUEO ===
           case UserEventStatus.banned:
@@ -149,10 +168,11 @@ class _AuthMonitorState extends State<AuthMonitor> {
             await playerProvider.logout();
             _navigateToLogin();
             break;
-            
+
           case UserEventStatus.waitingApproval:
             // CAMBIO: No redirigir automáticamente. Dejar que el usuario elija en ScenariosScreen.
-            debugPrint('AuthMonitor: User waiting approval - continue to ScenariosScreen');
+            debugPrint(
+                'AuthMonitor: User waiting approval - continue to ScenariosScreen');
             break;
 
           // === CASOS DE FLUJO ABIERTO ===
@@ -165,7 +185,7 @@ class _AuthMonitorState extends State<AuthMonitor> {
             debugPrint('AuthMonitor: Open flow - continue to ScenariosScreen');
             break;
         }
-        
+
         _isCheckingStatus = false;
       });
     } catch (e) {
@@ -178,9 +198,8 @@ class _AuthMonitorState extends State<AuthMonitor> {
     if (rootNavigatorKey.currentState != null) {
       rootNavigatorKey.currentState!.pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => kIsWeb 
-              ? const AdminLoginScreen() 
-              : const LoginScreen(),
+          builder: (_) =>
+              kIsWeb ? const AdminLoginScreen() : const LoginScreen(),
         ),
         (route) => false,
       );
@@ -207,7 +226,19 @@ class _AuthMonitorState extends State<AuthMonitor> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.child;
+    return Stack(
+      children: [
+        widget.child,
+        if (_showMask)
+          Container(
+            color: Colors.black,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
-
