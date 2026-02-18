@@ -229,11 +229,44 @@ class _BettingModalState extends State<BettingModal> {
                             padding: const EdgeInsets.all(12),
                             child: Row(
                               children: [
-                                // Avatar
-                                CircleAvatar(
-                                  radius: 24,
-                                  backgroundImage: NetworkImage(player.avatarUrl),
-                                  backgroundColor: Colors.grey[800],
+                                // Robust Avatar Logic
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.grey[800],
+                                    border: Border.all(color: Colors.white12),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Builder(
+                                      builder: (context) {
+                                        final avatarId = player.avatarId;
+                                        
+                                        // 1. Prioridad: Avatar Local
+                                        if (avatarId != null && avatarId.isNotEmpty) {
+                                          return Image.asset(
+                                            'assets/images/avatars/$avatarId.png',
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 24)),
+                                          );
+                                        }
+                                        
+                                        // 2. Fallback: Foto de perfil (URL)
+                                        if (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http')) {
+                                          return Image.network(
+                                            player.avatarUrl,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 24)),
+                                          );
+                                        }
+                                        
+                                        // 3. Fallback: Icono genérico (y para cadenas vacías)
+                                        return const Center(child: Icon(Icons.person, color: Colors.white70, size: 24));
+                                      },
+                                    ),
+                                  ),
                                 ),
                                 SizedBox(width: 16),
                                 

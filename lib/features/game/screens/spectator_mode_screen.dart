@@ -833,116 +833,111 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   }
 
   Widget _rankingView() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.people,
-                  color: AppTheme.accentGold, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'RANKING',
-                style: TextStyle(
-                  color: AppTheme.accentGold,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: () => _showBetDialog(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentGold,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-                child: const Text('Apostar'),
-              ),
-              const SizedBox(width: 16),
-              Consumer<PlayerProvider>(
-                builder: (context, playerProvider, child) {
-                  final clovers = playerProvider.currentPlayer?.clovers ?? 0;
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, child) {
+        final leaderboard = gameProvider.leaderboard;
+
+        // --- INVISIBILITY FILTER LOGIC ---
+        final activePowers = gameProvider.activePowerEffects;
+        final playerProvider =
+            Provider.of<PlayerProvider>(context, listen: false);
+        final currentUserId = playerProvider.currentPlayer?.userId ?? '';
+
+        bool isVisible(Player p) {
+          if (p.userId == currentUserId) return true;
+          final isStealthed = activePowers.any((e) {
+            final target = e.targetId.trim().toLowerCase();
+            final pid = p.id.trim().toLowerCase();
+            final pgid = (p.gamePlayerId ?? '').trim().toLowerCase();
+            final isMatch = (target == pid || target == pgid);
+            return isMatch &&
+                (e.powerSlug == 'invisibility' || e.powerSlug == 'stealth') &&
+                !e.isExpired;
+          });
+          if (isStealthed) return false;
+          if (p.isInvisible) return false;
+          return true;
+        }
+
+        final displayLeaderboard = leaderboard.where(isVisible).toList();
+        // ---------------------------------
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // 1. Header & Podium (Scrollable)
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    // Header Row
+                    Row(
                       children: [
-                        const Text('🍀', style: TextStyle(fontSize: 14)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$clovers',
-                          style: const TextStyle(
-                            color: Colors.white,
+                        const Icon(Icons.leaderboard,
+                            color: AppTheme.accentGold, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'RANKING',
+                          style: TextStyle(
+                            color: AppTheme.accentGold,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
+                            letterSpacing: 1.5,
                           ),
+                        ),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: () => _showBetDialog(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.accentGold,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                          child: const Text('Apostar'),
+                        ),
+                        const SizedBox(width: 16),
+                        Consumer<PlayerProvider>(
+                          builder: (context, playerProvider, child) {
+                            final clovers =
+                                playerProvider.currentPlayer?.clovers ?? 0;
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.primaryGradient,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Text('🍀',
+                                      style: TextStyle(fontSize: 14)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$clovers',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Consumer<GameProvider>(
-              builder: (context, gameProvider, child) {
-                final leaderboard = gameProvider.leaderboard;
+                    const SizedBox(height: 24),
 
-                // --- INVISIBILITY FILTER LOGIC ---
-                final activePowers = gameProvider.activePowerEffects;
-                final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                final currentUserId = playerProvider.currentPlayer?.userId ?? '';
-
-                bool isVisible(Player p) {
-                    // Always see myself
-                    if (p.userId == currentUserId) return true;
-
-                    // Check active powers for invisibility
-                    final isStealthed = activePowers.any((e) {
-                        final target = e.targetId.trim().toLowerCase();
-                        final pid = p.id.trim().toLowerCase();
-                        final pgid = (p.gamePlayerId ?? '').trim().toLowerCase();
-                        
-                        final isMatch = (target == pid || target == pgid);
-                        return isMatch && (e.powerSlug == 'invisibility' || e.powerSlug == 'stealth') && !e.isExpired;
-                    });
-
-                    if (isStealthed) return false;
-                    if (p.isInvisible) return false;
-                    
-                    return true;
-                }
-
-                final displayLeaderboard = leaderboard.where(isVisible).toList();
-                // ---------------------------------
-
-                if (displayLeaderboard.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No hay jugadores activos',
-                      style: TextStyle(color: Colors.white.withOpacity(0.5)),
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: [
-                    // Top 3 Podium
-                    if (displayLeaderboard.length >= 3)
+                    // Podium Section (Only if 3+ players)
+                    if (displayLeaderboard.length >= 3) ...[
                       Container(
-                        margin: const EdgeInsets.only(bottom: 16),
+                        margin: const EdgeInsets.only(bottom: 24),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.05),
@@ -952,21 +947,18 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            // 2nd place
                             _buildPodiumPosition(
                               displayLeaderboard[1],
                               2,
                               70,
                               Colors.grey,
                             ),
-                            // 1st place
                             _buildPodiumPosition(
                               displayLeaderboard[0],
                               1,
                               90,
                               AppTheme.accentGold,
                             ),
-                            // 3rd place
                             _buildPodiumPosition(
                               displayLeaderboard[2],
                               3,
@@ -976,28 +968,43 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                           ],
                         ),
                       ),
-                    
-                    // List of Players
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: displayLeaderboard.length,
-                        itemBuilder: (context, index) {
-                          final player = displayLeaderboard[index];
-                          return LeaderboardCard(
-                             player: player,
-                             rank: index + 1,
-                             isTopThree: index < 3,
-                          );
-                        },
-                      ),
-                    ),
+                    ],
                   ],
-                );
-              },
-            ),
+                ),
+              ),
+
+              // 2. List of Players (or Empty State)
+              if (displayLeaderboard.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No hay jugadores activos',
+                      style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final player = displayLeaderboard[index];
+                      return LeaderboardCard(
+                        player: player,
+                        rank: index + 1,
+                        isTopThree: index < 3,
+                      );
+                    },
+                    childCount: displayLeaderboard.length,
+                  ),
+                ),
+                
+              // Extra padding at bottom for navigation bar
+              const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
