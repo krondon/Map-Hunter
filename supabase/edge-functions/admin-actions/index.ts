@@ -194,7 +194,7 @@ serve(async (req) => {
           .in("clue_id", clueIds);
       }
 
-      // 4. Borrar datos asociados a los jugadores
+      // 4. Borrar datos asociados a los jugadores y evento
       if (gpIds.length > 0) {
         // Borrar poderes
         await supabaseAdmin
@@ -213,7 +213,31 @@ serve(async (req) => {
           .from("player_inventory")
           .delete()
           .in("game_player_id", gpIds);
+          
+        // Borrar transacciones (NUEVO)
+        await supabaseAdmin
+          .from("transactions")
+          .delete()
+          .in("game_player_id", gpIds);
       }
+      
+      // Borrar poderes activos globales (NUEVO)
+      await supabaseAdmin
+        .from("active_powers")
+        .delete()
+        .eq("event_id", eventId);
+        
+      // Borrar distribuciones de premios (NUEVO)
+      await supabaseAdmin
+        .from("prize_distributions")
+        .delete()
+        .eq("event_id", eventId);
+        
+      // Borrar apuestas (NUEVO)
+      await supabaseAdmin
+        .from("bets")
+        .delete()
+        .eq("event_id", eventId);
 
       // 5. Borrar inscripciones de jugadores
       const { error: delPlayersError } = await supabaseAdmin
@@ -238,6 +262,7 @@ serve(async (req) => {
           status: "pending",
           winner_id: null,
           completed_at: null,
+          pot: 0, // Reset cached pot if exists
         })
         .eq("id", eventId);
 

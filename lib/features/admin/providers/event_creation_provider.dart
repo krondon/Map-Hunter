@@ -306,7 +306,7 @@ class EventCreationProvider extends ChangeNotifier {
       if (_clueForms.length < _numberOfClues) {
         final newItems = _numberOfClues - _clueForms.length;
         for (int i = 0; i < newItems; i++) {
-          final defaultPuzzleType = PuzzleType.slidingPuzzle;
+          final defaultPuzzleType = PuzzleType.ticTacToe;
           _clueForms.add({
             'id': const Uuid().v4(),
             'title': _eventType == 'online'

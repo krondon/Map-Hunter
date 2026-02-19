@@ -945,9 +945,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           tabs: const [
             Tab(text: "Detalles"),
             Tab(text: "Participantes"),
-            Tab(text: "Finanzas"),
             Tab(text: "Pistas de Juego"),
             Tab(text: "Tiendas"),
+            Tab(text: "Finanzas"),
           ],
         ),
       ),
@@ -958,9 +958,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           children: [
             _buildDetailsTab(),
             _buildParticipantsTab(),
-            CompetitionFinancialsWidget(event: widget.event),
             _buildCluesTab(),
             _buildStoresTab(),
+            CompetitionFinancialsWidget(event: widget.event),
           ],
         ),
       ),
