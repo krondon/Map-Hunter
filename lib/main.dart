@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importar dotenv
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importar Supabase
+import 'dart:ui'; // For Helper -> PointerDeviceKind
+import 'dart:io' show Platform;
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 // Imports existentes
@@ -67,12 +69,12 @@ Future<void> main() async {
 
   // Initialize OneSignal
   // Remove this method to stop OneSignal Debugging
-  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-
-  OneSignal.initialize("bbcc3a18-666a-4fa7-855a-4047b56a3e7d");
-
-  // The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
-  OneSignal.Notifications.requestPermission(true);
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+    OneSignal.initialize("bbcc3a18-666a-4fa7-855a-4047b56a3e7d");
+    // The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
+    OneSignal.Notifications.requestPermission(true);
+  }
 
   // 3. La configuración de orientación y UI Overlay es solo para MÓVIL (Android/iOS)
   // En Web esto puede causar errores o no es necesario.
@@ -310,6 +312,14 @@ class _TreasureHuntAppState extends State<TreasureHuntApp>
             title: 'MapHunter',
             navigatorKey: rootNavigatorKey,
             debugShowCheckedModeBanner: false,
+            scrollBehavior: const MaterialScrollBehavior().copyWith(
+              dragDevices: {
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.touch,
+                PointerDeviceKind.stylus,
+                PointerDeviceKind.unknown
+              },
+            ),
             theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
             builder: (context, child) {
               _forceImmersiveMode();

@@ -10,6 +10,8 @@ import '../../providers/connectivity_provider.dart';
 import 'game_over_overlay.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../mall/screens/mall_screen.dart';
+import '../../../admin/models/sponsor.dart';
+import '../../../admin/services/sponsor_service.dart';
 
 class SnakeMinigame extends StatefulWidget {
   final Clue clue;
@@ -82,10 +84,37 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
   bool _showingPreStart = false;
   Timer? _preStartTimer;
 
+  // Sponsor Logic
+  Sponsor? _activeSponsor;
+  final SponsorService _sponsorService = SponsorService();
+
   @override
   void initState() {
     super.initState();
-    _startNewGame();
+    _fetchSponsorAndStart();
+  }
+
+  Future<void> _fetchSponsorAndStart() async {
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    final eventId = gameProvider.currentEventId;
+
+    Sponsor? sponsor;
+
+    if (eventId != null) {
+      sponsor = await _sponsorService.getSponsorForEvent(eventId);
+    }
+
+    // Fallback if no event sponsor or no event
+    if (sponsor == null) {
+      sponsor = await _sponsorService.getActiveSponsor();
+    }
+
+    if (mounted) {
+      setState(() {
+        _activeSponsor = sponsor;
+      });
+      _startNewGame();
+    }
   }
 
   @override
@@ -476,7 +505,30 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text("🍎", style: TextStyle(fontSize: 16)),
+                            Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: (_activeSponsor != null &&
+                                        _activeSponsor!.hasMinigameAssets &&
+                                        _activeSponsor!.minigameAssetUrl !=
+                                            null)
+                                    ? Image.network(
+                                        _activeSponsor!.minigameAssetUrl!,
+                                        fit: BoxFit.contain,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Center(
+                                          child: Text("🍎",
+                                              style: TextStyle(fontSize: 16)),
+                                        ),
+                                      )
+                                    : const Center(
+                                        child: Text("🍎",
+                                            style: TextStyle(fontSize: 16)),
+                                      ),
+                              ),
+                            ),
                             const SizedBox(width: 6),
                             Text("$_score / $winScore",
                                 style: const TextStyle(
@@ -659,20 +711,43 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                       ),
                                     );
                                   }),
-                                  Positioned(
-                                    left: _food!.x * cellSize,
-                                    top: _food!.y * cellSize,
-                                    child: SizedBox(
-                                      width: cellSize,
-                                      height: cellSize,
-                                      child: FittedBox(
-                                        fit: BoxFit.contain,
-                                        child: Text("🍎",
-                                            style:
-                                                TextStyle(fontSize: cellSize)),
+                                  // Render Food (with null check safety)
+                                  if (_food != null)
+                                    Positioned(
+                                      left: _food!.x * cellSize,
+                                      top: _food!.y * cellSize,
+                                      child: SizedBox(
+                                        width: cellSize,
+                                        height: cellSize,
+                                        child: Center(
+                                          child: FittedBox(
+                                            fit: BoxFit.contain,
+                                            child: (_activeSponsor != null &&
+                                                    _activeSponsor!
+                                                        .hasMinigameAssets &&
+                                                    _activeSponsor!
+                                                            .minigameAssetUrl !=
+                                                        null)
+                                                ? Image.network(
+                                                    _activeSponsor!
+                                                        .minigameAssetUrl!,
+                                                    width: cellSize,
+                                                    height: cellSize,
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
+                                                      return Text("🍎",
+                                                          style: TextStyle(
+                                                              fontSize:
+                                                                  cellSize));
+                                                    },
+                                                  )
+                                                : Text("🍎",
+                                                    style: TextStyle(
+                                                        fontSize: cellSize)),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
 
                                   if (_showingPreStart)
                                     _buildPreStartOverlay(cellSize),
@@ -698,6 +773,7 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
+              bannerUrl: _activeSponsor?.bannerUrl,
               onRetry: _canRetry
                   ? () {
                       setState(() {

@@ -5,6 +5,8 @@ import '../models/clue.dart';
 import '../../../shared/models/player.dart';
 import '../../../shared/interfaces/i_resettable.dart';
 import '../services/game_service.dart';
+import '../../admin/models/sponsor.dart';
+import '../../admin/services/sponsor_service.dart';
 import '../models/power_effect.dart';
 
 // ============================================================
@@ -103,6 +105,10 @@ class GameProvider extends ChangeNotifier implements IResettable {
   List<Map<String, dynamic>> _minigameTFStatements = [];
   bool _isMinigameDataLoading = false;
 
+  // New: Current Sponsor
+  Sponsor? _currentSponsor;
+  Sponsor? get currentSponsor => _currentSponsor;
+
   List<PowerEffect> get activePowerEffects => _activePowerEffects;
   bool get isPowerActionLoading => _isPowerActionLoading;
   bool get isFrozen => _isFrozen;
@@ -128,9 +134,9 @@ class GameProvider extends ChangeNotifier implements IResettable {
   void _setRaceCompleted(bool completed, String source) {
     if (_isRaceCompleted != completed) {
       // REMOVED CHECK: if (completed && totalClues <= 0)
-      // Reason: If the event is marked completed globally (via Realtime 'events' table), 
+      // Reason: If the event is marked completed globally (via Realtime 'events' table),
       // we must respect it even if local clues are not fully loaded (e.g. spectator or late joiner).
-      
+
       debugPrint('--- RACE STATUS CHANGE: $completed (via $source) ---');
       _isRaceCompleted = completed;
       notifyListeners();
@@ -188,6 +194,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
     _minigameCapitals = [];
     _minigameTFStatements = [];
     _isMinigameDataLoading = false;
+    _currentSponsor = null;
 
     stopLeaderboardUpdates();
     stopLivesSubscription();
@@ -500,6 +507,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
       _clues = [];
       _leaderboard = [];
       _currentClueIndex = 0;
+      _currentSponsor = null; // Reset sponsor
     }
 
     final idToUse = eventId ?? _currentEventId;
@@ -540,6 +548,29 @@ class GameProvider extends ChangeNotifier implements IResettable {
     } finally {
       // ⚡ CRÍTICO: Suscribirse o actualizar suscripción una vez que totalClues es real
       subscribeToRaceStatus();
+
+      // Fetch Sponsor if not loaded (and eventId is valid)
+      if (idToUse != null && _currentSponsor == null) {
+        try {
+          // We use a small service instance here or inject usage
+          final sponsorService = SponsorService();
+          final sponsor = await sponsorService.getSponsorForEvent(idToUse);
+          if (sponsor != null) {
+            _currentSponsor = sponsor;
+            debugPrint(
+                '✅ GameProvider: Loaded Sponsor: ${sponsor.name} (${sponsor.planType})');
+          } else {
+            _currentSponsor =
+                await sponsorService.getActiveSponsor(); // Fallback
+            if (_currentSponsor != null) {
+              debugPrint(
+                  '✅ GameProvider: Loaded Global Sponsor (Fallback): ${_currentSponsor!.name}');
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Error fetching sponsor in GameProvider: $e');
+        }
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -650,17 +681,18 @@ class GameProvider extends ChangeNotifier implements IResettable {
       if (data != null) {
         // Success
         // Success
-          // CRITICAL FIX: Only treat as Globally Completed if backend says so (raceCompletedGlobal)
-          // 'raceCompleted' in previous logic might have meant "User Finished".
-          // We rely on 'raceCompletedGlobal' which comes from the RPC.
-          if (data['raceCompletedGlobal'] == true) {
-             debugPrint("🏆 GLOBAL Race Completed confirmed by RPC!");
-             _setRaceCompleted(true, 'Clue Completion (RPC)');
-          } else {
-             debugPrint("👤 User finished clues, but Race is NOT globally finished yet.");
-             // Ensure we DO NOT set _isRaceCompleted = true here.
-             // The user should go to Waiting Room.
-          }
+        // CRITICAL FIX: Only treat as Globally Completed if backend says so (raceCompletedGlobal)
+        // 'raceCompleted' in previous logic might have meant "User Finished".
+        // We rely on 'raceCompletedGlobal' which comes from the RPC.
+        if (data['raceCompletedGlobal'] == true) {
+          debugPrint("🏆 GLOBAL Race Completed confirmed by RPC!");
+          _setRaceCompleted(true, 'Clue Completion (RPC)');
+        } else {
+          debugPrint(
+              "👤 User finished clues, but Race is NOT globally finished yet.");
+          // Ensure we DO NOT set _isRaceCompleted = true here.
+          // The user should go to Waiting Room.
+        }
 
         await fetchClues(silent: true);
         fetchLeaderboard();

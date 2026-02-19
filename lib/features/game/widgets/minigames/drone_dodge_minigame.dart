@@ -336,18 +336,47 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
                     left: (obs.x - obs.widthRatio / 2) * width,
                     top: obs.y * height,
                     width: obs.widthRatio * width,
-                    height: height * 0.06, // approx 6% height
+                    height: height * 0.07, // slightly taller
                     child: Container(
                       decoration: BoxDecoration(
-                          color: Colors.redAccent,
-                          borderRadius: BorderRadius.circular(5),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.red.withOpacity(0.5),
-                                blurRadius: 5)
-                          ]),
-                      child: Icon(Icons.warning,
-                          color: Colors.yellowAccent, size: height * 0.04),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.red.shade900,
+                            Colors.redAccent,
+                            Colors.orangeAccent,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.6),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons
+                                .vaping_rooms_rounded, // Looks like a drone/engine
+                            color: Colors.white.withOpacity(0.3),
+                            size: height * 0.05,
+                          ),
+                          Icon(
+                            Icons.adb_rounded, // Cyber bug/drone
+                            color: Colors.yellowAccent,
+                            size: height * 0.035,
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }),
@@ -355,28 +384,35 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
                 // Player Spaceship (formerly Drone)
                 Positioned(
                   left: (_playerX - _playerWidthRatio / 2) * width,
-                  bottom: height * 0.08, // Fixed at bottom area
+                  bottom: height * 0.08,
                   width: _playerWidthRatio * width,
                   height: height * _playerHeightRatio,
                   child: Container(
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.blueAccent, blurRadius: 15)
-                        ]),
-                    child: RotatedBox(
-                      quarterTurns:
-                          3, // Rotate rocket to face up if needed, or check Icon
-                      // Icons.rocket_launch usually points up-right or up.
-                      // Let's use simple Transform if needed. Icons.rocket_launch points up-right?
-                      // Icons.rocket points up? Let's try Icons.rocket_launch and rotate -45deg if needed.
-                      // Actually Icons.rocket_launch points Top-Right.
-                      // Icons.rocket points Top-Right too usually.
-                      // Let's use Transform.rotate.
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.cyanAccent.withOpacity(0.5),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Center(
                       child: Transform.rotate(
-                        angle: -pi / 4, // -45 degrees to point Up
-                        child: const Icon(Icons.rocket_launch,
-                            color: Colors.white, size: 40),
+                        angle:
+                            0, // Icons.rocket points Up by default in newer Flutter versions or use a specific one
+                        child: Icon(
+                          Icons.rocket_launch_rounded,
+                          color: Colors.white,
+                          size: height * 0.06,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.cyanAccent,
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

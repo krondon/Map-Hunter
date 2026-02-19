@@ -9,7 +9,8 @@ class FreezeEffect extends StatefulWidget {
   State<FreezeEffect> createState() => _FreezeEffectState();
 }
 
-class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderStateMixin {
+class _FreezeEffectState extends State<FreezeEffect>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -31,7 +32,7 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Material(
       color: Colors.transparent,
       child: AbsorbPointer(
@@ -190,8 +191,7 @@ class _FreezeEffectState extends State<FreezeEffect> with SingleTickerProviderSt
                       const SizedBox(height: 48),
                       EffectTimer(
                         expiresAt: widget.expiresAt!,
-                        backgroundColor:
-                            Colors.blue.shade900.withOpacity(0.6),
+                        backgroundColor: Colors.blue.shade900.withOpacity(0.6),
                         borderColor: Colors.blueAccent.withOpacity(0.5),
                         iconColor: Colors.cyanAccent,
                         textColor: Colors.white,

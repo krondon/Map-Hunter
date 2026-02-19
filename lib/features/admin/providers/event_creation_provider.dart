@@ -12,6 +12,8 @@ import '../../mall/providers/store_provider.dart';
 import '../../mall/models/mall_store.dart';
 import '../services/event_domain_service.dart';
 import '../../mall/models/power_item.dart'; // NEW
+import '../models/sponsor.dart';
+import '../services/sponsor_service.dart';
 
 class EventCreationProvider extends ChangeNotifier {
   // Estado del Formulario
@@ -29,6 +31,8 @@ class EventCreationProvider extends ChangeNotifier {
   String _eventType = 'on_site'; // 'on_site' or 'online'
   int _configuredWinners = 3; // Default 3 winners
   int _betTicketPrice = 100; // NEW: Default betting price
+  String? _sponsorId; // Linked Sponsor ID
+  List<Sponsor> _sponsors = []; // Available sponsors cache
 
   // Imágenes
   XFile? _selectedImage;
@@ -72,6 +76,8 @@ class EventCreationProvider extends ChangeNotifier {
   String get eventId => _eventId;
   bool get isFormValid => _isFormValid;
   String get eventType => _eventType;
+  String? get sponsorId => _sponsorId;
+  List<Sponsor> get sponsors => _sponsors;
 
   // --- Initializers ---
 
@@ -93,11 +99,32 @@ class EventCreationProvider extends ChangeNotifier {
       _eventType = event.type;
       _configuredWinners = event.configuredWinners;
       _betTicketPrice = event.betTicketPrice; // NEW
+      _sponsorId = event.sponsorId; // NEW
       // Note: Image and Clues are not fully loaded here in original code either
     } else {
       resetForm();
     }
     checkFormValidity();
+    // Start loading sponsors if not loaded
+    if (_sponsors.isEmpty) loadSponsors();
+  }
+
+  // --- Sponsor Logic ---
+
+  Future<void> loadSponsors() async {
+    try {
+      final service = SponsorService();
+      _sponsors = await service.getSponsors();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading sponsors: $e");
+    }
+  }
+
+  void setSponsorId(String? id) {
+    _sponsorId = id;
+    checkFormValidity();
+    notifyListeners();
   }
 
   void resetForm() {
@@ -111,9 +138,9 @@ class EventCreationProvider extends ChangeNotifier {
     _maxParticipants = 0;
     _entryFee = null; // Reset to null
     _selectedDate = DateTime.now();
-    _selectedDate = DateTime.now();
     _configuredWinners = 3;
     _betTicketPrice = 100; // Reset
+    _sponsorId = null;
     _selectedImage = null;
     _numberOfClues = 0;
     _clueForms = [];
@@ -131,6 +158,8 @@ class EventCreationProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+    // Ensure sponsors are loaded for new forms too
+    if (_sponsors.isEmpty) loadSponsors();
   }
 
   // --- Setters & Logic ---
@@ -483,8 +512,9 @@ class EventCreationProvider extends ChangeNotifier {
         imageFileName: _selectedImage!.name,
         entryFee: _entryFee ?? 0, // Validated to be non-null above
         configuredWinners: _configuredWinners,
-        spectatorConfig: _spectatorPrices, 
+        spectatorConfig: _spectatorPrices,
         betTicketPrice: _betTicketPrice, // NEW
+        sponsorId: _sponsorId, // NEW
       );
 
       // Update PIN state for UI feedback (domain service may have auto-generated it)

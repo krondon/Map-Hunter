@@ -62,8 +62,11 @@ class EventService {
             'type': event.type,
             'entry_fee': event.entryFee, // NEW: Persistence fix
             'configured_winners': event.configuredWinners,
-            'spectator_config': event.spectatorConfig, // NEW: Persist spectator prices
-            'bet_ticket_price': event.betTicketPrice, // NEW: Persist betting price
+            'spectator_config':
+                event.spectatorConfig, // NEW: Persist spectator prices
+            'bet_ticket_price':
+                event.betTicketPrice, // NEW: Persist betting price
+            'sponsor_id': event.sponsorId, // NEW
           })
           .select()
           .single();
@@ -162,8 +165,11 @@ class EventService {
             'type': event.type,
             'entry_fee': event.entryFee, // NEW: Persistence fix
             'configured_winners': event.configuredWinners,
-            'spectator_config': event.spectatorConfig, // NEW: Persist spectator prices
-            'bet_ticket_price': event.betTicketPrice, // NEW: Persist betting price
+            'spectator_config':
+                event.spectatorConfig, // NEW: Persist spectator prices
+            'bet_ticket_price':
+                event.betTicketPrice, // NEW: Persist betting price
+            'sponsor_id': event.sponsorId, // NEW
           })
           .eq('id', event.id)
           .select()
@@ -287,6 +293,7 @@ class EventService {
       currentParticipants: (data['current_participants'] as num?)?.toInt() ?? 0,
       configuredWinners: (data['configured_winners'] as num?)?.toInt() ?? 3,
       pot: (data['pot'] as num?)?.toInt() ?? 0, // FIX: Map pot from DB
+      sponsorId: data['sponsor_id'] as String?, // NEW
     );
   }
 
@@ -461,17 +468,16 @@ class EventService {
             throw Exception('Evento no encontrado');
           }
           final eventData = data.first;
-          
+
           // Mapeamos manualmente para usar nuestro helper
           // Necesitamos el conteo de participantes también, pero en Stream es complejo hacer joins.
-          // Por simplicidad en SpectatorMode, asumiremos que currentParticipants viene del stream 
+          // Por simplicidad en SpectatorMode, asumiremos que currentParticipants viene del stream
           // (si la BD lo actualiza) o lo ignoramos si solo nos importa el status.
           // Para ser precisos, el spectator mode usa `currentParticipants` solo pre-carrera?
           // La vista de lista de participantes podría necesitarlo.
           // Haremos un "best guess" mapeando lo que llegue.
-          
+
           return _mapJsonToEvent(eventData);
         });
   }
-
 }

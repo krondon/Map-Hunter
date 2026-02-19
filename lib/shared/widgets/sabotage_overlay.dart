@@ -648,7 +648,7 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
 
             if (_lifeStealBannerText != null)
               Positioned(
-                top: 50,
+                bottom: 100,
                 left: 12,
                 right: 12,
                 child: Material(
@@ -665,24 +665,64 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                         border: Border.all(
                             color: Colors.redAccent.withOpacity(0.6)),
                       ),
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              color: Colors.white),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _lifeStealBannerText!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                decoration: TextDecoration.none,
+                          Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: Colors.white),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _lifeStealBannerText!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            ],
                           ),
+                          if (gameProvider.currentSponsor != null) ...[
+                            const SizedBox(height: 8),
+                            const Divider(color: Colors.white24, height: 1),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Patrocinado por ${gameProvider.currentSponsor!.name}",
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                if (gameProvider.currentSponsor!.logoUrl !=
+                                    null) ...[
+                                  const SizedBox(width: 6),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.network(
+                                      gameProvider.currentSponsor!.logoUrl!,
+                                      height: 16,
+                                      width: 16,
+                                      fit: BoxFit.contain,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const SizedBox.shrink(),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -693,7 +733,7 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
             // 🎁 Gift Received Banner
             if (_giftBannerText != null)
               Positioned(
-                top: 50,
+                bottom: 100,
                 left: 12,
                 right: 12,
                 child: Material(
@@ -710,23 +750,64 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                         border: Border.all(
                             color: Colors.greenAccent.withOpacity(0.6)),
                       ),
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.card_giftcard, color: Colors.white),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _giftBannerText!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                decoration: TextDecoration.none,
+                          Row(
+                            children: [
+                              const Icon(Icons.card_giftcard,
+                                  color: Colors.white),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _giftBannerText!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            ],
                           ),
+                          if (gameProvider.currentSponsor != null) ...[
+                            const SizedBox(height: 8),
+                            const Divider(color: Colors.white24, height: 1),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "Patrocinado por ${gameProvider.currentSponsor!.name}",
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                if (gameProvider.currentSponsor!.logoUrl !=
+                                    null) ...[
+                                  const SizedBox(width: 6),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.network(
+                                      gameProvider.currentSponsor!.logoUrl!,
+                                      height: 16,
+                                      width: 16,
+                                      fit: BoxFit.contain,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const SizedBox.shrink(),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

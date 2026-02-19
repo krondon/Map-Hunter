@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
+import '../providers/game_provider.dart';
+import '../widgets/sponsor_banner.dart';
 import '../models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 import 'qr_scanner_screen.dart';
@@ -22,12 +25,11 @@ class ClueFinderScreen extends StatefulWidget {
 
 class _ClueFinderScreenState extends State<ClueFinderScreen>
     with TickerProviderStateMixin {
-  
   // --- STATE ---
   double _distanceToTarget = 800.0;
   StreamSubscription<Position>? _positionStreamSubscription;
   final List<Position> _positionHistory = []; // Cola para suavizado
-  
+
   // Animations
   late AnimationController _pulseController;
   late AnimationController _shakeController;
@@ -47,7 +49,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    
+
     _startLocationUpdates();
     _showClueScannerTutorial();
   }
@@ -57,7 +59,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     final hasSeen = prefs.getBool('has_seen_tutorial_CLUE_SCANNER') ?? false;
     if (hasSeen) return;
 
-    final steps = MasterTutorialContent.getStepsForSection('CLUE_SCANNER', context);
+    final steps =
+        MasterTutorialContent.getStepsForSection('CLUE_SCANNER', context);
     if (steps.isEmpty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,7 +82,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   Future<void> _startLocationUpdates() async {
     if (widget.clue.latitude == null || widget.clue.longitude == null) {
       // Fallback if no location (shouldn't happen for geolocation clues, but safety first)
-      setState(() => _distanceToTarget = 0); 
+      setState(() => _distanceToTarget = 0);
       return;
     }
 
@@ -89,12 +92,11 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     );
 
     _positionStreamSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-            (Position position) {
-      
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
       if (position.isMocked) {
-         _handleFakeGPS();
-         return;
+        _handleFakeGPS();
+        return;
       }
 
       // --- SUAVIZADO DE GPS ---
@@ -136,19 +138,27 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => WillPopScope(
-        onWillPop: () async => false, 
+        onWillPop: () async => false,
         child: AlertDialog(
           backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.red, size: 40),
               const SizedBox(width: 10),
-              Expanded(child: Text("Ubicación Falsa Detectada", style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D), fontSize: 18))),
+              Expanded(
+                  child: Text("Ubicación Falsa Detectada",
+                      style: TextStyle(
+                          color: isDarkMode
+                              ? Colors.white
+                              : const Color(0xFF1A1A1D),
+                          fontSize: 18))),
             ],
           ),
           content: Text(
             "Para jugar limpio, debes desactivar las aplicaciones de ubicación falsa (Fake GPS).\n\nEl juego se detendrá hasta que uses tu ubicación real.",
-            style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
+            style: TextStyle(
+                color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
           ),
           actions: [
             TextButton(
@@ -156,7 +166,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                 Navigator.of(context).pop(); // Cerrar dialogo
                 Navigator.of(context).pop(); // Salir de la pantalla de juego
               },
-              child: const Text("SALIR DEL JUEGO", style: TextStyle(color: Colors.red)),
+              child: const Text("SALIR DEL JUEGO",
+                  style: TextStyle(color: Colors.red)),
             ),
           ],
         ),
@@ -179,26 +190,27 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     // For now, we trust the scanner returned something useful.
     // If the clue has a specific QR code string, we match it.
     // If not, we assume ANY valid scan of the clue ID works.
-    
+
     bool isValid = false;
-    
+
     // 1. Check if it matches clue ID explicitly
     if (scannedCode.contains(widget.clue.id)) {
       isValid = true;
-    } 
+    }
     // 2. Check if it matches the stored expected QR code (if any)
     else if (widget.clue.qrCode != null && widget.clue.qrCode!.isNotEmpty) {
       if (scannedCode == widget.clue.qrCode) isValid = true;
     }
-    
+
     if (isValid) {
       // Direct navigation as requested
-      Navigator.pop(context, true); 
+      Navigator.pop(context, true);
     } else {
       _shakeController.forward(from: 0.0);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("QR Incorrecto. Ese no es el código de esta misión, intenta de nuevo."),
+          content: Text(
+              "QR Incorrecto. Ese no es el código de esta misión, intenta de nuevo."),
           backgroundColor: AppTheme.dangerRed,
           duration: Duration(seconds: 2),
         ),
@@ -248,7 +260,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
               decoration: BoxDecoration(
                 color: goldAccent.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: goldAccent.withOpacity(0.3), width: 1),
+                border:
+                    Border.all(color: goldAccent.withOpacity(0.3), width: 1),
               ),
               child: Container(
                 padding: const EdgeInsets.all(24),
@@ -351,7 +364,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     final status = _temperatureStatus;
     IconData icon;
     Color color = _temperatureColor.withOpacity(0.12); // Slightly more visible
-    
+
     if (status == "CONGELADO" || status == "FRÍO") {
       icon = Icons.ac_unit;
     } else if (status == "CALIENTE" || status == "TIBIO") {
@@ -392,7 +405,6 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     final bool showInput = currentDistance <= 35;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Determine if we should force dark styling (for cold states or when target is reached)
     final bool shouldForceDark = isDarkMode ||
         _temperatureStatus == "CONGELADO" ||
         _temperatureStatus == "FRÍO" ||
@@ -400,8 +412,6 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     final bool useDarkStyle = shouldForceDark;
     final Color effectiveTextColor =
         useDarkStyle ? Colors.white : const Color(0xFF1A1A1D);
-    final Color effectiveSecondaryTextColor =
-        useDarkStyle ? Colors.white70 : const Color(0xFF4A4A5A);
     final Color effectiveHintTextColor =
         useDarkStyle ? Colors.white : const Color(0xFF2D3436);
 
@@ -409,26 +419,17 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
       onWillPop: _onWillPop,
       child: Scaffold(
         extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        leadingWidth: 80,
-        leading: Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 20.0),
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).maybePop(),
-              child: Container(
-                width: 42,
-                height: 42,
-                padding: const EdgeInsets.all(2), // Outer ring space
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppTheme.accentGold.withOpacity(0.3),
-                    width: 1.0,
-                  ),
-                ),
+        appBar: AppBar(
+          leadingWidth: 80,
+          leading: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 20.0),
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).maybePop(),
                 child: Container(
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.black.withOpacity(0.4),
@@ -446,166 +447,137 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
               ),
             ),
           ),
+          title: Text(widget.clue.title.toUpperCase(),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: effectiveTextColor)),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        title: Text(widget.clue.title.toUpperCase(),
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: effectiveTextColor)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: shouldForceDark
-              ? const LinearGradient(
-                  colors: [AppTheme.dSurface0, AppTheme.dSurface1],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                )
-              : AppTheme.mainGradient(context),
-        ),
-        child: Stack(
-          children: [
-            // Dynamic Gradient Overlay (Over the animated background)
-            AnimatedContainer(
-              duration: const Duration(seconds: 1),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    _temperatureColor.withOpacity(0.2),
-                  ],
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: shouldForceDark
+                ? const LinearGradient(
+                    colors: [AppTheme.dSurface0, AppTheme.dSurface1],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  )
+                : AppTheme.mainGradient(context),
+          ),
+          child: Stack(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(seconds: 1),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      _temperatureColor.withOpacity(0.2),
+                    ],
+                  ),
                 ),
               ),
-            ),
-
-            // BG DECORATIVE ELEMENTS (Snowflakes or Fire)
-            ..._buildBackgroundElements(),
-
-            SafeArea(
-              child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Hint Card
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(19),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.15),
-                        width: 1,
+              ..._buildBackgroundElements(),
+              SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Hint Card
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Column(
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.search, color: AppTheme.accentGold),
+                                SizedBox(width: 8),
+                                Text("OBJETIVO",
+                                    style: TextStyle(
+                                        color: AppTheme.accentGold,
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              widget.clue.hint.isNotEmpty
+                                  ? widget.clue.hint
+                                  : "Encuentra la ubicación...",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 18, color: effectiveHintTextColor),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: useDarkStyle
-                                ? Colors.black26
-                                : Colors.black.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(
-                                color: useDarkStyle
-                                    ? Colors.white12
-                                    : Colors.black12),
-                          ),
-                          child: Column(
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.search, color: AppTheme.accentGold),
-                                  SizedBox(width: 8),
-                                  Text("OBJETIVO",
-                                      style: TextStyle(
-                                          color: AppTheme.accentGold,
-                                          fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                widget.clue.hint.isNotEmpty
-                                    ? widget.clue.hint
-                                    : "Encuentra la ubicación...",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    color: effectiveHintTextColor),
-                              ),
+                    // Thermometer
+                    Column(
+                      children: [
+                        AnimatedBuilder(
+                          animation: _pulseController,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: 1.0 + (_pulseController.value * 0.2),
+                              child: Icon(_temperatureIcon,
+                                  size: 80, color: _temperatureColor),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          _temperatureStatus,
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: _temperatureColor,
+                            shadows: [
+                              BoxShadow(
+                                  color: _temperatureColor.withOpacity(0.5),
+                                  blurRadius: 20)
                             ],
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        if (!showInput)
+                          Text(
+                            "${currentDistance.toInt()}m del objetivo",
+                            style: const TextStyle(color: Colors.white54),
+                          ),
+                      ],
                     ),
-                  ),
-                ),
-
-                // Thermometer
-                 Column(
-                    children: [
-                      AnimatedBuilder(
-                        animation: _pulseController,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: 1.0 + (_pulseController.value * 0.2),
-                            child: Icon(_temperatureIcon, size: 80, color: _temperatureColor),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        _temperatureStatus,
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: _temperatureColor,
-                          shadows: [BoxShadow(color: _temperatureColor.withOpacity(0.5), blurRadius: 20)],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      if (!showInput)
-                        Text(
-                          "${currentDistance.toInt()}m del objetivo",
-                          style: TextStyle(color: useDarkStyle ? Colors.white54 : const Color(0xFF636E72)),
-                        ),
-                    ],
-                 ),
-
-                // Footer / Action Area
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: showInput
-                      ? Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              "¡ESTÁS EN LA ZONA!",
-                              style: TextStyle(color: AppTheme.successGreen, fontWeight: FontWeight.bold, fontSize: 20),
-                            ),
-                            const SizedBox(height: 20),
-                            SizedBox(
+                    // Action Area & Sponsor
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showInput)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.accentGold,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                 ),
                                 onPressed: () async {
                                   final scanned = await Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const QRScannerScreen()),
                                   );
                                   if (scanned != null) {
                                     _handleScannedCode(scanned);
@@ -615,66 +587,51 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                 label: const Text("ESCANEAR CÓDIGO"),
                               ),
                             ),
-                            const SizedBox(height: 10),
-                          ],
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                // === BOTONES DE DESARROLLADOR ===
-                if (true) // Developer Button Enabled
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Column(
-                      children: [
-                        const Divider(color: Colors.orange),
-                        const Text(
-                          "🔧 MODO DESARROLLADOR",
-                          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        const SizedBox(height: 10),
+                        Consumer<GameProvider>(
+                          builder: (context, game, _) {
+                            return SponsorBanner(sponsor: game.currentSponsor);
+                          },
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                        const SizedBox(height: 10),
+                        // DEV BUTTONS
+                        if (true)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        setState(() => _forceProximity = true),
+                                    child: const Text("DEV: CERCA",
+                                        style: TextStyle(
+                                            color: Colors.orange,
+                                            fontSize: 10)),
+                                  ),
                                 ),
-                                onPressed: () {
-                                  setState(() => _forceProximity = true);
-                                },
-                                icon: const Icon(Icons.location_on, size: 18),
-                                label: const Text("Forzar Proximidad", style: TextStyle(fontSize: 12)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text("DEV: SALTAR",
+                                        style: TextStyle(
+                                            color: Colors.red, fontSize: 10)),
+                                  ),
                                 ),
-                                onPressed: () {
-                                  Navigator.pop(context, true); // Simula escaneo exitoso
-                                },
-                                icon: const Icon(Icons.skip_next, size: 18),
-                                label: const Text("Saltar QR", style: TextStyle(fontSize: 12)),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-      ),
-    ),
     );
   }
 }

@@ -19,7 +19,10 @@ class GameOverOverlay extends StatelessWidget {
     this.onGoToShop,
     required this.onExit,
     this.isVictory = false,
+    this.bannerUrl,
   });
+
+  final String? bannerUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +44,9 @@ class GameOverOverlay extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (isVictory ? AppTheme.successGreen : AppTheme.dangerRed).withOpacity(0.3),
+                  color:
+                      (isVictory ? AppTheme.successGreen : AppTheme.dangerRed)
+                          .withOpacity(0.3),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -50,8 +55,25 @@ class GameOverOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                 Icon(
-                  isVictory ? Icons.emoji_events : Icons.sentiment_very_dissatisfied,
+                if (bannerUrl != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        bannerUrl!,
+                        height: 60,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox(),
+                      ),
+                    ),
+                  ),
+
+                Icon(
+                  isVictory
+                      ? Icons.emoji_events
+                      : Icons.sentiment_very_dissatisfied,
                   size: 60,
                   color: isVictory ? AppTheme.successGreen : AppTheme.dangerRed,
                 ),
@@ -61,7 +83,8 @@ class GameOverOverlay extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: isVictory ? AppTheme.successGreen : AppTheme.dangerRed,
+                    color:
+                        isVictory ? AppTheme.successGreen : AppTheme.dangerRed,
                     letterSpacing: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -76,10 +99,10 @@ class GameOverOverlay extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Lives info wrapper if retrying
                 // (Lives info removed to prevent overflow and redundancy)
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -95,7 +118,7 @@ class GameOverOverlay extends StatelessWidget {
                         child: const Text("SALIR"),
                       ),
                     ),
-                    
+
                     const SizedBox(width: 10),
 
                     if (onGoToShop != null)
@@ -107,10 +130,11 @@ class GameOverOverlay extends StatelessWidget {
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text("TIENDA", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text("TIENDA",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
-                    
+
                     if (onRetry != null) ...[
                       const SizedBox(width: 10),
                       // Retry Button
@@ -122,7 +146,8 @@ class GameOverOverlay extends StatelessWidget {
                             foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text("REINTENTAR", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text("REINTENTAR",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],

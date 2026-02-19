@@ -11,6 +11,7 @@ import 'game_mode_selector_screen.dart';
 import '../models/event.dart';
 import '../services/betting_service.dart';
 import '../widgets/spectator_betting_pot_widget.dart';
+import '../widgets/sponsor_banner.dart';
 import 'package:intl/intl.dart';
 
 class WinnerCelebrationScreen extends StatefulWidget {
@@ -37,7 +38,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   late int _currentPosition; // Mutable state for position
   bool _isLoading = true; // NEW: Start with loading state
   Map<String, int> _prizes = {};
-  
+
   // Unified Results Data
   GameEvent? _eventDetails;
   int _totalBettingWinners = 0;
@@ -75,7 +76,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
       // FORCE SYNC: Ensure provider knows the event ID
       if (gameProvider.currentEventId != widget.eventId) {
-        debugPrint("🏆 WinnerScreen: EventID Mismatch (Provider: ${gameProvider.currentEventId} vs Widget: ${widget.eventId}). Fixing...");
+        debugPrint(
+            "🏆 WinnerScreen: EventID Mismatch (Provider: ${gameProvider.currentEventId} vs Widget: ${widget.eventId}). Fixing...");
         // Re-initialize provider context for this event without heavy loading UI
         await gameProvider.fetchClues(eventId: widget.eventId, silent: true);
       }
@@ -127,24 +129,31 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   Future<void> _loadEventData() async {
     try {
       final supabase = Supabase.instance.client;
-      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
       final userId = playerProvider.currentPlayer?.id;
 
       // Fetch Event Details
-      final eventResponse = await supabase.from('events').select().eq('id', widget.eventId).single();
+      final eventResponse = await supabase
+          .from('events')
+          .select()
+          .eq('id', widget.eventId)
+          .single();
       final event = GameEvent.fromJson(eventResponse);
 
       // Fetch Betting Data
       final bettingService = BettingService(supabase);
-      final bettingWinnersPromise = event.winnerId != null 
-          ? bettingService.getTotalBettingWinners(widget.eventId, event.winnerId!)
+      final bettingWinnersPromise = event.winnerId != null
+          ? bettingService.getTotalBettingWinners(
+              widget.eventId, event.winnerId!)
           : Future.value(0);
-          
+
       final myBettingPromise = userId != null
           ? bettingService.getUserEventWinnings(widget.eventId, userId)
           : Future.value({'won': false, 'amount': 0});
 
-      final results = await Future.wait([bettingWinnersPromise, myBettingPromise]);
+      final results =
+          await Future.wait([bettingWinnersPromise, myBettingPromise]);
 
       if (mounted) {
         setState(() {
@@ -156,7 +165,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       }
     } catch (e) {
       debugPrint("⚠️ Error loading event data: $e");
-       if (mounted) {
+      if (mounted) {
         setState(() {
           _isLoadingEventData = false;
         });
@@ -183,16 +192,16 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       if (currentUser.completedCluesCount < widget.totalCluesCompleted) {
         debugPrint(
             "⏳ Podium Sync: Leaderboard stale (Server: ${currentUser.completedCluesCount} vs Local: ${widget.totalCluesCompleted}). Waiting...");
-        
+
         // RETRY LOGIC: If data is stale, we MUST force a refresh, even if isLoading is false.
         // We use a debounce to avoid spamming.
         if (!gameProvider.isLoading) {
-           Future.delayed(const Duration(milliseconds: 1000), () {
-              if (mounted) {
-                 debugPrint("🔄 Podium Sync: Retrying fetchLeaderboard...");
-                 gameProvider.fetchLeaderboard(silent: true);
-              }
-           });
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              debugPrint("🔄 Podium Sync: Retrying fetchLeaderboard...");
+              gameProvider.fetchLeaderboard(silent: true);
+            }
+          });
         }
         return;
       }
@@ -224,12 +233,12 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     } else {
       // Leaderboard empty/failed?
       if (!gameProvider.isLoading && _isLoading) {
-         debugPrint("⚠️ Podium Sync: Leaderboard empty. Retrying...");
-         Future.delayed(const Duration(seconds: 2), () {
-             if (mounted && !gameProvider.isLoading) {
-                 gameProvider.fetchLeaderboard(silent: true);
-             }
-         });
+        debugPrint("⚠️ Podium Sync: Leaderboard empty. Retrying...");
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && !gameProvider.isLoading) {
+            gameProvider.fetchLeaderboard(silent: true);
+          }
+        });
       }
     }
   }
@@ -369,8 +378,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                   color: _getPositionColor(), width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                      _getPositionColor().withOpacity(0.2),
+                                  color: _getPositionColor().withOpacity(0.2),
                                   blurRadius: 15,
                                   spreadRadius: 2,
                                 ),
@@ -448,8 +456,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                               color: AppTheme.cardBg.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
-                                  color:
-                                      AppTheme.accentGold.withOpacity(0.2)),
+                                  color: AppTheme.accentGold.withOpacity(0.2)),
                             ),
                             child: Column(
                               children: [
@@ -534,7 +541,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Row 1: Pot & Betting Pot
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,8 +550,14 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                   Expanded(
                                     child: _buildStatItem(
                                       "POZO INSCRIPCIÓN",
-                                      _eventDetails?.pot != null && _eventDetails!.pot > 0
-                                          ? NumberFormat.currency(locale: 'es_CO', symbol: '', decimalDigits: 0).format(_eventDetails!.pot) + " 🍀"
+                                      _eventDetails?.pot != null &&
+                                              _eventDetails!.pot > 0
+                                          ? NumberFormat.currency(
+                                                      locale: 'es_CO',
+                                                      symbol: '',
+                                                      decimalDigits: 0)
+                                                  .format(_eventDetails!.pot) +
+                                              " 🍀"
                                           : "Gratis",
                                       Icons.monetization_on,
                                       Colors.amber,
@@ -555,7 +568,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                   // Since we have the widget, we can use it, but it might include its own layout.
                                   // Let's wrapping it or reuse its logic?
                                   // Actually, the widget is designed for the spectator screen header.
-                                  // Let's use a custom display here for consistency, relying on the widget's logic if needed, 
+                                  // Let's use a custom display here for consistency, relying on the widget's logic if needed,
                                   // BUT we want to keep it simple.
                                   // Let's just use the SpectatorBettingPotWidget directly if it fits,
                                   // OR just pass the widget.eventId.
@@ -569,10 +582,11 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                       ),
                                       child: Column(
                                         children: [
-                                            // Embed the existing widget but we need to ensure it fits.
-                                            // The widget has a Row and text.
-                                            // Alternatively, since we are in the results screen, maybe just show it nicely.
-                                            SpectatorBettingPotWidget(eventId: widget.eventId),
+                                          // Embed the existing widget but we need to ensure it fits.
+                                          // The widget has a Row and text.
+                                          // Alternatively, since we are in the results screen, maybe just show it nicely.
+                                          SpectatorBettingPotWidget(
+                                              eventId: widget.eventId),
                                         ],
                                       ),
                                     ),
@@ -585,7 +599,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                   // Configured Winners
+                                  // Configured Winners
                                   Expanded(
                                     child: _buildStatItem(
                                       "GANADORES",
@@ -608,17 +622,21 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                               ),
 
                               // YOUR BETTING RESULT (If existed)
-                              if (_myBettingResult['amount'] > 0 || _myBettingResult['won'] == true) ...[
+                              if (_myBettingResult['amount'] > 0 ||
+                                  _myBettingResult['won'] == true) ...[
                                 const SizedBox(height: 12),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 12),
                                   decoration: BoxDecoration(
-                                    color: (_myBettingResult['won'] as bool) 
-                                        ? Colors.green.withOpacity(0.2) 
+                                    color: (_myBettingResult['won'] as bool)
+                                        ? Colors.green.withOpacity(0.2)
                                         : Colors.red.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: (_myBettingResult['won'] as bool) ? Colors.green : Colors.red,
+                                      color: (_myBettingResult['won'] as bool)
+                                          ? Colors.green
+                                          : Colors.red,
                                       width: 1,
                                     ),
                                   ),
@@ -626,17 +644,24 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
-                                        (_myBettingResult['won'] as bool) ? Icons.check_circle : Icons.cancel,
-                                        color: (_myBettingResult['won'] as bool) ? Colors.green : Colors.red,
-                                        size: 20
-                                      ),
+                                          (_myBettingResult['won'] as bool)
+                                              ? Icons.check_circle
+                                              : Icons.cancel,
+                                          color:
+                                              (_myBettingResult['won'] as bool)
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                          size: 20),
                                       const SizedBox(width: 8),
                                       Text(
                                         (_myBettingResult['won'] as bool)
                                             ? "¡Ganaste la apuesta! +${_myBettingResult['amount']} 🍀"
                                             : "Perdiste tu apuesta",
                                         style: TextStyle(
-                                          color: (_myBettingResult['won'] as bool) ? Colors.greenAccent : Colors.redAccent,
+                                          color:
+                                              (_myBettingResult['won'] as bool)
+                                                  ? Colors.greenAccent
+                                                  : Colors.redAccent,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       )
@@ -647,7 +672,14 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                             ],
                           ),
                         ),
-
+                        const SizedBox(height: 20),
+                        // Sponsor Banner
+                        Consumer<GameProvider>(
+                          builder: (context, game, _) {
+                            return SponsorBanner(sponsor: game.currentSponsor);
+                          },
+                        ),
+                        const SizedBox(height: 20),
                         // Bottom Actions
                         SizedBox(
                           width: double.infinity,
@@ -655,22 +687,19 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                             onPressed: () {
                               Navigator.of(context).pushAndRemoveUntil(
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        GameModeSelectorScreen()),
+                                    builder: (_) => GameModeSelectorScreen()),
                                 (route) => false,
                               );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.accentGold,
                               foregroundColor: Colors.black,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 18),
+                              padding: const EdgeInsets.symmetric(vertical: 18),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               elevation: 8,
-                              shadowColor:
-                                  AppTheme.accentGold.withOpacity(0.5),
+                              shadowColor: AppTheme.accentGold.withOpacity(0.5),
                             ),
                             icon: const Icon(Icons.home_rounded, size: 28),
                             label: const Text(
@@ -697,19 +726,16 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
   Widget _buildPrizeBadge(int amount) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black45,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: const Color(0xFFFFD700)),
+        border: Border.all(color: const Color(0xFFFFD700)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text("💰",
-              style: TextStyle(fontSize: 20)),
+          const Text("💰", style: TextStyle(fontSize: 20)),
           const SizedBox(width: 8),
           Text(
             "+$amount 🍀",
@@ -717,11 +743,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
               color: Color(0xFFFFD700),
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(
-                    color: Colors.black,
-                    blurRadius: 2)
-              ],
+              shadows: [Shadow(color: Colors.black, blurRadius: 2)],
             ),
           ),
         ],
@@ -729,7 +751,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -820,18 +843,23 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                     String? avatarId = player.avatarId;
                     if (avatarId != null) {
                       avatarId = avatarId.split('/').last; // Remove path
-                      avatarId = avatarId.replaceAll('.png', '').replaceAll('.jpg', ''); // Remove extension
+                      avatarId = avatarId
+                          .replaceAll('.png', '')
+                          .replaceAll('.jpg', ''); // Remove extension
                     }
 
-                    debugPrint("🏆 Podium Avatar Build: Original='${player.avatarId}' -> Sanitized='$avatarId'");
+                    debugPrint(
+                        "🏆 Podium Avatar Build: Original='${player.avatarId}' -> Sanitized='$avatarId'");
 
                     if (avatarId != null && avatarId.isNotEmpty) {
                       return Image.asset(
                         'assets/images/avatars/$avatarId.png',
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) {
-                          debugPrint("⚠️ Failed to load avatar asset: assets/images/avatars/$avatarId.png");
-                          return const Icon(Icons.person, color: Colors.white70, size: 25);
+                          debugPrint(
+                              "⚠️ Failed to load avatar asset: assets/images/avatars/$avatarId.png");
+                          return const Icon(Icons.person,
+                              color: Colors.white70, size: 25);
                         },
                       );
                     }

@@ -293,6 +293,68 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                         ),
                         const SizedBox(height: 20),
 
+                        // --- Selección de Sponsor ---
+                        if (provider.sponsors.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DropdownButtonFormField<String>(
+                                value: provider.sponsorId,
+                                decoration: inputDecoration.copyWith(
+                                  labelText: 'Patrocinador (Opcional)',
+                                  prefixIcon: const Icon(Icons.star_border,
+                                      color: Colors.white54),
+                                ),
+                                dropdownColor: AppTheme.cardBg,
+                                style: const TextStyle(color: Colors.white),
+                                items: [
+                                  const DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text("Sin Patrocinador"),
+                                  ),
+                                  ...provider.sponsors.map((sponsor) {
+                                    return DropdownMenuItem<String>(
+                                      value: sponsor.id,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (sponsor.logoUrl != null &&
+                                              sponsor.logoUrl!.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  right: 8.0),
+                                              child: kIsWeb
+                                                  ? Image.network(
+                                                      sponsor.logoUrl!,
+                                                      width: 24,
+                                                      height: 24,
+                                                      errorBuilder:
+                                                          (_, __, ___) =>
+                                                              const SizedBox())
+                                                  : const Icon(Icons.image,
+                                                      size: 16),
+                                            ),
+                                          Flexible(
+                                              child: Text(sponsor.name,
+                                                  overflow:
+                                                      TextOverflow.ellipsis)),
+                                          if (!sponsor.isActive)
+                                            Text(" (Inactivo)",
+                                                style: TextStyle(
+                                                    color: Colors.red.shade300,
+                                                    fontSize: 12)),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ],
+                                onChanged: (value) =>
+                                    provider.setSponsorId(value),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+
                         // --- Date & Time ---
                         InkWell(
                           onTap: () async {
@@ -511,61 +573,66 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                             );
 
                             final Widget bettingField = TextFormField(
-                                  initialValue: provider.betTicketPrice.toString(),
-                                  decoration: inputDecoration.copyWith(
-                                    labelText: 'Precio Apuesta',
-                                    suffixText: '🍀',
-                                    helperText: 'Default: 100',
-                                  ),
-                                  style: const TextStyle(color: Colors.white),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  validator: (v) {
-                                      if (v == null || v.isEmpty) return 'Requerido';
-                                      return null;
-                                  },
-                                  onChanged: (v) {
-                                    if (v.isNotEmpty) provider.setBetTicketPrice(int.tryParse(v) ?? 100);
-                                  },
-                                );
+                              initialValue: provider.betTicketPrice.toString(),
+                              decoration: inputDecoration.copyWith(
+                                labelText: 'Precio Apuesta',
+                                suffixText: '🍀',
+                                helperText: 'Default: 100',
+                              ),
+                              style: const TextStyle(color: Colors.white),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'Requerido';
+                                return null;
+                              },
+                              onChanged: (v) {
+                                if (v.isNotEmpty)
+                                  provider.setBetTicketPrice(
+                                      int.tryParse(v) ?? 100);
+                              },
+                            );
 
                             final Widget entryFeeField = TextFormField(
-                                      initialValue: provider.entryFee?.toString() ?? '',
-                                      decoration: inputDecoration.copyWith(
-                                        labelText: 'Precio Entrada',
-                                        suffixText: '🍀',
-                                        helperText: '0 para GRATIS',
-                                      ),
-                                      style: const TextStyle(color: Colors.white),
-                                      keyboardType: TextInputType.number,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(4),
-                                      ],
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Requerido';
-                                        return null;
-                                      },
-                                      onChanged: (v) {
-                                        provider.setEntryFee(v.isEmpty ? null : (int.tryParse(v)));
-                                      },
-                                    );
+                              initialValue: provider.entryFee?.toString() ?? '',
+                              decoration: inputDecoration.copyWith(
+                                labelText: 'Precio Entrada',
+                                suffixText: '🍀',
+                                helperText: '0 para GRATIS',
+                              ),
+                              style: const TextStyle(color: Colors.white),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'Requerido';
+                                return null;
+                              },
+                              onChanged: (v) {
+                                provider.setEntryFee(
+                                    v.isEmpty ? null : (int.tryParse(v)));
+                              },
+                            );
 
                             if (provider.eventType == 'online') {
-                                // If Online, show Players field AND Price fields (no location)
-                                return Column(
-                                  children: [
-                                    playersField,
-                                    const SizedBox(height: 20),
-                                    Row(
-                                      children: [
-                                        Expanded(child: entryFeeField),
-                                        const SizedBox(width: 20),
-                                        Expanded(child: bettingField),
-                                      ],
-                                    ),
-                                  ],
-                                );
+                              // If Online, show Players field AND Price fields (no location)
+                              return Column(
+                                children: [
+                                  playersField,
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    children: [
+                                      Expanded(child: entryFeeField),
+                                      const SizedBox(width: 20),
+                                      Expanded(child: bettingField),
+                                    ],
+                                  ),
+                                ],
+                              );
                             }
 
                             if (constraints.maxWidth < 600) {
@@ -587,11 +654,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               return Column(
                                 children: [
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Expanded(flex: 2, child: locationWidget),
                                       const SizedBox(width: 20),
-                                      Expanded(child: playersField), 
+                                      Expanded(child: playersField),
                                     ],
                                   ),
                                   const SizedBox(height: 20),
