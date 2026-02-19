@@ -2189,7 +2189,33 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                     child: Row(
                                                                       mainAxisSize: MainAxisSize.min,
                                                                       children: [
-                                                                        if (scenario.date != null && !scenario.isCompleted)
+                                                                        // MODIFIED: Prioritize Status 'active'
+                                                                        if (scenario.status == 'active')
+                                                                          Container(
+                                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                                            decoration: BoxDecoration(
+                                                                              color: AppTheme.successGreen.withOpacity(0.8),
+                                                                              borderRadius: BorderRadius.circular(20),
+                                                                              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                                                                            ),
+                                                                            child: const Row(
+                                                                              mainAxisSize: MainAxisSize.min,
+                                                                              children: [
+                                                                                Icon(Icons.play_circle_fill, color: Colors.white, size: 14),
+                                                                                SizedBox(width: 4),
+                                                                                Text(
+                                                                                  'EN CURSO',
+                                                                                  style: TextStyle(
+                                                                                    color: Colors.white,
+                                                                                    fontWeight: FontWeight.bold,
+                                                                                    fontSize: 10,
+                                                                                    letterSpacing: 0.5,
+                                                                                  ),
+                                                                                ),
+                                                                              ],
+                                                                            ),
+                                                                          )
+                                                                        else if (scenario.date != null && !scenario.isCompleted)
                                                                           ScenarioCountdown(targetDate: scenario.date!),
                                                                         
                                                                         if (scenario.date != null && !scenario.isCompleted)

@@ -15,6 +15,7 @@ class Scenario {
   final String type;
   final int entryFee;
   final int currentParticipants;
+  final String status;
 
   const Scenario({
     required this.id,
@@ -33,6 +34,7 @@ class Scenario {
     this.type = 'on_site',
     this.entryFee = 0,
     this.currentParticipants = 0,
+    this.status = 'pending',
   });
 
   factory Scenario.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,7 @@ class Scenario {
       type: json['type'] ?? 'on_site',
       entryFee: json['entry_fee'] ?? 0,
       currentParticipants: (json['current_participants'] as num?)?.toInt() ?? 0,
+      status: json['status'] ?? 'pending',
     );
   }
 
@@ -74,6 +77,7 @@ class Scenario {
       'type': type,
       'entry_fee': entryFee,
       'current_participants': currentParticipants,
+      'status': status,
     };
   }
 }

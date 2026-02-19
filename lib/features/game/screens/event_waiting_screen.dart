@@ -44,6 +44,13 @@ class _EventWaitingScreenState extends State<EventWaitingScreen> with SingleTick
   }
 
   void _calculateTime() {
+    // PRIORIDAD AL ESTADO: Si el evento ya está activo o completado, omitir cuenta regresiva
+    if (widget.event.status == 'active' || widget.event.status == 'completed') {
+      _timer?.cancel();
+      widget.onTimerFinished();
+      return;
+    }
+
     final now = DateTime.now(); // Local time
     // event.date should be in local time (Provider converts it correctly usually)
     // But since we fixed the Provider to send UTC, we receive UTC ISO string.
