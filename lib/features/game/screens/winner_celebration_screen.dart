@@ -8,6 +8,10 @@ import '../../../core/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'scenarios_screen.dart';
 import 'game_mode_selector_screen.dart';
+import '../models/event.dart';
+import '../services/betting_service.dart';
+import '../widgets/spectator_betting_pot_widget.dart';
+import 'package:intl/intl.dart';
 
 class WinnerCelebrationScreen extends StatefulWidget {
   final String eventId;
@@ -33,6 +37,12 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   late int _currentPosition; // Mutable state for position
   bool _isLoading = true; // NEW: Start with loading state
   Map<String, int> _prizes = {};
+  
+  // Unified Results Data
+  GameEvent? _eventDetails;
+  int _totalBettingWinners = 0;
+  Map<String, dynamic> _myBettingResult = {'won': false, 'amount': 0};
+  bool _isLoadingEventData = true;
 
   @override
   void initState() {
@@ -57,6 +67,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
       // Fetch prizes for everyone
       _fetchPrizes();
+      // Fetch detailed event data (Pot, Betting, etc)
+      _loadEventData();
 
       // Add listener to self-correct position
       gameProvider.addListener(_updatePositionFromLeaderboard);
@@ -109,6 +121,46 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       }
     } catch (e) {
       debugPrint("⚠️ Error fetching podium prizes: $e");
+    }
+  }
+
+  Future<void> _loadEventData() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final userId = playerProvider.currentPlayer?.id;
+
+      // Fetch Event Details
+      final eventResponse = await supabase.from('events').select().eq('id', widget.eventId).single();
+      final event = GameEvent.fromJson(eventResponse);
+
+      // Fetch Betting Data
+      final bettingService = BettingService(supabase);
+      final bettingWinnersPromise = event.winnerId != null 
+          ? bettingService.getTotalBettingWinners(widget.eventId, event.winnerId!)
+          : Future.value(0);
+          
+      final myBettingPromise = userId != null
+          ? bettingService.getUserEventWinnings(widget.eventId, userId)
+          : Future.value({'won': false, 'amount': 0});
+
+      final results = await Future.wait([bettingWinnersPromise, myBettingPromise]);
+
+      if (mounted) {
+        setState(() {
+          _eventDetails = event;
+          _totalBettingWinners = results[0] as int;
+          _myBettingResult = results[1] as Map<String, dynamic>;
+          _isLoadingEventData = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error loading event data: $e");
+       if (mounted) {
+        setState(() {
+          _isLoadingEventData = false;
+        });
+      }
     }
   }
 
@@ -236,7 +288,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     final playerProvider = Provider.of<PlayerProvider>(context);
     final currentPlayerId = playerProvider.currentPlayer?.id ?? '';
 
-    debugPrint("🏆 WinnerScreen Build: eventId=${widget.eventId}, leaderboardSize=${gameProvider.leaderboard.length}, isLoading=${gameProvider.isLoading}, internalIsLoading=$_isLoading");
+    // Determine if user participated
+    final isParticipant = _currentPosition > 0;
 
     return WillPopScope(
       onWillPop: () async => false, // Prevent back button
@@ -270,202 +323,147 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                 ),
               ),
 
-              if (_isLoading)
+              if (_isLoading || _isLoadingEventData)
                 const Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       CircularProgressIndicator(color: AppTheme.accentGold),
                       SizedBox(height: 20),
-                      Text("Calculando resultados finales...",
+                      Text("Cargando resultados...",
                           style: TextStyle(color: Colors.white70)),
                     ],
                   ),
                 )
               else
                 SafeArea(
-                  child: Padding(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 20),
                     child: Column(
                       children: [
-                        // User's Position Header (Very Prominent)
-                        Column(
-                          children: [
-                            Text(
-                              _currentPosition > 0
-                                  ? _getCelebrationMessage()
-                                  : 'Resultados del Evento',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: _getPositionColor(),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 10),
-                            if (_currentPosition > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 30, vertical: 15),
-                                decoration: BoxDecoration(
-                                  color: _getPositionColor().withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                      color: _getPositionColor(), width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          _getPositionColor().withOpacity(0.2),
-                                      blurRadius: 15,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
+                        // Header
+                        Text(
+                          isParticipant
+                              ? _getCelebrationMessage()
+                              : 'Resultados Finales',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: _getPositionColor(),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // USER RESULT CARD (Only if participant)
+                        if (isParticipant)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 20),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 15),
+                            decoration: BoxDecoration(
+                              color: _getPositionColor().withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: _getPositionColor(), width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      _getPositionColor().withOpacity(0.2),
+                                  blurRadius: 15,
+                                  spreadRadius: 2,
                                 ),
-                                child: Column(children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
+                              ],
+                            ),
+                            child: Column(children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _getMedalEmoji(),
+                                    style: const TextStyle(fontSize: 40),
+                                  ),
+                                  const SizedBox(width: 15),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        _getMedalEmoji(),
-                                        style: const TextStyle(fontSize: 40),
+                                      const Text(
+                                        'TU POSICIÓN',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.5,
+                                        ),
                                       ),
-                                      const SizedBox(width: 15),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'TU POSICIÓN',
-                                            style: TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 1.5,
-                                            ),
-                                          ),
-                                          Text(
-                                            '#$_currentPosition',
-                                            style: TextStyle(
-                                              fontSize: 36,
-                                              fontWeight: FontWeight.w900,
-                                              color: _getPositionColor(),
-                                            ),
-                                          ),
-                                        ],
+                                      Text(
+                                        '#$_currentPosition',
+                                        style: TextStyle(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.w900,
+                                          color: _getPositionColor(),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  if (_prizes.containsKey(currentPlayerId)) ...[
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black45,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color: const Color(0xFFFFD700)),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text("💰",
-                                              style: TextStyle(fontSize: 20)),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            "+${_prizes[currentPlayerId]} 🍀",
-                                            style: const TextStyle(
-                                              color: Color(0xFFFFD700),
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              shadows: [
-                                                Shadow(
-                                                    color: Colors.black,
-                                                    blurRadius: 2)
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  ] else if (widget.prizeWon != null &&
-                                      widget.prizeWon! > 0) ...[
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black45,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color: const Color(0xFFFFD700)),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text("💰",
-                                              style: TextStyle(fontSize: 20)),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            "+${widget.prizeWon} 🍀",
-                                            style: const TextStyle(
-                                              color: Color(0xFFFFD700),
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  ]
-                                ]),
-                              )
-                            else
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: const Text(
-                                  'No participaste en esta competencia.\nAquí tienes el podio final:',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: Colors.white70, fontSize: 14),
-                                ),
+                                ],
                               ),
-                          ],
-                        ),
+                              if (_prizes.containsKey(currentPlayerId)) ...[
+                                const SizedBox(height: 10),
+                                _buildPrizeBadge(_prizes[currentPlayerId]!)
+                              ] else if (widget.prizeWon != null &&
+                                  widget.prizeWon! > 0) ...[
+                                const SizedBox(height: 10),
+                                _buildPrizeBadge(widget.prizeWon!)
+                              ]
+                            ]),
+                          )
+                        else
+                          // Non-participant message
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 20),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: const Text(
+                              'Este evento ha finalizado. Aquí están los resultados oficiales:',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            ),
+                          ),
 
-                        const Spacer(),
-
-                        // Top 3 Podium (Fixed at center)
+                        // PODIUM SECTION
                         if (gameProvider.leaderboard.isNotEmpty)
-                          Column(
-                            children: [
-                              const Text(
-                                'PODIO DE LA CARRERA',
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 2,
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 24),
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBg.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                  color:
+                                      AppTheme.accentGold.withOpacity(0.2)),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'PODIO CAMPEONES',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.cardBg.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                      color:
-                                          AppTheme.accentGold.withOpacity(0.2)),
-                                ),
-                                child: Row(
+                                const SizedBox(height: 20),
+                                Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceEvenly,
                                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -509,82 +507,181 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                       const SizedBox(width: 60),
                                   ],
                                 ),
-                              ),
-                            ],
-                          )
-                        else if (gameProvider.isLoading)
-                          const CircularProgressIndicator()
-                        else
-                          const Text(
-                            'No hay resultados disponibles',
-                            style: TextStyle(color: Colors.white54),
+                              ],
+                            ),
                           ),
 
-                        const Spacer(),
-
-                        // Final Info and Button
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(15),
+                        // FINANCIAL STATS SECTION (Unified)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 24),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Text(
+                                'ESTADÍSTICAS DEL EVENTO',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                              const SizedBox(height: 16),
+                              
+                              // Row 1: Pot & Betting Pot
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.stars,
-                                      color: Colors.greenAccent, size: 20),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    '${widget.totalCluesCompleted} Pistas Completadas',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
+                                  // Entry Pot
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      "POZO INSCRIPCIÓN",
+                                      _eventDetails?.pot != null && _eventDetails!.pot > 0
+                                          ? NumberFormat.currency(locale: 'es_CO', symbol: '', decimalDigits: 0).format(_eventDetails!.pot) + " 🍀"
+                                          : "Gratis",
+                                      Icons.monetization_on,
+                                      Colors.amber,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Betting Pot (Using Spectator Widget Logic but customized or direct)
+                                  // Since we have the widget, we can use it, but it might include its own layout.
+                                  // Let's wrapping it or reuse its logic?
+                                  // Actually, the widget is designed for the spectator screen header.
+                                  // Let's use a custom display here for consistency, relying on the widget's logic if needed, 
+                                  // BUT we want to keep it simple.
+                                  // Let's just use the SpectatorBettingPotWidget directly if it fits,
+                                  // OR just pass the widget.eventId.
+                                  // To match the UI, let's wrap it.
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                            // Embed the existing widget but we need to ensure it fits.
+                                            // The widget has a Row and text.
+                                            // Alternatively, since we are in the results screen, maybe just show it nicely.
+                                            SpectatorBettingPotWidget(eventId: widget.eventId),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 12),
+
+                              // Row 2: Winners & Betting Results
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                   // Configured Winners
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      "GANADORES",
+                                      "${_eventDetails?.configuredWinners ?? 1}",
+                                      Icons.emoji_events,
+                                      Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Total Betting Winners
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      "GANADORES APUESTA",
+                                      "$_totalBettingWinners",
+                                      Icons.people,
+                                      Colors.greenAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // YOUR BETTING RESULT (If existed)
+                              if (_myBettingResult['amount'] > 0 || _myBettingResult['won'] == true) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: (_myBettingResult['won'] as bool) 
+                                        ? Colors.green.withOpacity(0.2) 
+                                        : Colors.red.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: (_myBettingResult['won'] as bool) ? Colors.green : Colors.red,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        (_myBettingResult['won'] as bool) ? Icons.check_circle : Icons.cancel,
+                                        color: (_myBettingResult['won'] as bool) ? Colors.green : Colors.red,
+                                        size: 20
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        (_myBettingResult['won'] as bool)
+                                            ? "¡Ganaste la apuesta! +${_myBettingResult['amount']} 🍀"
+                                            : "Perdiste tu apuesta",
+                                        style: TextStyle(
+                                          color: (_myBettingResult['won'] as bool) ? Colors.greenAccent : Colors.redAccent,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                )
+                              ]
+                            ],
+                          ),
+                        ),
+
+                        // Bottom Actions
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        GameModeSelectorScreen()),
+                                (route) => false,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentGold,
+                              foregroundColor: Colors.black,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 8,
+                              shadowColor:
+                                  AppTheme.accentGold.withOpacity(0.5),
                             ),
-                            const SizedBox(height: 30),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).pushAndRemoveUntil(
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            GameModeSelectorScreen()),
-                                    (route) => false,
-                                  );
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.accentGold,
-                                  foregroundColor: Colors.black,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 18),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 8,
-                                  shadowColor:
-                                      AppTheme.accentGold.withOpacity(0.5),
-                                ),
-                                icon: const Icon(Icons.home_rounded, size: 28),
-                                label: const Text(
-                                  'VOLVER AL INICIO',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
+                            icon: const Icon(Icons.home_rounded, size: 28),
+                            label: const Text(
+                              'VOLVER AL INICIO',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
                               ),
                             ),
-                          ],
+                          ),
                         ),
                         const SizedBox(height: 10),
                       ],
@@ -594,6 +691,75 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPrizeBadge(int amount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: const Color(0xFFFFD700)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text("💰",
+              style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          Text(
+            "+$amount 🍀",
+            style: const TextStyle(
+              color: Color(0xFFFFD700),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                    color: Colors.black,
+                    blurRadius: 2)
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

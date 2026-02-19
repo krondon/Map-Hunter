@@ -98,4 +98,20 @@ class BettingService {
       return {'won': false, 'amount': 0};
     }
   }
+
+  /// Obtiene el número total de ganadores de apuestas (personas que apostaron al ganador).
+  Future<int> getTotalBettingWinners(String eventId, String winnerId) async {
+    try {
+      final response = await _supabase
+          .from('bets')
+          .count(CountOption.exact)
+          .eq('event_id', eventId)
+          .eq('racer_id', winnerId);
+      
+      return response;
+    } catch (e) {
+      debugPrint('BettingService: Error counting winners: $e');
+      return 0;
+    }
+  }
 }

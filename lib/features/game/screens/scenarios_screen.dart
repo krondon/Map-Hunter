@@ -728,9 +728,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           MaterialPageRoute(
             builder: (_) => WinnerCelebrationScreen(
               eventId: scenario.id,
-              playerPosition: 0,
+              playerPosition: 0, // Will be corrected by screen if participant
               totalCluesCompleted: 0,
-              prizeWon: prizeWon, // PASS RETRIEVED PRIZE
+              prizeWon: prizeWon ?? 0, // Pass 0 if null
             ),
           ),
         );
@@ -1434,6 +1434,24 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   Future<void> _onSpectatorSelected(Scenario scenario) async {
     if (_isProcessing) return;
+
+    if (scenario.isCompleted) {
+       // Direct navigation to results screen for finished events
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WinnerCelebrationScreen(
+              eventId: scenario.id,
+              playerPosition: 0,
+              totalCluesCompleted: 0,
+              prizeWon: 0, 
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() {
       _isProcessing = true;
