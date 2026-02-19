@@ -23,7 +23,8 @@ import '../widgets/spectator_participants_list.dart';
 import '../../../shared/models/player.dart';
 import '../../social/widgets/leaderboard_card.dart';
 import '../widgets/spectator_betting_pot_widget.dart'; // ADDED
-import '../widgets/my_bets_modal.dart'; // ADDED
+import '../widgets/my_bets_modal.dart';
+import '../services/betting_service.dart'; // ADDED
 
 
 class SpectatorModeScreen extends StatefulWidget {
@@ -156,7 +157,30 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             return SafeArea(
               child: Column(
                 children: [
-
+                  // 1. Header Row with Back Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        Expanded(
+                          child: Text(
+                            event.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Orbitron',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   
                   // 2. Body Condicional
                   Expanded(
@@ -166,8 +190,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                            if (event.isCompleted) _buildVictoryBanner(),
                            
                            // B. POTE DE APUESTAS (NUEVO)
-                           // Mostrar el pote solo si la carrera no ha terminado o incluso si terminó, como info final.
                            SpectatorBettingPotWidget(eventId: widget.eventId),
+
+                           // RESULTADOS DE APUESTAS (Solo si terminó)
+                           if (event.isCompleted) _buildUserWinningsSection(event.id),
 
                            // C. Carrera en Curso / Finalizada (Race Tracker siempre visible)
                            SizedBox(
@@ -208,7 +234,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                                     child: _selectedTab == 2
                                         ? _buildStoreView()
                                         : _selectedTab == 1
-                                            ? _rankingView()
+                                            ? _rankingView(event)
                                             : _buildLiveFeed(),
                                   ),
                                 ),
@@ -838,7 +864,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     );
   }
 
-  Widget _rankingView() {
+  Widget _rankingView(GameEvent event) {
     return Consumer<GameProvider>(
       builder: (context, gameProvider, child) {
         final leaderboard = gameProvider.leaderboard;
@@ -895,18 +921,31 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                           ),
                         ),
                         const Spacer(),
-                        ElevatedButton(
-                          onPressed: () => _showBetDialog(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.accentGold,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          child: const Text('Apostar'),
-                        ),
-                        const SizedBox(width: 8), // Spacing
+                        if (event.status == 'pending')
+                          ElevatedButton(
+                            onPressed: () => _showBetDialog(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentGold,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                            child: const Text('Apostar'),
+                          )
+                        else
+                           Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                event.status == 'active' ? 'En Curso' : 'Finalizado',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                           ),
+                        const SizedBox(width: 8), // Spacing of My Bets
                         OutlinedButton(
                           onPressed: () => _showMyBetsDialog(context),
                           style: OutlinedButton.styleFrom(
@@ -1044,6 +1083,68 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       isScrollControlled: true,
       builder: (context) => MyBetsModal(eventId: widget.eventId),
     );
+  }
+
+
+
+  Widget _buildUserWinningsSection(String eventId) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getUserWinnings(eventId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox();
+        final data = snapshot.data!;
+        final won = data['won'] as bool;
+        final amount = data['amount'] as int;
+
+        if (amount == 0 && !won) return const SizedBox(); // No bets or lost without specific message? Or show lost?
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: won ? AppTheme.dGoldMain.withOpacity(0.2) : Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: won ? AppTheme.dGoldMain : Colors.red.withOpacity(0.5)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                won ? "¡FELICIDADES!" : "Resultados",
+                style: TextStyle(
+                  color: won ? AppTheme.dGoldMain : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontFamily: 'Orbitron',
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (won)
+                Text(
+                  "Has ganado $amount 🍀",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              else
+                const Text(
+                  "No obtuviste premios en este evento.",
+                  style: TextStyle(color: Colors.white70),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> _getUserWinnings(String eventId) async {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final userId = playerProvider.currentPlayer?.userId;
+    if (userId == null) return {'won': false, 'amount': 0};
+    final bettingService = BettingService(Supabase.instance.client);
+    return bettingService.getUserEventWinnings(eventId, userId);
   }
 
   Widget _buildStoreView() {

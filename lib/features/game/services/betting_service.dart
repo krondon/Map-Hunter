@@ -82,4 +82,20 @@ class BettingService {
         )
         .subscribe();
   }
+
+
+  /// Obtiene las ganancias del usuario en un evento.
+  /// Retorna un mapa con {won: bool, amount: int}.
+  Future<Map<String, dynamic>> getUserEventWinnings(String eventId, String userId) async {
+    try {
+      final response = await _supabase.rpc('get_user_event_winnings', params: {
+        'p_event_id': eventId,
+        'p_user_id': userId,
+      });
+      return Map<String, dynamic>.from(response);
+    } catch (e) {
+      debugPrint('BettingService: Error getting winnings: $e');
+      return {'won': false, 'amount': 0};
+    }
+  }
 }
