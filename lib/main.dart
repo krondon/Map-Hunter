@@ -34,6 +34,7 @@ import 'features/game/services/game_service.dart';
 
 import 'features/mall/services/store_service.dart';
 import 'features/events/services/event_service.dart';
+import 'shared/widgets/version_monitor.dart';
 
 // --- NEW: Phase 1 Refactoring Imports ---
 import 'core/repositories/lives_repository.dart';
@@ -303,10 +304,12 @@ class _TreasureHuntAppState extends State<TreasureHuntApp>
             builder: (context, child) {
               _forceImmersiveMode();
 
-              return AuthMonitor(
-                child: ConnectivityMonitor(
-                  child: GameSessionMonitor(
-                    child: SabotageOverlay(child: child ?? const SizedBox()),
+              return VersionMonitor(
+                child: AuthMonitor(
+                  child: ConnectivityMonitor(
+                    child: GameSessionMonitor(
+                      child: SabotageOverlay(child: child ?? const SizedBox()),
+                    ),
                   ),
                 ),
               );
