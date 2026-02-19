@@ -237,6 +237,17 @@ class _GameRequestScreenState extends State<GameRequestScreen>
 
     if (event == null) return;
 
+    // PRIORIDAD AL ESTADO: Si el evento ya está activo o completado, omitir cuenta regresiva
+    if (event.status == 'active' || event.status == 'completed') {
+      if (mounted) {
+        setState(() {
+          _timeUntilStart = null;
+          _eventStarted = true;
+        });
+      }
+      return;
+    }
+
     final now = DateTime.now();
 
     // Debug info
@@ -256,6 +267,12 @@ class _GameRequestScreenState extends State<GameRequestScreen>
           timer.cancel();
           return;
         }
+        
+        // RE-VERIFICAR ESTADO EN CADA TICK (Por si cambia a active manualmente)
+        // Nota: Esto requiere que 'event' se actualice, lo cual no sucede aquí automáticamente.
+        // GameRequestScreen debería escuchar cambios del evento si queremos realtime real.
+        // Por ahora, mantenemos la lógica de fecha, pero ya tenemos la validación inicial.
+        
         final now = DateTime.now();
         if (event!.date.isAfter(now)) {
           setState(() {

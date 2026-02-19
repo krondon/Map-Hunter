@@ -33,14 +33,69 @@ class BettingService {
     try {
       final response = await _supabase
           .from('bets')
-          .select('id, racer_id, amount, created_at')
+          .select('id, racer_id, amount, created_at, profiles:racer_id(name)')
           .eq('event_id', eventId)
           .eq('user_id', userId);
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('BettingService: Error fetching user bets: $e');
+      // Uncomment to see error in UI if needed, or inspecting logs.
+      // throw e; 
       return [];
+    }
+  }
+  /// Obtiene el monto total apostado en el evento (POTE).
+  Future<int> getEventBettingPot(String eventId) async {
+    try {
+      final response = await _supabase
+          .from('bets')
+          .select('amount')
+          .eq('event_id', eventId);
+
+      final List<dynamic> bets = response;
+      int totalPot = 0;
+      for (var bet in bets) {
+        totalPot += (bet['amount'] as num).toInt();
+      }
+      return totalPot;
+    } catch (e) {
+      debugPrint('BettingService: Error fetching pot: $e');
+      return 0;
+    }
+  }
+
+  /// Realtime subscription to bets table to update pot.
+  RealtimeChannel subscribeToBets(String eventId, Function() callback) {
+    return _supabase
+        .channel('bets_updates:$eventId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'bets',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'event_id',
+            value: eventId,
+          ),
+          callback: (payload) => callback(),
+        )
+        .subscribe();
+  }
+
+
+  /// Obtiene las ganancias del usuario en un evento.
+  /// Retorna un mapa con {won: bool, amount: int}.
+  Future<Map<String, dynamic>> getUserEventWinnings(String eventId, String userId) async {
+    try {
+      final response = await _supabase.rpc('get_user_event_winnings', params: {
+        'p_event_id': eventId,
+        'p_user_id': userId,
+      });
+      return Map<String, dynamic>.from(response);
+    } catch (e) {
+      debugPrint('BettingService: Error getting winnings: $e');
+      return {'won': false, 'amount': 0};
     }
   }
 }

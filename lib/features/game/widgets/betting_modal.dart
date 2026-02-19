@@ -205,8 +205,8 @@ class _BettingModalState extends State<BettingModal> {
                     padding: EdgeInsets.all(16),
                     itemBuilder: (context, index) {
                       final player = players[index];
-                      // Assuming player.id is what we use for betting (game_player_id usually)
-                      final racerId = player.id; 
+                      // Use userId as racerId to link with profiles table
+                      final racerId = player.userId; 
                       
                       final isAlreadyBet = _myBetRacerIds.contains(racerId);
                       final isSelected = _selectedRacerIds.contains(racerId);
