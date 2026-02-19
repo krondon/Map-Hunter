@@ -243,101 +243,178 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
 
   void _showSuccessDialog() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    const Color successColor = AppTheme.successGreen;
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Icon(Icons.check_circle,
-            color: AppTheme.successGreen, size: 60),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "¡CÓDIGO ENCONTRADO!",
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30),
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: successColor.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: successColor.withOpacity(0.3), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: successColor, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: successColor.withOpacity(0.15),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              "Has desbloqueado el acceso al escenario.",
-              style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          ElevatedButton(
-            onPressed: () async {
-              // Validar si el evento tiene costo
-              if (widget.scenario.entryFee > 0) {
-                 final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
-                    title: Row(
-                      children: [
-                        const Icon(Icons.monetization_on, color: AppTheme.accentGold),
-                        const SizedBox(width: 10),
-                        Text('Confirmar Solicitud', style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
-                      ],
-                    ),
-                    content: Text(
-                      'Este evento tiene un costo de ${widget.scenario.entryFee} 🍀.\n\n'
-                      'Los tréboles se descontarán automáticamente de tu saldo CUANDO el administrador apruebe tu solicitud.',
-                      style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: Text('CANCELAR', style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain)),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accentGold,
-                          foregroundColor: Colors.black,
-                        ),
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text("ENTENDIDO, SOLICITAR"),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: successColor.withOpacity(0.1),
+                    border: Border.all(color: successColor.withOpacity(0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: successColor.withOpacity(0.2),
+                        blurRadius: 12,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),
-                );
+                  child: const Icon(Icons.check_circle_outline_rounded,
+                      color: successColor, size: 50),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "¡CÓDIGO ENCONTRADO!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    fontFamily: 'Orbitron',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Has desbloqueado el acceso al escenario.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.accentGold.withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentGold,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        // Validar si el evento tiene costo
+                        if (widget.scenario.entryFee > 0) {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+                              title: Row(
+                                children: [
+                                  const Icon(Icons.monetization_on, color: AppTheme.accentGold),
+                                  const SizedBox(width: 10),
+                                  Text('Confirmar Solicitud', style: TextStyle(color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D))),
+                                ],
+                              ),
+                              content: Text(
+                                'Este evento tiene un costo de ${widget.scenario.entryFee} 🍀.\n\n'
+                                'Los tréboles se descontarán automáticamente de tu saldo CUANDO el administrador apruebe tu solicitud.',
+                                style: TextStyle(color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: Text('CANCELAR', style: TextStyle(color: isDarkMode ? Colors.white54 : AppTheme.lBrandMain)),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.accentGold,
+                                    foregroundColor: Colors.black,
+                                  ),
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text("ENTENDIDO, SOLICITAR"),
+                                ),
+                              ],
+                            ),
+                          );
 
-                if (confirm != true) return;
-              }
+                          if (confirm != true) return;
+                        }
 
-              // Submit request (Action: "allí es donde solicita acceso")
-              final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
-              final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-              
-              if (playerProvider.currentPlayer != null) {
-                  await requestProvider.submitRequest(
-                    playerProvider.currentPlayer!, 
-                    widget.scenario.id, 
-                    widget.scenario.maxPlayers
-                  );
-              }
+                        // Submit request (Action: "allí es donde solicita acceso")
+                        final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
+                        final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                        
+                        if (playerProvider.currentPlayer != null) {
+                            await requestProvider.submitRequest(
+                              playerProvider.currentPlayer!, 
+                              widget.scenario.id, 
+                              widget.scenario.maxPlayers
+                            );
+                        }
 
-              if (context.mounted) {
-                Navigator.pop(context);
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                      builder: (_) => GameRequestScreen(
-                            eventId: widget.scenario.id,
-                            eventTitle: widget.scenario.name,
-                          )),
-                );
-              }
-            },
-            child: const Text("SOLICITAR ACCESO"),
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                                builder: (_) => GameRequestScreen(
+                                      eventId: widget.scenario.id,
+                                      eventTitle: widget.scenario.name,
+                                    )),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        "SOLICITAR ACCESO",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

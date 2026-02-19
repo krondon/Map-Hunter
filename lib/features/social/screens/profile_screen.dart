@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../game/providers/game_provider.dart';
+import '../../game/providers/power_effect_provider.dart';
 import '../../game/models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/login_screen.dart';
@@ -41,56 +42,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-
     final mainScroll = CustomScrollView(
-          slivers: [
-            if (!widget.hideScaffold)
-              SliverAppBar(
-                expandedHeight: 0,
-                floating: true,
-                pinned: true,
-                backgroundColor: Colors.black.withOpacity(0.5),
-                title: const Text('ID DE JUGADOR', 
-                  style: TextStyle(letterSpacing: 4, fontWeight: FontWeight.w900, fontSize: 16)),
-                centerTitle: true,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: AppTheme.dangerRed),
-                    onPressed: () {
-                      _showLogoutDialog(playerProvider);
-                    },
-                  ),
-                ],
+      slivers: [
+        if (!widget.hideScaffold)
+          SliverAppBar(
+            expandedHeight: 0,
+            floating: true,
+            pinned: true,
+            backgroundColor: Colors.black.withOpacity(0.5),
+            title: const Text('ID DE JUGADOR',
+                style: TextStyle(
+                    letterSpacing: 4,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16)),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout, color: AppTheme.dangerRed),
+                onPressed: () {
+                  _showLogoutDialog(playerProvider);
+                },
               ),
-            
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    // 1. GAMER CARD WITH NEON GLOW
-                    _buildGamerCard(player, isDarkMode, playerProvider),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 2. TRÉBOLES DORADOS - NEW ANIMATED SECTION
-                    _buildGoldenCloversSection(gameProvider, isDarkMode),
-                    
-                    const SizedBox(height: 24),
-                    
-                    const SizedBox(height: 40),
-                    const Text("ASTHORIA PROTOCOL v1.0.4", 
-                      style: TextStyle(color: Colors.white10, fontSize: 10, letterSpacing: 4)),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
+            ],
+          ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // 1. GAMER CARD WITH NEON GLOW
+                _buildGamerCard(player, isDarkMode, playerProvider),
 
-    final content = widget.hideScaffold 
-        ? mainScroll 
+                const SizedBox(height: 24),
+
+                // 2. TRÉBOLES DORADOS - NEW ANIMATED SECTION
+                _buildGoldenCloversSection(gameProvider, isDarkMode),
+
+                const SizedBox(height: 24),
+
+                const SizedBox(height: 40),
+                const Text("ASTHORIA PROTOCOL v1.0.4",
+                    style: TextStyle(
+                        color: Colors.white10, fontSize: 10, letterSpacing: 4)),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final content = widget.hideScaffold
+        ? mainScroll
         : AnimatedCyberBackground(
             child: Stack(
               children: [
@@ -223,7 +226,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildGamerCard(dynamic player, bool isDarkMode, PlayerProvider playerProvider) {
+  Widget _buildGamerCard(
+      dynamic player, bool isDarkMode, PlayerProvider playerProvider) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
@@ -253,7 +257,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   top: 0,
                   right: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppTheme.accentGold,
                       borderRadius: BorderRadius.circular(20),
@@ -297,7 +302,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
-                                colors: [AppTheme.primaryPurple, AppTheme.secondaryPink.withOpacity(0.5)],
+                                colors: [
+                                  AppTheme.primaryPurple,
+                                  AppTheme.secondaryPink.withOpacity(0.5)
+                                ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -317,7 +325,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           color: Colors.white),
                                     );
                                   }
-                                  if (player.avatarUrl != null && player.avatarUrl!.startsWith('http')) {
+                                  if (player.avatarUrl != null &&
+                                      player.avatarUrl!.startsWith('http')) {
                                     return Image.network(
                                       player.avatarUrl!,
                                       fit: BoxFit.cover,
@@ -327,7 +336,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           color: Colors.white),
                                     );
                                   }
-                                  return const Icon(Icons.person, size: 55, color: Colors.white);
+                                  return const Icon(Icons.person,
+                                      size: 55, color: Colors.white);
                                 },
                               ),
                             ),
@@ -342,16 +352,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             decoration: BoxDecoration(
                               color: AppTheme.primaryPurple,
                               shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFF1A1A1D), width: 2),
+                              border: Border.all(
+                                  color: const Color(0xFF1A1A1D), width: 2),
                             ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 10),
+                            child: const Icon(Icons.camera_alt,
+                                color: Colors.white, size: 10),
                           ),
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Name and Profession
                     Text(
                       player.name.toUpperCase(),
@@ -382,16 +394,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatWidget(const Icon(Icons.stars, color: AppTheme.secondaryPink, size: 28), "${player.totalXP}", "XP Total"),
-                        _buildStatWidget(const Text("🍀", style: TextStyle(fontSize: 24)), "${player.clovers}", "Tréboles"),
-                        _buildStatWidget(const Icon(Icons.emoji_events, color: AppTheme.accentGold, size: 28), "${player.eventsCompleted?.length ?? 0}", "Eventos"),
+                        _buildStatWidget(
+                            const Icon(Icons.stars,
+                                color: AppTheme.secondaryPink, size: 28),
+                            "${player.totalXP}",
+                            "XP Total"),
+                        _buildStatWidget(
+                            const Text("🍀", style: TextStyle(fontSize: 24)),
+                            "${player.clovers}",
+                            "Tréboles"),
+                        _buildStatWidget(
+                            const Icon(Icons.emoji_events,
+                                color: AppTheme.accentGold, size: 28),
+                            "${player.eventsCompleted?.length ?? 0}",
+                            "Eventos"),
                       ],
                     ),
 
                     const SizedBox(height: 32),
-                    
+
                     Divider(color: Colors.white.withOpacity(0.1), height: 1),
-                    
+
                     const SizedBox(height: 32),
 
                     // Buttons Row 1
@@ -657,9 +680,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: isSaving 
-                  ? const LoadingIndicator(fontSize: 14, color: Colors.black)
-                  : const Text("GUARDAR CAMBIOS", style: TextStyle(fontWeight: FontWeight.bold)),
+                child: isSaving
+                    ? const LoadingIndicator(fontSize: 14, color: Colors.black)
+                    : const Text("GUARDAR CAMBIOS",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
               ),
 
               const SizedBox(height: 12),
@@ -679,6 +703,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showDeleteConfirmation() {
+// [FIX] Controller lifecycle managed manually to prevent "used after disposed" error
     final passwordController = TextEditingController();
     bool isDeleting = false;
     bool obscurePassword = true;
@@ -687,6 +712,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     showDialog(
       context: context,
+      barrierDismissible: !isDeleting,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
@@ -806,9 +832,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               setDialogState(() => isDeleting = true);
                               try {
                                 final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+                                // [FIX] Limpiar efectos de sabotaje ANTES del borrado
+                                if (context.mounted) {
+                                  context.read<PowerEffectProvider>().resetState();
+                                }
                                 await playerProvider.deleteAccount(password);
                                 if (!ctx.mounted) return;
-                                Navigator.pop(ctx);
+                                if (playerProvider.isLoggedIn) {
+                          Navigator.pop(ctx);
+                        } else {
+                          // Logged out successfully - dialog dies with route
+                        }
                                 SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
                                 if (context.mounted) {
                                   Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
@@ -840,11 +874,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // [FIX] Dispose controller ONLY after dialog is closed
+      passwordController.dispose();
+    });
   }
 
-
-  Widget _buildGoldenCloversSection(GameProvider gameProvider, bool isDarkMode) {
+  Widget _buildGoldenCloversSection(
+      GameProvider gameProvider, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -985,27 +1022,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         SizedBox(height: 30, child: Center(child: icon)),
         const SizedBox(height: 8),
-        Text(value, 
-          style: const TextStyle(
-            color: Colors.white, 
-            fontWeight: FontWeight.w900, 
-            fontSize: 24
-          )
-        ),
+        Text(value,
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 24)),
         const SizedBox(height: 4),
-        Text(label, 
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5), 
-            fontSize: 11, 
-            letterSpacing: 1
-          )
-        ),
+        Text(label,
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 11,
+                letterSpacing: 1)),
       ],
     );
   }
 
   Widget _buildVerticalDivider() {
-    return Container(width: 1, height: 35, color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05));
+    return Container(
+        width: 1,
+        height: 35,
+        color: Provider.of<PlayerProvider>(context, listen: false).isDarkMode
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.05));
   }
 
   IconData _getAvatarIcon(String profession) {
@@ -1208,7 +1246,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSupportOption({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildSupportOption(
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

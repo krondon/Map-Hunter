@@ -282,19 +282,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Theme(
       data: Theme.of(context).copyWith(
+        primaryColor: dGoldMain,
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: dGoldMain,
+          selectionColor: Color(0x40FECB00),
+          selectionHandleColor: dGoldMain,
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : Colors.white,
-          labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6), fontSize: 14),
-          prefixIconColor: isDarkMode ? dGoldMain : lMysticPurple,
-          suffixIconColor: currentTextSec.withOpacity(0.6),
+          fillColor: const Color(0xFF2A2A2E).withOpacity(0.8), // Force dark background
+          labelStyle: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+          prefixIconColor: isDarkMode ? dGoldMain : dGoldMain, // Always gold for consistency
+          suffixIconColor: Colors.white70,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: currentBorder, width: 1.5),
+            borderSide: const BorderSide(color: dBorderGray, width: 1.5),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: isDarkMode ? dGoldMain : lMysticPurple, width: 2),
+            borderSide: const BorderSide(color: dGoldMain, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -405,7 +411,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             value: type,
                                             child: Text(
                                               type,
-                                              style: TextStyle(color: currentText, fontWeight: FontWeight.bold),
+                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                             ),
                                           );
                                         }).toList(),
@@ -414,13 +420,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             setState(() => _selectedNationalityType = value);
                                           }
                                         },
-                                        decoration: InputDecoration(
-                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                          filled: true,
-                                          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : Colors.white,
-                                        ),
-                                        dropdownColor: isDarkMode ? const Color(0xFF1A1A1D) : Colors.white,
-                                        style: TextStyle(color: currentText),
+                                          decoration: InputDecoration(
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                            filled: true,
+                                            fillColor: const Color(0xFF2A2A2E).withOpacity(0.8),
+                                          ),
+                                          dropdownColor: const Color(0xFF1A1A1D),
+                                          style: const TextStyle(color: Colors.white),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -428,7 +434,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     Expanded(
                                       child: TextFormField(
                                         controller: _cedulaController,
-                                        style: TextStyle(color: currentText),
+                                        style: const TextStyle(color: Colors.white),
                                         keyboardType: TextInputType.number,
                                         inputFormatters: [
                                           FilteringTextInputFormatter.digitsOnly,
@@ -453,7 +459,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 // Teléfono
                                 TextFormField(
                                   controller: _phoneController,
-                                  style: TextStyle(color: currentText),
+                                  style: const TextStyle(color: Colors.white),
                                   keyboardType: TextInputType.number, 
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
@@ -477,7 +483,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 // Nombre completo
                                 TextFormField(
                                   controller: _nameController,
-                                  style: TextStyle(color: currentText),
+                                  style: const TextStyle(color: Colors.white),
                                   inputFormatters: [
                                     LengthLimitingTextInputFormatter(50),
                                     FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]')),
@@ -502,7 +508,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  style: TextStyle(color: currentText),
+                                  style: const TextStyle(color: Colors.white),
                                   decoration: const InputDecoration(
                                     labelText: 'EMAIL',
                                     prefixIcon: Icon(Icons.email_outlined),
@@ -520,7 +526,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: !_isPasswordVisible,
-                                  style: TextStyle(color: currentText),
+                                  style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     labelText: 'CONTRASEÑA',
                                     prefixIcon: const Icon(Icons.lock_outline),
@@ -541,7 +547,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 TextFormField(
                                   controller: _confirmPasswordController,
                                   obscureText: !_isConfirmPasswordVisible,
-                                  style: TextStyle(color: currentText),
+                                  style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     labelText: 'CONFIRMAR CONTRASEÑA',
                                     prefixIcon: const Icon(Icons.lock_outline),

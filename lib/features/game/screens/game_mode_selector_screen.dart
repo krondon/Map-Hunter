@@ -11,6 +11,7 @@ import '../../../shared/widgets/master_tutorial_content.dart';
 import 'scenarios_screen.dart';
 import 'game_request_screen.dart'; // Mantener import por si se usa en futuro
 import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
+import '../../game/providers/power_effect_provider.dart';
 
 class GameModeSelectorScreen extends StatefulWidget {
   const GameModeSelectorScreen({super.key});
@@ -70,6 +71,8 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
       body: Stack(
         children: [
           // BACKGROUND (Mismo que Login)
+
+          // BACKGROUND (Mismo que Login)
           Positioned.fill(
             child: isDarkMode
                 ? Opacity(
@@ -96,10 +99,12 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                   ),
           ),
 
+
           SafeArea(
             child: Column(
               children: [
                 const Spacer(flex: 2),
+
 
                 // HEADER
                 Column(
@@ -119,6 +124,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                                 blurRadius: 10,
                                 spreadRadius: 2)
                           ]),
+
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -135,7 +141,9 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                   ],
                 ),
 
+
                 const Spacer(flex: 3),
+
 
                 // CARDS
                 Padding(
@@ -150,15 +158,23 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                         icon: Icons.location_on_outlined,
                         color: AppTheme.dGoldMain, // Dorado
                         onTap: () {
-                           // ACTUALIZAR PROVIDER GLOBAL
-                           context.read<AppModeProvider>().setMode(GameMode.presencial);
-                           
-                           // Navegar a escenarios (flujo normal)
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => const ScenariosScreen(isOnline: false)));
+                          // ACTUALIZAR PROVIDER GLOBAL
+                          context
+                              .read<AppModeProvider>()
+                              .setMode(GameMode.presencial);
+
+                          // Navegar a escenarios (flujo normal)
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ScenariosScreen(isOnline: false)));
                         },
                       ),
 
+
                       const SizedBox(height: 24),
+
 
                       // MODO ONLINE
                       _buildModeCard(
@@ -168,18 +184,26 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                         icon: Icons.wifi,
                         color: const Color(0xFF00F0FF), // Azul Cyber / Cyan
                         onTap: () {
-                           // ACTUALIZAR PROVIDER GLOBAL
-                           context.read<AppModeProvider>().setMode(GameMode.online);
+                          // ACTUALIZAR PROVIDER GLOBAL
+                          context
+                              .read<AppModeProvider>()
+                              .setMode(GameMode.online);
 
-                           // Navegar a escenarios o input de PIN
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => const ScenariosScreen(isOnline: true)));
-                        }, 
+                          // Navegar a escenarios o input de PIN
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ScenariosScreen(isOnline: true)));
+                        },
                       ),
                     ],
                   ),
                 ),
 
+
                 const Spacer(flex: 4),
+
 
                 // FOOTER - BOTÓN VOLVER
                 Padding(
@@ -274,6 +298,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                   .withOpacity(0.6), // Fondo oscuro semi-transparente
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+
               boxShadow: [
                 BoxShadow(
                   color: color.withOpacity(0.05),
@@ -310,9 +335,11 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                               blurRadius: 10,
                               spreadRadius: 1)
                         ]),
+
                     child: Icon(icon, color: color, size: 28),
                   ),
                   const SizedBox(width: 16),
+
 
                   // Text Content
                   Expanded(
@@ -321,6 +348,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                       children: [
                         Text(
                           title,
+
                           style: TextStyle(
                               fontFamily: 'Orbitron',
                               fontSize: 16,
@@ -332,6 +360,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                                     color: color.withOpacity(0.6),
                                     blurRadius: 8)
                               ]),
+
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -347,10 +376,14 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                     ),
                   ),
 
+
                   // Arrow (Centrada verticalmente)
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      const SizedBox(height: 10),
+                      Icon(Icons.arrow_forward_ios,
+                          color: color.withOpacity(0.5), size: 14),
                       const SizedBox(height: 10),
                       Icon(Icons.arrow_forward_ios,
                           color: color.withOpacity(0.5), size: 14),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../auth/services/auth_service.dart';
 import '../../../shared/models/player.dart';
 import '../models/admin_stats.dart';
 import '../models/audit_log.dart';
@@ -10,9 +11,13 @@ import '../models/audit_log.dart';
 /// de depender de variables globales.
 class AdminService {
   final SupabaseClient _supabase;
+  final AuthService _authService;
 
-  AdminService({required SupabaseClient supabaseClient})
-      : _supabase = supabaseClient;
+  AdminService({
+    required SupabaseClient supabaseClient,
+    required AuthService authService,
+  })  : _supabase = supabaseClient,
+        _authService = authService;
 
   /// Obtiene estadísticas generales para el dashboard.
   Future<AdminStats> fetchGeneralStats() async {
@@ -147,9 +152,11 @@ class AdminService {
   /// Distribuye los premios del bote acumulado a los ganadores (Server-Side RPC).
   ///
   /// Retorna un mapa con los resultados de la distribución.
-  Future<Map<String, dynamic>> distributeCompetitionPrizes(String eventId) async {
+  Future<Map<String, dynamic>> distributeCompetitionPrizes(
+      String eventId) async {
     try {
-      debugPrint('AdminService: Distributing prizes via RPC for event $eventId');
+      debugPrint(
+          'AdminService: Distributing prizes via RPC for event $eventId');
 
       final response = await _supabase.rpc(
         'distribute_event_prizes',
@@ -159,22 +166,22 @@ class AdminService {
       debugPrint('AdminService: RPC Response: $response');
 
       final data = response as Map<String, dynamic>;
-      
+
       // Mapear respuesta del RPC al formato esperado por la UI si es necesario
       return {
         'success': data['success'] ?? false,
-        'message': data['message'] ?? (data['success'] ? 'Distribución completada' : 'Error desconocido'),
+        'message': data['message'] ??
+            (data['success'] ? 'Distribución completada' : 'Error desconocido'),
         'pot': data['distributable_pot'] ?? 0.0,
         'results': data['results'] ?? [],
         'winners_count': data['winners_count'] ?? 0,
       };
-
     } catch (e) {
       debugPrint('AdminService: Error distributing prizes via RPC: $e');
       return {
-          'success': false,
-          'message': 'Error de conexión o RPC: $e',
-          'pot': 0.0
+        'success': false,
+        'message': 'Error de conexión o RPC: $e',
+        'pot': 0.0
       };
     }
   }
@@ -212,7 +219,7 @@ class AdminService {
           .count(CountOption.exact)
           .eq('event_id', eventId)
           .eq('rpc_success', true);
-          
+
       return count > 0;
     } catch (e) {
       debugPrint('AdminService: Error checking prize distribution status: $e');
@@ -229,7 +236,7 @@ class AdminService {
           .select()
           .eq('role', 'admin')
           .order('name', ascending: true);
-          
+
       final data = response as List;
       debugPrint('AdminService: Found ${data.length} admins.');
       return data.map((json) => Player.fromJson(json)).toList();
@@ -250,15 +257,14 @@ class AdminService {
   }) async {
     try {
       // 1. Start with select (PostgrestFilterBuilder)
-      var query = _supabase
-          .from('admin_audit_logs')
-          .select('*, profiles(email)');
+      var query =
+          _supabase.from('admin_audit_logs').select('*, profiles(email)');
 
       // 2. Apply filters
       if (actionType != null && actionType.isNotEmpty) {
         query = query.eq('action_type', actionType);
       }
-      
+
       if (adminId != null && adminId.isNotEmpty) {
         query = query.eq('admin_id', adminId);
       }
@@ -278,7 +284,7 @@ class AdminService {
 
       final response = await transformQuery;
       final data = response as List;
-      
+
       return data.map((json) => AuditLog.fromJson(json)).toList();
     } catch (e) {
       debugPrint('AdminService: Error fetching audit logs: $e');

@@ -140,16 +140,24 @@ class _MallScreenState extends State<MallScreen> {
     final stores = storeProvider.stores;
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text(Provider.of<AppModeProvider>(context).isOnlineMode ? "Tienda Online" : "Tiendas Aliadas"),
-        backgroundColor: AppTheme.darkBg,
-      ),
       body: Container(
         decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
-        child: Column(
+        child: Stack(
           children: [
-             // Header
-             Container(
+            Column(
+              children: [
+                AppBar(
+                  title: Text(
+                    Provider.of<AppModeProvider>(context).isOnlineMode ? "Tienda Online" : "Tiendas Aliadas",
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  automaticallyImplyLeading: false, // Hide default back button
+                  centerTitle: true,
+                ),
+                // Header
+                Container(
                padding: const EdgeInsets.all(20),
                decoration: BoxDecoration(
                  color: AppTheme.cardBg,
@@ -252,6 +260,50 @@ class _MallScreenState extends State<MallScreen> {
                      },
                    ),
              )
+          ],
+        ),
+            // Cyberpunk Back Button (Matching Inventory & Store Detail)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 5,
+              left: 15,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.accentGold.withOpacity(0.3),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF0D0D0F),
+                      border: Border.all(
+                        color: AppTheme.accentGold,
+                        width: 2.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.accentGold.withOpacity(0.5),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -264,11 +264,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // Recalcular colores basados en isDarkMode actual
-            final Color currentSurface = isDarkMode ? dSurface1 : lSurface1;
-            final Color currentText = isDarkMode ? Colors.white : lTextPrimary;
-            final Color currentTextSec = isDarkMode ? Colors.white70 : lTextSecondary;
-            final Color currentBrand = isDarkMode ? dGoldMain : lMysticPurple;
+            // Forzar colores de modo oscuro para el modal
+            const Color currentSurface = dSurface1;
+            const Color currentText = Colors.white;
+            const Color currentTextSec = Colors.white70;
+            const Color currentBrand = dGoldMain;
 
             return AlertDialog(
               backgroundColor: currentSurface,
@@ -290,16 +290,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: emailController,
-                  style: TextStyle(color: isDarkMode ? currentText : const Color(0xFF1A1A1D)),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Email',
                     labelStyle: TextStyle(color: currentTextSec.withOpacity(0.6)),
-                    prefixIcon: Icon(Icons.email_outlined, color: currentBrand),
+                    prefixIcon: const Icon(Icons.email_outlined, color: currentBrand), // Use constant brand color
                     filled: true,
-                    fillColor: isDarkMode ? const Color(0xFF1A1A1D) : const Color(0xFFF2F2F7),
+                    fillColor: const Color(0xFF2A2A2E), // Dark input background
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: currentBrand, width: 2),
+                      borderSide: const BorderSide(color: currentBrand, width: 2),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -327,10 +327,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     const SizedBox(width: 8),
                     Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDarkMode 
-                              ? [dGoldLight, dGoldMain] 
-                              : [const Color(0xFF9D4EDD), lMysticPurple],
+                        gradient: const LinearGradient(
+                          colors: [dGoldLight, dGoldMain],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
@@ -340,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          foregroundColor: isDarkMode ? Colors.black : Colors.white,
+                          foregroundColor: Colors.black, // Dark text on gold button
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
@@ -373,10 +371,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       }
                     },
                               child: isSending
-                                  ? LoadingIndicator(
+                                  ? const LoadingIndicator(
                                       fontSize: 10, 
                                       showMessage: false,
-                                      color: isDarkMode ? Colors.black : Colors.white
+                                      color: Colors.black // Black indicator on gold
                                     )
                             : const Text('ENVIAR', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
@@ -553,27 +551,33 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
     return Theme(
       data: Theme.of(context).copyWith(
+        primaryColor: dGoldMain,
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: dGoldMain,
+          selectionColor: Color(0x40FECB00),
+          selectionHandleColor: dGoldMain,
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: isDarkMode ? const Color(0xFF2A2A2E) : Colors.white, // Gris oscuro en noche, Blanco en día
-          labelStyle: TextStyle(
-            color: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
+          fillColor: const Color(0xFF2A2A2E).withOpacity(0.8), // Force dark background for inputs
+          labelStyle: const TextStyle(
+            color: Colors.white70,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
-          prefixIconColor: isDarkMode ? currentBrand : const Color(0xFF5A189A),
-          suffixIconColor: isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A),
+          prefixIconColor: isDarkMode ? currentBrand : dGoldMain,
+          suffixIconColor: Colors.white70,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: isDarkMode ? currentBorder : const Color(0xFFD1D1DB),
+              color: isDarkMode ? currentBorder : dBorderGray,
               width: 1.5,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: isDarkMode ? currentBrand : const Color(0xFF5A189A),
+              color: isDarkMode ? currentBrand : dGoldMain,
               width: 2,
             ),
           ),
@@ -687,7 +691,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       keyboardType: TextInputType.emailAddress,
                                       textInputAction: TextInputAction.next,
                                       autofillHints: const [AutofillHints.email],
-                                      style: TextStyle(color: currentText),
+                                      style: const TextStyle(color: Colors.white),
                                       decoration: const InputDecoration(
                                         labelText: 'EMAIL',
                                         prefixIcon: Icon(Icons.email_outlined),
@@ -707,7 +711,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       textInputAction: TextInputAction.done,
                                       autofillHints: const [AutofillHints.password],
                                       onEditingComplete: _handleLogin,
-                                      style: TextStyle(color: currentText),
+                                      style: const TextStyle(color: Colors.white),
                                       decoration: InputDecoration(
                                         labelText: 'CONTRASEÑA',
                                         prefixIcon: const Icon(Icons.lock_outline),
@@ -849,6 +853,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        const Text(
+          'By',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 12),
         // Imagen JD.PNG
         Image.asset(
           'assets/images/jd.PNG',

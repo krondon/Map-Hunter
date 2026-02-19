@@ -14,7 +14,15 @@ import '../services/power_service.dart';
 import '../../admin/services/admin_service.dart';
 import '../../game/strategies/power_response.dart';
 
-enum PowerUseResult { success, reflected, error, blocked, gameFinished, targetFinished, gifted }
+enum PowerUseResult {
+  success,
+  reflected,
+  error,
+  blocked,
+  gameFinished,
+  targetFinished,
+  gifted
+}
 
 /// Core Player Provider - Handles player identity, session, and coordination.
 ///
@@ -46,7 +54,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Timer? _pollingTimer;
   bool _isSpectatorSession = false; // NEW: Flag for spectator mode choice
   bool _isDarkMode = false; // Global theme state
-  
+
   List<PowerItem> _shopItems = PowerItem.getShopItems();
 
   Player? get currentPlayer => _currentPlayer;
@@ -57,7 +65,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
   String? _banMessage;
   String? get banMessage => _banMessage;
-  
+
   // Error handling for powers
   String? _lastPowerError;
   String? get lastPowerError => _lastPowerError;
@@ -150,11 +158,12 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Future<void> loadShopItems() async {
     try {
       final configs = await _powerService.getPowerConfigs();
-      
+
       // NEW: Fetch Spectator Prices if applicable
       Map<String, dynamic> spectatorPrices = {};
       if (_isSpectatorSession && _currentPlayer?.currentEventId != null) {
-         spectatorPrices = await _powerService.getSpectatorConfig(_currentPlayer!.currentEventId!);
+        spectatorPrices = await _powerService
+            .getSpectatorConfig(_currentPlayer!.currentEventId!);
       }
 
       // Refresh base items to ensure clean slate
@@ -163,28 +172,29 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       _shopItems = _shopItems.map((item) {
         final matches = configs.where((d) => d['slug'] == item.id);
         final config = matches.isNotEmpty ? matches.first : null;
-        
+
         // Base logic for duration updates
         int duration = item.durationSeconds;
         String newDesc = item.description;
 
         if (config != null) {
-           duration = (config['duration'] as num?)?.toInt() ?? 0;
-           if (duration > 0) {
-             newDesc = newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
-           }
+          duration = (config['duration'] as num?)?.toInt() ?? 0;
+          if (duration > 0) {
+            newDesc =
+                newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
+          }
         }
-        
+
         // NEW: Spectator Price Override
         int finalCost = item.cost;
         if (_isSpectatorSession && spectatorPrices.containsKey(item.id)) {
-           finalCost = (spectatorPrices[item.id] as num).toInt();
+          finalCost = (spectatorPrices[item.id] as num).toInt();
         }
 
         return item.copyWith(
-            durationSeconds: duration,
-            description: newDesc,
-            cost: finalCost, // Apply override
+          durationSeconds: duration,
+          description: newDesc,
+          cost: finalCost, // Apply override
         );
       }).toList();
 
@@ -213,7 +223,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     try {
       final userId = await _authService.register(name, email, password,
           cedula: cedula, phone: phone);
-      
+
       // Solo intentamos restaurar sesión si realmente tenemos una activa
       if (_supabase.auth.currentSession != null) {
         await restoreSession(userId);
@@ -696,23 +706,27 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       return PowerUseResult.error;
     }
     if (_isProcessing) {
-      debugPrint('PlayerProvider: ⚠️ usePower aborted: _isProcessing is TRUE (Busy)');
+      debugPrint(
+          'PlayerProvider: ⚠️ usePower aborted: _isProcessing is TRUE (Busy)');
       return PowerUseResult.error;
     }
     _isProcessing = true;
     _lastPowerError = null; // Reset error state
-    debugPrint('PlayerProvider: 🚀 usePower STARTED: $powerSlug -> $targetGamePlayerId');
+    debugPrint(
+        'PlayerProvider: 🚀 usePower STARTED: $powerSlug -> $targetGamePlayerId');
 
     final casterGamePlayerId = _currentPlayer!.gamePlayerId;
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
-      debugPrint('PlayerProvider: ❌ usePower aborted: casterGamePlayerId is NULL/Empty');
+      debugPrint(
+          'PlayerProvider: ❌ usePower aborted: casterGamePlayerId is NULL/Empty');
       _isProcessing = false;
       return PowerUseResult.error;
     }
 
     // --- RACE FINISHED CHECKS ---
     if (gameProvider != null) {
-       debugPrint('PlayerProvider: 🏁 Checking Race Status. Clues: ${_currentPlayer!.completedCluesCount} / ${gameProvider.totalClues}');
+      debugPrint(
+          'PlayerProvider: 🏁 Checking Race Status. Clues: ${_currentPlayer!.completedCluesCount} / ${gameProvider.totalClues}');
     }
 
     if (gameProvider != null && gameProvider.totalClues > 0) {
@@ -726,13 +740,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       // 2. Check if Target has finished
       // We need to find target in leaderboard to check their progress
       final targetPlayer = gameProvider.leaderboard.firstWhere(
-        (p) => p.gamePlayerId == targetGamePlayerId || p.userId == targetGamePlayerId,
-        orElse: () => Player(userId: 'unknown', name: 'Unknown', email: ''), // Dummy fallback
+        (p) =>
+            p.gamePlayerId == targetGamePlayerId ||
+            p.userId == targetGamePlayerId,
+        orElse: () => Player(
+            userId: 'unknown', name: 'Unknown', email: ''), // Dummy fallback
       );
 
-      if (targetPlayer.userId != 'unknown' && 
+      if (targetPlayer.userId != 'unknown' &&
           targetPlayer.completedCluesCount >= gameProvider.totalClues) {
-        debugPrint('PlayerProvider: 🛑 Target finished race. Cannot be targeted.');
+        debugPrint(
+            'PlayerProvider: 🛑 Target finished race. Cannot be targeted.');
         _isProcessing = false;
         return PowerUseResult.targetFinished;
       }
@@ -742,10 +760,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       // --- EXCLUSIVITY CHECK ---
       // Fix: Only apply exclusivity check for DEFENSE powers when SELF-CASTING.
       // When gifting (caster != target), skip this check — server handles it.
-      final isDefensivePower = ['shield', 'invisibility', 'return'].contains(powerSlug);
+      final isDefensivePower =
+          ['shield', 'invisibility', 'return'].contains(powerSlug);
       final isSelfCast = casterGamePlayerId == targetGamePlayerId;
 
-      if (isDefensivePower && isSelfCast && !effectProvider.canActivateDefensePower(powerSlug)) {
+      if (isDefensivePower &&
+          isSelfCast &&
+          !effectProvider.canActivateDefensePower(powerSlug)) {
         debugPrint(
             'PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
         return PowerUseResult.error;
@@ -810,9 +831,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
         case PowerUseResultType.success:
           debugPrint("DEBUG: usePower success. Gifted? ${response.gifted}");
           if (response.gifted) {
-             // No effects on self, just inventory sync
-             await syncRealInventory(effectProvider: effectProvider);
-             return PowerUseResult.gifted;
+            // No effects on self, just inventory sync
+            await syncRealInventory(effectProvider: effectProvider);
+            return PowerUseResult.gifted;
           }
 
           if (response.stealFailed) {
@@ -826,8 +847,10 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
         case PowerUseResultType.error:
         default:
-          _lastPowerError = response.errorMessage ?? "Error desconocido tras ejecución";
-          debugPrint("PlayerProvider: ❌ Power Execution Error: $_lastPowerError");
+          _lastPowerError =
+              response.errorMessage ?? "Error desconocido tras ejecución";
+          debugPrint(
+              "PlayerProvider: ❌ Power Execution Error: $_lastPowerError");
           return PowerUseResult.error;
       }
     } catch (e) {
@@ -863,12 +886,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     // FECHA DE CORTE: 12 de Febrero 2026
     // Usuarios creados ANTES de esta fecha se consideran "Veteranos" y no ven tutoriales.
-    final cutoffDate = DateTime(2026, 2, 12); 
+    final cutoffDate = DateTime(2026, 2, 12);
 
     if (_currentPlayer!.createdAt!.isBefore(cutoffDate)) {
-      debugPrint("PlayerProvider: 🛡️ Legacy user detected (Created: ${_currentPlayer!.createdAt}). Marking tutorials as seen.");
+      debugPrint(
+          "PlayerProvider: 🛡️ Legacy user detected (Created: ${_currentPlayer!.createdAt}). Marking tutorials as seen.");
       final prefs = await SharedPreferences.getInstance();
-      
+
       final tutorialKeys = [
         'has_seen_tutorial_MODE_SELECTOR',
         'has_seen_tutorial_SCENARIOS',
@@ -883,7 +907,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       for (var key in tutorialKeys) {
         if (!prefs.containsKey(key)) {
-           await prefs.setBool(key, true);
+          await prefs.setBool(key, true);
         }
       }
     }
@@ -1004,7 +1028,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       newPlayer.lives = actualLives;
       if (actualCoins != null) {
-         newPlayer.coins = actualCoins; // [REF] Overwrite global coins with session coins
+        newPlayer.coins =
+            actualCoins; // [REF] Overwrite global coins with session coins
       }
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;
@@ -1026,7 +1051,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       _currentPlayer = finalPlayer;
       // Reload prices for new event/role context
-      loadShopItems(); 
+      loadShopItems();
       debugPrint(
           '🔍 PlayerProvider: notifyListeners(). gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}, role: ${_currentPlayer?.role}');
       notifyListeners();

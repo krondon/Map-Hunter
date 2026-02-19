@@ -88,10 +88,14 @@ class TreasureHuntAdminApp extends StatelessWidget {
         }),
         ChangeNotifierProvider(create: (_) {
           final supabase = Supabase.instance.client;
+          final authService = AuthService(supabaseClient: supabase);
           return PlayerProvider(
             supabaseClient: supabase,
-            authService: AuthService(supabaseClient: supabase),
-            adminService: AdminService(supabaseClient: supabase),
+            authService: authService,
+            adminService: AdminService(
+              supabaseClient: supabase,
+              authService: authService,
+            ),
             inventoryService: InventoryService(supabaseClient: supabase),
             powerService: PowerService(supabaseClient: supabase),
           );

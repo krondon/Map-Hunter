@@ -43,7 +43,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 
 class ScenariosScreen extends StatefulWidget {
   final bool isOnline;
-  
+
   const ScenariosScreen({
     super.key,
     this.isOnline = false, // Default to false (Presential)
@@ -461,7 +461,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final requestProvider =
         Provider.of<GameRequestProvider>(context, listen: false);
 
-    await eventProvider.fetchEvents(type: widget.isOnline ? 'online' : 'on_site');
+    await eventProvider.fetchEvents(
+        type: widget.isOnline ? 'online' : 'on_site');
 
     // Load participation status and ban status for each event
     final userId = playerProvider.currentPlayer?.userId;
@@ -476,19 +477,18 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               await requestProvider.isPlayerParticipant(userId, event.id);
           statusMap[event.id] = data['isParticipant'] as bool? ?? false;
           banMap[event.id] = data['status'] as String?; // NEW: Track ban status
-          
+
           // Determine Role
           final status = data['status'] as String?;
           final isParticipant = data['isParticipant'] as bool? ?? false;
-          
-          if (status == 'spectator') {
-             roleMap[event.id] = 'spectator';
-          } else if (isParticipant) {
-             roleMap[event.id] = 'player';
-          } else {
-             roleMap[event.id] = 'none';
-          }
 
+          if (status == 'spectator') {
+            roleMap[event.id] = 'spectator';
+          } else if (isParticipant) {
+            roleMap[event.id] = 'player';
+          } else {
+            roleMap[event.id] = 'none';
+          }
         } catch (e) {
           statusMap[event.id] = false;
           banMap[event.id] = null; // NEW
@@ -509,7 +509,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       setState(() {
         _isLoading = false;
       });
-      
+
       // Show tutorial if first time viewing scenarios
       _showScenariosTutorial();
     }
@@ -520,7 +520,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final hasSeen = prefs.getBool('has_seen_tutorial_SCENARIOS') ?? false;
     if (hasSeen) return;
 
-    final steps = MasterTutorialContent.getStepsForSection('SCENARIOS', context);
+    final steps =
+        MasterTutorialContent.getStepsForSection('SCENARIOS', context);
     if (steps.isEmpty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -784,7 +785,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                     if (newBalance != null) {
                       playerProvider.updateLocalClovers(newBalance);
                     } else {
-                      playerProvider.updateLocalClovers(userClovers - scenario.entryFee);
+                      playerProvider
+                          .updateLocalClovers(userClovers - scenario.entryFee);
                     }
                     await playerProvider.refreshProfile();
                     setState(() {
@@ -945,7 +947,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                 LoadingOverlay.hide(context);
 
                 if (joinResult['success'] == true) {
-                  final newBalance = (joinResult['new_balance'] as num?)?.toInt();
+                  final newBalance =
+                      (joinResult['new_balance'] as num?)?.toInt();
                   if (newBalance != null) {
                     playerProvider.updateLocalClovers(newBalance);
                   } else {
@@ -1383,18 +1386,18 @@ class _ScenariosScreenState extends State<ScenariosScreen>
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFF000000).withOpacity(0.3), // More transparent
+            color: const Color(0xFF000000).withOpacity(0.4),
             border: const Border(
               top: BorderSide(
                 color: AppTheme.dGoldMain, 
-                width: 1.5,
+                width: 1.0, // Moderately thicker as requested
               ),
             ),
           ),
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -1416,17 +1419,16 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final activeColor = AppTheme.dGoldMain;
 
     if (isSelected) {
-      // SELECTED STATE - Glowing "Tab" Shape
+      // SELECTED STATE - Restored Cyberpunk Style
       return GestureDetector(
         onTap: () {
           setState(() => _navIndex = index);
         },
         child: Container(
-          width: 90,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          width: 85,
+          padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: activeColor.withOpacity(0.1), // Sutil fondo dorado
-            // Forma de "pestaña" o "tab" con esquinas superiores muy redondeadas
+            color: activeColor.withOpacity(0.1),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -1435,14 +1437,13 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             ),
             border: Border.all(
               color: activeColor, 
-              width: 1.5, // Borde principal brillante
+              width: 1.0, // Matching line thickness
             ),
             boxShadow: [
-              // Glow amarillo fuerte exterior
               BoxShadow(
-                color: activeColor.withOpacity(0.6), 
-                blurRadius: 15,
-                spreadRadius: 2,
+                color: activeColor.withOpacity(0.4), 
+                blurRadius: 10,
+                spreadRadius: 1,
               ),
             ],
           ),
@@ -1453,21 +1454,18 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               Icon(
                 icon,
                 color: activeColor,
-                size: 24,
+                size: 20,
                 shadows: [
-                  Shadow(
-                    color: activeColor.withOpacity(0.8),
-                    blurRadius: 8
-                  )
+                  Shadow(color: activeColor.withOpacity(0.8), blurRadius: 8)
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
-                label, 
+                label,
                 style: TextStyle(
                   color: activeColor,
                   fontWeight: FontWeight.w900,
-                  fontSize: 10,
+                  fontSize: 9,
                   fontFamily: 'Avenir', 
                   letterSpacing: 0.5,
                   shadows: [
@@ -1489,18 +1487,12 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           setState(() => _navIndex = index);
         },
         child: Container(
-          padding: const EdgeInsets.all(12),
-          color: Colors.transparent, // Hitbox
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: Colors.transparent, 
           child: Icon(
             icon,
-            color: Colors.white, // Blanco puro para alto contraste como en la foto
-            size: 26,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.8),
-                blurRadius: 4
-              )
-            ],
+            color: Colors.white70,
+            size: 22,
           ),
         ),
       );
@@ -1787,33 +1779,11 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                         clipBehavior: Clip.none,
                         alignment: Alignment.center,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 30.0),
-                            child: Center(
-                              child: Image.asset(
-                                isDarkMode
-                                    ? 'assets/images/maphunter_titulo.png'
-                                    : 'assets/images/logocopia2.png',
-                                height: 65,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: -20,
-                            child: Text(
-                              "Búsqueda del tesoro ☘️",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: currentTextSec,
-                                fontWeight: FontWeight.w300,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ),
+                          const SizedBox(height: 50), // Reduced header space
+                          // Removed "Búsqueda del tesoro" from here to move it lower
                           Positioned(
                             left: 0,
-                            top: -24,
+                            top: 0,
                             child: Theme(
                               data: Theme.of(context).copyWith(
                                 dividerTheme: DividerThemeData(
@@ -1912,7 +1882,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                           ),
                           Positioned(
                             right: 0,
-                            top: -24,
+                            top: 10,
                             child: GestureDetector(
                               onTap: _showLogoutDialog,
                               child: Container(
@@ -1935,7 +1905,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppTheme.dangerRed.withOpacity(0.3),
+                                        color:
+                                            AppTheme.dangerRed.withOpacity(0.3),
                                         blurRadius: 8,
                                         spreadRadius: 1,
                                       )
@@ -1954,8 +1925,31 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                       ),
                     ),
 
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo4.1.png',
+                        height: 140, // Reduced size
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 4), // Reduced spacer
+
+                    Center(
+                      child: Text(
+                        "Búsqueda del tesoro ☘️",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: currentTextSec,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(30, 20, 30, 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: Text(
                         '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
                         textAlign: TextAlign.center,
@@ -1967,6 +1961,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                       ),
                     ),
 
+                    const SizedBox(height: 8), // Gap between both texts
+
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Center(
@@ -1974,13 +1970,13 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                           "ELIGE TU AVENTURA",
                           style: TextStyle(
                               color: currentAction,
-                              fontSize: 22,
+                              fontSize: 18, // Reduced size
                               fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 5), // Small gap between text and filters
 
                     // CONTROLES DE FILTRO
                     Padding(
@@ -2059,15 +2055,19 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                       ? 1.0
                                                       : 0.7;
                                                 }
-                                                return Center(
-                                                  child: SizedBox(
-                                                    height: Curves.easeOut
-                                                            .transform(value) *
-                                                        constraints.maxHeight * 0.88, // Increased height factor
-                                                    width: Curves.easeOut
-                                                            .transform(value) *
-                                                        340,
-                                                    child: child,
+                                                return Align(
+                                                  alignment: Alignment.bottomCenter, // Pushes the card towards the dots
+                                                  child: Container(
+                                                    margin: EdgeInsets.zero, // Removed margin to lower it more
+                                                    child: SizedBox(
+                                                      height: Curves.easeOut
+                                                              .transform(value) *
+                                                          constraints.maxHeight * 1.0, // Occupy 100% of available height
+                                                      width: Curves.easeOut
+                                                              .transform(value) *
+                                                          360, // Slightly wider to match new height
+                                                      child: child,
+                                                    ),
                                                   ),
                                                 );
                                               },
@@ -2085,8 +2085,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                 },
                                                 child: Container(
                                                   margin:
-                                                      const EdgeInsets.symmetric(
-                                                          horizontal: 10),
+                                                      const EdgeInsets.symmetric(horizontal: 10),
                                                   decoration: BoxDecoration(
                                                       color: currentSurface,
                                                       borderRadius:
@@ -2385,7 +2384,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                       // PAGE INDICATOR (DOTS)
                       if (scenarios.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 20, top: 10),
+                          padding: const EdgeInsets.only(bottom: 5, top: 10), // Lowered dots
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(scenarios.length, (index) {

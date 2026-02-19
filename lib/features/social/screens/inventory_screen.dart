@@ -89,13 +89,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
           AnimatedCyberBackground(
             child: Stack(
               children: [
-                 Positioned.fill(
-                   child: Image.asset(
-                     'assets/images/personajesgrupal.png', // Always force this image as requested
-                     fit: BoxFit.cover,
-                     alignment: Alignment.center,
-                   ),
-                 ), // Added comma explicitly
+                  Positioned.fill(
+                    child: Image.asset(
+                      playerProvider.isDarkMode 
+                          ? 'assets/images/fotogrupalnoche.png' 
+                          : 'assets/images/personajesgrupal.png',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                    ),
+                  ), // Added comma explicitly
                  // Removed dark overlay as requested
                  // Removed dark overlay as requested
                 SafeArea(
@@ -213,10 +215,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 '${player.inventory.length}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: currentText,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -314,35 +316,38 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
-          
-          if (isOnline) {
-             // MODO ONLINE: Navegación Directa a Tienda Global (Virtual)
-             // Creamos una tienda virtual en vuelo para acceder al catálogo global
-             final virtualStore = MallStore(
-               id: 'virtual_global',
-               name: 'Tienda Global',
-               description: 'Catálogo de poderes disponibles para el evento online.',
-               imageUrl: 'asset/images/personajesgrupal.png', // Placeholder Cyberpunk
-               qrCodeData: 'SKIP_QR',
-               products: [], // Lista vacía fuerza a cargar el catálogo completo por defecto en StoreDetailScreen
-             );
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80.0),
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
+            
+            if (isOnline) {
+               // MODO ONLINE: Navegación Directa a Tienda Global (Virtual)
+               // Creamos una tienda virtual en vuelo para acceder al catálogo global
+               final virtualStore = MallStore(
+                 id: 'virtual_global',
+                 name: 'Tienda Global',
+                 description: 'Catálogo de poderes disponibles para el evento online.',
+                 imageUrl: 'asset/images/personajesgrupal.png', // Placeholder Cyberpunk
+                 qrCodeData: 'SKIP_QR',
+                 products: [], // Lista vacía fuerza a cargar el catálogo completo por defecto en StoreDetailScreen
+               );
 
-             Navigator.push(
-               context, 
-               MaterialPageRoute(builder: (_) => StoreDetailScreen(store: virtualStore))
-             );
-          } else {
-             // MODO PRESENCIAL: Flujo normal (Lista de Tiendas -> QR)
-             Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
-          }
-        },
-        label: Text(Provider.of<AppModeProvider>(context).isOnlineMode ? 'Mall' : 'Ir al Mall'),
-        icon: const Icon(Icons.store),
-        backgroundColor: AppTheme.accentGold,
-        foregroundColor: Colors.black, // Ensure text is visible on gold background
+               Navigator.push(
+                 context, 
+                 MaterialPageRoute(builder: (_) => StoreDetailScreen(store: virtualStore))
+               );
+            } else {
+               // MODO PRESENCIAL: Flujo normal (Lista de Tiendas -> QR)
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
+            }
+          },
+          label: Text(Provider.of<AppModeProvider>(context).isOnlineMode ? 'Mall' : 'Ir al Mall'),
+          icon: const Icon(Icons.store),
+          backgroundColor: AppTheme.accentGold,
+          foregroundColor: Colors.black, // Ensure text is visible on gold background
+        ),
       ),
     );
   }
@@ -674,22 +679,41 @@ class _InventoryScreenState extends State<InventoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.shopping_bag_outlined,
             size: 80,
-            color: Colors.white.withOpacity(0.8), // Visible icon
+            color: AppTheme.accentGold,
           ),
           const SizedBox(height: 20),
           Text(
             'Inventario vacío',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: currentTextSec,
+                  color: AppTheme.accentGold,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    const Shadow(
+                      color: Colors.black,
+                      offset: Offset(1, 1),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
           ),
           const SizedBox(height: 10),
-          Text(
+          const Text(
             'Visita La Tiendita para comprar poderes',
-            style: TextStyle(color: currentTextSec),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                  color: Colors.black,
+                  offset: Offset(1, 1),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
             textAlign: TextAlign.center,
           ),
         ],

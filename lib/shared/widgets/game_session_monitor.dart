@@ -11,7 +11,10 @@ import '../models/player.dart';
 class GameSessionMonitor extends StatefulWidget {
   final Widget child;
 
-  const GameSessionMonitor({super.key, required this.child});
+  const GameSessionMonitor({
+    super.key,
+    required this.child,
+  });
 
   // Static constant to avoid rebuilds of the child if not needed
   static final GlobalKey<NavigatorState> monitorNavigatorKey =
@@ -27,9 +30,18 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final playerProvider = Provider.of<PlayerProvider>(context);
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
+    final playerProvider = Provider.of<PlayerProvider>(context);
+
+    // [FIX] Guard: If user is logged out, skip all session checks.
+    // This prevents accessing GameProvider during logout teardown,
+    // which was contributing to the _dependents.isEmpty crash.
+    if (playerProvider.currentPlayer == null) {
+      _lastGamePlayerId = null;
+      return;
+    }
+
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final currentGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
     final isBanned =
         playerProvider.currentPlayer?.status == PlayerStatus.banned;
@@ -40,13 +52,6 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
     debugPrint('   - Is Banned: $isBanned');
 
     bool shouldKick = false;
-
-    // Caso 1: Transición de TENER inscripción a NO TENERLA (Sesión invalidada)
-    // PERO solo si el usuario sigue logueado. Si se deslogueó, el AuthMonitor maneja la salida.
-    if (playerProvider.currentPlayer == null) {
-      _lastGamePlayerId = null;
-      return;
-    }
 
     if (_lastGamePlayerId != null && currentGamePlayerId == null) {
       // SOLO expulsar si el evento que se perdió es el que estamos jugando actualmente

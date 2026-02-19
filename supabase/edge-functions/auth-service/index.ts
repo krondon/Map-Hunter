@@ -469,12 +469,12 @@ serve(async (req) => {
       });
     }
 
-    // --- DELETE ACCOUNT ---
+    // --- DELETE ACCOUNT (Self-deletion) ---
     if (path === "delete-account" && req.method === "DELETE") {
       const { password } = await req.json();
 
       if (!password) {
-        throw new Error("Password is required to delete account");
+        throw new Error("Se requiere la contraseña para eliminar la cuenta");
       }
 
       // Authorization Check
@@ -500,7 +500,7 @@ serve(async (req) => {
       } = await userSupabase.auth.getUser();
 
       if (userError || !user) {
-        throw new Error("Invalid or expired session");
+        throw new Error("Sesión inválida o expirada");
       }
 
       // Verify password by attempting to sign in
@@ -526,28 +526,100 @@ serve(async (req) => {
         { auth: { persistSession: false } },
       );
 
-      // Delete profile (cascade will handle related data)
-      const { error: profileError } = await serviceClient
-        .from("profiles")
-        .delete()
-        .eq("id", user.id);
-
-      if (profileError) {
-        console.error("Error deleting profile:", profileError);
-        throw new Error("Error al eliminar el perfil");
-      }
-
-      // Delete auth user
+      // Strategy: Delete from Auth first. 
+      // This will trigger 'ON DELETE CASCADE' in the database (profiles table).
       const { error: authDeleteError } =
         await serviceClient.auth.admin.deleteUser(user.id);
 
       if (authDeleteError) {
         console.error("Error deleting auth user:", authDeleteError);
+        // Fallback: Try to delete profile manually if auth delete failed for some reason
+        const { error: profileError } = await serviceClient
+          .from("profiles")
+          .delete()
+          .eq("id", user.id);
+
+        if (profileError) {
+          throw new Error("Error al eliminar la cuenta de autenticación y el perfil");
+        }
         throw new Error("Error al eliminar la cuenta de autenticación");
       }
 
       return new Response(
-        JSON.stringify({ message: "Account deleted successfully" }),
+        JSON.stringify({ message: "Cuenta eliminada correctamente" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // --- DELETE USER ADMIN (Administrative deletion) ---
+    if (path === "delete-user-admin" && req.method === "DELETE") {
+      const { user_id } = await req.json();
+
+      if (!user_id) {
+        throw new Error("User ID is required");
+      }
+
+      // Authorization Check (Must be an Admin)
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        throw new Error("Missing Authorization header");
+      }
+
+      const userSupabase = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        },
+      );
+
+      const {
+        data: { user: adminUser },
+        error: userError,
+      } = await userSupabase.auth.getUser();
+
+      if (userError || !adminUser) {
+        throw new Error("Sesión inválida o expirada");
+      }
+
+      // Verify admin role
+      const { data: adminProfile, error: adminProfileError } = await userSupabase
+        .from("profiles")
+        .select("role")
+        .eq("id", adminUser.id)
+        .single();
+
+      if (adminProfileError || adminProfile?.role !== "admin") {
+        throw new Error("No tienes permisos suficientes para esta acción");
+      }
+
+      // Use service role to delete user
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      if (!serviceKey) {
+        throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+      }
+
+      const serviceClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        serviceKey,
+        { auth: { persistSession: false } },
+      );
+
+      // Delete from Auth first (leverages CASCADE)
+      const { error: authDeleteError } =
+        await serviceClient.auth.admin.deleteUser(user_id);
+
+      if (authDeleteError) {
+        console.error("Error admin-deleting auth user:", authDeleteError);
+        // Fallback: Try manual profile deletion
+        await serviceClient.from("profiles").delete().eq("id", user_id);
+        throw new Error("Error al eliminar la cuenta de autenticación");
+      }
+
+      return new Response(
+        JSON.stringify({ message: "Usuario eliminado correctamente" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

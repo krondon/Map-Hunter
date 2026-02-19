@@ -27,7 +27,7 @@ class EventCreationScreen extends StatefulWidget {
   final GameEvent? event;
 
   const EventCreationScreen({
-    super.key, 
+    super.key,
     this.onEventCreated,
     this.event,
   });
@@ -38,7 +38,7 @@ class EventCreationScreen extends StatefulWidget {
 
 class _EventCreationScreenState extends State<EventCreationScreen> {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  
+
   // UX Refinement Variables (UI ONLY)
   late TextEditingController _pinController;
   // We keep pin locked state in UI as it is a UI behavior
@@ -48,10 +48,11 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   void initState() {
     super.initState();
     _pinController = TextEditingController(text: widget.event?.pin ?? '');
-    
+
     // Defer provider initialization to next frame to avoid context issues
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<EventCreationProvider>(context, listen: false);
+      final provider =
+          Provider.of<EventCreationProvider>(context, listen: false);
       provider.init(widget.event);
       // Sync controller if editing
       if (widget.event != null) {
@@ -61,12 +62,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
         // provider.init handles reset if event is null.
         _pinController.text = provider.pin;
       }
-      
+
       // Listen for form reset
       provider.addListener(_onProviderChange);
     });
   }
-  
+
   void _onProviderChange() {
     final provider = Provider.of<EventCreationProvider>(context, listen: false);
     // Detect reset: if title is empty and we're not loading, reset UI state
@@ -84,7 +85,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   void dispose() {
     // Remove listener
     try {
-      final provider = Provider.of<EventCreationProvider>(context, listen: false);
+      final provider =
+          Provider.of<EventCreationProvider>(context, listen: false);
       provider.removeListener(_onProviderChange);
     } catch (_) {}
     _pinController.dispose();
@@ -121,14 +123,14 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
         widget.onEventCreated?.call();
       },
       onError: (msg) {
-         if (!mounted) return;
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('❌ $msg'), backgroundColor: Colors.red),
-         );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ $msg'), backgroundColor: Colors.red),
+        );
       },
     );
   }
-  
+
   void _showQRDialog(String data, String label) {
     showDialog(
       context: context,
@@ -143,7 +145,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<EventCreationProvider>(context);
-    
+
     final inputDecoration = InputDecoration(
       filled: true,
       fillColor: AppTheme.cardBg,
@@ -179,7 +181,10 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                 children: [
                   const Text(
                     "Crear Nueva Competencia",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                   ),
                   const SizedBox(height: 10),
                   const Text(
@@ -187,7 +192,6 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                     style: TextStyle(color: Colors.white54, fontSize: 16),
                   ),
                   const SizedBox(height: 40),
-
                   Container(
                     padding: const EdgeInsets.all(30),
                     decoration: BoxDecoration(
@@ -205,9 +209,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                       children: [
                         // --- Selección de Modo ---
                         const Text("Modalidad del Evento",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
                         const SizedBox(height: 15),
-                        
+
                         SizedBox(
                           width: double.infinity,
                           child: SegmentedButton<String>(
@@ -228,7 +235,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               provider.setEventType(newSelection.first);
                             },
                             style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                              backgroundColor:
+                                  MaterialStateProperty.resolveWith<Color>(
                                 (Set<MaterialState> states) {
                                   if (states.contains(MaterialState.selected)) {
                                     return AppTheme.primaryPurple;
@@ -236,17 +244,16 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                   return Colors.transparent;
                                 },
                               ),
-                              foregroundColor: MaterialStateProperty.resolveWith<Color>(
-                                (Set<MaterialState> states) {
-                                  if (states.contains(MaterialState.selected)) {
-                                    return Colors.white;
-                                  }
-                                  return Colors.white70;
+                              foregroundColor:
+                                  MaterialStateProperty.resolveWith<Color>(
+                                      (Set<MaterialState> states) {
+                                if (states.contains(MaterialState.selected)) {
+                                  return Colors.white;
                                 }
-                              ),
-                              side: MaterialStateProperty.all(
-                                BorderSide(color: Colors.white.withOpacity(0.2))
-                              ),
+                                return Colors.white70;
+                              }),
+                              side: MaterialStateProperty.all(BorderSide(
+                                  color: Colors.white.withOpacity(0.2))),
                             ),
                           ),
                         ),
@@ -254,7 +261,10 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                         // --- Información Básica ---
                         const Text("Información Básica",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.accentGold)),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.accentGold)),
                         const SizedBox(height: 20),
 
                         TextFormField(
@@ -263,7 +273,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               labelText: 'Título del Evento',
                               hintText: 'Ej. Búsqueda del Tesoro Caracas'),
                           style: const TextStyle(color: Colors.white),
-                          validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                          validator: (v) =>
+                              v!.isEmpty ? 'Campo requerido' : null,
                           onChanged: (v) => provider.setTitle(v),
                         ),
                         const SizedBox(height: 20),
@@ -276,11 +287,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           ),
                           style: const TextStyle(color: Colors.white),
                           maxLines: 4,
-                          validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                          validator: (v) =>
+                              v!.isEmpty ? 'Campo requerido' : null,
                           onChanged: (v) => provider.setDescription(v),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // --- Date & Time ---
                         InkWell(
                           onTap: () async {
@@ -303,11 +315,12 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                 );
                               },
                             );
-                            
+
                             if (pickedDate != null && context.mounted) {
                               final pickedTime = await showTimePicker(
                                 context: context,
-                                initialTime: TimeOfDay.fromDateTime(provider.selectedDate),
+                                initialTime: TimeOfDay.fromDateTime(
+                                    provider.selectedDate),
                                 builder: (context, child) {
                                   return Theme(
                                     data: Theme.of(context).copyWith(
@@ -338,10 +351,15 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                             }
                           },
                           child: InputDecorator(
-                            decoration: inputDecoration.copyWith(labelText: 'Fecha y Hora del Evento', prefixIcon: const Icon(Icons.access_time, color: Colors.white54)),
+                            decoration: inputDecoration.copyWith(
+                                labelText: 'Fecha y Hora del Evento',
+                                prefixIcon: const Icon(Icons.access_time,
+                                    color: Colors.white54)),
                             child: Text(
-                              "${provider.selectedDate.day}/${provider.selectedDate.month}/${provider.selectedDate.year}   ${provider.selectedDate.hour.toString().padLeft(2,'0')}:${provider.selectedDate.minute.toString().padLeft(2,'0')}",
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              "${provider.selectedDate.day}/${provider.selectedDate.month}/${provider.selectedDate.year}   ${provider.selectedDate.hour.toString().padLeft(2, '0')}:${provider.selectedDate.minute.toString().padLeft(2, '0')}",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -349,7 +367,17 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                         // --- Image Picker ---
                         InkWell(
-                          onTap: provider.pickImage,
+                          onTap: () async {
+                            final error = await provider.pickImage();
+                            if (error != null && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('⚠️ $error'),
+                                  backgroundColor: Colors.orange.shade800,
+                                ),
+                              );
+                            }
+                          },
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
                             height: 150,
@@ -370,15 +398,25 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                           ? Image.network(
                                               provider.selectedImage!.path,
                                               fit: BoxFit.cover,
-                                              opacity: const AlwaysStoppedAnimation(0.5),
+                                              opacity:
+                                                  const AlwaysStoppedAnimation(
+                                                      0.5),
                                             )
                                           : Image.file(
-                                              File(provider.selectedImage!.path),
+                                              File(
+                                                  provider.selectedImage!.path),
                                               fit: BoxFit.cover,
-                                              opacity: const AlwaysStoppedAnimation(0.5),
-                                              errorBuilder: (context, error, stackTrace) {
-                                                debugPrint("Error loading image: $error");
-                                                return const Center(child: Icon(Icons.broken_image, color: Colors.red));
+                                              opacity:
+                                                  const AlwaysStoppedAnimation(
+                                                      0.5),
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                debugPrint(
+                                                    "Error loading image: $error");
+                                                return const Center(
+                                                    child: Icon(
+                                                        Icons.broken_image,
+                                                        color: Colors.red));
                                               },
                                             ),
                                     ),
@@ -388,14 +426,24 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
-                                        provider.selectedImage != null ? Icons.check_circle : Icons.add_photo_alternate,
+                                        provider.selectedImage != null
+                                            ? Icons.check_circle
+                                            : Icons.add_photo_alternate,
                                         size: 40,
-                                        color: provider.selectedImage != null ? AppTheme.accentGold : Colors.white54,
+                                        color: provider.selectedImage != null
+                                            ? AppTheme.accentGold
+                                            : Colors.white54,
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        provider.selectedImage != null ? "Imagen Seleccionada" : "Seleccionar Imagen de Portada",
-                                        style: TextStyle(color: provider.selectedImage != null ? Colors.white : Colors.white54),
+                                        provider.selectedImage != null
+                                            ? "Imagen Seleccionada"
+                                            : "Seleccionar Imagen de Portada",
+                                        style: TextStyle(
+                                            color:
+                                                provider.selectedImage != null
+                                                    ? Colors.white
+                                                    : Colors.white54),
                                       ),
                                     ],
                                   ),
@@ -408,45 +456,59 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                         // --- Configuración del Juego ---
                         const Text("Configuración del Juego",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.secondaryPink)),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.secondaryPink)),
                         const SizedBox(height: 20),
 
                         LayoutBuilder(
                           builder: (context, constraints) {
                             // Elements
                             // HIDING MAP COMPLETELY IF ONLINE as requested
-                            final Widget locationWidget = provider.eventType == 'online'
-                                ? const SizedBox.shrink()
-                                : LocationPickerWidget(
-                                    initialPosition: provider.latitude != null && provider.longitude != null
-                                        ? latlng.LatLng(provider.latitude!, provider.longitude!)
-                                        : null,
-                                    onLocationSelected: (picked, address) {
-                                      provider.setLocation(picked.latitude, picked.longitude, address ?? '');
-                                    },
-                                  );
-                            
+                            final Widget locationWidget =
+                                provider.eventType == 'online'
+                                    ? const SizedBox.shrink()
+                                    : LocationPickerWidget(
+                                        initialPosition:
+                                            provider.latitude != null &&
+                                                    provider.longitude != null
+                                                ? latlng.LatLng(
+                                                    provider.latitude!,
+                                                    provider.longitude!)
+                                                : null,
+                                        onLocationSelected: (picked, address) {
+                                          provider.setLocation(picked.latitude,
+                                              picked.longitude, address ?? '');
+                                        },
+                                      );
+
                             final Widget playersField = TextFormField(
-                                  initialValue: provider.maxParticipants == 0 ? '' : provider.maxParticipants.toString(),
-                                  decoration: inputDecoration.copyWith(labelText: 'Max. Jugadores'),
-                                  style: const TextStyle(color: Colors.white),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(2),
-                                  ],
-                                  validator: (v) {
-                                      if (v == null || v.isEmpty) return 'Requerido';
-                                      int? val = int.tryParse(v);
-                                      if (val == null) return 'Inválido';
-                                    if (val <= 0) return 'Mín 1';
-                                    if (val > 99) return 'Max 99';
-                                    return null;
-                                },
-                                  onChanged: (v) {
-                                    if (v.isNotEmpty) provider.setMaxParticipants(int.tryParse(v) ?? 0);
-                                  },
-                                );
+                              initialValue: provider.maxParticipants == 0
+                                  ? ''
+                                  : provider.maxParticipants.toString(),
+                              decoration: inputDecoration.copyWith(
+                                  labelText: 'Max. Jugadores'),
+                              style: const TextStyle(color: Colors.white),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(2),
+                              ],
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'Requerido';
+                                int? val = int.tryParse(v);
+                                if (val == null) return 'Inválido';
+                                if (val <= 0) return 'Mín 1';
+                                if (val > 99) return 'Max 99';
+                                return null;
+                              },
+                              onChanged: (v) {
+                                if (v.isNotEmpty)
+                                  provider
+                                      .setMaxParticipants(int.tryParse(v) ?? 0);
+                              },
+                            );
 
                             final Widget bettingField = TextFormField(
                                   initialValue: provider.betTicketPrice.toString(),
@@ -510,9 +572,11 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               // Column Widget
                               return Column(
                                 children: [
-                                  SizedBox(width: double.infinity, child: locationWidget),
+                                  SizedBox(
+                                      width: double.infinity,
+                                      child: locationWidget),
                                   const SizedBox(height: 20),
-                                  playersField, 
+                                  playersField,
                                   const SizedBox(height: 20),
                                   entryFeeField,
                                   const SizedBox(height: 20),
@@ -547,70 +611,88 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                         // --- Configuración de Ganadores ---
                         const Text("Configuración de Premios",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70)),
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white70)),
                         const SizedBox(height: 10),
-                        
+
                         Container(
                           padding: const EdgeInsets.all(15),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.1)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.emoji_events, color: AppTheme.accentGold),
+                                  const Icon(Icons.emoji_events,
+                                      color: AppTheme.accentGold),
                                   const SizedBox(width: 10),
-                                  const Text("Cantidad de Ganadores:", style: TextStyle(color: Colors.white)),
+                                  const Text("Cantidad de Ganadores:",
+                                      style: TextStyle(color: Colors.white)),
                                   const Spacer(),
                                   SegmentedButton<int>(
                                     segments: const [
-                                      ButtonSegment<int>(value: 1, label: Text("1")),
-                                      ButtonSegment<int>(value: 2, label: Text("2")),
-                                      ButtonSegment<int>(value: 3, label: Text("3")),
+                                      ButtonSegment<int>(
+                                          value: 1, label: Text("1")),
+                                      ButtonSegment<int>(
+                                          value: 2, label: Text("2")),
+                                      ButtonSegment<int>(
+                                          value: 3, label: Text("3")),
                                     ],
                                     selected: {provider.configuredWinners},
-                                    onSelectionChanged: (Set<int> newSelection) {
-                                      provider.setConfiguredWinners(newSelection.first);
+                                    onSelectionChanged:
+                                        (Set<int> newSelection) {
+                                      provider.setConfiguredWinners(
+                                          newSelection.first);
                                     },
                                     style: ButtonStyle(
-                                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                                      backgroundColor: MaterialStateProperty
+                                          .resolveWith<Color>(
                                         (Set<MaterialState> states) {
-                                          if (states.contains(MaterialState.selected)) {
+                                          if (states.contains(
+                                              MaterialState.selected)) {
                                             return AppTheme.accentGold;
                                           }
                                           return Colors.transparent;
                                         },
                                       ),
-                                      foregroundColor: MaterialStateProperty.resolveWith<Color>(
-                                        (Set<MaterialState> states) {
-                                          if (states.contains(MaterialState.selected)) {
-                                            return Colors.black;
-                                          }
-                                          return Colors.white;
+                                      foregroundColor: MaterialStateProperty
+                                          .resolveWith<Color>(
+                                              (Set<MaterialState> states) {
+                                        if (states
+                                            .contains(MaterialState.selected)) {
+                                          return Colors.black;
                                         }
-                                      ),
+                                        return Colors.white;
+                                      }),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              Builder(
-                                builder: (context) {
-                                  int rec = 1;
-                                  if (provider.maxParticipants <= 5) rec = 1;
-                                  else if (provider.maxParticipants <= 10) rec = 2;
-                                  else rec = 3;
+                              Builder(builder: (context) {
+                                int rec = 1;
+                                if (provider.maxParticipants <= 5)
+                                  rec = 1;
+                                else if (provider.maxParticipants <= 10)
+                                  rec = 2;
+                                else
+                                  rec = 3;
 
-                                  return Text(
-                                    "💡 Recomendación: $rec ganador${rec > 1 ? 'es' : ''} para ${provider.maxParticipants} jugadores.",
-                                    style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, fontStyle: FontStyle.italic),
-                                  );
-                                }
-                              ),
+                                return Text(
+                                  "💡 Recomendación: $rec ganador${rec > 1 ? 'es' : ''} para ${provider.maxParticipants} jugadores.",
+                                  style: TextStyle(
+                                      color: Colors.white.withOpacity(0.5),
+                                      fontSize: 13,
+                                      fontStyle: FontStyle.italic),
+                                );
+                              }),
                             ],
                           ),
                         ),
@@ -618,74 +700,95 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                         LayoutBuilder(
                           builder: (context, constraints) {
-                             // PIN + Clue Row/Column
+                            // PIN + Clue Row/Column
                             final pinWidget = Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextFormField(
-                                            controller: _pinController,
-                                            readOnly: _isPinLocked,
-                                            keyboardType: TextInputType.number,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.digitsOnly,
-                                              LengthLimitingTextInputFormatter(6),
-                                            ],
-                                            decoration: inputDecoration.copyWith(
-                                              labelText: 'PIN de Acceso',
-                                              prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
-                                              suffixIcon: _isPinLocked ? Icon(Icons.lock, color: AppTheme.accentGold, size: 16) : null,
-                                              hintText: '123456',
-                                            ),
-                                            style: TextStyle(color: _isPinLocked ? Colors.grey : Colors.white),
-                                            validator: (v) {
-                                              if (provider.eventType == 'online') return null; // No validation in UI if hidden, although logic skips it too
-                                              if (v == null || v.isEmpty) return 'Requerido';
-                                              if (v.length != 6) return '6 dígitos';
-                                              return null;
-                                            },
-                                            onChanged: (v) => provider.setPin(v),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          height: 56, width: 56,
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.accentGold.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
-                                          ),
-                                          child: IconButton(
-                                            icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
-                                            tooltip: "Generar QR",
-                                            onPressed: () {
-                                              provider.generateRandomPin();
-                                              setState(() {
-                                                _pinController.text = provider.pin;
-                                                _isPinLocked = true;
-                                              });
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('PIN generado: ${provider.pin}')),
-                                              );
-                                              _showQRDialog("EVENT:${provider.eventId}:${provider.pin}", "PIN: ${provider.pin}");
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    );
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _pinController,
+                                    readOnly: _isPinLocked,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(6),
+                                    ],
+                                    decoration: inputDecoration.copyWith(
+                                      labelText: 'PIN de Acceso',
+                                      prefixIcon: const Icon(Icons.lock_outline,
+                                          color: Colors.white54),
+                                      suffixIcon: _isPinLocked
+                                          ? Icon(Icons.lock,
+                                              color: AppTheme.accentGold,
+                                              size: 16)
+                                          : null,
+                                      hintText: '123456',
+                                    ),
+                                    style: TextStyle(
+                                        color: _isPinLocked
+                                            ? Colors.grey
+                                            : Colors.white),
+                                    validator: (v) {
+                                      if (provider.eventType == 'online')
+                                        return null; // No validation in UI if hidden, although logic skips it too
+                                      if (v == null || v.isEmpty)
+                                        return 'Requerido';
+                                      if (v.length != 6) return '6 dígitos';
+                                      return null;
+                                    },
+                                    onChanged: (v) => provider.setPin(v),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  height: 56,
+                                  width: 56,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.accentGold.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: AppTheme.accentGold
+                                            .withOpacity(0.3)),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.qr_code,
+                                        color: AppTheme.accentGold),
+                                    tooltip: "Generar QR",
+                                    onPressed: () {
+                                      provider.generateRandomPin();
+                                      setState(() {
+                                        _pinController.text = provider.pin;
+                                        _isPinLocked = true;
+                                      });
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'PIN generado: ${provider.pin}')),
+                                      );
+                                      _showQRDialog(
+                                          "EVENT:${provider.eventId}:${provider.pin}",
+                                          "PIN: ${provider.pin}");
+                                    },
+                                  ),
+                                ),
+                              ],
+                            );
 
                             final clueWidget = TextFormField(
-                                      initialValue: provider.clue,
-                                      decoration: inputDecoration.copyWith(
-                                          labelText: 'Pista Inicial',
-                                          prefixIcon: const Icon(Icons.lightbulb_outline, color: Colors.white54)),
-                                      style: const TextStyle(color: Colors.white),
-                                      validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                                      onChanged: (v) => provider.setClue(v),
-                                    );
-                            
+                              initialValue: provider.clue,
+                              decoration: inputDecoration.copyWith(
+                                  labelText: 'Pista Inicial',
+                                  prefixIcon: const Icon(
+                                      Icons.lightbulb_outline,
+                                      color: Colors.white54)),
+                              style: const TextStyle(color: Colors.white),
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                              onChanged: (v) => provider.setClue(v),
+                            );
+
                             // If Online, hide PIN AND Initial Clue (managed automatically)
                             if (provider.eventType == 'online') {
-                               return const SizedBox.shrink();
+                              return const SizedBox.shrink();
                             }
 
                             if (constraints.maxWidth < 600) {
@@ -719,106 +822,194 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                               Text(provider.eventType == 'online' ? "Generador de Minijuegos" : "Generador de Pistas", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                               const SizedBox(height: 12),
-                               Row(
-                                  children: [
-                                    if (MediaQuery.of(context).size.width >= 400) const Spacer(),
-                                    if (MediaQuery.of(context).size.width < 400)
-                                      Expanded(
-                                        child: TextFormField(
-                                          initialValue: provider.numberOfClues.toString(),
-                                          textAlign: TextAlign.center,
-                                          keyboardType: TextInputType.number,
-                                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
-                                          decoration: inputDecoration.copyWith(contentPadding: const EdgeInsets.all(10), isDense: true, hintText: 'Max 12'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => provider.setNumberOfClues(int.tryParse(v) ?? 0),
-                                        ),
-                                      )
-                                    else
-                                      SizedBox(
-                                        width: 100,
-                                        child: TextFormField(
-                                          initialValue: provider.numberOfClues.toString(),
-                                          textAlign: TextAlign.center,
-                                          keyboardType: TextInputType.number,
-                                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
-                                          decoration: inputDecoration.copyWith(contentPadding: const EdgeInsets.all(10), isDense: true, hintText: 'Max 12'),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => provider.setNumberOfClues(int.tryParse(v) ?? 0),
-                                        ),
+                              Text(
+                                  provider.eventType == 'online'
+                                      ? "Generador de Minijuegos"
+                                      : "Generador de Pistas",
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  if (MediaQuery.of(context).size.width >= 400)
+                                    const Spacer(),
+                                  if (MediaQuery.of(context).size.width < 400)
+                                    Expanded(
+                                      child: TextFormField(
+                                        initialValue:
+                                            provider.numberOfClues.toString(),
+                                        textAlign: TextAlign.center,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                          LengthLimitingTextInputFormatter(2)
+                                        ],
+                                        decoration: inputDecoration.copyWith(
+                                            contentPadding:
+                                                const EdgeInsets.all(10),
+                                            isDense: true,
+                                            hintText: 'Max 12'),
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                        onChanged: (v) =>
+                                            provider.setNumberOfClues(
+                                                int.tryParse(v) ?? 0),
                                       ),
-                                    const SizedBox(width: 10),
-                                    ElevatedButton(
-                                      onPressed: () => provider.generateClueForms(),
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentGold, foregroundColor: Colors.black),
-                                      child: const Text("Generar"),
+                                    )
+                                  else
+                                    SizedBox(
+                                      width: 100,
+                                      child: TextFormField(
+                                        initialValue:
+                                            provider.numberOfClues.toString(),
+                                        textAlign: TextAlign.center,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                          LengthLimitingTextInputFormatter(2)
+                                        ],
+                                        decoration: inputDecoration.copyWith(
+                                            contentPadding:
+                                                const EdgeInsets.all(10),
+                                            isDense: true,
+                                            hintText: 'Max 12'),
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                        onChanged: (v) =>
+                                            provider.setNumberOfClues(
+                                                int.tryParse(v) ?? 0),
+                                      ),
                                     ),
-                                  ],
-                               ),
-                               
-                               if (provider.clueForms.isNotEmpty) ...[
+                                  const SizedBox(width: 10),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        provider.generateClueForms(),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.accentGold,
+                                        foregroundColor: Colors.black),
+                                    child: const Text("Generar"),
+                                  ),
+                                ],
+                              ),
+                              if (provider.clueForms.isNotEmpty) ...[
                                 const SizedBox(height: 20),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     IconButton(
-                                      onPressed: provider.currentClueIndex > 0 ? provider.prevClue : null,
-                                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                                      onPressed: provider.currentClueIndex > 0
+                                          ? provider.prevClue
+                                          : null,
+                                      icon: const Icon(Icons.arrow_back_ios,
+                                          color: Colors.white),
                                     ),
                                     Text(
                                       "${provider.eventType == 'online' ? 'Minijuego' : 'Pista'} ${provider.currentClueIndex + 1} de ${provider.clueForms.length}",
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                     IconButton(
-                                      onPressed: provider.currentClueIndex < provider.clueForms.length - 1 ? provider.nextClue : null,
-                                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                                      onPressed: provider.currentClueIndex <
+                                              provider.clueForms.length - 1
+                                          ? provider.nextClue
+                                          : null,
+                                      icon: const Icon(Icons.arrow_forward_ios,
+                                          color: Colors.white),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
-                                
                                 AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 300),
                                   child: Container(
-                                    key: ValueKey<int>(provider.currentClueIndex),
+                                    key: ValueKey<int>(
+                                        provider.currentClueIndex),
                                     padding: const EdgeInsets.all(15),
-                                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
+                                    decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.05),
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
                                     child: Column(
                                       children: [
                                         // Dropdown Type
                                         DropdownButtonFormField<String>(
-                                          value: provider.clueForms[provider.currentClueIndex]['puzzle_type'] ?? PuzzleType.slidingPuzzle.dbValue,
+                                          value: provider.clueForms[
+                                                      provider.currentClueIndex]
+                                                  ['puzzle_type'] ??
+                                              PuzzleType.slidingPuzzle.dbValue,
                                           isExpanded: true,
-                                          decoration: inputDecoration.copyWith(labelText: 'Tipo de Desafío', prefixIcon: const Icon(Icons.games, color: Colors.white54)),
-                                          dropdownColor: const Color(0xFF2A2D3E),
-                                          style: const TextStyle(color: Colors.white),
-                                          items: PuzzleType.values.map((type) => DropdownMenuItem(value: type.dbValue, child: Text(type.label, overflow: TextOverflow.ellipsis))).toList(),
-                                          onChanged: (v) => provider.setCluePuzzleType(provider.currentClueIndex, v!),
+                                          decoration: inputDecoration.copyWith(
+                                              labelText: 'Tipo de Desafío',
+                                              prefixIcon: const Icon(
+                                                  Icons.games,
+                                                  color: Colors.white54)),
+                                          dropdownColor:
+                                              const Color(0xFF2A2D3E),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          items: PuzzleType.values
+                                              .map((type) => DropdownMenuItem(
+                                                  value: type.dbValue,
+                                                  child: Text(type.label,
+                                                      overflow: TextOverflow
+                                                          .ellipsis)))
+                                              .toList(),
+                                          onChanged: (v) =>
+                                              provider.setCluePuzzleType(
+                                                  provider.currentClueIndex,
+                                                  v!),
                                         ),
                                         const SizedBox(height: 15),
-                                        
+
                                         // Title + QR
                                         Row(
                                           children: [
                                             Expanded(
                                               child: TextFormField(
-                                                initialValue: provider.clueForms[provider.currentClueIndex]['title'],
-                                                decoration: inputDecoration.copyWith(labelText: 'Título'),
-                                                style: const TextStyle(color: Colors.white),
-                                                onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'title', v),
+                                                initialValue:
+                                                    provider.clueForms[provider
+                                                            .currentClueIndex]
+                                                        ['title'],
+                                                decoration:
+                                                    inputDecoration.copyWith(
+                                                        labelText: 'Título'),
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                                onChanged: (v) =>
+                                                    provider.updateClue(
+                                                        provider
+                                                            .currentClueIndex,
+                                                        'title',
+                                                        v),
                                               ),
                                             ),
-                                            if (provider.eventType == 'on_site') ...[
+                                            if (provider.eventType ==
+                                                'on_site') ...[
                                               const SizedBox(width: 10),
                                               Container(
-                                                decoration: BoxDecoration(color: AppTheme.accentGold, borderRadius: BorderRadius.circular(10)),
+                                                decoration: BoxDecoration(
+                                                    color: AppTheme.accentGold,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10)),
                                                 child: IconButton(
-                                                  icon: const Icon(Icons.qr_code_2, color: Colors.black),
+                                                  icon: const Icon(
+                                                      Icons.qr_code_2,
+                                                      color: Colors.black),
                                                   onPressed: () {
-                                                    final clueId = provider.clueForms[provider.currentClueIndex]['id'];
-                                                    _showQRDialog("CLUE:${provider.eventId}:$clueId", "QR Pista");
+                                                    final clueId = provider
+                                                                .clueForms[
+                                                            provider
+                                                                .currentClueIndex]
+                                                        ['id'];
+                                                    _showQRDialog(
+                                                        "CLUE:${provider.eventId}:$clueId",
+                                                        "QR Pista");
                                                   },
                                                 ),
                                               ),
@@ -826,99 +1017,205 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                           ],
                                         ),
                                         const SizedBox(height: 10),
-                                        
+
                                         // Description field for BOTH modes (online minigames also need instructions)
                                         TextFormField(
-                                          initialValue: provider.clueForms[provider.currentClueIndex]['description'],
+                                          initialValue: provider.clueForms[
+                                                  provider.currentClueIndex]
+                                              ['description'],
                                           decoration: inputDecoration.copyWith(
-                                            labelText: provider.eventType == 'online' 
-                                                ? 'Instrucciones del Minijuego' 
+                                            labelText: provider.eventType ==
+                                                    'online'
+                                                ? 'Instrucciones del Minijuego'
                                                 : 'Instrucciones / Historia',
                                           ),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'description', v),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) => provider.updateClue(
+                                              provider.currentClueIndex,
+                                              'description',
+                                              v),
                                         ),
                                         const SizedBox(height: 10),
-                                        
+
                                         // Question
                                         TextFormField(
-                                          key: ValueKey('q_${provider.clueForms[provider.currentClueIndex]['puzzle_type']}'),
-                                          initialValue: provider.clueForms[provider.currentClueIndex]['riddle_question'],
+                                          key: ValueKey(
+                                              'q_${provider.clueForms[provider.currentClueIndex]['puzzle_type']}'),
+                                          initialValue: provider.clueForms[
+                                                  provider.currentClueIndex]
+                                              ['riddle_question'],
                                           decoration: inputDecoration.copyWith(
-                                            labelText: provider.clueForms[provider.currentClueIndex]['puzzle_type'] == 'hangman' ? 'Pista de la Palabra' : 'Instrucción',
+                                            labelText: provider.clueForms[provider
+                                                            .currentClueIndex]
+                                                        ['puzzle_type'] ==
+                                                    'hangman'
+                                                ? 'Pista de la Palabra'
+                                                : 'Instrucción',
                                           ),
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'riddle_question', v),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) => provider.updateClue(
+                                              provider.currentClueIndex,
+                                              'riddle_question',
+                                              v),
                                         ),
-                                        
-                                        if (provider.clueForms[provider.currentClueIndex]['puzzle_type'] == 'hangman') ...[
+
+                                        if (provider.clueForms[
+                                                    provider.currentClueIndex]
+                                                ['puzzle_type'] ==
+                                            'hangman') ...[
                                           const SizedBox(height: 10),
                                           TextFormField(
-                                            key: ValueKey('a_${provider.clueForms[provider.currentClueIndex]['puzzle_type']}'),
-                                            initialValue: provider.clueForms[provider.currentClueIndex]['riddle_answer'],
-                                            decoration: inputDecoration.copyWith(labelText: 'Palabra a Adivinar', helperText: 'Sin espacios'),
-                                            style: const TextStyle(color: Colors.white),
-                                            onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'riddle_answer', v),
+                                            key: ValueKey(
+                                                'a_${provider.clueForms[provider.currentClueIndex]['puzzle_type']}'),
+                                            initialValue: provider.clueForms[
+                                                    provider.currentClueIndex]
+                                                ['riddle_answer'],
+                                            decoration:
+                                                inputDecoration.copyWith(
+                                                    labelText:
+                                                        'Palabra a Adivinar',
+                                                    helperText: 'Sin espacios'),
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                            onChanged: (v) =>
+                                                provider.updateClue(
+                                                    provider.currentClueIndex,
+                                                    'riddle_answer',
+                                                    v),
                                           ),
                                         ],
                                         const SizedBox(height: 10),
-                                        
+
                                         // Rewards (Coins are now calculated dynamically by server)
                                         TextFormField(
-                                          initialValue: provider.clueForms[provider.currentClueIndex]['xp_reward'].toString(),
-                                          decoration: inputDecoration.copyWith(labelText: 'XP por Completar'),
+                                          initialValue: provider.clueForms[
+                                                  provider.currentClueIndex]
+                                                  ['xp_reward']
+                                              .toString(),
+                                          decoration: inputDecoration.copyWith(
+                                              labelText: 'XP por Completar'),
                                           keyboardType: TextInputType.number,
-                                          style: const TextStyle(color: Colors.white),
-                                          onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'xp_reward', int.tryParse(v) ?? 0),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (v) => provider.updateClue(
+                                              provider.currentClueIndex,
+                                              'xp_reward',
+                                              int.tryParse(v) ?? 0),
                                         ),
                                         const SizedBox(height: 10),
-                                        
+
                                         // Geolocation for Clue (Only if On Site)
-                                        if (provider.eventType == 'on_site') ...[
-                                          const Text("📍 Geolocalización", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold)),
+                                        if (provider.eventType ==
+                                            'on_site') ...[
+                                          const Text("📍 Geolocalización",
+                                              style: TextStyle(
+                                                  color: AppTheme.accentGold,
+                                                  fontWeight: FontWeight.bold)),
                                           const SizedBox(height: 10),
-                                           TextFormField(
-                                            initialValue: provider.clueForms[provider.currentClueIndex]['hint'],
-                                            decoration: inputDecoration.copyWith(labelText: 'Pista de Ubicación QR', prefixIcon: const Icon(Icons.location_on, color: Colors.white54)),
-                                            style: const TextStyle(color: Colors.white),
-                                            onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'hint', v),
+                                          TextFormField(
+                                            initialValue: provider.clueForms[
+                                                    provider.currentClueIndex]
+                                                ['hint'],
+                                            decoration:
+                                                inputDecoration.copyWith(
+                                                    labelText:
+                                                        'Pista de Ubicación QR',
+                                                    prefixIcon: const Icon(
+                                                        Icons.location_on,
+                                                        color: Colors.white54)),
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                            onChanged: (v) =>
+                                                provider.updateClue(
+                                                    provider.currentClueIndex,
+                                                    'hint',
+                                                    v),
                                           ),
                                           const SizedBox(height: 10),
                                           Row(
                                             children: [
-                                              Expanded(child: TextFormField(
-                                                key: ValueKey('lat_${provider.clueForms[provider.currentClueIndex]['latitude']}'),
-                                                initialValue: provider.clueForms[provider.currentClueIndex]['latitude']?.toString() ?? '',
-                                                decoration: inputDecoration.copyWith(labelText: 'Latitud'),
-                                                style: const TextStyle(color: Colors.white),
-                                                onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'latitude', double.tryParse(v)),
+                                              Expanded(
+                                                  child: TextFormField(
+                                                key: ValueKey(
+                                                    'lat_${provider.clueForms[provider.currentClueIndex]['latitude']}'),
+                                                initialValue: provider
+                                                        .clueForms[provider
+                                                                .currentClueIndex]
+                                                            ['latitude']
+                                                        ?.toString() ??
+                                                    '',
+                                                decoration:
+                                                    inputDecoration.copyWith(
+                                                        labelText: 'Latitud'),
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                                onChanged: (v) =>
+                                                    provider.updateClue(
+                                                        provider
+                                                            .currentClueIndex,
+                                                        'latitude',
+                                                        double.tryParse(v)),
                                               )),
                                               const SizedBox(width: 10),
-                                              Expanded(child: TextFormField(
-                                                key: ValueKey('long_${provider.clueForms[provider.currentClueIndex]['longitude']}'),
-                                                initialValue: provider.clueForms[provider.currentClueIndex]['longitude']?.toString() ?? '',
-                                                decoration: inputDecoration.copyWith(labelText: 'Longitud'),
-                                                style: const TextStyle(color: Colors.white),
-                                                onChanged: (v) => provider.updateClue(provider.currentClueIndex, 'longitude', double.tryParse(v)),
+                                              Expanded(
+                                                  child: TextFormField(
+                                                key: ValueKey(
+                                                    'long_${provider.clueForms[provider.currentClueIndex]['longitude']}'),
+                                                initialValue: provider
+                                                        .clueForms[provider
+                                                                .currentClueIndex]
+                                                            ['longitude']
+                                                        ?.toString() ??
+                                                    '',
+                                                decoration:
+                                                    inputDecoration.copyWith(
+                                                        labelText: 'Longitud'),
+                                                style: const TextStyle(
+                                                    color: Colors.white),
+                                                onChanged: (v) =>
+                                                    provider.updateClue(
+                                                        provider
+                                                            .currentClueIndex,
+                                                        'longitude',
+                                                        double.tryParse(v)),
                                               )),
                                             ],
                                           ),
                                           const SizedBox(height: 10),
                                           Wrap(
-                                            alignment: WrapAlignment.spaceEvenly,
-                                            spacing: 10, runSpacing: 5,
+                                            alignment:
+                                                WrapAlignment.spaceEvenly,
+                                            spacing: 10,
+                                            runSpacing: 5,
                                             children: [
-                                              TextButton.icon(icon: const Icon(Icons.store, size: 16), label: const Text("Usar Evento"), onPressed: () => provider.setEventLocationForClue(provider.currentClueIndex)),
                                               TextButton.icon(
-                                                icon: const Icon(Icons.my_location, size: 16), 
-                                                label: const Text("Mi Ubicación"), 
-                                                onPressed: () async {
-                                                  try {
-                                                    final pos = await Geolocator.getCurrentPosition();
-                                                    provider.setMyLocationForClue(provider.currentClueIndex, pos.latitude, pos.longitude);
-                                                  } catch(e) { /* ignore */ }
-                                                }
-                                              ),
+                                                  icon: const Icon(Icons.store,
+                                                      size: 16),
+                                                  label:
+                                                      const Text("Usar Evento"),
+                                                  onPressed: () => provider
+                                                      .setEventLocationForClue(
+                                                          provider
+                                                              .currentClueIndex)),
+                                              TextButton.icon(
+                                                  icon: const Icon(
+                                                      Icons.my_location,
+                                                      size: 16),
+                                                  label: const Text(
+                                                      "Mi Ubicación"),
+                                                  onPressed: () async {
+                                                    try {
+                                                      final pos = await Geolocator
+                                                          .getCurrentPosition();
+                                                      provider.setMyLocationForClue(
+                                                          provider
+                                                              .currentClueIndex,
+                                                          pos.latitude,
+                                                          pos.longitude);
+                                                    } catch (e) {/* ignore */}
+                                                  }),
                                             ],
                                           ),
                                         ],
@@ -926,7 +1223,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                     ),
                                   ),
                                 ),
-                               ],
+                              ],
                             ],
                           ),
                         ),
@@ -934,29 +1231,54 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
 
                         // --- Tiendas --- (Hidden if Online)
                         if (provider.eventType == 'on_site') ...[
-                          const Text("Tiendas Aliadas", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.accentGold)),
+                          const Text("Tiendas Aliadas",
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.accentGold)),
                           const SizedBox(height: 20),
                           if (provider.pendingStores.isEmpty)
                             Container(
                               padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(color: AppTheme.cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
-                              child: const Center(child: Column(children: [Icon(Icons.store_mall_directory_outlined, size: 40, color: Colors.white24), SizedBox(height: 10), Text("No hay tiendas agregadas", style: TextStyle(color: Colors.white54))])),
+                              decoration: BoxDecoration(
+                                  color: AppTheme.cardBg,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white10)),
+                              child: const Center(
+                                  child: Column(children: [
+                                Icon(Icons.store_mall_directory_outlined,
+                                    size: 40, color: Colors.white24),
+                                SizedBox(height: 10),
+                                Text("No hay tiendas agregadas",
+                                    style: TextStyle(color: Colors.white54))
+                              ])),
                             ),
-                          
+
                           ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: provider.pendingStores.length,
                             itemBuilder: (context, index) {
-                              final store = provider.pendingStores[index]['store'] as MallStore;
+                              final store = provider.pendingStores[index]
+                                  ['store'] as MallStore;
                               return Card(
                                 color: AppTheme.cardBg,
                                 margin: const EdgeInsets.only(bottom: 10),
                                 child: ListTile(
-                                  leading: const Icon(Icons.store, color: AppTheme.accentGold),
-                                  title: Text(store.name, style: const TextStyle(color: Colors.white)),
-                                  subtitle: Text("${store.products.length} productos", style: const TextStyle(color: Colors.white70)),
-                                  trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => provider.removePendingStore(index)),
+                                  leading: const Icon(Icons.store,
+                                      color: AppTheme.accentGold),
+                                  title: Text(store.name,
+                                      style:
+                                          const TextStyle(color: Colors.white)),
+                                  subtitle: Text(
+                                      "${store.products.length} productos",
+                                      style: const TextStyle(
+                                          color: Colors.white70)),
+                                  trailing: IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () =>
+                                          provider.removePendingStore(index)),
                                 ),
                               );
                             },
@@ -966,92 +1288,130 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: () => _addPendingStore(provider),
-                              icon: const Icon(Icons.add), label: const Text("Agregar Tienda"),
-                              style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accentGold, side: const BorderSide(color: AppTheme.accentGold), padding: const EdgeInsets.symmetric(vertical: 15)),
+                              icon: const Icon(Icons.add),
+                              label: const Text("Agregar Tienda"),
+                              style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.accentGold,
+                                  side: const BorderSide(
+                                      color: AppTheme.accentGold),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 15)),
                             ),
                           ),
                           const SizedBox(height: 30),
                           // --- Configuración de Precios para Espectadores (ALWAYS VISIBLE) ---
-                           const Text("Precios para Espectadores", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.accentGold)),
-                           const SizedBox(height: 10),
-                           const Text("Personaliza el costo de los poderes para los espectadores en este evento.", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                           const SizedBox(height: 20),
-                           
-                           LayoutBuilder(
-                             builder: (context, constraints) {
-                               return GridView.builder(
-                                 shrinkWrap: true,
-                                 physics: const NeverScrollableScrollPhysics(),
-                                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                   crossAxisCount: constraints.maxWidth < 600 ? 1 : 2,
-                                   crossAxisSpacing: 10,
-                                   mainAxisSpacing: 10,
-                                   childAspectRatio: constraints.maxWidth < 600 ? 4 : 3, // Taller items on mobile
-                                 ),
-                                 itemCount: PowerItem.getShopItems().length,
-                                 itemBuilder: (context, index) {
-                                   final power = PowerItem.getShopItems()[index];
-                                   final currentPrice = provider.spectatorPrices[power.id] ?? power.cost;
-                                   
-                                   return Container(
-                                     decoration: BoxDecoration(
-                                        color: AppTheme.cardBg,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.white10),
-                                     ),
-                                     padding: const EdgeInsets.all(12),
-                                     child: Row(
-                                       children: [
-                                          Container(
-                                            height: 48, width: 48,
-                                            decoration: BoxDecoration(
-                                              color: power.color.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(power.icon, style: const TextStyle(fontSize: 24)),
+                          const Text("Precios para Espectadores",
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.accentGold)),
+                          const SizedBox(height: 10),
+                          const Text(
+                              "Personaliza el costo de los poderes para los espectadores en este evento.",
+                              style: TextStyle(
+                                  color: Colors.white54, fontSize: 14)),
+                          const SizedBox(height: 20),
+
+                          LayoutBuilder(builder: (context, constraints) {
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount:
+                                    constraints.maxWidth < 600 ? 1 : 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                                childAspectRatio: constraints.maxWidth < 600
+                                    ? 4
+                                    : 3, // Taller items on mobile
+                              ),
+                              itemCount: PowerItem.getShopItems().length,
+                              itemBuilder: (context, index) {
+                                final power = PowerItem.getShopItems()[index];
+                                final currentPrice =
+                                    provider.spectatorPrices[power.id] ??
+                                        power.cost;
+
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white10),
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        height: 48,
+                                        width: 48,
+                                        decoration: BoxDecoration(
+                                          color: power.color.withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(power.icon,
+                                            style:
+                                                const TextStyle(fontSize: 24)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(power.name,
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            Text("${power.cost} Default",
+                                                style: const TextStyle(
+                                                    color: Colors.white38,
+                                                    fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 80,
+                                        child: TextFormField(
+                                          initialValue: currentPrice.toString(),
+                                          keyboardType: TextInputType.number,
+                                          textAlign: TextAlign.center,
+                                          decoration: inputDecoration.copyWith(
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    vertical: 10,
+                                                    horizontal: 5),
+                                            isDense: true,
+                                            suffixText: '',
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Text(power.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                                Text("${power.cost} Default", style: const TextStyle(color: Colors.white38, fontSize: 12)),
-                                              ],
-                                            ),
-                                          ),
-                                          
-                                          SizedBox(
-                                            width: 80,
-                                            child: TextFormField(
-                                               initialValue: currentPrice.toString(),
-                                               keyboardType: TextInputType.number,
-                                               textAlign: TextAlign.center,
-                                               decoration: inputDecoration.copyWith(
-                                                 contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-                                                 isDense: true,
-                                                 suffixText: '', 
-                                               ),
-                                               style: const TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold),
-                                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                               onChanged: (v) {
-                                                  final val = int.tryParse(v);
-                                                  if (val != null) {
-                                                     provider.setSpectatorPrice(power.id, val);
-                                                  }
-                                               },
-                                            ),
-                                          ),
-                                       ],
-                                     ),
-                                   );
-                                 },
-                               );
-                             }
-                           ),
-                           const SizedBox(height: 30),
+                                          style: const TextStyle(
+                                              color: AppTheme.accentGold,
+                                              fontWeight: FontWeight.bold),
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly
+                                          ],
+                                          onChanged: (v) {
+                                            final val = int.tryParse(v);
+                                            if (val != null) {
+                                              provider.setSpectatorPrice(
+                                                  power.id, val);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                          const SizedBox(height: 30),
                         ],
 
                         // --- Submit Button ---
@@ -1059,11 +1419,25 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: (provider.isFormValid && !provider.isLoading) ? () => _submitForm(provider) : null,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple, disabledBackgroundColor: const Color(0xFF2A2D3E), disabledForegroundColor: Colors.white30, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                             child: provider.isLoading 
-                                ? const LoadingIndicator(fontSize: 14, color: Colors.white) 
-                                : const Text("PUBLICAR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                            onPressed:
+                                (provider.isFormValid && !provider.isLoading)
+                                    ? () => _submitForm(provider)
+                                    : null,
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryPurple,
+                                disabledBackgroundColor:
+                                    const Color(0xFF2A2D3E),
+                                disabledForegroundColor: Colors.white30,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12))),
+                            child: provider.isLoading
+                                ? const LoadingIndicator(
+                                    fontSize: 14, color: Colors.white)
+                                : const Text("PUBLICAR",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1)),
                           ),
                         ),
                         const SizedBox(height: 40),
