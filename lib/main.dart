@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Importar dotenv
 import 'package:supabase_flutter/supabase_flutter.dart'; // Importar Supabase
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 // Imports existentes
 import 'features/auth/screens/splash_screen.dart';
@@ -34,6 +35,7 @@ import 'features/game/services/game_service.dart';
 
 import 'features/mall/services/store_service.dart';
 import 'features/events/services/event_service.dart';
+import 'shared/widgets/version_monitor.dart';
 
 // --- NEW: Phase 1 Refactoring Imports ---
 import 'core/repositories/lives_repository.dart';
@@ -62,6 +64,15 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  // Initialize OneSignal
+  // Remove this method to stop OneSignal Debugging
+  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+
+  OneSignal.initialize("bbcc3a18-666a-4fa7-855a-4047b56a3e7d");
+
+  // The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
+  OneSignal.Notifications.requestPermission(true);
 
   // 3. La configuración de orientación y UI Overlay es solo para MÓVIL (Android/iOS)
   // En Web esto puede causar errores o no es necesario.
@@ -303,10 +314,12 @@ class _TreasureHuntAppState extends State<TreasureHuntApp>
             builder: (context, child) {
               _forceImmersiveMode();
 
-              return AuthMonitor(
-                child: ConnectivityMonitor(
-                  child: GameSessionMonitor(
-                    child: SabotageOverlay(child: child ?? const SizedBox()),
+              return VersionMonitor(
+                child: AuthMonitor(
+                  child: ConnectivityMonitor(
+                    child: GameSessionMonitor(
+                      child: SabotageOverlay(child: child ?? const SizedBox()),
+                    ),
                   ),
                 ),
               );

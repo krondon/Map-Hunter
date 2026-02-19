@@ -1,4 +1,4 @@
-package com.example.treasure_hunt_rpg
+package com.map.hunter
 
 import io.flutter.embedding.android.FlutterActivity
 

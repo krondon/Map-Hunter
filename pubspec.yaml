@@ -43,9 +43,11 @@ dependencies:
   pdf: ^3.10.4
   printing: ^5.11.0
   url_launcher: ^6.3.2
+  package_info_plus: ^8.0.0
   webview_flutter: ^4.13.1
   webview_windows: ^0.4.0
   sensors_plus: ^7.0.0
+  onesignal_flutter: ^5.0.0
 
 dev_dependencies:
   flutter_test:
