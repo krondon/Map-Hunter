@@ -55,6 +55,8 @@ import 'features/game/strategies/power_strategy_factory.dart';
 import 'features/game/repositories/game_request_repository.dart';
 import 'features/mall/providers/shop_provider.dart';
 
+import 'core/storage/secure_local_storage.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -65,6 +67,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    authOptions: FlutterAuthClientOptions(
+      localStorage: SecureLocalStorage(),
+    ),
   );
 
   // Initialize OneSignal
