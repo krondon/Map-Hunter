@@ -322,7 +322,8 @@ class _TreasureHuntAppState extends State<TreasureHuntApp>
                 PointerDeviceKind.mouse,
                 PointerDeviceKind.touch,
                 PointerDeviceKind.stylus,
-                PointerDeviceKind.unknown
+                PointerDeviceKind.trackpad,
+                PointerDeviceKind.unknown,
               },
             ),
             theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
