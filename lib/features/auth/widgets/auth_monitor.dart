@@ -198,8 +198,7 @@ class _AuthMonitorState extends State<AuthMonitor> {
     if (rootNavigatorKey.currentState != null) {
       rootNavigatorKey.currentState!.pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) =>
-              kIsWeb ? const AdminLoginScreen() : const LoginScreen(),
+          builder: (_) => const LoginScreen(),
         ),
         (route) => false,
       );

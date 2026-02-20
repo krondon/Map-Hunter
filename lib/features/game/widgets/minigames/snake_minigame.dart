@@ -505,29 +505,8 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Center(
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: (_activeSponsor != null &&
-                                        _activeSponsor!.hasMinigameAssets &&
-                                        _activeSponsor!.minigameAssetUrl !=
-                                            null)
-                                    ? Image.network(
-                                        _activeSponsor!.minigameAssetUrl!,
-                                        fit: BoxFit.contain,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                const Center(
-                                          child: Text("🍎",
-                                              style: TextStyle(fontSize: 16)),
-                                        ),
-                                      )
-                                    : const Center(
-                                        child: Text("🍎",
-                                            style: TextStyle(fontSize: 16)),
-                                      ),
-                              ),
+                            const Center(
+                              child: Text("🍎", style: TextStyle(fontSize: 16)),
                             ),
                             const SizedBox(width: 6),
                             Text("$_score / $winScore",
@@ -722,28 +701,9 @@ class _SnakeMinigameState extends State<SnakeMinigame> {
                                         child: Center(
                                           child: FittedBox(
                                             fit: BoxFit.contain,
-                                            child: (_activeSponsor != null &&
-                                                    _activeSponsor!
-                                                        .hasMinigameAssets &&
-                                                    _activeSponsor!
-                                                            .minigameAssetUrl !=
-                                                        null)
-                                                ? Image.network(
-                                                    _activeSponsor!
-                                                        .minigameAssetUrl!,
-                                                    width: cellSize,
-                                                    height: cellSize,
-                                                    errorBuilder: (context,
-                                                        error, stackTrace) {
-                                                      return Text("🍎",
-                                                          style: TextStyle(
-                                                              fontSize:
-                                                                  cellSize));
-                                                    },
-                                                  )
-                                                : Text("🍎",
-                                                    style: TextStyle(
-                                                        fontSize: cellSize)),
+                                            child: Text("🍎",
+                                                style: TextStyle(
+                                                    fontSize: cellSize)),
                                           ),
                                         ),
                                       ),

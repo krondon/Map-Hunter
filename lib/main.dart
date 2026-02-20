@@ -338,7 +338,7 @@ class _TreasureHuntAppState extends State<TreasureHuntApp>
             // 5. LÓGICA PRINCIPAL:
             // Si estamos en WEB -> Muestra la pantalla de Login de Admin
             // Si estamos en MÓVIL o WINDOWS (para pruebas) -> Muestra el Splash Screen normal para usuarios
-            home: kIsWeb ? const AdminLoginScreen() : const SplashScreen(),
+            home: const SplashScreen(),
           );
         },
       ),
