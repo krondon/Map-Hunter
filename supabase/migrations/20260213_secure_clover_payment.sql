@@ -15,6 +15,10 @@ DECLARE
   v_current INTEGER;
   v_new INTEGER;
 BEGIN
+
+IF auth.uid() IS NOT NULL AND p_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Security Violation: Cannot debit another user.';
+  END IF;
   -- Validate amount
   IF p_amount <= 0 THEN
     RETURN json_build_object('success', false, 'error', 'INVALID_AMOUNT');

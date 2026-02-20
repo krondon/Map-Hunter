@@ -173,6 +173,11 @@ DECLARE
   v_payment_result JSON;
   v_existing_player UUID;
 BEGIN
+
+-- Agregar al inicio del cuerpo de la función:
+IF p_user_id != auth.uid() THEN
+  RETURN json_build_object('success', false, 'error', 'UNAUTHORIZED');
+END IF;
   -- ── Step 1: Idempotency — check if already a player ──
   SELECT id INTO v_existing_player
   FROM game_players

@@ -52,7 +52,6 @@ flutter_*.png
 **/ios/Runner/GeneratedPluginRegistrant.*
 
 # Web
-lib/generated_plugin_registrant.dart
 
 # Archivos varios
 *.log

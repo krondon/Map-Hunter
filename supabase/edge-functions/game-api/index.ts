@@ -231,6 +231,18 @@ serve(async (req) => {
       // Let's assume a simple check: email contains 'admin' or specific ID.
       // In production, check a 'role' column in profiles.
       
+      const { data: profile } = await supabaseClient
+  .from("profiles")
+  .select("role")
+  .eq("id", user.id)
+  .single();
+      if (profile?.role !== "admin") {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: corsHeaders,
+        });
+      }
+
       const { requestId } = await req.json()
       
       const supabaseAdmin = createClient(
