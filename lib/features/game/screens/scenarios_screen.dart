@@ -2481,8 +2481,36 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                 ),
                                                               const SizedBox(
                                                                   height: 10),
-                                                              // CONDITIONAL BUTTON RENDERING based on banned status
-                                                              if (_banStatusMap[
+                                                              // CONDITIONAL BUTTON RENDERING based on event status and user role
+                                                              if (scenario.isCompleted)
+                                                                // 0. COMPLETED -> ALL users see "VER PODIO" (no matter their role)
+                                                                Center(
+                                                                  child: SizedBox(
+                                                                    width: 250,
+                                                                    child: ElevatedButton(
+                                                                      onPressed: () =>
+                                                                          _onScenarioSelected(scenario),
+                                                                      style: ElevatedButton.styleFrom(
+                                                                        backgroundColor: AppTheme.accentGold,
+                                                                        foregroundColor: Colors.black,
+                                                                        shape: RoundedRectangleBorder(
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(20))),
+                                                                      child: const Row(
+                                                                        mainAxisAlignment:
+                                                                            MainAxisAlignment.center,
+                                                                        children: [
+                                                                          Icon(Icons.emoji_events, size: 18),
+                                                                          SizedBox(width: 8),
+                                                                          Text('VER PODIO',
+                                                                              style: TextStyle(
+                                                                                  fontWeight: FontWeight.bold)),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              else if (_banStatusMap[
                                                                           scenario
                                                                               .id] ==
                                                                       'banned' ||

@@ -25,6 +25,7 @@ import '../../social/widgets/leaderboard_card.dart';
 import '../widgets/spectator_betting_pot_widget.dart'; // ADDED
 import '../widgets/my_bets_modal.dart';
 import '../services/betting_service.dart'; // ADDED
+import 'winner_celebration_screen.dart'; // ADDED: Podio redirect
 
 
 class SpectatorModeScreen extends StatefulWidget {
@@ -40,6 +41,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   int _selectedTab = 0; // 0: Actividad, 1: Apuestas, 2: Tienda
   late PowerEffectProvider _powerEffectProvider;
   late Stream<GameEvent> _eventStream;
+  bool _hasNavigatedToPodium = false; // Prevent double-navigation when event completes
 
   @override
   void initState() {
@@ -153,7 +155,48 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             }
 
             final event = snapshot.data!;
-            
+
+            // --- REALTIME REDIRECT: When event completes → go to Podio ---
+            if (event.isCompleted && !_hasNavigatedToPodium) {
+              _hasNavigatedToPodium = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                debugPrint('🏆 SpectatorMode: Event completed. Redirecting to Podio...');
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => WinnerCelebrationScreen(
+                      eventId: widget.eventId,
+                      playerPosition: 0,
+                      totalCluesCompleted: 0,
+                      prizeWon: 0,
+                    ),
+                  ),
+                );
+              });
+              return const Scaffold(
+                backgroundColor: Color(0xFF0A0E27),
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Color(0xFFFFD700)),
+                      SizedBox(height: 20),
+                      Text(
+                        '🏆 Redirigiendo al podio...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Orbitron',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            // -------------------------------------------------------
+
             return SafeArea(
               child: Column(
                 children: [
