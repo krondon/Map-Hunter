@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../game/models/event.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/admin_service.dart';
+import '../../game/services/betting_service.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -19,23 +20,25 @@ class CompetitionFinancialsWidget extends StatefulWidget {
 
 class _CompetitionFinancialsWidgetState
     extends State<CompetitionFinancialsWidget> {
-  // Stream for live bets
+  // Stream for live bets (used as trigger for refresh)
   late final Stream<List<Map<String, dynamic>>> _betsStream;
   
+  // Enriched bets data (with names)
+  List<Map<String, dynamic>> _enrichedBets = [];
+  bool _isLoadingEnriched = false;
+  late BettingService _bettingService;
+
   // Future for finished event results
   Future<Map<String, dynamic>>? _financialResultsFuture;
 
   @override
   void initState() {
     super.initState();
+    _bettingService = BettingService(Supabase.instance.client);
     _setupStreams();
   }
 
   void _setupStreams() {
-    // Only setup stream if event is not pending (meaning it is active or finished, 
-    // but useful mainly for active. For finished we use FutureBuilder, but 
-    // we might want to see the latest bets even if finished if we haven't distributed prizes yet)
-    
     _betsStream = Supabase.instance.client
         .from('bets')
         .stream(primaryKey: ['id'])
@@ -45,6 +48,26 @@ class _CompetitionFinancialsWidgetState
 
     if (widget.event.status == 'completed') {
        _loadFinancialResults();
+    }
+  }
+
+  /// Fetches enriched bets using the RPC (with bettor & racer names).
+  Future<void> _loadEnrichedBets() async {
+    if (_isLoadingEnriched) return;
+    _isLoadingEnriched = true;
+    try {
+      final enriched = await _bettingService.fetchEnrichedEventBets(widget.event.id);
+      if (mounted) {
+        setState(() {
+          _enrichedBets = enriched;
+          _isLoadingEnriched = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('💰 Error loading enriched bets: $e');
+      if (mounted) {
+        setState(() => _isLoadingEnriched = false);
+      }
     }
   }
 
@@ -94,11 +117,44 @@ class _CompetitionFinancialsWidgetState
           return const Center(child: CircularProgressIndicator());
         }
 
-        final bets = snapshot.data!;
-        debugPrint('💰 Stream received ${bets.length} bets');
+        final rawBets = snapshot.data!;
+        debugPrint('💰 Stream received ${rawBets.length} bets');
+
+        // Trigger enriched data load when stream changes
+        if (_enrichedBets.length != rawBets.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadEnrichedBets());
+        }
         
-        // Calculate Total Pot locally from the stream
-        final totalPot = bets.fold<int>(0, (sum, bet) => sum + (bet['amount'] as num).toInt());
+        // Calculate Total Pot from stream
+        final totalPot = rawBets.fold<int>(0, (sum, bet) => sum + (bet['amount'] as num).toInt());
+
+        // Group enriched bets by bettor (user_id)
+        final Map<String, _BettorGroup> bettorGroups = {};
+        final betsToDisplay = _enrichedBets.isNotEmpty ? _enrichedBets : rawBets;
+
+        for (var bet in betsToDisplay) {
+          final userId = bet['user_id'] as String;
+          final bettorName = bet['bettor_name'] as String? ?? 'Apostador';
+          final bettorAvatarId = bet['bettor_avatar_id'] as String?;
+          final amount = (bet['amount'] as num).toInt();
+
+          if (!bettorGroups.containsKey(userId)) {
+            bettorGroups[userId] = _BettorGroup(
+              userId: userId,
+              name: bettorName,
+              avatarId: bettorAvatarId,
+            );
+          }
+
+          bettorGroups[userId]!.totalBet += amount;
+          bettorGroups[userId]!.bets.add(bet);
+        }
+
+        final sortedBettors = bettorGroups.values.toList()
+          ..sort((a, b) => b.totalBet.compareTo(a.totalBet));
+
+        // Count unique bettors
+        final uniqueBettors = bettorGroups.length;
 
         return Padding(
           padding: const EdgeInsets.all(16.0),
@@ -106,78 +162,80 @@ class _CompetitionFinancialsWidgetState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Summary Card
-              Card(
-                color: AppTheme.cardBg,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'POTE DE APUESTAS EN VIVO',
-                        style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.2),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$totalPot 🍀',
-                        style: const TextStyle(
-                            color: AppTheme.accentGold,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${bets.length} Apuestas Totales',
-                        style: const TextStyle(color: Colors.white54),
-                      ),
-                    ],
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primaryPurple.withOpacity(0.3), AppTheme.cardBg],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'POTE DE APUESTAS EN VIVO',
+                      style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '$totalPot 🍀',
+                      style: const TextStyle(
+                          color: AppTheme.accentGold,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildMiniStat(Icons.people, '$uniqueBettors', 'Apostadores'),
+                        const SizedBox(width: 24),
+                        _buildMiniStat(Icons.receipt_long, '${rawBets.length}', 'Tickets'),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
               
-              // Bets List
-              const Text(
-                'Últimas Apuestas',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              // Section Header
+              Row(
+                children: [
+                  const Icon(Icons.person_search, color: Colors.amber, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Apostadores',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  if (_isLoadingEnriched)
+                    const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                    ),
+                ],
               ),
               const SizedBox(height: 10),
               Expanded(
-                child: bets.isEmpty 
-                  ? const Center(child: Text('Aún no hay apuestas', style: TextStyle(color: Colors.white30)))
+                child: sortedBettors.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.casino_outlined, color: Colors.white24, size: 48),
+                          SizedBox(height: 12),
+                          Text('Aún no hay apuestas', style: TextStyle(color: Colors.white30, fontSize: 16)),
+                        ],
+                      ),
+                    )
                   : ListView.builder(
-                    itemCount: bets.length,
+                    itemCount: sortedBettors.length,
                     itemBuilder: (context, index) {
-                      final bet = bets[index];
-                      // We need to fetch profiles if we want names, but for now lets rely on basic info or if 
-                      // the stream join is not possible, we might just show amounts or do a separate fetch.
-                      // Note: Supabase Stream doesn't support deep joins easily. 
-                      // For a robust implementation, we might need a separate mechanism or accept IDs.
-                      // Or simply show the amount and time.
-                      
-                      // NOTE: 'profiles:racer_id(name)' logic is for simple REST selects.
-                      // Streams return raw table data usually. 
-                      
-                      final amount = bet['amount'];
-                      final createdAt = DateTime.parse(bet['created_at']).toLocal();
-                      
-                      return Card(
-                        color: Colors.white.withOpacity(0.05),
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: const Icon(Icons.monetization_on, color: Colors.amber, size: 28),
-                          title: Text(
-                            'Apuesta: $amount 🍀', 
-                            style: const TextStyle(color: Colors.white)
-                          ),
-                          subtitle: Text(
-                             DateFormat('HH:mm:ss').format(createdAt),
-                             style: const TextStyle(color: Colors.white54, fontSize: 12),
-                          ),
-                          // If we had the user name it would be better, but stream limitations apply.
-                          // We can show the user_id for debug or just "Usuario"
-                          trailing: Text(bet['user_id'].toString().substring(0,6) + '...', style: TextStyle(color: Colors.white30)),
-                        ),
-                      );
+                      final bettor = sortedBettors[index];
+                      return _buildBettorCard(bettor, index);
                     },
                   ),
               ),
@@ -186,6 +244,136 @@ class _CompetitionFinancialsWidgetState
         );
       },
     );
+  }
+
+  Widget _buildMiniStat(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white54, size: 16),
+            const SizedBox(width: 4),
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildBettorCard(_BettorGroup bettor, int index) {
+    final hasEnrichedData = _enrichedBets.isNotEmpty;
+    final initial = bettor.name.isNotEmpty ? bettor.name[0].toUpperCase() : '?';
+
+    return Card(
+      color: Colors.white.withOpacity(0.06),
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+          leading: CircleAvatar(
+            backgroundColor: _getBettorColor(index),
+            radius: 20,
+            child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          title: Text(
+            hasEnrichedData ? bettor.name : 'Apostador #${index + 1}',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            '${bettor.bets.length} apuesta(s) · Total: ${bettor.totalBet} 🍀',
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${bettor.totalBet} 🍀',
+              style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+          iconColor: Colors.white54,
+          collapsedIconColor: Colors.white30,
+          children: [
+            const Divider(color: Colors.white12, height: 1),
+            const SizedBox(height: 8),
+            const Row(
+              children: [
+                Icon(Icons.flag, color: Colors.white38, size: 14),
+                SizedBox(width: 6),
+                Text('Apostó a:', style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...bettor.bets.map((bet) {
+              final racerName = bet['racer_name'] as String? ?? 'Participante';
+              final amount = (bet['amount'] as num).toInt();
+              final createdAt = DateTime.tryParse(bet['created_at']?.toString() ?? '')?.toLocal();
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.directions_run, color: Colors.lightBlueAccent, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              hasEnrichedData ? racerName : 'Participante',
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
+                            if (createdAt != null)
+                              Text(
+                                DateFormat('HH:mm:ss').format(createdAt),
+                                style: const TextStyle(color: Colors.white30, fontSize: 11),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '$amount 🍀',
+                        style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getBettorColor(int index) {
+    const colors = [
+      Colors.indigo,
+      Colors.teal,
+      Colors.deepOrange,
+      Colors.purple,
+      Colors.blueGrey,
+      Colors.brown,
+      Colors.cyan,
+      Colors.pink,
+    ];
+    return colors[index % colors.length];
   }
 
   Widget _buildFinalResultsView() {
@@ -393,4 +581,21 @@ class _CompetitionFinancialsWidgetState
       ),
     );
   }
+}
+
+/// Helper class to group bets by bettor for the live view.
+class _BettorGroup {
+  final String userId;
+  final String name;
+  final String? avatarId;
+  int totalBet;
+  final List<Map<String, dynamic>> bets;
+
+  _BettorGroup({
+    required this.userId,
+    required this.name,
+    this.avatarId,
+    this.totalBet = 0,
+    List<Map<String, dynamic>>? bets,
+  }) : bets = bets ?? [];
 }

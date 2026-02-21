@@ -114,4 +114,26 @@ class BettingService {
       return 0;
     }
   }
+
+  /// Obtiene todas las apuestas de un evento enriquecidas con nombres de
+  /// apostadores y participantes (racers). Usa un RPC con SECURITY DEFINER
+  /// para que el admin pueda ver todas las apuestas sin restricción de RLS.
+  Future<List<Map<String, dynamic>>> fetchEnrichedEventBets(String eventId) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_event_bets_enriched',
+        params: {'p_event_id': eventId},
+      );
+
+      if (response is List) {
+        return List<Map<String, dynamic>>.from(
+          response.map((e) => Map<String, dynamic>.from(e)),
+        );
+      }
+      return [];
+    } catch (e) {
+      debugPrint('BettingService: Error fetching enriched bets: $e');
+      return [];
+    }
+  }
 }
