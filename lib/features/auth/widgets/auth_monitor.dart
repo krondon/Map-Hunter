@@ -58,6 +58,10 @@ class _AuthMonitorState extends State<AuthMonitor> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _navigateToResetPassword();
         });
+      } else if (event == AuthChangeEvent.signedOut) {
+        debugPrint(
+            'AuthMonitor: SignedOut event detected via Stream! Forcing cleanup...');
+        _navigateToLogin();
       }
     });
   }

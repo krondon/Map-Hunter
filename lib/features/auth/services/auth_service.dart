@@ -178,7 +178,12 @@ class AuthService {
     }
 
     // 2. Cerrar sesión en Supabase
-    await _supabase.auth.signOut();
+    try {
+      await _supabase.auth.signOut();
+    } catch (e) {
+      debugPrint('AuthService: Error force-closing session: $e');
+      // No re-lanzamos para permitir que la App asuma que salió localmente
+    }
   }
 
   /// Envía un correo de recuperación de contraseña.
@@ -306,7 +311,8 @@ class AuthService {
         errorMsg.contains('too many requests')) {
       return 'Demasiados intentos. Por favor espera unos minutos antes de intentar de nuevo.';
     }
-    if (errorMsg.contains('422') || errorMsg.contains('different from the old password')) {
+    if (errorMsg.contains('422') ||
+        errorMsg.contains('different from the old password')) {
       return 'La nueva contraseña debe ser diferente a la anterior.';
     }
     if (errorMsg.contains('suspendida') || errorMsg.contains('banned')) {

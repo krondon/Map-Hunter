@@ -195,6 +195,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
     _minigameTFStatements = [];
     _isMinigameDataLoading = false;
     _currentSponsor = null;
+    _currentUserId = null;
 
     stopLeaderboardUpdates();
     stopLivesSubscription();

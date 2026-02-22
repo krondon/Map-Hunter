@@ -56,7 +56,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   bool _isDarkMode = false; // Global theme state
   bool _isAutoTheme = true; // Auto theme based on Venezuela time
   Timer? _themeTimer; // Timer to periodically check time
-  
+
   List<PowerItem> _shopItems = PowerItem.getShopItems();
 
   Player? get currentPlayer => _currentPlayer;
@@ -141,13 +141,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Future<void> loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     _isAutoTheme = prefs.getBool('is_auto_theme') ?? true; // Default: auto
-    
+
     if (_isAutoTheme) {
       _applyVenezuelaTime();
     } else {
       _isDarkMode = prefs.getBool('is_dark_mode') ?? false;
     }
-    
+
     _startThemeTimer();
     notifyListeners();
   }
@@ -364,17 +364,24 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
 
-    // Use centralized AuthService logout which triggers callbacks
-    await _authService.logout();
+    try {
+      // Use centralized AuthService logout which triggers callbacks
+      await _authService.logout();
 
-    // Note: Local reset() will be called via callback registered in main.dart
-    // But we keep basic cleanup locally for safety if not registered
+      // Note: Local resetState() will be called via callback registered in main.dart
+      // But we keep basic cleanup locally for safety if not registered
+      if (clearBanMessage) {
+        _banMessage = null;
+      }
 
-    if (clearBanMessage) {
-      _banMessage = null;
+      // Safety call if callback didn't fire for some reason
+      if (_currentPlayer != null) {
+        resetState();
+      }
+    } finally {
+      _isLoggingOut = false;
+      notifyListeners();
     }
-
-    _isLoggingOut = false;
   }
 
   /// Elimina la cuenta del usuario permanentemente.

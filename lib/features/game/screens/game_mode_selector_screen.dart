@@ -100,12 +100,10 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                   ),
           ),
 
-
           SafeArea(
             child: Column(
               children: [
                 const Spacer(flex: 2),
-
 
                 // HEADER
                 Column(
@@ -125,7 +123,6 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                                 blurRadius: 10,
                                 spreadRadius: 2)
                           ]),
-
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -142,9 +139,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                   ],
                 ),
 
-
                 const Spacer(flex: 3),
-
 
                 // CARDS
                 Padding(
@@ -173,9 +168,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                         },
                       ),
 
-
                       const SizedBox(height: 24),
-
 
                       // MODO ONLINE
                       _buildModeCard(
@@ -200,7 +193,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                       ),
 
                       const SizedBox(height: 24),
-                      
+
                       // MODO LOCAL
                       _buildModeCard(
                         title: "MODO LOCAL",
@@ -209,16 +202,14 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                         icon: Icons.home_outlined,
                         color: const Color(0xFF9D4EDD), // Morado Cyber
                         onTap: () {
-                           _showComingSoonDialog("Modo Local");
-                        }, 
+                          _showComingSoonDialog("Modo Local");
+                        },
                       ),
                     ],
                   ),
                 ),
 
-
                 const Spacer(flex: 4),
-
 
                 // FOOTER - BOTÓN VOLVER
                 Padding(
@@ -245,14 +236,7 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                               )
                             ]),
                         child: TextButton.icon(
-                          onPressed: () async {
-                            // Logout and go to Login
-                            await context.read<PlayerProvider>().logout();
-                            if (context.mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                  '/login', (route) => false);
-                            }
-                          },
+                          onPressed: _showLogoutDialog,
                           icon: const Icon(Icons.arrow_back,
                               color: Colors.white, size: 20),
                           label: const Text("Volver",
@@ -284,6 +268,145 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    const Color purpleAccent = Color(0xFF9D4EDD);
+    const Color dangerRed = Color(0xFFFF4B4B);
+    const Color cardBg = Color(0xFF0D0D0F);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: purpleAccent.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: purpleAccent.withOpacity(0.4), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(24),
+              border:
+                  Border.all(color: purpleAccent.withOpacity(0.8), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: purpleAccent.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon Header
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: dangerRed.withOpacity(0.5), width: 1.5),
+                    color: dangerRed.withOpacity(0.1),
+                  ),
+                  child: const Icon(Icons.logout_rounded,
+                      color: dangerRed, size: 30),
+                ),
+                const SizedBox(height: 20),
+                // Title
+                const Text(
+                  '¿CERRAR SESIÓN?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Orbitron',
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Subtitle
+                const Text(
+                  '¿Estás seguro de que deseas salir? Tendrás que iniciar sesión de nuevo para jugar.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Action Buttons
+                Row(
+                  children: [
+                    // Cancel
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(
+                                color: Colors.white.withOpacity(0.2)),
+                          ),
+                        ),
+                        child: const Text(
+                          'CANCELAR',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Orbitron',
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Confirm Logout
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await context.read<PlayerProvider>().logout();
+                          if (context.mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/login', (route) => false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: dangerRed,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'SALIR',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Orbitron',
+                            fontSize: 12,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -328,7 +451,8 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                     border: Border.all(color: purpleAccent, width: 2),
                     color: purpleAccent.withOpacity(0.1),
                   ),
-                  child: const Icon(Icons.construction, color: purpleAccent, size: 32),
+                  child: const Icon(Icons.construction,
+                      color: purpleAccent, size: 32),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -441,11 +565,9 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                               blurRadius: 10,
                               spreadRadius: 1)
                         ]),
-
                     child: Icon(icon, color: color, size: 28),
                   ),
                   const SizedBox(width: 16),
-
 
                   // Text Content
                   Expanded(
@@ -454,7 +576,6 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                       children: [
                         Text(
                           title,
-
                           style: TextStyle(
                               fontFamily: 'Orbitron',
                               fontSize: 16,
@@ -466,7 +587,6 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                                     color: color.withOpacity(0.6),
                                     blurRadius: 8)
                               ]),
-
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -481,7 +601,6 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                       ],
                     ),
                   ),
-
 
                   // Arrow (Centrada verticalmente)
                   Column(
