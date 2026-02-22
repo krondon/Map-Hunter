@@ -160,13 +160,6 @@ class _EditPaymentMethodDialogState extends State<EditPaymentMethodDialog> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextFormField(
-                        controller: _dniController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('Cédula de Identidad', Icons.badge),
-                        validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
                         controller: _phoneController,
                         style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration('Número de Teléfono', Icons.phone_android),
