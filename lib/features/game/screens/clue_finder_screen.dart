@@ -223,10 +223,10 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   String get _temperatureStatus {
     double dist = _forceProximity ? 5.0 : _distanceToTarget;
     if (dist > 500) return "CONGELADO";
-    if (dist > 200) return "FR�O";
+    if (dist > 200) return "FRÍO";
     if (dist > 50) return "TIBIO";
     if (dist > 20) return "CALIENTE";
-    return "�AQU� EST�!";
+    return "¡AQUÍ ESTÁ!";
   }
 
   Color get _temperatureColor {
@@ -406,8 +406,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
     final bool shouldForceDark = isDarkMode ||
         _temperatureStatus == "CONGELADO" ||
-        _temperatureStatus == "FR�O" ||
-        _temperatureStatus == "�AQU� EST�!";
+        _temperatureStatus == "FRÍO" ||
+        _temperatureStatus == "¡AQUÍ ESTÁ!";
     final bool useDarkStyle = shouldForceDark;
     
     // La imagen de fondo ahora es visible SIEMPRE (opacidad 1.0 constante o alta)
@@ -563,7 +563,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        widget.clue.hint.isNotEmpty ? widget.clue.hint : "Encuentra la ubicaci�n...",
+                                        widget.clue.hint.isNotEmpty ? widget.clue.hint : "Encuentra la ubicación...",
                                         textAlign: TextAlign.center,
                                         style: TextStyle(fontSize: 18, color: effectiveHintTextColor),
                                       ),
@@ -614,7 +614,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Text(
-                                      "�EST�S EN LA ZONA!",
+                                      "¡ESTÁS EN LA ZONA!",
                                       style: TextStyle(
                                         color: AppTheme.successGreen,
                                         fontWeight: FontWeight.bold,
@@ -676,7 +676,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                           final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
                                           if (scanned != null) _handleScannedCode(scanned);
                                         },
-                                        child: const Text("VERIFICAR C�DIGO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                        child: const Text("VERIFICAR CÓDIGO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                       ),
                                     ),
                                   ],

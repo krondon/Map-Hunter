@@ -1,9 +1,15 @@
--- Function: use_power_mechanic (Synced with migration 20260216_spectator_gifting.sql)
--- Date: 2026-02-16
--- Purpose: 
--- Allow spectators (and players targeting others) to "gift" defense powers (Shield, Return, Invisibility).
--- If caster_id != target_id for these powers, add to target's inventory instead of activating.
--- Preserves all protections and logic from the previous RPC update.
+-- =============================================================
+-- Migration: 20260222_attack_power_commission
+-- Purpose: When a SPECTATOR uses an attack power (freeze, black_screen,
+--          life_steal) against a competitor, 50% of the power cost
+--          (in whole clovers) is credited to the attacked player's wallet.
+--
+-- Rules:
+--   - Only spectator casters trigger commission
+--   - blur_screen is EXCLUDED (AoE, no single target)
+--   - Commission applies even if blocked/reflected
+--   - Calculated as FLOOR(cost / 2)
+-- =============================================================
 
 CREATE OR REPLACE FUNCTION public.use_power_mechanic(
     p_caster_id uuid, 
