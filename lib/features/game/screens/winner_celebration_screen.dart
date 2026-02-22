@@ -9,11 +9,6 @@ import '../../../core/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'scenarios_screen.dart';
 import 'game_mode_selector_screen.dart';
-import '../models/event.dart';
-import '../services/betting_service.dart';
-import '../widgets/spectator_betting_pot_widget.dart';
-import '../widgets/sponsor_banner.dart';
-import 'package:intl/intl.dart';
 import '../../auth/screens/login_screen.dart';
 
 class WinnerCelebrationScreen extends StatefulWidget {
@@ -46,12 +41,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
   // Podium Winners Data (from game_players.final_placement)
   List<Map<String, dynamic>> _podiumWinners = [];
-
-  // Unified Results Data
-  GameEvent? _eventDetails;
-  int _totalBettingWinners = 0;
-  Map<String, dynamic> _myBettingResult = {'won': false, 'amount': 0};
-  bool _isLoadingEventData = true;
+  bool _isLoadingPodium = true;
 
   @override
   void initState() {
@@ -82,16 +72,15 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
       // Fetch prizes for everyone
       _fetchPrizes();
-      // Fetch detailed event data (Pot, Betting, etc)
-      _loadEventData();
+      // Fetch podium winners from DB (final_placement)
+      _fetchPodiumWinners();
 
       // Add listener to self-correct position
       gameProvider.addListener(_updatePositionFromLeaderboard);
 
       // FORCE SYNC: Ensure provider knows the event ID
       if (gameProvider.currentEventId != widget.eventId) {
-        debugPrint(
-            "🏆 WinnerScreen: EventID Mismatch (Provider: ${gameProvider.currentEventId} vs Widget: ${widget.eventId}). Fixing...");
+        debugPrint("🏆 WinnerScreen: EventID Mismatch (Provider: ${gameProvider.currentEventId} vs Widget: ${widget.eventId}). Fixing...");
         // Re-initialize provider context for this event without heavy loading UI
         await gameProvider.fetchClues(eventId: widget.eventId, silent: true);
       }
@@ -114,7 +103,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     });
   }
 
-Future<void> _fetchPrizes() async {
+  Future<void> _fetchPrizes() async {
     try {
       final supabase = Supabase.instance.client;
       final response = await supabase
@@ -125,8 +114,7 @@ Future<void> _fetchPrizes() async {
       final Map<String, int> loadedPrizes = {};
       for (final row in response) {
         if (row['user_id'] != null && row['amount'] != null) {
-          // Solución: Usar "as num" y luego toInt() evita crashes si Supabase manda un double
-          loadedPrizes[row['user_id'].toString()] = (row['amount'] as num).toInt();
+          loadedPrizes[row['user_id'].toString()] = row['amount'] as int;
         }
       }
 
@@ -141,67 +129,10 @@ Future<void> _fetchPrizes() async {
     }
   }
 
-  Future<void> _loadEventData() async {
-    try {
-      final supabase = Supabase.instance.client;
-      final playerProvider =
-          Provider.of<PlayerProvider>(context, listen: false);
-      final userId = playerProvider.currentPlayer?.id;
-
-      // Fetch Event Details
-      final eventResponse = await supabase
-          .from('events')
-          .select()
-          .eq('id', widget.eventId)
-          .single();
-      final event = GameEvent.fromJson(eventResponse);
-
-      // Fetch Betting Data
-      final bettingService = BettingService(supabase);
-      final bettingWinnersPromise = event.winnerId != null
-          ? bettingService.getTotalBettingWinners(
-              widget.eventId, event.winnerId!)
-          : Future.value(0);
-
-      final myBettingPromise = userId != null
-          ? bettingService.getUserEventWinnings(widget.eventId, userId)
-          : Future.value({'won': false, 'amount': 0});
-
-      final results =
-          await Future.wait([bettingWinnersPromise, myBettingPromise]);
-
-      if (mounted) {
-        setState(() {
-          _eventDetails = event;
-          _totalBettingWinners = results[0] as int;
-          _myBettingResult = results[1] as Map<String, dynamic>;
-        });
-      }
-
-      // Fetch podium winners AFTER event details are available
-      await _fetchPodiumWinners();
-
-      if (mounted) {
-        setState(() {
-          _isLoadingEventData = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("⚠️ Error loading event data: $e");
-      if (mounted) {
-        setState(() {
-          _isLoadingEventData = false;
-        });
-      }
-    }
-  }
-
   /// Fetches podium winners directly from game_players.final_placement
-  /// filtered by event_id and limited to configuredWinners.
   Future<void> _fetchPodiumWinners() async {
     try {
       final supabase = Supabase.instance.client;
-      final int maxWinners = _eventDetails?.configuredWinners ?? 3;
 
       // Query game_players with final_placement set, ordered by placement
       final List<dynamic> topPlayers = await supabase
@@ -211,12 +142,12 @@ Future<void> _fetchPrizes() async {
           .not('final_placement', 'is', null)
           .neq('status', 'spectator')
           .order('final_placement', ascending: true)
-          .limit(maxWinners);
+          .limit(3);
 
-      debugPrint("🏆 Podium: Found ${topPlayers.length} finishers (max: $maxWinners)");
+      debugPrint("🏆 Podium DB: Found ${topPlayers.length} finishers with final_placement");
 
       if (topPlayers.isEmpty) {
-        if (mounted) setState(() => _podiumWinners = []);
+        if (mounted) setState(() { _podiumWinners = []; _isLoadingPodium = false; });
         return;
       }
 
@@ -251,14 +182,49 @@ Future<void> _fetchPrizes() async {
         });
       }
 
+      // Also fetch the current user's final_placement to set _currentPosition
+      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final currentUserId = playerProvider.currentPlayer?.userId ?? playerProvider.currentPlayer?.id;
+
+      if (currentUserId != null) {
+        try {
+          final myPlacement = await supabase
+              .from('game_players')
+              .select('final_placement')
+              .eq('event_id', widget.eventId)
+              .eq('user_id', currentUserId)
+              .not('final_placement', 'is', null)
+              .maybeSingle();
+
+          if (myPlacement != null && myPlacement['final_placement'] != null) {
+            final int dbPosition = (myPlacement['final_placement'] as num).toInt();
+            debugPrint("🏆 My DB final_placement: $dbPosition");
+            if (mounted) {
+              setState(() {
+                _currentPosition = dbPosition;
+                _isLoading = false;
+              });
+              if (dbPosition >= 1 && dbPosition <= 3) {
+                _confettiController.play();
+                _startFireworks();
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint("⚠️ Error fetching my placement: $e");
+        }
+      }
+
       if (mounted) {
         setState(() {
           _podiumWinners = winners;
+          _isLoadingPodium = false;
         });
         debugPrint("🏆 Podium winners loaded: ${winners.map((w) => '${w['name']}=#${w['final_placement']}').join(', ')}");
       }
     } catch (e) {
       debugPrint("⚠️ Error fetching podium winners: $e");
+      if (mounted) setState(() => _isLoadingPodium = false);
     }
   }
 
@@ -281,16 +247,16 @@ Future<void> _fetchPrizes() async {
       if (currentUser.completedCluesCount < widget.totalCluesCompleted) {
         debugPrint(
             "⏳ Podium Sync: Leaderboard stale (Server: ${currentUser.completedCluesCount} vs Local: ${widget.totalCluesCompleted}). Waiting...");
-
+        
         // RETRY LOGIC: If data is stale, we MUST force a refresh, even if isLoading is false.
         // We use a debounce to avoid spamming.
         if (!gameProvider.isLoading) {
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (mounted) {
-              debugPrint("🔄 Podium Sync: Retrying fetchLeaderboard...");
-              gameProvider.fetchLeaderboard(silent: true);
-            }
-          });
+           Future.delayed(const Duration(milliseconds: 1000), () {
+              if (mounted) {
+                 debugPrint("🔄 Podium Sync: Retrying fetchLeaderboard...");
+                 gameProvider.fetchLeaderboard(silent: true);
+              }
+           });
         }
         return;
       }
@@ -323,12 +289,12 @@ Future<void> _fetchPrizes() async {
     } else {
       // Leaderboard empty/failed?
       if (!gameProvider.isLoading && _isLoading) {
-        debugPrint("⚠️ Podium Sync: Leaderboard empty. Retrying...");
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && !gameProvider.isLoading) {
-            gameProvider.fetchLeaderboard(silent: true);
-          }
-        });
+         debugPrint("⚠️ Podium Sync: Leaderboard empty. Retrying...");
+         Future.delayed(const Duration(seconds: 2), () {
+             if (mounted && !gameProvider.isLoading) {
+                 gameProvider.fetchLeaderboard(silent: true);
+             }
+         });
       }
     }
   }
@@ -522,8 +488,7 @@ Future<void> _fetchPrizes() async {
     final currentPlayerId = playerProvider.currentPlayer?.userId ?? playerProvider.currentPlayer?.id ?? '';
     final isNightImage = playerProvider.isDarkMode;
 
-    // Determine if user participated
-    final isParticipant = _currentPosition > 0;
+    debugPrint("🏆 WinnerScreen Build: eventId=${widget.eventId}, leaderboardSize=${gameProvider.leaderboard.length}, isLoading=${gameProvider.isLoading}, internalIsLoading=$_isLoading");
 
     return WillPopScope(
       onWillPop: () async => false, // Prevent back button
@@ -657,464 +622,450 @@ Future<void> _fetchPrizes() async {
                 ),
               ),
 
-              if (_isLoading || _isLoadingEventData)
+              if (_isLoading)
                 const Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       CircularProgressIndicator(color: AppTheme.accentGold),
                       SizedBox(height: 20),
-                      Text("Cargando resultados...",
+                      Text("Calculando resultados finales...",
                           style: TextStyle(color: Colors.white70)),
                     ],
                   ),
                 )
               else
                 SafeArea(
-                  child: SingleChildScrollView(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 20),
                     child: Column(
                       children: [
-                        // Header
-                        Text(
-                          isParticipant
-                              ? _getCelebrationMessage()
-                              : 'Resultados Finales',
+                        // Title
+                        const Text(
+                          'Resultados del Evento',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: _getPositionColor(),
+                            color: Color(0xFFFFD700),
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 20),
-
-                        // USER RESULT CARD (Only if participant)
-                        if (isParticipant)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 20),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 30, vertical: 15),
-                            decoration: BoxDecoration(
-                              color: _getPositionColor().withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: _getPositionColor(), width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getPositionColor().withOpacity(0.2),
-                                  blurRadius: 15,
-                                  spreadRadius: 2,
+                            const SizedBox(height: 10),
+                            if (_currentPosition > 0)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                          color: _getPositionColor().withOpacity(0.6),
+                                          width: 1.5),
+                                    ),
+                                    child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 30, vertical: 15),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: _getPositionColor().withOpacity(0.2),
+                                      width: 1.0),
+                                  color: _getPositionColor().withOpacity(0.02),
                                 ),
-                              ],
-                            ),
-                            child: Column(children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _getMedalEmoji(),
-                                    style: const TextStyle(fontSize: 40),
-                                  ),
-                                  const SizedBox(width: 15),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                child: Column(children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text(
-                                        'TU POSICIÓN',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.5,
-                                        ),
-                                      ),
                                       Text(
-                                        '#$_currentPosition',
-                                        style: TextStyle(
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.w900,
-                                          color: _getPositionColor(),
-                                        ),
+                                        _getMedalEmoji(),
+                                        style: const TextStyle(fontSize: 40),
+                                      ),
+                                      const SizedBox(width: 15),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'TU POSICIÓN',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
+                                          Text(
+                                            '#$_currentPosition',
+                                            style: TextStyle(
+                                              fontSize: 36,
+                                              fontWeight: FontWeight.w900,
+                                              color: _getPositionColor(),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                  if (_prizes.containsKey(currentPlayerId)) ...[
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black45,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: const Color(0xFFFFD700)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text("💰",
+                                              style: TextStyle(fontSize: 20)),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "+${_prizes[currentPlayerId]} 🍀",
+                                            style: const TextStyle(
+                                              color: Color(0xFFFFD700),
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              shadows: [
+                                                Shadow(
+                                                    color: Colors.black,
+                                                    blurRadius: 2)
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  ] else if (widget.prizeWon != null &&
+                                      widget.prizeWon! > 0) ...[
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black45,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: const Color(0xFFFFD700)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text("💰",
+                                              style: TextStyle(fontSize: 20)),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "+${widget.prizeWon} 🍀",
+                                            style: const TextStyle(
+                                              color: Color(0xFFFFD700),
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  ]
+                                ]),
+                                  ),
+                                  ),
+                                ),
+                              )
+                            else
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                          color: AppTheme.primaryPurple.withOpacity(0.6),
+                                          width: 1.5),
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                            color: AppTheme.primaryPurple.withOpacity(0.2),
+                                            width: 1.0),
+                                        color: AppTheme.primaryPurple.withOpacity(0.02),
+                                      ),
+                                      child: const Text(
+                                        'No participaste en esta competencia.\nAquí tienes el podio final:',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: Colors.white70, fontSize: 14),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                              if (_prizes.containsKey(currentPlayerId)) ...[
-                                const SizedBox(height: 10),
-                                _buildPrizeBadge(_prizes[currentPlayerId]!)
-                              ] else if (widget.prizeWon != null &&
-                                  widget.prizeWon! > 0) ...[
-                                const SizedBox(height: 10),
-                                _buildPrizeBadge(widget.prizeWon!)
-                              ]
-                            ]),
-                          )
-                        else
-                          // Non-participant message
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 20),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: Colors.white10),
-                            ),
-                            child: const Text(
-                              'Este evento ha finalizado. Aquí están los resultados oficiales:',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 14),
-                            ),
-                          ),
 
-                        // PODIUM SECTION (Based on game_players.final_placement)
+                        const Spacer(),
+
+                        // Top 3 Podium (from game_players.final_placement)
                         if (_podiumWinners.isNotEmpty)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 24),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: AppTheme.cardBg.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                  color: AppTheme.accentGold.withOpacity(0.2)),
-                            ),
-                            child: Column(
+                          Builder(builder: (context) {
+                            final first = _podiumWinners.firstWhere(
+                                (w) => w['final_placement'] == 1,
+                                orElse: () => {});
+                            final second = _podiumWinners.firstWhere(
+                                (w) => w['final_placement'] == 2,
+                                orElse: () => {});
+                            final third = _podiumWinners.firstWhere(
+                                (w) => w['final_placement'] == 3,
+                                orElse: () => {});
+
+                            return Column(
                               children: [
                                 const Text(
-                                  'PODIO CAMPEONES',
+                                  'PODIO DE LA CARRERA',
                                   style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 2,
+                                    fontFamily: 'Orbitron',
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                Builder(builder: (context) {
-                                  // Find winners by placement
-                                  final first = _podiumWinners.firstWhere(
-                                      (w) => w['final_placement'] == 1,
-                                      orElse: () => {});
-                                  final second = _podiumWinners.firstWhere(
-                                      (w) => w['final_placement'] == 2,
-                                      orElse: () => {});
-                                  final third = _podiumWinners.firstWhere(
-                                      (w) => w['final_placement'] == 3,
-                                      orElse: () => {});
-                                  final maxWinners = _eventDetails?.configuredWinners ?? 3;
-
-                                  return Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      // 2nd place
-                                      if (maxWinners >= 2 && second.isNotEmpty)
-                                        _buildPodiumPositionFromMap(
-                                          second, 2, 60, Colors.grey,
-                                          _prizes[second['user_id']],
-                                        )
-                                      else if (maxWinners >= 2)
-                                        const SizedBox(width: 60),
-
-                                      // 1st place
-                                      if (first.isNotEmpty)
-                                        _buildPodiumPositionFromMap(
-                                          first, 1, 90,
-                                          const Color(0xFFFFD700),
-                                          _prizes[first['user_id']],
-                                        ),
-
-                                      // 3rd place
-                                      if (maxWinners >= 3 && third.isNotEmpty)
-                                        _buildPodiumPositionFromMap(
-                                          third, 3, 50,
-                                          const Color(0xFFCD7F32),
-                                          _prizes[third['user_id']],
-                                        )
-                                      else if (maxWinners >= 3)
-                                        const SizedBox(width: 60),
-                                    ],
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-
-                        // FINANCIAL STATS SECTION (Unified)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const Text(
-                                'ESTADÍSTICAS DEL EVENTO',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Row 1: Pot & Betting Pot
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Entry Pot
-                                  Expanded(
-                                    child: _buildStatItem(
-                                      "POZO INSCRIPCIÓN",
-                                      _eventDetails?.pot != null &&
-                                              _eventDetails!.pot > 0
-                                          ? NumberFormat.currency(
-                                                      locale: 'es_CO',
-                                                      symbol: '',
-                                                      decimalDigits: 0)
-                                                  .format(_eventDetails!.pot) +
-                                              " 🍀"
-                                          : "Gratis",
-                                      Icons.monetization_on,
-                                      Colors.amber,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Betting Pot (Using Spectator Widget Logic but customized or direct)
-                                  // Since we have the widget, we can use it, but it might include its own layout.
-                                  // Let's wrapping it or reuse its logic?
-                                  // Actually, the widget is designed for the spectator screen header.
-                                  // Let's use a custom display here for consistency, relying on the widget's logic if needed,
-                                  // BUT we want to keep it simple.
-                                  // Let's just use the SpectatorBettingPotWidget directly if it fits,
-                                  // OR just pass the widget.eventId.
-                                  // To match the UI, let's wrap it.
-                                  Expanded(
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                                     child: Container(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.all(5),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(12),
+                                        color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(
+                                            color: AppTheme.accentGold.withOpacity(0.6),
+                                            width: 1.5),
                                       ),
-                                      child: Column(
-                                        children: [
-                                          // Embed the existing widget but we need to ensure it fits.
-                                          // The widget has a Row and text.
-                                          // Alternatively, since we are in the results screen, maybe just show it nicely.
-                                          SpectatorBettingPotWidget(
-                                              eventId: widget.eventId),
-                                        ],
+                                      child: Container(
+                                        clipBehavior: Clip.antiAlias,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
+                                              color: AppTheme.accentGold.withOpacity(0.2),
+                                              width: 1.0),
+                                          color: AppTheme.accentGold.withOpacity(0.02),
+                                        ),
+                                        child: IntrinsicHeight(
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              // 2nd place
+                                              if (second.isNotEmpty)
+                                                Expanded(
+                                                  child: _buildPodiumColumn(
+                                                    second, 2, 90,
+                                                    const Color(0xFFC0C0C0),
+                                                  ),
+                                                )
+                                              else
+                                                const Expanded(child: SizedBox()),
+                                              // 1st place
+                                              if (first.isNotEmpty)
+                                                Expanded(
+                                                  child: _buildPodiumColumn(
+                                                    first, 1, 120,
+                                                    const Color(0xFFFFD700),
+                                                  ),
+                                                )
+                                              else
+                                                const Expanded(child: SizedBox()),
+                                              // 3rd place
+                                              if (third.isNotEmpty)
+                                                Expanded(
+                                                  child: _buildPodiumColumn(
+                                                    third, 3, 70,
+                                                    const Color(0xFFCD7F32),
+                                                  ),
+                                                )
+                                              else
+                                                const Expanded(child: SizedBox()),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
+                                ),
+                              ],
+                            );
+                          })
+                        else if (_isLoadingPodium)
+                          const CircularProgressIndicator(color: AppTheme.accentGold)
+                        else
+                          const Text(
+                            'No hay resultados disponibles',
+                            style: TextStyle(color: Colors.white54),
+                          ),
 
-                              // Row 2: Winners & Betting Results
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Configured Winners
-                                  Expanded(
-                                    child: _buildStatItem(
-                                      "GANADORES",
-                                      _prizes.isNotEmpty 
-                                          ? "${_prizes.length}" 
-                                          : "${_eventDetails?.configuredWinners ?? 1}",
-                                      Icons.emoji_events,
-                                      Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Total Betting Winners
-                                  Expanded(
-                                    child: _buildStatItem(
-                                      "GANADORES APUESTA",
-                                      "$_totalBettingWinners",
-                                      Icons.people,
-                                      Colors.greenAccent,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        const Spacer(),
 
-                              // YOUR BETTING RESULT (If existed)
-                              if (_myBettingResult['amount'] > 0 ||
-                                  _myBettingResult['won'] == true) ...[
-                                const SizedBox(height: 12),
-                                Container(
+                        // Final Info and Button
+                        Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 8, horizontal: 12),
+                                      horizontal: 20, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: (_myBettingResult['won'] as bool)
-                                        ? Colors.green.withOpacity(0.2)
-                                        : Colors.red.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: (_myBettingResult['won'] as bool)
-                                          ? Colors.green
-                                          : Colors.red,
-                                      width: 1,
-                                    ),
+                                    color: Colors.white.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                          (_myBettingResult['won'] as bool)
-                                              ? Icons.check_circle
-                                              : Icons.cancel,
-                                          color:
-                                              (_myBettingResult['won'] as bool)
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                          size: 20),
-                                      const SizedBox(width: 8),
+                                      const Icon(Icons.stars,
+                                          color: Colors.white, size: 20),
+                                      const SizedBox(width: 10),
                                       Text(
-                                        (_myBettingResult['won'] as bool)
-                                            ? "¡Ganaste la apuesta! +${_myBettingResult['amount']} 🍀"
-                                            : "Perdiste tu apuesta",
-                                        style: TextStyle(
-                                          color:
-                                              (_myBettingResult['won'] as bool)
-                                                  ? Colors.greenAccent
-                                                  : Colors.redAccent,
-                                          fontWeight: FontWeight.bold,
+                                        '${widget.totalCluesCompleted} Pistas completadas',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
                                         ),
-                                      )
+                                      ),
                                     ],
                                   ),
-                                )
-                              ]
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Sponsor Banner
-                        Consumer<GameProvider>(
-                          builder: (context, game, _) {
-                            return SponsorBanner(sponsor: game.currentSponsor);
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        // Bottom Actions
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                    builder: (_) => GameModeSelectorScreen()),
-                                (route) => false,
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.accentGold,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 8,
-                              shadowColor: AppTheme.accentGold.withOpacity(0.5),
-                            ),
-                            icon: const Icon(Icons.home_rounded, size: 28),
-                            label: const Text(
-                              'VOLVER AL INICIO',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1,
+                                ),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter:
+                                      ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                          color: const Color(0xFF9D4EDD).withOpacity(0.6),
+                                          width: 1.5),
+                                    ),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                            color: const Color(0xFF9D4EDD).withOpacity(0.2),
+                                            width: 1.0),
+                                        color: const Color(0xFF9D4EDD).withOpacity(0.02),
+                                      ),
+                                      child: TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pushAndRemoveUntil(
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const ScenariosScreen()),
+                                            (route) => false,
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 18),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'VOLVER AL INICIO',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.5,
+                                            fontFamily: 'Orbitron',
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
                       ],
                     ),
                   ),
                 ),
+              // Logout button - top right corner
+              Positioned(
+                top: 0,
+                right: 0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10, right: 8),
+                    child: GestureDetector(
+                      onTap: _showLogoutDialog,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.dangerRed.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.dangerRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppTheme.dangerRed,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.dangerRed.withOpacity(0.3),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              )
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.logout_rounded,
+                            color: AppTheme.dangerRed,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPrizeBadge(int amount) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black45,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFD700)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text("💰", style: TextStyle(fontSize: 20)),
-          const SizedBox(width: 8),
-          Text(
-            "+$amount 🍀",
-            style: const TextStyle(
-              color: Color(0xFFFFD700),
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              shadows: [Shadow(color: Colors.black, blurRadius: 2)],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(
-      String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
+      );
   }
 
   Color _getPositionColorForRank(int rank) {
@@ -1143,97 +1094,66 @@ Future<void> _fetchPrizes() async {
     }
   }
 
-  /// Builds a podium position from a Map (from _podiumWinners)
-  Widget _buildPodiumPositionFromMap(
-      Map<String, dynamic> winner, int position, double height, Color color, int? prizeAmount) {
+  /// Builds one full podium column from a Map (from _podiumWinners DB data)
+  Widget _buildPodiumColumn(Map<String, dynamic> winner, int position, double barHeight, Color color) {
     final String name = winner['name'] ?? 'Jugador';
-    final String? rawAvatarId = winner['avatar_id']?.toString();
+    String? avatarId = winner['avatar_id']?.toString();
     final String avatarUrl = winner['avatar_url']?.toString() ?? '';
-    final int completedClues = winner['completed_clues_count'] ?? 0;
+
+    if (avatarId != null) {
+      avatarId = avatarId.split('/').last;
+      avatarId = avatarId.replaceAll('.png', '').replaceAll('.jpg', '');
+    }
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: color, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(25),
-                child: Builder(
-                  builder: (context) {
-                    // Sanitize avatarId (remove path and extension if present)
-                    String? avatarId = rawAvatarId;
-                    if (avatarId != null) {
-                      avatarId = avatarId.split('/').last;
-                      avatarId = avatarId
-                          .replaceAll('.png', '')
-                          .replaceAll('.jpg', '');
-                    }
-
-                    debugPrint(
-                        "🏆 Podium Avatar Build: Original='$rawAvatarId' -> Sanitized='$avatarId'");
-
-                    if (avatarId != null && avatarId.isNotEmpty) {
-                      return Image.asset(
-                        'assets/images/avatars/$avatarId.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) {
-                          debugPrint(
-                              "⚠️ Failed to load avatar asset: assets/images/avatars/$avatarId.png");
-                          return const Icon(Icons.person,
-                              color: Colors.white70, size: 25);
-                        },
-                      );
-                    }
-                    if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
-                      return Image.network(
-                        avatarUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.person,
-                            color: Colors.white70, size: 25),
-                      );
-                    }
-                    return const Icon(Icons.person,
-                        color: Colors.white70, size: 25);
-                  },
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -2,
+        // Avatar with Laurel Wreath (as per reference design)
+        SizedBox(
+          width: 82,
+          height: 82,
+          child: CustomPaint(
+            painter: _LaurelWreathPainter(color: color),
+            child: Center(
               child: Container(
-                padding: const EdgeInsets.all(3),
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: color,
                   shape: BoxShape.circle,
+                  color: Colors.black,
+                  border: Border.all(color: color, width: 2.0),
                 ),
-                child: Text(
-                  '$position',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Builder(
+                    builder: (context) {
+                      if (avatarId != null && avatarId!.isNotEmpty) {
+                        return Image.asset(
+                          'assets/images/avatars/$avatarId.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.person, color: Colors.white70, size: 22),
+                        );
+                      }
+                      if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
+                        return Image.network(
+                          avatarUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                              color: Colors.white70, size: 22),
+                        );
+                      }
+                      return const Icon(Icons.person, color: Colors.white70, size: 22);
+                    },
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
+
+        // Name
         SizedBox(
           width: 80,
           child: Text(
@@ -1269,13 +1189,24 @@ Future<void> _fetchPrizes() async {
               right: BorderSide(color: color.withOpacity(0.3), width: 0.5),
             ),
           ),
-          child: Center(
-            child: Text(
-              '$completedClues',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: color,
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Text(
+                '$position',
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.w900,
+                  height: 0.8,
+                  color: color.withOpacity(0.7),
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

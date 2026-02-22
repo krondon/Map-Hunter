@@ -366,13 +366,11 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     Color color = _temperatureColor.withOpacity(0.12); // Slightly more visible
 
     if (status == "CONGELADO" || status == "FRÍO") {
-    
-    if (status == "CONGELADO" || status == "FR�O") {
       icon = Icons.ac_unit;
     } else if (status == "CALIENTE" || status == "TIBIO") {
       icon = Icons.local_fire_department;
     } else {
-      return []; // No bg elements for "�AQU� EST�!"
+      return []; // No bg elements for "¡AQUÍ ESTÁ!"
     }
 
     // Fixed positions for a nice decorative spread

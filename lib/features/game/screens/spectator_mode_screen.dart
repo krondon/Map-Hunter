@@ -192,7 +192,6 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Orbitron',
-                          fontFamily: 'Orbitron',
                         ),
                       ),
                     ],
@@ -298,7 +297,6 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             );
           },
         ),
-        ), // close PopScope
       ),
     );
   }
