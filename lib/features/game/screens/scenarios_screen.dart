@@ -613,8 +613,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final requestProvider =
         Provider.of<GameRequestProvider>(context, listen: false);
 
-    await eventProvider.fetchEvents(
-        type: widget.isOnline ? 'online' : 'on_site');
+    await eventProvider.fetchEvents();
 
     // Load participation status and ban status for each event
     final userId = playerProvider.currentPlayer?.userId;
@@ -1826,10 +1825,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     // Filtrar eventos según el modo seleccionado
     List<GameEvent> visibleEvents = eventProvider.events;
     if (appMode.isOnlineMode) {
-      visibleEvents = visibleEvents.where((e) => e.type == 'online').toList();
+      visibleEvents = visibleEvents.where((e) => e.type.toLowerCase() == 'online').toList();
     } else if (appMode.isPresencialMode) {
       // Presencial: Todo lo que NO sea online (o explícitamente presencial si hubiera ese tipo)
-      visibleEvents = visibleEvents.where((e) => e.type != 'online').toList();
+      visibleEvents = visibleEvents.where((e) => e.type.toLowerCase() != 'online').toList();
     }
 
     // APLICAR FILTRO DE ESTADO (Active vs Pending vs Completed)
@@ -1960,10 +1959,18 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             icon: Icons.location_on_outlined,
             color: AppTheme.dGoldMain,
             onTap: () {
-              context.read<AppModeProvider>().setMode(GameMode.presencial);
-              setState(() => _navIndex = 1);
-              _loadEvents();
-            },
+            // ACTUALIZAR PROVIDER GLOBAL
+            context
+                .read<AppModeProvider>()
+                .setMode(GameMode.presencial);
+
+            // Navegar a escenarios (flujo normal)
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const ScenariosScreen(isOnline: false)));
+          },
           ),
           const SizedBox(height: 16),
           _buildModeCard(
@@ -1972,10 +1979,18 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             icon: Icons.wifi,
             color: const Color(0xFF00F0FF),
             onTap: () {
-              context.read<AppModeProvider>().setMode(GameMode.online);
-              setState(() => _navIndex = 1);
-              _loadEvents();
-            },
+            // ACTUALIZAR PROVIDER GLOBAL
+            context
+                .read<AppModeProvider>()
+                .setMode(GameMode.online);
+
+            // Navegar a escenarios o input de PIN
+            Navigator.push(
+                context,
+                MaterialPageRoute(  
+                    builder: (_) =>
+                        const ScenariosScreen(isOnline: true)));
+          },
           ),
           const SizedBox(height: 16),
           _buildModeCard(
