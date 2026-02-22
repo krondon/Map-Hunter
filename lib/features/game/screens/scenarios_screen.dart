@@ -121,6 +121,62 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     );
   }
 
+  void _showJoinOptionDialog(Scenario scenario) {
+    // FORCED TO TRUE: Scenarios screen is always dark
+    const isDarkMode = true;
+    final isPaid = scenario.entryFee > 0;
+
+    _showPremiumExitDialog(
+      title: scenario.name.toUpperCase(),
+      subtitle: '¿Cómo deseas participar en esta aventura?',
+      isDarkMode: isDarkMode,
+      options: [
+        _DialogOption(
+          icon: isPaid ? Icons.payments_rounded : Icons.sports_esports_rounded,
+          label: isPaid ? 'INSCRIBIRSE JUGADOR' : 'MODO JUGADOR',
+          gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+          textColor: Colors.black,
+          onTap: () {
+            Navigator.pop(context);
+            _onScenarioSelected(scenario);
+          },
+        ),
+        _DialogOption(
+          icon: Icons.visibility_rounded,
+          label: 'MODO ESPECTADOR',
+          gradientColors: [AppTheme.dBrandMain, const Color(0xFF7B2CBF)],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.pop(context);
+            _showSpectatorWarningDialog(scenario);
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showSpectatorWarningDialog(Scenario scenario) {
+    const isDarkMode = true;
+    _showPremiumExitDialog(
+      title: '¡ADVERTENCIA!',
+      subtitle: 'Si ingresas como espectador, no podrás inscribirte como participante después en este evento.',
+      isDarkMode: isDarkMode,
+      options: [
+        _DialogOption(
+          icon: Icons.visibility_rounded,
+          label: 'ENTRAR COMO ESPECTADOR',
+          gradientColors: [AppTheme.dangerRed, const Color(0xFFB71C1C)],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.pop(context);
+            _onSpectatorSelected(scenario);
+          },
+        ),
+      ],
+    );
+  }
+
+
   /// Reusable premium dialog with glassmorphism and game-style buttons.
   void _showPremiumExitDialog({
     required String title,
@@ -2477,15 +2533,17 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                             child: GestureDetector(
                                               onTap: () {
                                                 // Don't intercept tap if user is banned - let the banned button handle it
-                                                if (_banStatusMap[
-                                                            scenario.id] !=
-                                                        'banned' &&
-                                                    _banStatusMap[
-                                                            scenario.id] !=
-                                                        'suspended') {
-                                                  _onScenarioSelected(scenario);
+                                                if (_banStatusMap[scenario.id] != 'banned' &&
+                                                    _banStatusMap[scenario.id] != 'suspended') {
+                                                  // Show choice dialog between Player and Spectator
+                                                  if (scenario.isCompleted) {
+                                                    _onScenarioSelected(scenario);
+                                                  } else {
+                                                    _showJoinOptionDialog(scenario);
+                                                  }
                                                 }
                                               },
+
                                               child: Container(
                                                 margin:
                                                     const EdgeInsets.symmetric(
@@ -2920,7 +2978,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                           child:
                                                                               TextButton(
                                                                             onPressed: () =>
-                                                                                _onSpectatorSelected(scenario),
+                                                                                _showSpectatorWarningDialog(scenario),
                                                                             style:
                                                                                 TextButton.styleFrom(
                                                                               foregroundColor: Colors.white,
