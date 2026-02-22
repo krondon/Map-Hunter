@@ -97,10 +97,11 @@ class _VirusTapMinigameState extends State<VirusTapMinigame> {
         return;
       }
       setState(() {
-        // [FIX] Pause timer if connectivity is bad
+        // [FIX] Pause timer if connectivity is bad OR if game is frozen (sabotage)
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
         final connectivityByProvider =
             Provider.of<ConnectivityProvider>(context, listen: false);
-        if (!connectivityByProvider.isOnline) {
+        if (!connectivityByProvider.isOnline || gameProvider.isFrozen) {
           return; // Skip tick
         }
 
@@ -124,10 +125,11 @@ class _VirusTapMinigameState extends State<VirusTapMinigame> {
         timer.cancel();
         return;
       }
-      // [FIX] Pause game loop if connectivity is bad
+      // [FIX] Pause game loop if connectivity is bad OR if game is frozen (sabotage)
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
       final connectivityByProvider =
           Provider.of<ConnectivityProvider>(context, listen: false);
-      if (!connectivityByProvider.isOnline) {
+      if (!connectivityByProvider.isOnline || gameProvider.isFrozen) {
         return; // Skip tick
       }
 
@@ -141,7 +143,11 @@ class _VirusTapMinigameState extends State<VirusTapMinigame> {
     _spawnTimer?.cancel();
     _spawnTimer = Timer(Duration(milliseconds: _spawnRateMs.toInt()), () {
       if (mounted && !_isGameOver) {
-        _spawnItem();
+        // [FIX] Pause spawning if game is frozen (sabotage)
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
+        if (!gameProvider.isFrozen) {
+          _spawnItem();
+        }
         _rescheduleSpawn();
       }
     });

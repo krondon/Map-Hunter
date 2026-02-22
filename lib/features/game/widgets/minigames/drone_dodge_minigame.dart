@@ -96,10 +96,11 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
         return;
       }
       setState(() {
-        // [FIX] Pause timer if connectivity is bad
+        // [FIX] Pause timer if connectivity is bad OR if game is frozen (sabotage)
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
         final connectivityByProvider =
             Provider.of<ConnectivityProvider>(context, listen: false);
-        if (!connectivityByProvider.isOnline) {
+        if (!connectivityByProvider.isOnline || gameProvider.isFrozen) {
           return; // Skip tick
         }
 
@@ -138,10 +139,11 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
         return;
       }
 
-      // [FIX] Pause game loop if offline
+      // [FIX] Pause game loop if offline OR if game is frozen (sabotage)
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
       final connectivity =
           Provider.of<ConnectivityProvider>(context, listen: false);
-      if (!connectivity.isOnline) return;
+      if (!connectivity.isOnline || gameProvider.isFrozen) return;
 
       _updateGameLoop();
     });
@@ -153,10 +155,11 @@ class _DroneDodgeMinigameState extends State<DroneDodgeMinigame> {
     _spawnTimer?.cancel();
     _spawnTimer = Timer(Duration(milliseconds: _spawnRateMs.toInt()), () {
       if (mounted && !_isGameOver) {
-        // [FIX] Pause spawning if offline
+        // [FIX] Pause spawning if offline OR if game is frozen (sabotage)
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
         final connectivity =
             Provider.of<ConnectivityProvider>(context, listen: false);
-        if (connectivity.isOnline) {
+        if (connectivity.isOnline && !gameProvider.isFrozen) {
           _spawnObstacle();
         }
         _rescheduleSpawn();

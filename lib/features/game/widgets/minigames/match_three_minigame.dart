@@ -115,10 +115,11 @@ class _MatchThreeMinigameState extends State<MatchThreeMinigame> {
         return;
       }
       setState(() {
-        // [FIX] Pause timer if connectivity is bad
+        // [FIX] Pause timer if connectivity is bad OR if game is frozen (sabotage)
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
         final connectivityByProvider =
             Provider.of<ConnectivityProvider>(context, listen: false);
-        if (!connectivityByProvider.isOnline) {
+        if (!connectivityByProvider.isOnline || gameProvider.isFrozen) {
           return; // Skip tick
         }
 

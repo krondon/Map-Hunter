@@ -688,41 +688,6 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                               ),
                             ],
                           ),
-                          if (gameProvider.currentSponsor != null) ...[
-                            const SizedBox(height: 8),
-                            const Divider(color: Colors.white24, height: 1),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "Patrocinado por ${gameProvider.currentSponsor!.name}",
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    decoration: TextDecoration.none,
-                                  ),
-                                ),
-                                if (gameProvider.currentSponsor!.logoUrl !=
-                                    null) ...[
-                                  const SizedBox(width: 6),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Image.network(
-                                      gameProvider.currentSponsor!.logoUrl!,
-                                      height: 16,
-                                      width: 16,
-                                      fit: BoxFit.contain,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const SizedBox.shrink(),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -773,41 +738,6 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
                               ),
                             ],
                           ),
-                          if (gameProvider.currentSponsor != null) ...[
-                            const SizedBox(height: 8),
-                            const Divider(color: Colors.white24, height: 1),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "Patrocinado por ${gameProvider.currentSponsor!.name}",
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    decoration: TextDecoration.none,
-                                  ),
-                                ),
-                                if (gameProvider.currentSponsor!.logoUrl !=
-                                    null) ...[
-                                  const SizedBox(width: 6),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Image.network(
-                                      gameProvider.currentSponsor!.logoUrl!,
-                                      height: 16,
-                                      width: 16,
-                                      fit: BoxFit.contain,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const SizedBox.shrink(),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),

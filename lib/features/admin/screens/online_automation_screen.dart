@@ -228,7 +228,7 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          _buildSlider('Intervalo (minutos)', 'interval_minutes', 10, 120, 1),
+          _buildSlider('Intervalo (minutos)', 'interval_minutes', 10, 1440, 1),
           _buildSlider('Copa Mín. Jugadores', 'min_players', 2, 20, 1),
           _buildSlider('Copa Máx. Jugadores', 'max_players', 20, 50, 1),
           _buildSlider('Cant. Mín. Minijuegos', 'min_games', 2, 6, 1),

@@ -27,8 +27,10 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   bool _isLoading = false;
 
-  bool get isDarkMode => Provider.of<PlayerProvider>(context).isDarkMode;
-  Color get currentCard => isDarkMode ? AppTheme.dSurface1 : Colors.white.withOpacity(0.9);
+  bool get isDarkMode =>
+      Provider.of<PlayerProvider>(context, listen: false).isDarkMode;
+  Color get currentCard =>
+      isDarkMode ? AppTheme.dSurface1 : Colors.white.withOpacity(0.9);
   Color get currentText => isDarkMode ? Colors.white : AppTheme.dSurface0;
   Color get currentTextSec => isDarkMode ? Colors.white70 : Colors.black54;
 
@@ -89,224 +91,240 @@ class _InventoryScreenState extends State<InventoryScreen> {
           AnimatedCyberBackground(
             child: Stack(
               children: [
-                  Positioned.fill(
-                    child: Image.asset(
-                      playerProvider.isDarkMode 
-                          ? 'assets/images/fotogrupalnoche.png' 
-                          : 'assets/images/personajesgrupal.png',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                    ),
-                  ), // Added comma explicitly
-                 // Removed dark overlay as requested
-                 // Removed dark overlay as requested
+                Positioned.fill(
+                  child: Image.asset(
+                    playerProvider.isDarkMode
+                        ? 'assets/images/fotogrupalnoche.png'
+                        : 'assets/images/personajesgrupal.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ), // Added comma explicitly
+                // Removed dark overlay as requested
+                // Removed dark overlay as requested
                 SafeArea(
                   child: Column(
                     children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Row(
-                      children: [
-                        // Cyberpunk Back Button
-                        Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Container(
-                              width: 42,
-                              height: 42,
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppTheme.accentGold.withOpacity(0.3),
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF0D0D0F),
-                                  border: Border.all(
-                                    color: AppTheme.accentGold,
-                                    width: 2.0,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.accentGold.withOpacity(0.5),
-                                      blurRadius: 8,
-                                      spreadRadius: 1,
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Row(
+                          children: [
+                            // Cyberpunk Back Button
+                            Padding(
+                              padding: const EdgeInsets.only(right: 16.0),
+                              child: GestureDetector(
+                                onTap: () => Navigator.of(context).pop(),
+                                child: Container(
+                                  width: 42,
+                                  height: 42,
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color:
+                                          AppTheme.accentGold.withOpacity(0.3),
+                                      width: 1.0,
                                     ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                  size: 16,
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: const Color(0xFF0D0D0F),
+                                      border: Border.all(
+                                        color: AppTheme.accentGold,
+                                        width: 2.0,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.accentGold
+                                              .withOpacity(0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_back,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Inventario',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'Orbitron',
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
+                                  const Text(
+                                    'Inventario',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w900,
+                                      fontFamily: 'Orbitron',
+                                      letterSpacing: 1.5,
                                     ),
-                                    decoration: BoxDecoration(
-                                      gradient: AppTheme.goldGradient,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.monetization_on,
-                                          size: 16,
-                                          color: Colors.white,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${player.coins}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
+                                        decoration: BoxDecoration(
+                                          gradient: AppTheme.goldGradient,
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
-                                      ],
+                                        child: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.monetization_on,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${player.coins}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    const Color(0xFF1A1A1D), // Explicitly dark
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: AppTheme.secondaryPink
+                                        .withOpacity(0.2)),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Icon(
+                                    Icons.inventory_2,
+                                    color: AppTheme.secondaryPink,
+                                    size: 28,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${player.inventory.length}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A1D), // Explicitly dark
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.2)),
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.inventory_2,
-                                color: AppTheme.secondaryPink,
-                                size: 28,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${player.inventory.length}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Inventory items grid
-                  Expanded(
-                    child: player.inventory.isEmpty
-                        ? _buildEmptyState(context)
-                        : GridView.builder(
-                            padding: const EdgeInsets.all(16),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 0.85,
                             ),
-                            itemCount: uniqueItems.length,
-                            itemBuilder: (context, index) {
-                              final itemId = uniqueItems[index];
-                              final count = inventoryCounts[itemId] ?? 1;
+                          ],
+                        ),
+                      ),
 
-                              // Buscamos la definición del item para pintarlo (Nombre, Icono)
-                              // Si no existe en la lista estática, creamos un placeholder.
-                              final itemDef = PowerItem.getShopItems().firstWhere(
-                                (item) => item.id == itemId,
-                                orElse: () => PowerItem(
-                                  id: itemId,
-                                  name: 'Poder Misterioso',
-                                  description: 'Poder desconocido',
-                                  type: PowerType.buff,
-                                  cost: 0,
-                                  icon: '⚡',
+                      // Inventory items grid
+                      Expanded(
+                        child: player.inventory.isEmpty
+                            ? _buildEmptyState(context)
+                            : GridView.builder(
+                                padding: const EdgeInsets.all(16),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.85,
                                 ),
-                              );
+                                itemCount: uniqueItems.length,
+                                itemBuilder: (context, index) {
+                                  final itemId = uniqueItems[index];
+                                  final count = inventoryCounts[itemId] ?? 1;
 
-                              final effectProvider = Provider.of<PowerEffectReader>(context);
-                              
-                              // Logic for Defense Power Exclusivity
-                              // 1. Identify if this item is a defense power
-                              final isDefensive = ['shield', 'invisibility', 'return'].contains(itemDef.id);
-                              
-                              bool isActive = false;
-                              bool isDisabled = false;
-                              String? disabledLabel;
+                                  // Buscamos la definición del item para pintarlo (Nombre, Icono)
+                                  // Si no existe en la lista estática, creamos un placeholder.
+                                  final itemDef =
+                                      PowerItem.getShopItems().firstWhere(
+                                    (item) => item.id == itemId,
+                                    orElse: () => PowerItem(
+                                      id: itemId,
+                                      name: 'Poder Misterioso',
+                                      description: 'Poder desconocido',
+                                      type: PowerType.buff,
+                                      cost: 0,
+                                      icon: '⚡',
+                                    ),
+                                  );
 
-                              if (isDefensive) {
-                                  // Check if THIS specific power is active
-                                  isActive = effectProvider.isEffectActive(itemDef.id);
-                                  
-                                  // Check if we should disable it (because another defense is active)
-                                  if (!isActive) {
+                                  final effectProvider =
+                                      Provider.of<PowerEffectReader>(context);
+
+                                  // Logic for Defense Power Exclusivity
+                                  // 1. Identify if this item is a defense power
+                                  final isDefensive = [
+                                    'shield',
+                                    'invisibility',
+                                    'return'
+                                  ].contains(itemDef.id);
+
+                                  bool isActive = false;
+                                  bool isDisabled = false;
+                                  String? disabledLabel;
+
+                                  if (isDefensive) {
+                                    // Check if THIS specific power is active
+                                    isActive = effectProvider
+                                        .isEffectActive(itemDef.id);
+
+                                    // Check if we should disable it (because another defense is active)
+                                    if (!isActive) {
                                       // Now we can use the interface directly!
-                                      if (!effectProvider.canActivateDefensePower(itemDef.id)) {
-                                          isDisabled = true;
-                                          disabledLabel = 'Defensa en uso';
+                                      if (!effectProvider
+                                          .canActivateDefensePower(
+                                              itemDef.id)) {
+                                        isDisabled = true;
+                                        disabledLabel = 'Defensa en uso';
                                       }
+                                    }
                                   }
-                              }
 
-                              if (isDefensive) {
-                                debugPrint('🔘 [UI-SYNC] Button State for ${itemDef.id}: Active=$isActive, Disabled=$isDisabled');
-                              }
+                                  if (isDefensive) {
+                                    debugPrint(
+                                        '🔘 [UI-SYNC] Button State for ${itemDef.id}: Active=$isActive, Disabled=$isDisabled');
+                                  }
 
-                              return InventoryItemCard(
-                                item: itemDef,
-                                count: count,
-                                isActive: isActive,
-                                isDisabled: isDisabled,
-                                disabledLabel: disabledLabel,
-                                onUse: () =>
-                                    _handleItemUse(context, itemDef, player.id),
-                              );
-                            },
-                          ),
+                                  return InventoryItemCard(
+                                    item: itemDef,
+                                    count: count,
+                                    isActive: isActive,
+                                    isDisabled: isDisabled,
+                                    disabledLabel: disabledLabel,
+                                    onUse: () => _handleItemUse(
+                                        context, itemDef, player.id),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
                   ),
-                  ],
                 ),
-              ),
-            ],
-          ),
-        ), // Added comma explicitly
-          
+              ],
+            ),
+          ), // Added comma explicitly
+
           if (_isLoading)
             Container(
               color: Colors.black54,
@@ -320,33 +338,41 @@ class _InventoryScreenState extends State<InventoryScreen> {
         padding: const EdgeInsets.only(bottom: 80.0),
         child: FloatingActionButton.extended(
           onPressed: () {
-            final isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
-            
-            if (isOnline) {
-               // MODO ONLINE: Navegación Directa a Tienda Global (Virtual)
-               // Creamos una tienda virtual en vuelo para acceder al catálogo global
-               final virtualStore = MallStore(
-                 id: 'virtual_global',
-                 name: 'Tienda Global',
-                 description: 'Catálogo de poderes disponibles para el evento online.',
-                 imageUrl: 'asset/images/personajesgrupal.png', // Placeholder Cyberpunk
-                 qrCodeData: 'SKIP_QR',
-                 products: [], // Lista vacía fuerza a cargar el catálogo completo por defecto en StoreDetailScreen
-               );
+            final isOnline =
+                Provider.of<AppModeProvider>(context, listen: false)
+                    .isOnlineMode;
 
-               Navigator.push(
-                 context, 
-                 MaterialPageRoute(builder: (_) => StoreDetailScreen(store: virtualStore))
-               );
+            if (isOnline) {
+              // MODO ONLINE: Navegación Directa a Tienda Global (Virtual)
+              // Creamos una tienda virtual en vuelo para acceder al catálogo global
+              final virtualStore = MallStore(
+                id: 'virtual_global',
+                name: 'Tienda Global',
+                description:
+                    'Catálogo de poderes disponibles para el evento online.',
+                imageUrl:
+                    'asset/images/personajesgrupal.png', // Placeholder Cyberpunk
+                qrCodeData: 'SKIP_QR',
+                products: [], // Lista vacía fuerza a cargar el catálogo completo por defecto en StoreDetailScreen
+              );
+
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => StoreDetailScreen(store: virtualStore)));
             } else {
-               // MODO PRESENCIAL: Flujo normal (Lista de Tiendas -> QR)
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
+              // MODO PRESENCIAL: Flujo normal (Lista de Tiendas -> QR)
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const MallScreen()));
             }
           },
-          label: Text(Provider.of<AppModeProvider>(context).isOnlineMode ? 'Mall' : 'Ir al Mall'),
+          label: Text(Provider.of<AppModeProvider>(context).isOnlineMode
+              ? 'Mall'
+              : 'Ir al Mall'),
           icon: const Icon(Icons.store),
           backgroundColor: AppTheme.accentGold,
-          foregroundColor: Colors.black, // Ensure text is visible on gold background
+          foregroundColor:
+              Colors.black, // Ensure text is visible on gold background
         ),
       ),
     );
@@ -362,7 +388,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
 
     debugPrint('InventoryScreen: _handleItemUse called for ${item.id}');
-    if (myGamePlayerId == null) debugPrint('InventoryScreen: ⚠️ myGamePlayerId is NULL');
+    if (myGamePlayerId == null)
+      debugPrint('InventoryScreen: ⚠️ myGamePlayerId is NULL');
 
     // Lista de IDs considerados ofensivos/sabotaje
     // Lo ideal es mover esto a una propiedad `isOffensive` en tu modelo PowerItem
@@ -433,17 +460,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
         // 2. Filtrar: Excluirme a mí mismo
         final rivals = candidates.where((p) {
-        final String pId = (p is Player) ? p.id : (p['id'] ?? '');
-        
-        // USAR EL GETTER DEL MODELO: p.isInvisible leerá el status 'invisible' de la vista
-        final bool isTargetInvisible = (p is Player) ? p.isInvisible : (p['status'] == 'invisible');
-        final bool isMe = pId == myPlayerId;
-        
-        // Solo se muestran si NO son el usuario actual y NO están invisibles
-        return !isMe && !isTargetInvisible;
-      }).toList();
+          final String pId = (p is Player) ? p.id : (p['id'] ?? '');
 
-        debugPrint('InventoryScreen: Rivals found: ${rivals.length}. Candidates: ${candidates.length}');
+          // USAR EL GETTER DEL MODELO: p.isInvisible leerá el status 'invisible' de la vista
+          final bool isTargetInvisible =
+              (p is Player) ? p.isInvisible : (p['status'] == 'invisible');
+          final bool isMe = pId == myPlayerId;
+
+          // Solo se muestran si NO son el usuario actual y NO están invisibles
+          return !isMe && !isTargetInvisible;
+        }).toList();
+
+        debugPrint(
+            'InventoryScreen: Rivals found: ${rivals.length}. Candidates: ${candidates.length}');
 
         if (rivals.isEmpty) {
           showGameSnackBar(context,
@@ -493,31 +522,38 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         leading: Container(
                           width: 40,
                           height: 40,
-                          decoration: const BoxDecoration(shape: BoxShape.circle),
+                          decoration:
+                              const BoxDecoration(shape: BoxShape.circle),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(20),
                             child: Builder(
                               builder: (context) {
                                 final avatarId = rival.avatarId;
                                 final avatarUrl = rival.avatarUrl;
-                                
+
                                 if (avatarId != null && avatarId.isNotEmpty) {
                                   return Image.asset(
                                     'assets/images/avatars/$avatarId.png',
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white70),
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.person,
+                                        color: Colors.white70),
                                   );
                                 }
-                                
-                                if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
+
+                                if (avatarUrl.isNotEmpty &&
+                                    avatarUrl.startsWith('http')) {
                                   return Image.network(
                                     avatarUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white70),
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.person,
+                                        color: Colors.white70),
                                   );
                                 }
-                                
-                                return const Icon(Icons.person, color: Colors.white70);
+
+                                return const Icon(Icons.person,
+                                    color: Colors.white70);
                               },
                             ),
                           ),
@@ -537,7 +573,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 isError: true);
                             return;
                           }
-                          debugPrint('InventoryScreen: 🟢 TARGET SELECTED via BottomSheet: ${rival.name} ($targetGp)');
+                          debugPrint(
+                              'InventoryScreen: 🟢 TARGET SELECTED via BottomSheet: ${rival.name} ($targetGp)');
                           Navigator.pop(modalContext);
                           _executePower(item, targetGp, rival.name,
                               isOffensive: true,
@@ -582,13 +619,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
       required PowerEffectManager effectProvider,
       required GameProvider gameProvider}) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
-    debugPrint('InventoryScreen: ⚡ _executePower START for ${item.id} on $targetName');
-    
+
+    debugPrint(
+        'InventoryScreen: ⚡ _executePower START for ${item.id} on $targetName');
+
     // Check if mounted before setState
     if (!mounted) {
-       debugPrint('InventoryScreen: ⚠️ widget unmounted before _executePower could start');
-       return;
+      debugPrint(
+          'InventoryScreen: ⚠️ widget unmounted before _executePower could start');
+      return;
     }
 
     setState(() => _isLoading = true);
@@ -607,9 +646,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       debugPrint('Error executing power: $e');
       result = PowerUseResult.error;
     } finally {
-        if (mounted) {
-            setState(() => _isLoading = false);
-        }
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
 
     // CRITICAL: Exit if widget was disposed during async operation
@@ -619,7 +658,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final bool success = result == PowerUseResult.success;
 
     if (success) {
-      final suppressed = effectProvider.lastDefenseAction == DefenseAction.stealFailed;
+      final suppressed =
+          effectProvider.lastDefenseAction == DefenseAction.stealFailed;
       if (suppressed) {
         // No mostramos mensajes ni confirmación de 'ataque enviado' porque
         // el servidor indicó que no había vidas para robar (no se envió efecto).
@@ -646,25 +686,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
       // El "Toast" de retorno (ReturnSuccessEffect) ya se encargará de informar al usuario.
       debugPrint("Feedback de ataque suprimido por reflejo (Return).");
     } else if (result == PowerUseResult.blocked) {
-       // El feedback visual ("¡ATAQUE BLOQUEADO!") ya es manejado por SabotageOverlay
-       // via effectProvider.notifyAttackBlocked(), así que solo evitamos el mensaje de error.
-       debugPrint("InventoryScreen: Ataque bloqueado, suprimiendo error genérico.");
+      // El feedback visual ("¡ATAQUE BLOQUEADO!") ya es manejado por SabotageOverlay
+      // via effectProvider.notifyAttackBlocked(), así que solo evitamos el mensaje de error.
+      debugPrint(
+          "InventoryScreen: Ataque bloqueado, suprimiendo error genérico.");
     } else if (result == PowerUseResult.gameFinished) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ No puedes usar poderes porque ya terminaste la carrera.'),
+          content: Text(
+              '⚠️ No puedes usar poderes porque ya terminaste la carrera.'),
           backgroundColor: Colors.grey,
         ),
       );
     } else if (result == PowerUseResult.targetFinished) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('⚠️ El objetivo ya terminó la carrera.'),
           backgroundColor: Colors.grey,
         ),
       );
     } else {
-      final errorMsg = playerProvider.lastPowerError ?? 'Error: No se pudo usar el objeto (¿Sin munición o error de conexión?)';
+      final errorMsg = playerProvider.lastPowerError ??
+          'Error: No se pudo usar el objeto (¿Sin munición o error de conexión?)';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMsg),
@@ -688,16 +731,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Text(
             'Inventario vacío',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppTheme.accentGold,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    const Shadow(
-                      color: Colors.black,
-                      offset: Offset(1, 1),
-                      blurRadius: 4,
-                    ),
-                  ],
+              color: AppTheme.accentGold,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                const Shadow(
+                  color: Colors.black,
+                  offset: Offset(1, 1),
+                  blurRadius: 4,
                 ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           const Text(
@@ -807,12 +850,12 @@ class _AttackSuccessDialogState extends State<_AttackSuccessDialog>
                   const SizedBox(height: 5),
                   Material(
                     color: Colors.transparent,
-                      child: Text(
-                        widget.targetName.isEmpty
-                            ? ''
-                            : 'Objetivo: ${widget.targetName}',
-                        style: const TextStyle(color: Colors.white, fontSize: 10),
-                      ),
+                    child: Text(
+                      widget.targetName.isEmpty
+                          ? ''
+                          : 'Objetivo: ${widget.targetName}',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
                   ),
                 ],
               ),
