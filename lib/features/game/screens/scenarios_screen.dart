@@ -1841,7 +1841,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }).toList();
 
   if (_selectedFilter == 'completed') {
-    visibleEvents = visibleEvents.skip(visibleEvents.length > 5 ? visibleEvents.length - 5 : 0).toList();
+    visibleEvents = visibleEvents.take(5).toList();
   }
 
     // Convertir Eventos a Escenarios usando Mapper
