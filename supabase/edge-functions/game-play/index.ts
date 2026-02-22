@@ -127,8 +127,10 @@ serve(async (req) => {
         totalXP: entry.total_xp,
         score: entry.score,
         // [FIX] Ensure we pass event-specific progress
-        completed_clues_count: entry.completed_clues_count ?? entry.completed_clues ?? 0,
-        completed_clues: entry.completed_clues_count ?? entry.completed_clues ?? 0,
+        completed_clues_count:
+          entry.completed_clues_count ?? entry.completed_clues ?? 0,
+        completed_clues:
+          entry.completed_clues_count ?? entry.completed_clues ?? 0,
       }));
 
       return new Response(JSON.stringify(mappedLeaderboard), {
@@ -216,23 +218,12 @@ serve(async (req) => {
           throw updateError;
         }
 
-        // 2.5 Update game_players stats (completed_clues_count)
-        const { data: gamePlayer } = await supabaseAdmin
-          .from("game_players")
-          .select("id, completed_clues_count")
-          .eq("user_id", user.id)
-          .eq("event_id", clue.event_id)
-          .maybeSingle();
-
-        if (gamePlayer) {
-          await supabaseAdmin
-            .from("game_players")
-            .update({
-              completed_clues_count:
-                (gamePlayer.completed_clues_count || 0) + 1,
-            })
-            .eq("id", gamePlayer.id);
-        }
+        // 2.5 ATOMIC increment of completed_clues_count + last_active timestamp
+        // Uses a DB RPC to avoid read-modify-write race conditions between concurrent players
+        await supabaseAdmin.rpc("increment_clue_count", {
+          p_user_id: user.id,
+          p_event_id: clue.event_id,
+        });
       } else {
         console.log(
           "[complete-clue] Clue already completed, skipping stats update.",
@@ -335,10 +326,10 @@ serve(async (req) => {
               .single();
 
             // If race is not yet completed, this player wins!
-            // FIX: Removed legacy logic that auto-closed the event here. 
+            // FIX: Removed legacy logic that auto-closed the event here.
             // Now handled by 'register_race_finisher' RPC called from client.
             if (event && event.status !== "completed") {
-               console.log(
+              console.log(
                 `[complete-clue] 🏆 User finished all clues! (Event closure is now handled by RPC)`,
               );
             }
@@ -466,30 +457,30 @@ serve(async (req) => {
         .eq("id", clue.event_id)
         .single();
 
-      // FIX: raceCompleted should indicate if the USER finished the race (all clues), 
+      // FIX: raceCompleted should indicate if the USER finished the race (all clues),
       // not if the EVENT is globally completed.
       // We need to re-verify if user finished all clues here or pass it down.
       // Optimization: We already checked completion above. Let's recalculate or just check user_clue_progress count.
-      
+
       let userFinishedRace = false;
       const { data: allCluesCount } = await supabaseAdmin
         .from("clues")
-        .select("id", { count: 'exact', head: true })
+        .select("id", { count: "exact", head: true })
         .eq("event_id", clue.event_id);
-        
+
       const { data: userCluesCount } = await supabaseAdmin
         .from("user_clue_progress")
-        .select("id", { count: 'exact', head: true })
+        .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .eq("is_completed", true)
-        // We need to filter by clues belonging to this event. 
-        // This query is slightly expensive, but safe.
-        // Actually, we can rely on the check done in lines 310-330 if we scoped it out.
-        // Re-implementing a quick check:
-        // Or simpler: check if 'nextClue' was null AND we just completed a clue?
-        // Yes, line 298: "No next clue found".
-        // If no next clue found, user finished.
-      
+        .eq("is_completed", true);
+      // We need to filter by clues belonging to this event.
+      // This query is slightly expensive, but safe.
+      // Actually, we can rely on the check done in lines 310-330 if we scoped it out.
+      // Re-implementing a quick check:
+      // Or simpler: check if 'nextClue' was null AND we just completed a clue?
+      // Yes, line 298: "No next clue found".
+      // If no next clue found, user finished.
+
       const raceCompleted = !nextClue; // If there is no next clue, the user has finished.
 
       return new Response(

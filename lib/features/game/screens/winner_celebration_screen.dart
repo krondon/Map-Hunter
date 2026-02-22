@@ -36,6 +36,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   late ConfettiController _fireworkRightController;
   late ConfettiController _fireworkCenterController;
   late int _currentPosition; // Mutable state for position
+  late int _finalPosition;
+  int _completedClues = 0;
   bool _isLoading = true; // NEW: Start with loading state
   Map<String, int> _prizes = {};
 
@@ -48,6 +50,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     super.initState();
     debugPrint("🏆 WinnerCelebrationScreen INIT: Prize = ${widget.prizeWon}");
     _currentPosition = widget.playerPosition;
+    _finalPosition = 0;
+    _completedClues = widget.totalCluesCompleted;
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 10));
     _fireworkLeftController =
@@ -190,18 +194,20 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
         try {
           final myPlacement = await supabase
               .from('game_players')
-              .select('final_placement')
+              .select('final_placement, completed_clues_count')
               .eq('event_id', widget.eventId)
               .eq('user_id', currentUserId)
-              .not('final_placement', 'is', null)
               .maybeSingle();
 
-          if (myPlacement != null && myPlacement['final_placement'] != null) {
-            final int dbPosition = (myPlacement['final_placement'] as num).toInt();
-            debugPrint("🏆 My DB final_placement: $dbPosition");
+          if (myPlacement != null) {
+            final int dbPosition = myPlacement['final_placement'] != null ? (myPlacement['final_placement'] as num).toInt() : 0;
+            final int clues = myPlacement['completed_clues_count'] != null ? (myPlacement['completed_clues_count'] as num).toInt() : 0;
+            
+            debugPrint("🏆 My DB final_placement: $dbPosition, Clues completed: $clues");
             if (mounted) {
               setState(() {
-                _currentPosition = dbPosition;
+                if (dbPosition > 0) _finalPosition = dbPosition;
+                if (clues > 0) _completedClues = clues;
                 _isLoading = false;
               });
               if (dbPosition >= 1 && dbPosition <= 3) {
@@ -348,7 +354,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   }
 
   String _getMedalEmoji() {
-    switch (_currentPosition) {
+    switch (_finalPosition) {
       case 1:
         return '🏆';
       case 2:
@@ -361,9 +367,9 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   }
 
   String _getCelebrationMessage() {
-    if (_currentPosition == 1) {
+    if (_finalPosition == 1) {
       return '¡Eres el Campeón!';
-    } else if (_currentPosition >= 1 && _currentPosition <= 3) {
+    } else if (_finalPosition >= 1 && _finalPosition <= 3) {
       return '¡Podio Merecido!';
     } else {
       return '¡Carrera Completada!';
@@ -371,7 +377,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   }
 
   Color _getPositionColor() {
-    switch (_currentPosition) {
+    switch (_finalPosition) {
       case 1:
         return const Color(0xFFFFD700); // Gold
       case 2:
@@ -652,7 +658,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                           textAlign: TextAlign.center,
                         ),
                             const SizedBox(height: 10),
-                            if (_currentPosition > 0)
+                            if (_finalPosition > 0)
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(24),
                                 child: BackdropFilter(
@@ -699,7 +705,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '#$_currentPosition',
+                                            '#$_finalPosition',
                                             style: TextStyle(
                                               fontSize: 36,
                                               fontWeight: FontWeight.w900,
@@ -938,7 +944,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                           color: Colors.white, size: 20),
                                       const SizedBox(width: 10),
                                       Text(
-                                        '${widget.totalCluesCompleted} Pistas completadas',
+                                        '$_completedClues Pistas completadas',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,

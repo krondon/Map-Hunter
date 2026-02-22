@@ -1834,12 +1834,16 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
     // APLICAR FILTRO DE ESTADO (Active vs Pending vs Completed)
     visibleEvents = visibleEvents.where((e) {
-      if (_selectedFilter == 'completed') return e.status == 'completed';
-      if (e.status == 'completed') return false; // Hide completed in other tabs
-      if (_selectedFilter == 'active') return e.status == 'active';
-      if (_selectedFilter == 'pending') return e.status == 'pending';
-      return false;
-    }).toList();
+    if (_selectedFilter == 'completed') return e.status == 'completed';
+    if (e.status == 'completed') return false;
+    if (_selectedFilter == 'active') return e.status == 'active';
+    if (_selectedFilter == 'pending') return e.status == 'pending';
+    return false;
+  }).toList();
+
+  if (_selectedFilter == 'completed') {
+    visibleEvents = visibleEvents.skip(visibleEvents.length > 5 ? visibleEvents.length - 5 : 0).toList();
+  }
 
     // Convertir Eventos a Escenarios usando Mapper
     final List<Scenario> scenarios = ScenarioMapper.fromEvents(visibleEvents);
