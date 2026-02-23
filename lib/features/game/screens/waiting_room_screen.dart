@@ -263,6 +263,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                                     currentPlayerId: currentPlayerId,
                                     totalClues: gameProvider.totalClues,
                                     compact: false,
+                                    isReadOnly: true,
                                   ),
                                 ),
                               ],

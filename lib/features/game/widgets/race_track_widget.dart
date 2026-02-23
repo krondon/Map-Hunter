@@ -22,6 +22,8 @@ class RaceTrackWidget extends StatelessWidget {
   final String currentPlayerId;
   final int totalClues;
   final VoidCallback? onSurrender;
+  final bool compact;
+  final bool isReadOnly;
 
   const RaceTrackWidget({
     super.key,
@@ -30,9 +32,8 @@ class RaceTrackWidget extends StatelessWidget {
     required this.totalClues,
     this.onSurrender,
     this.compact = false,
+    this.isReadOnly = false,
   });
-
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +62,17 @@ class RaceTrackWidget extends StatelessWidget {
 
     /// Handles avatar tap: Opens power selector or player group selector
     Future<void> handleAvatarTap(RacerViewModel vm) async {
+      if (isReadOnly) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⛔ Ya terminaste la carrera. No puedes usar poderes en la sala de espera.'),
+            backgroundColor: Colors.grey,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
       if (gameProvider.isPowerActionLoading) return;
 
       final me = playerProvider.currentPlayer;
