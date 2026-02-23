@@ -1258,6 +1258,14 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
               banDetectedForCurrentEvent = true;
               break;
             }
+
+            // GRACE: If status changed to 'completed', this is a race finish,
+            // NOT a ban. Do NOT trigger aggressive refresh that could null gamePlayerId.
+            if (eventId == currentEventId && status == 'completed') {
+              debugPrint(
+                  '🏁 PlayerProvider: Race completion detected for event ($eventId) via Stream. Skipping aggressive refresh.');
+              return; // Early return — let the race completion flow handle navigation
+            }
           }
 
           if (!_isDisposed && _currentPlayer != null) {

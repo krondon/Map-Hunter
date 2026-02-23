@@ -156,7 +156,17 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
             .limit(3);
 
         if (topPlayers.isNotEmpty) {
-          break; // Data arrived
+          // Also verify OUR OWN placement is included (for last finisher).
+          // The last finisher's final_placement may not have propagated yet.
+          final pp = Provider.of<PlayerProvider>(context, listen: false);
+          final curUid = pp.currentPlayer?.userId ?? pp.currentPlayer?.id;
+          final myPlacementExists = curUid == null ||
+              topPlayers.any((p) => p['user_id'].toString() == curUid);
+          if (myPlacementExists || retries >= 5) {
+            break; // Data arrived (or partial after 5 retries — show what we have)
+          }
+          debugPrint(
+              "⏳ Podium: Data found but MY placement missing. Waiting... (Retry $retries/$maxRetries)");
         }
 
         retries++;
