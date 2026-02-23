@@ -95,8 +95,8 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       // Try immediate check
       _updatePositionFromLeaderboard();
 
-      // Safety timeout: If after 8 seconds we still loading, force show content
-      Future.delayed(const Duration(seconds: 8), () {
+      // Safety timeout: If after 30 seconds we still loading, force show content
+      Future.delayed(const Duration(seconds: 30), () {
         if (mounted && _isLoading) {
           debugPrint("⚠️ Podium timeout: Forcing display with available data.");
           setState(() {
@@ -138,15 +138,31 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     try {
       final supabase = Supabase.instance.client;
 
-      // Query game_players with final_placement set, ordered by placement
-      final List<dynamic> topPlayers = await supabase
-          .from('game_players')
-          .select('user_id, final_placement, completed_clues_count')
-          .eq('event_id', widget.eventId)
-          .not('final_placement', 'is', null)
-          .neq('status', 'spectator')
-          .order('final_placement', ascending: true)
-          .limit(3);
+      int retries = 0;
+      const int maxRetries = 15;
+      List<dynamic> topPlayers = [];
+
+      while (retries < maxRetries) {
+        if (!mounted) return;
+
+        // Query game_players with final_placement set, ordered by placement
+        topPlayers = await supabase
+            .from('game_players')
+            .select('user_id, final_placement, completed_clues_count')
+            .eq('event_id', widget.eventId)
+            .not('final_placement', 'is', null)
+            .neq('status', 'spectator')
+            .order('final_placement', ascending: true)
+            .limit(3);
+
+        if (topPlayers.isNotEmpty) {
+          break; // Data arrived
+        }
+
+        retries++;
+        debugPrint("⏳ Podium DB empty. Waiting for backend... (Retry $retries/$maxRetries)");
+        await Future.delayed(const Duration(seconds: 2));
+      }
 
       debugPrint("🏆 Podium DB: Found ${topPlayers.length} finishers with final_placement");
 
