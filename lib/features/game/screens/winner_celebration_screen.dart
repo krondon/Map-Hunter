@@ -39,6 +39,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
   late int _finalPosition;
   int _completedClues = 0;
   bool _isLoading = true; // NEW: Start with loading state
+  bool _podiumFetchCompleted = false; // Guards _isLoading until podium DB query finishes
   Map<String, int> _prizes = {};
 
   // Podium Winners Data (from game_players.final_placement)
@@ -50,7 +51,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
     super.initState();
     debugPrint("🏆 WinnerCelebrationScreen INIT: Prize = ${widget.prizeWon}");
     _currentPosition = widget.playerPosition;
-    _finalPosition = 0;
+    _finalPosition = widget.playerPosition > 0 ? widget.playerPosition : 0;
     _completedClues = widget.totalCluesCompleted;
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 10));
@@ -171,13 +172,20 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
 
         retries++;
         debugPrint("⏳ Podium DB empty. Waiting for backend... (Retry $retries/$maxRetries)");
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 1));
       }
 
       debugPrint("🏆 Podium DB: Found ${topPlayers.length} finishers with final_placement");
 
       if (topPlayers.isEmpty) {
-        if (mounted) setState(() { _podiumWinners = []; _isLoadingPodium = false; });
+        if (mounted) {
+          setState(() {
+            _podiumWinners = [];
+            _isLoadingPodium = false;
+            _podiumFetchCompleted = true;
+            if (_isLoading) _isLoading = false;
+          });
+        }
         return;
       }
 
@@ -251,12 +259,21 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
         setState(() {
           _podiumWinners = winners;
           _isLoadingPodium = false;
+          _podiumFetchCompleted = true;
+          // Release the main loading gate now that podium data is resolved
+          if (_isLoading) _isLoading = false;
         });
         debugPrint("🏆 Podium winners loaded: ${winners.map((w) => '${w['name']}=#${w['final_placement']}').join(', ')}");
       }
     } catch (e) {
       debugPrint("⚠️ Error fetching podium winners: $e");
-      if (mounted) setState(() => _isLoadingPodium = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingPodium = false;
+          _podiumFetchCompleted = true;
+          if (_isLoading) _isLoading = false;
+        });
+      }
     }
   }
 
@@ -308,7 +325,15 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
       if (newPos != _currentPosition || _isLoading) {
         setState(() {
           _currentPosition = newPos;
-          _isLoading = false;
+          // Update _finalPosition from leaderboard as fallback if DB hasn't provided it yet
+          if (_finalPosition == 0 && newPos > 0) {
+            _finalPosition = newPos;
+          }
+          // Only release loading gate if podium fetch has completed
+          // This prevents showing "No participaste" before DB data arrives
+          if (_podiumFetchCompleted) {
+            _isLoading = false;
+          }
         });
 
         if (newPos >= 1 && newPos <= 3) {
@@ -807,6 +832,55 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                   ]
                                 ]),
                                   ),
+                                  ),
+                                ),
+                              )
+                            else if (_isLoadingPodium)
+                              // Still loading podium data — don't show "No participaste" yet
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                          color: AppTheme.accentGold.withOpacity(0.6),
+                                          width: 1.5),
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                            color: AppTheme.accentGold.withOpacity(0.2),
+                                            width: 1.0),
+                                        color: AppTheme.accentGold.withOpacity(0.02),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: AppTheme.accentGold,
+                                            ),
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            'Cargando tu posición...',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                color: Colors.white70, fontSize: 14),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               )
