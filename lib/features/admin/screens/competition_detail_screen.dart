@@ -114,13 +114,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
   Future<void> _fetchLeaderboard() async {
     try {
-      // 1. Fetch ranking from game_players
+      // 1. Fetch ranking from game_players (ordered by clues DESC, then arrival ASC)
       final playersData = await Supabase.instance.client
           .from('game_players')
-          .select('user_id, completed_clues:completed_clues_count')
+          .select('user_id, completed_clues:completed_clues_count, last_active')
           .eq('event_id', widget.event.id)
           .neq('status', 'spectator')
-          .order('completed_clues_count', ascending: false);
+          .order('completed_clues_count', ascending: false)
+          .order('last_active', ascending: true);
 
       if (playersData.isEmpty) {
         if (mounted) setState(() => _leaderboardData = []);

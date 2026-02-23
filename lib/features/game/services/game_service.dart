@@ -89,13 +89,16 @@ class GameService {
       {String? currentUserId}) async {
     try {
       // 1. Obtener la lista base del ranking desde la tabla game_players (reemplaza vista faltante)
+      //    ORDER: completed_clues_count DESC (más pistas = mejor),
+      //           last_active ASC (quien llegó primero a esa pista queda arriba)
       final List<dynamic> leaderboardData = await _supabase
           .from('game_players')
           .select(
-              'game_player_id:id, user_id, coins, completed_clues_count, status, is_protected')
+              'game_player_id:id, user_id, coins, completed_clues_count, status, is_protected, last_active')
           .eq('event_id', eventId)
           .neq('status', 'spectator')
           .order('completed_clues_count', ascending: false)
+          .order('last_active', ascending: true)
           .limit(50);
 
       // --- INVISIBILITY FILTER --- 
@@ -144,7 +147,7 @@ class GameService {
             final myData = await _supabase
                 .from('game_players')
                 .select(
-                    'game_player_id:id, user_id, coins, completed_clues_count, status')
+                    'game_player_id:id, user_id, coins, completed_clues_count, status, last_active')
                 .eq('event_id', eventId)
                 .eq('user_id', currentUserId)
                 .maybeSingle();
