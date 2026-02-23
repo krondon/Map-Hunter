@@ -10,6 +10,7 @@ import '../../providers/game_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
+import 'cyber_surrender_button.dart';
 import '../../../mall/screens/mall_screen.dart';
 import '../../../../shared/widgets/animated_cyber_background.dart';
 import '../race_track_widget.dart';
@@ -341,29 +342,8 @@ class _MemorySequenceMinigameState extends State<MemorySequenceMinigame> {
               const SizedBox(height: 50),
 
               // 5. SURRENDER BUTTON
-              Padding(
-                padding: const EdgeInsets.only(bottom: 25, left: 30, right: 30),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _handleGiveUp,
-                    icon: const Icon(Icons.flag,
-                        color: AppTheme.dangerRed, size: 18),
-                    label: const Text("RENDIRSE",
-                        style: TextStyle(
-                            color: AppTheme.dangerRed,
-                            letterSpacing: 2,
-                            fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: AppTheme.dangerRed, width: 1.2),
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)),
-                      backgroundColor: AppTheme.dangerRed.withOpacity(0.05),
-                    ),
-                  ),
-                ),
+              CyberSurrenderButton(
+                onPressed: _showOverlay ? null : _handleGiveUp,
               ),
             ],
           ),

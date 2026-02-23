@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -33,11 +34,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         final rawCode = barcode.rawValue!;
         debugPrint('QR Scanned (raw): $rawCode');
         
-        // Sanitizar el código para mitigar inyección y datos malformados
         final sanitized = InputSanitizer.sanitizeQRCode(rawCode);
         debugPrint('QR Sanitized: $sanitized');
         
-        // Validar que el código sanitizado no esté vacío
         if (!InputSanitizer.isValidQRCode(sanitized)) {
           setState(() => _isProcessing = false);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -50,9 +49,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           return;
         }
         
-        // Devolver el código sanitizado
         Navigator.pop(context, sanitized);
-        return; // Procesar solo el primer código válido
+        return;
       }
     }
   }
@@ -60,82 +58,205 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text("Escanear QR", style: TextStyle(color: Colors.white)),
-        // Actions removed temporarily to ensure compatibility with MobileScanner v7+
-        // functionality can be re-added once API is verified.
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
-        ),
-        child: Stack(
-          children: [
-            MobileScanner(
-              controller: cameraController,
-              onDetect: _onDetect,
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Camera
+          MobileScanner(
+            controller: cameraController,
+            onDetect: _onDetect,
+          ),
+
+          // Marco de esquinas para apuntar
+          Container(
+            decoration: ShapeDecoration(
+              shape: QrScannerOverlayShape(
+                borderColor: AppTheme.accentGold,
+                borderRadius: 20,
+                borderLength: 40,
+                borderWidth: 4,
+                cutOutSize: 280,
+                overlayColor: Colors.transparent,
+              ),
             ),
-            // Overlay
+          ),
+
+          // Back button (estilo avatar)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 15,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 40,
+                height: 40,
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppTheme.accentGold.withOpacity(0.3),
+                    width: 1.0,
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.6),
+                    border: Border.all(
+                      color: AppTheme.accentGold.withOpacity(0.6),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.accentGold.withOpacity(0.1),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Título superior
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 15,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                'ESCANEAR QR',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  shadows: [
+                    Shadow(color: AppTheme.accentGold.withOpacity(0.5), blurRadius: 10),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Instrucciones glassmorphism abajo
+          Positioned(
+            bottom: 40,
+            left: 24,
+            right: 24,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D0D0F).withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.accentGold.withOpacity(0.4), width: 1),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.accentGold.withOpacity(0.15)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.qr_code_scanner, color: AppTheme.accentGold, size: 22),
+                            const SizedBox(width: 10),
+                            Text(
+                              widget.expectedClueId != null 
+                                  ? 'Busca el código QR de la pista' 
+                                  : 'Apunta la cámara al código QR',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'El escaneo es automático',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Processing overlay
+          if (_isProcessing)
             Container(
-              decoration: ShapeDecoration(
-                shape: QrScannerOverlayShape(
-                  borderColor: AppTheme.accentGold,
-                  borderRadius: 20,
-                  borderLength: 40,
-                  borderWidth: 10,
-                  cutOutSize: 300,
+              color: Colors.black54,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(color: AppTheme.accentGold),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Procesando...',
+                      style: TextStyle(
+                        color: AppTheme.accentGold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        shadows: [Shadow(color: AppTheme.accentGold.withOpacity(0.5), blurRadius: 10)],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            if (_isProcessing)
-              Container(
-                color: Colors.black54,
-                child: const Center(child: CircularProgressIndicator(color: AppTheme.accentGold)),
-              ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Text(
-                  widget.expectedClueId != null 
-                      ? "Busca el código QR de la pista" 
-                      : "Escanea el código QR",
-                  style: const TextStyle(
-                    color: Colors.white, 
-                    fontSize: 16, 
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(blurRadius: 10, color: Colors.black)],
+
+          // Botón Simular Escaneo
+          if (true)
+            Positioned(
+              bottom: 160,
+              left: 24,
+              right: 24,
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final fakeCode = widget.expectedClueId != null 
+                        ? "CLUE:${widget.expectedClueId}" 
+                        : "DEV_SKIP_CODE";
+                    Navigator.pop(context, fakeCode);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppTheme.accentGold.withOpacity(0.6)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    foregroundColor: AppTheme.accentGold,
+                    backgroundColor: Colors.black.withOpacity(0.4),
+                  ),
+                  icon: const Icon(Icons.qr_code, size: 18),
+                  label: const Text(
+                    'SIMULAR ESCANEO',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                   ),
                 ),
               ),
             ),
-            // === BOTÓN DE DESARROLLADOR ===
-            if (true) // Developer Button Enabled
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 80, right: 20),
-                  child: FloatingActionButton.extended(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.black,
-                    onPressed: () {
-                      // Simula un código QR válido genérico
-                      final fakeCode = widget.expectedClueId != null 
-                          ? "CLUE:${widget.expectedClueId}" 
-                          : "DEV_SKIP_CODE";
-                      Navigator.pop(context, fakeCode);
-                    },
-                    icon: const Icon(Icons.developer_mode),
-                    label: const Text("DEV: Saltar"),
-                  ),
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }

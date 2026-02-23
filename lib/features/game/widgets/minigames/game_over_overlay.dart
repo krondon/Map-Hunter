@@ -1,159 +1,198 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../providers/game_provider.dart';
 
+/// Overlay that appears when a minigame ends (win or lose).
+/// Shows title, message, and action buttons (Retry, Shop, Exit).
 class GameOverOverlay extends StatelessWidget {
   final String title;
   final String message;
+  final bool isVictory;
+  final String? bannerUrl;
   final VoidCallback? onRetry;
   final VoidCallback? onGoToShop;
-  final VoidCallback onExit;
-  final bool isVictory;
+  final VoidCallback? onExit;
 
   const GameOverOverlay({
     super.key,
     required this.title,
     required this.message,
-    this.onRetry,
-    this.onGoToShop,
-    required this.onExit,
     this.isVictory = false,
     this.bannerUrl,
+    this.onRetry,
+    this.onGoToShop,
+    this.onExit,
   });
-
-  final String? bannerUrl;
 
   @override
   Widget build(BuildContext context) {
-    // 2. Implementación del Bloqueo de Interfaz (UI Hardening)
-    // El Container con color bloquea los toques al fondo, pero permite interacción con los botones hijos.
+    final accentColor = isVictory ? AppTheme.accentGold : AppTheme.dangerRed;
+
     return Positioned.fill(
-      child: Container(
-        color: Colors.black87, // Barrier color
-        child: Center(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 30),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.cardBg,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isVictory ? AppTheme.successGreen : AppTheme.dangerRed,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color:
-                      (isVictory ? AppTheme.successGreen : AppTheme.dangerRed)
-                          .withOpacity(0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
+            color: Colors.black.withOpacity(0.7),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 30),
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: accentColor.withOpacity(0.4),
+                    width: 1,
+                  ),
+                  color: accentColor.withOpacity(0.08),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (bannerUrl != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        bannerUrl!,
-                        height: 60,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox(),
-                      ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1D).withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(21),
+                    border: Border.all(
+                      color: accentColor.withOpacity(0.6),
+                      width: 1.5,
                     ),
-                  ),
-
-                Icon(
-                  isVictory
-                      ? Icons.emoji_events
-                      : Icons.sentiment_very_dissatisfied,
-                  size: 60,
-                  color: isVictory ? AppTheme.successGreen : AppTheme.dangerRed,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        isVictory ? AppTheme.successGreen : AppTheme.dangerRed,
-                    letterSpacing: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // Lives info wrapper if retrying
-                // (Lives info removed to prevent overflow and redundancy)
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Exit Button
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: onExit,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white70,
-                          side: const BorderSide(color: Colors.white24),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text("SALIR"),
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    if (onGoToShop != null)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: onGoToShop,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.secondaryPink,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text("TIENDA",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-
-                    if (onRetry != null) ...[
-                      const SizedBox(width: 10),
-                      // Retry Button
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: onRetry,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.accentGold,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text("REINTENTAR",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.15),
+                        blurRadius: 30,
+                        spreadRadius: 2,
                       ),
                     ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Icon(
+                        isVictory ? Icons.emoji_events_rounded : Icons.warning_amber_rounded,
+                        color: accentColor,
+                        size: 52,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Title
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Message
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Retry button
+                      if (onRetry != null)
+                        _buildButton(
+                          label: 'REINTENTAR',
+                          icon: Icons.refresh_rounded,
+                          color: AppTheme.accentGold,
+                          onTap: onRetry!,
+                        ),
+
+                      // Go to shop button
+                      if (onGoToShop != null) ...[
+                        const SizedBox(height: 12),
+                        _buildButton(
+                          label: 'IR A LA TIENDA',
+                          icon: Icons.storefront_rounded,
+                          color: AppTheme.accentGold,
+                          onTap: onGoToShop!,
+                        ),
+                      ],
+
+                      // Exit button
+                      if (onExit != null) ...[
+                        const SizedBox(height: 12),
+                        _buildButton(
+                          label: 'SALIR',
+                          icon: Icons.exit_to_app_rounded,
+                          color: Colors.white54,
+                          onTap: onExit!,
+                          subtle: true,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool subtle = false,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        padding: const EdgeInsets.all(2.5),
+        decoration: BoxDecoration(
+          color: color.withOpacity(subtle ? 0.05 : 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withOpacity(subtle ? 0.15 : 0.35),
+            width: 1,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1D).withOpacity(0.85),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: color.withOpacity(subtle ? 0.25 : 0.6),
+              width: 1.5,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(13),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, color: color, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

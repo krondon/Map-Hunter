@@ -166,6 +166,33 @@ class MasterTutorialContent {
             visual: _buildChallengeVisual(),
           ),
         ];
+      case 'SPECTATOR':
+        return [
+          TutorialStep(
+            title: "ESTÁS OBSERVANDO",
+            description: "En el modo espectador puedes seguir la carrera de otros jugadores en tiempo real. ¡Elige a tu favorito!",
+            icon: Icons.visibility,
+            visual: _buildSpectatorWelcomeVisual(),
+          ),
+          TutorialStep(
+            title: "POTE DE APUESTAS",
+            description: "Puedes apostar tréboles a tu jugador favorito. Si él gana, tú también ganas. ¡Mira cómo sube el premio total!",
+            icon: Icons.monetization_on,
+            visual: _buildSpectatorBettingVisual(),
+          ),
+          TutorialStep(
+            title: "SABOTAJE TÁCTICO",
+            description: "Desde la tienda de espectador puedes comprar poderes para frenar a los jugadores que no quieres que ganen. ¡Tú controlas el caos!",
+            icon: Icons.bolt,
+            visual: _buildSpectatorShopVisual(),
+          ),
+          TutorialStep(
+            title: "EL PODIO",
+            description: "Sigue el ranking en tiempo real. Los tres primeros lugares recibirán los mayores premios del evento.",
+            icon: Icons.emoji_events,
+            visual: _buildSpectatorRankingVisual(),
+          ),
+        ];
       default:
         return [];
     }
@@ -878,6 +905,128 @@ class MasterTutorialContent {
           ),
         ],
       ),
+    );
+  }
+
+  static Widget _buildSpectatorWelcomeVisual() {
+    return Container(
+      color: const Color(0xFF0D0D14),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.visibility, color: Colors.blueAccent, size: 60),
+            SizedBox(height: 15),
+            Text("VIGILANCIA ACTIVA", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildSpectatorBettingVisual() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF150826), Color(0xFF2A0D4E)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("POTE TOTAL", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 10),
+            const Text("15,000 🍀", style: TextStyle(color: AppTheme.accentGold, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Orbitron')),
+            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.accentGold,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text("APOSTAR AHORA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildSpectatorShopVisual() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: const Color(0xFF0D0D14),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildMiniShopItem(Icons.ac_unit, "CONGELAR"),
+              _buildMiniShopItem(Icons.blur_on, "DIFUMINAR"),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text("SABOTEA A LOS RIVALES", style: TextStyle(color: AppTheme.secondaryPink, fontSize: 10, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildMiniShopItem(IconData icon, String name) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppTheme.secondaryPink.withOpacity(0.1),
+        border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppTheme.secondaryPink, size: 30),
+          const SizedBox(height: 5),
+          Text(name, style: const TextStyle(color: Colors.white, fontSize: 8)),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildSpectatorRankingVisual() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      color: Colors.black,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildMiniPodium(70, Colors.grey, "2"),
+          _buildMiniPodium(100, AppTheme.accentGold, "1"),
+          _buildMiniPodium(50, const Color(0xFFCD7F32), "3"),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildMiniPodium(double height, Color color, String rank) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.person, color: color),
+        const SizedBox(height: 5),
+        Container(
+          width: 40,
+          height: height,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.3),
+            border: Border.all(color: color, width: 2),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          ),
+          child: Center(child: Text(rank, style: TextStyle(color: color, fontWeight: FontWeight.bold))),
+        ),
+      ],
     );
   }
 

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -76,60 +77,77 @@ class _SpectatorBettingPotWidgetState extends State<SpectatorBettingPotWidget> {
       onLongPress: _showDebugInfo,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.dGoldMain.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.dGoldMain.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 1,
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "POTE DE APUESTAS",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+        padding: const EdgeInsets.all(4), // Espacio para el efecto de doble borde
+        decoration: BoxDecoration(
+          color: AppTheme.dGoldMain.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.dGoldMain.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.dGoldMain.withOpacity(0.5),
+                  width: 2, // Borde sólido interno tipo "Profile"
                 ),
               ),
-              _isLoading
-                  ? SizedBox(
-                      width: 100,
-                      height: 20,
-                      child: LinearProgressIndicator(
-                          color: AppTheme.dGoldMain, backgroundColor: Colors.white10),
-                    )
-                  : Text(
-                      "$formattedPot 🍀",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Orbitron',
-                        shadows: [
-                          Shadow(
-                              color: AppTheme.dGoldMain.withOpacity(0.8),
-                              blurRadius: 8)
-                        ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "POTE DE APUESTAS",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.0,
+                        ),
                       ),
-                    ),
-            ],
+                      const SizedBox(height: 4),
+                      _isLoading
+                          ? SizedBox(
+                              width: 100,
+                              height: 20,
+                              child: LinearProgressIndicator(
+                                color: AppTheme.dGoldMain,
+                                backgroundColor: Colors.white10,
+                              ),
+                            )
+                          : Text(
+                              "$formattedPot 🍀",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Orbitron',
+                                shadows: [
+                                  Shadow(
+                                    color: AppTheme.dGoldMain.withOpacity(0.8),
+                                    blurRadius: 12,
+                                  )
+                                ],
+                              ),
+                            ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
+        ),
       ),
-    ));
+    );
   }
 }

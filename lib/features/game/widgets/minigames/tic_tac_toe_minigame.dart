@@ -9,6 +9,7 @@ import '../../providers/game_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
+import 'cyber_surrender_button.dart';
 import '../../../mall/screens/mall_screen.dart';
 
 class TicTacToeMinigame extends StatefulWidget {
@@ -418,24 +419,8 @@ class _TicTacToeMinigameState extends State<TicTacToeMinigame> {
               ),
 
               // Controles Inferiores
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _showOverlay
-                        ? null
-                        : _handleGiveUp, // Disable if overlay is up
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.cardBg,
-                      foregroundColor: AppTheme.dangerRed,
-                      side: const BorderSide(color: AppTheme.dangerRed),
-                    ),
-                    icon: const Icon(Icons.flag_outlined),
-                    label: const Text("RENDIRSE"),
-                  ),
-                ),
+              CyberSurrenderButton(
+                onPressed: _showOverlay ? null : _handleGiveUp,
               )
             ],
           ),

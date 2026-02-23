@@ -127,14 +127,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showLogoutDialog(PlayerProvider playerProvider) {
     final isDarkMode = playerProvider.isDarkMode;
-    final Color surfaceColor = isDarkMode
-        ? Colors.black.withOpacity(0.75)
-        : Colors.white.withOpacity(0.85);
-    final Color textColor = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color textSecColor =
-        isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
-    final Color accentColor =
-        isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain;
+    // FORCED DARK: Always use dark cyberpunk styling
+    final Color surfaceColor = const Color(0xFF151517).withOpacity(0.95);
+    final Color textColor = Colors.white;
+    final Color textSecColor = Colors.white70;
+    final Color accentColor = AppTheme.dGoldMain;
 
     const Color currentRed = Color(0xFFE33E5D);
     const Color cardBg = Color(0xFF151517);
@@ -234,13 +231,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildGradientButton(
                             icon: Icons.swap_horiz_rounded,
                             label: 'CAMBIAR MODO',
-                            gradientColors: isDarkMode
-                                ? [AppTheme.dGoldMain, const Color(0xFFE5A700)]
-                                : [
-                                    AppTheme.lBrandMain,
-                                    const Color(0xFF7B2CBF)
-                                  ],
-                            textColor: isDarkMode ? Colors.black : Colors.white,
+                            gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+                            textColor: Colors.black,
                             onTap: () {
                               Navigator.pop(context);
                               Navigator.of(context).pushAndRemoveUntil(

@@ -483,17 +483,11 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
                   ),
 
 
-                  // Arrow (Centrada verticalmente)
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 10),
-                      Icon(Icons.arrow_forward_ios,
-                          color: color.withOpacity(0.5), size: 14),
-                      const SizedBox(height: 10),
-                      Icon(Icons.arrow_forward_ios,
-                          color: color.withOpacity(0.5), size: 14),
-                    ],
+                  // Arrow
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Icon(Icons.arrow_forward_ios,
+                        color: color.withOpacity(0.5), size: 14),
                   ),
                 ],
               ),

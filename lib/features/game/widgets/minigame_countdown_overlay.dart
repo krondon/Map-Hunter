@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class MinigameCountdownOverlay extends StatefulWidget {
@@ -25,6 +27,9 @@ class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay>
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
 
+  // Audio para efecto de sonido del countdown
+  final AudioPlayer _beepPlayer = AudioPlayer();
+
   @override
   void initState() {
     super.initState();
@@ -43,29 +48,50 @@ class _MinigameCountdownOverlayState extends State<MinigameCountdownOverlay>
           curve: const Interval(0.7, 1.0, curve: Curves.easeOut)),
     );
 
+    _beepPlayer.setVolume(0.8);
     _startCountdown();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _beepPlayer.dispose();
     super.dispose();
   }
 
   void _startCountdown() async {
+    // Reproducir el audio de countdown UNA SOLA VEZ (se sincroniza con los números)
+    try {
+      await _beepPlayer.play(AssetSource('audio/countdown.mp3'));
+    } catch (e) {
+      debugPrint("Countdown audio error: $e");
+    }
+
     // Show "3"
+    HapticFeedback.lightImpact();
     await _playPulse();
 
+    // Show "2"
+    if (!mounted) return;
     setState(() => _counter = 2);
+    HapticFeedback.lightImpact();
     await _playPulse();
 
+    // Show "1"
+    if (!mounted) return;
     setState(() => _counter = 1);
+    HapticFeedback.mediumImpact();
     await _playPulse();
 
-    setState(() => _counter = 0); // "YA!"
+    // Show "¡YA!"
+    if (!mounted) return;
+    setState(() => _counter = 0);
+    HapticFeedback.heavyImpact();
     await _playPulse();
 
     if (mounted) {
+      // Detener audio por si aún suena
+      try { await _beepPlayer.stop(); } catch (_) {}
       setState(() {
         _isFinished = true;
       });

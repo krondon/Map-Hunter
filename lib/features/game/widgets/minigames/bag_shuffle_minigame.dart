@@ -9,6 +9,7 @@ import '../../providers/game_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
+import 'cyber_surrender_button.dart';
 import '../race_track_widget.dart';
 import '../../utils/minigame_logic_helper.dart';
 import '../../../../shared/widgets/animated_cyber_background.dart';
@@ -370,27 +371,9 @@ class _BagShuffleMinigameState extends State<BagShuffleMinigame>
               ),
 
             // BOTÓN DE RENDICIÓN
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: OutlinedButton(
-                onPressed: _handleGiveUp,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 45),
-                  side: BorderSide(
-                      color: AppTheme.dangerRed.withOpacity(0.4), width: 1),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text(
-                  "RENDIRSE",
-                  style: TextStyle(
-                      color: AppTheme.dangerRed.withOpacity(0.7),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
+            CyberSurrenderButton(
+              onPressed: _showOverlay ? null : _handleGiveUp,
             ),
-            const SizedBox(height: 10),
           ],
         ),
         if (_showOverlay)

@@ -134,48 +134,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  // Cyberpunk Back Button
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.accentGold.withOpacity(0.3),
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF0D0D0F),
-                            border: Border.all(
-                              color: AppTheme.accentGold,
-                              width: 2.0,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.accentGold.withOpacity(0.5),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,7 +152,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         Text(
                           'Más pistas completadas',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),

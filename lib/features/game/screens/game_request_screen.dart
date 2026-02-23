@@ -841,9 +841,9 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                 );
               },
               child: Container(
-                width: 42,
-                height: 42,
-                padding: const EdgeInsets.all(2), // Outer ring
+                width: 40,
+                height: 40,
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
@@ -854,23 +854,22 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF0D0D0F),
+                    color: Colors.black.withOpacity(0.4),
                     border: Border.all(
-                      color: AppTheme.accentGold,
-                      width: 2.0,
+                      color: AppTheme.accentGold.withOpacity(0.6),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.accentGold.withOpacity(0.5),
+                        color: AppTheme.accentGold.withOpacity(0.1),
                         blurRadius: 8,
-                        spreadRadius: 1,
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.arrow_back,
                     color: Colors.white,
-                    size: 16,
+                    size: 18,
                   ),
                 ),
               ),

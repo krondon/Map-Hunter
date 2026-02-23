@@ -71,10 +71,6 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   // Audio
   late AudioPlayer _audioPlayer;
   bool _isMusicPlaying = false;
-  // Usando un link de Archive.org que es muy persistente
-  // Usando un link más directo y robusto de GitHub para evitar problemas de carga
-  static const String _tetrisMusicUrl =
-      "https://raw.githubusercontent.com/frodoben85/flutter_tetris/master/assets/audio/tetris.mp3";
 
   // Próxima pieza
   int? _nextPieceIndex;
@@ -140,7 +136,7 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
     super.initState();
     _audioPlayer = AudioPlayer();
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
-    _audioPlayer.setVolume(1.0);
+    _audioPlayer.setVolume(0.5);
 
     // Iniciar lo más rápido posible
     _playMusic();
@@ -150,22 +146,14 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
   Future<void> _playMusic() async {
     if (_isMusicPlaying) return;
     try {
-      debugPrint("DEBUG: Intentando reproducir música de Tetris...");
-      await _audioPlayer.play(UrlSource(_tetrisMusicUrl));
+      debugPrint("DEBUG: Intentando reproducir música de Tetris (local)...");
+      await _audioPlayer.play(AssetSource('audio/tetris_theme.mp3'));
       if (mounted) {
         setState(() => _isMusicPlaying = true);
       }
-      debugPrint("DEBUG: Música iniciada correctamente.");
+      debugPrint("DEBUG: Música de Tetris iniciada correctamente.");
     } catch (e) {
       debugPrint("ERROR en _playMusic: $e");
-      // Intento con fallback si falla el principal
-      try {
-        await _audioPlayer.play(UrlSource(
-            "https://ia800504.us.archive.org/33/items/TetrisThemeA/Tetris%20Theme%20A.mp3"));
-        if (mounted) setState(() => _isMusicPlaying = true);
-      } catch (e2) {
-        debugPrint("ERROR en fallback music: $e2");
-      }
     }
   }
 
@@ -730,14 +718,12 @@ class _TetrisMinigameState extends State<TetrisMinigame> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Left/Right handled by swipe mainly, but buttons can stay small
                       _buildControlBtn(Icons.arrow_back, _moveLeft,
-                          size: 40, iconSize: 20),
+                          size: 50, iconSize: 28),
                       _buildControlBtn(Icons.arrow_downward, _moveDown,
-                          size: 50, iconSize: 28), // Down is useful
+                          size: 50, iconSize: 28),
                       _buildControlBtn(Icons.arrow_forward, _moveRight,
-                          size: 40, iconSize: 20),
-                      // Rotate button might be redundant with tap, but good to keep
+                          size: 50, iconSize: 28),
                       _buildControlBtn(Icons.rotate_right, _rotate,
                           color: AppTheme.accentGold, size: 50, iconSize: 28),
                     ],

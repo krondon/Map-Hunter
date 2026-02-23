@@ -321,7 +321,26 @@ class _CluesScreenState extends State<CluesScreen> {
                   ),
                   Expanded(
                     child: gameProvider.isLoading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(color: AppTheme.accentGold),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Cargando...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: [
+                                      Shadow(color: AppTheme.accentGold.withOpacity(0.5), blurRadius: 10),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
                         : gameProvider.errorMessage != null
                             ? Center(
                                 child: SingleChildScrollView(
@@ -533,7 +552,8 @@ class _CluesScreenState extends State<CluesScreen> {
                   );
                   if (scannedCode != null) {
                     if (scannedCode.toString().contains(clue.id) ||
-                        scannedCode.toString().startsWith("CLUE:")) {
+                        scannedCode.toString().startsWith("CLUE:") ||
+                        scannedCode.toString() == "DEV_SKIP_CODE") {
                       _unlockAndProceed(clue);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(

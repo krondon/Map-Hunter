@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../mall/models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
@@ -31,109 +32,164 @@ class InventoryItemCard extends StatelessWidget {
 
     return Stack(
       children: [
+        // Container EXTERIOR - borde sutil (igual que perfil)
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: currentCard,
-            borderRadius: BorderRadius.circular(16),
+            color: AppTheme.primaryPurple.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppTheme.primaryPurple.withOpacity(0.3),
-              width: 2,
+              color: AppTheme.primaryPurple.withOpacity(0.2),
+              width: 1,
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon
-              Text(
-                item.icon,
-                style: const TextStyle(fontSize: 32), // Reduced icon size
-              ),
-              
-              const SizedBox(height: 4),
-              
-              // Name and Description container
-              Expanded(
+          // Container INTERIOR con blur - borde fuerte (igual que perfil)
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF150826).withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppTheme.primaryPurple.withOpacity(0.6),
+                    width: 2,
+                  ),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontSize: 12, // Reduced font size
-                        fontWeight: FontWeight.bold,
-                        color: currentText,
+                    // Icon con marco glassmorphism
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryPurple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppTheme.primaryPurple.withOpacity(0.4),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryPurple.withOpacity(0.15),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              item.icon,
+                              style: const TextStyle(fontSize: 32),
+                            ),
+                          ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.description,
-                      style: TextStyle(
-                        fontSize: 9, // Reduced font size
-                        color: currentTextSec,
+                    
+                    const SizedBox(height: 6),
+                    
+                    // Name and Description
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.description,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Colors.white60,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    const SizedBox(height: 4),
+                    
+                    // Use button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 30,
+                      child: ElevatedButton(
+                        onPressed: (isActive || isDisabled) ? null : onUse,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: (isActive || isDisabled)
+                              ? Colors.grey.withOpacity(0.5) 
+                              : AppTheme.secondaryPink,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text(
+                          isActive 
+                             ? 'Activo' 
+                             : (isDisabled ? (disabledLabel ?? 'Bloqueado') : 'Usar'),
+                          style: const TextStyle(fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 4),
-              
-              // Use button
-              SizedBox(
-                width: double.infinity,
-                height: 30, // Even smaller height
-                child: ElevatedButton(
-                  onPressed: (isActive || isDisabled) ? null : onUse,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: (isActive || isDisabled)
-                        ? Colors.grey.withOpacity(0.5) 
-                        : AppTheme.secondaryPink,
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: Text(
-                    isActive 
-                       ? 'Activo' 
-                       : (isDisabled ? (disabledLabel ?? 'Bloqueado') : 'Usar'),
-                    style: const TextStyle(fontSize: 10), // Slightly smaller font for long labels
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+        // Indicador de cantidad glassmorphism
         if (count > 1)
           Positioned(
-            right: 8,
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.accentGold,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+            right: 6,
+            top: 6,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.accentGold.withOpacity(0.6),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.accentGold.withOpacity(0.2),
+                        blurRadius: 6,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Text(
-                'x$count',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  child: Text(
+                    'x$count',
+                    style: const TextStyle(
+                      color: AppTheme.accentGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ),
             ),

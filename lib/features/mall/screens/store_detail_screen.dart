@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/mall_store.dart';
@@ -20,6 +21,13 @@ class StoreDetailScreen extends StatefulWidget {
 
 class _StoreDetailScreenState extends State<StoreDetailScreen> {
   bool _isLoading = false;
+
+  String _formatCoins(int coins) {
+    if (coins >= 1000000) return '${(coins / 1000000).toStringAsFixed(1)}M';
+    if (coins >= 10000) return '${(coins / 1000).toStringAsFixed(0)}K';
+    if (coins >= 1000) return '${(coins / 1000).toStringAsFixed(1)}K';
+    return '$coins';
+  }
 
   Future<void> _purchaseItem(BuildContext context, PowerItem item, int quantity) async {
     if (_isLoading) return;
@@ -142,40 +150,47 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
     return Scaffold(
       body: Stack(
         children: [
+          // Fondo gradiente base
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(gradient: AppTheme.darkGradient),
+            ),
+          ),
           CustomScrollView(
             slivers: [
               SliverAppBar(
                 expandedHeight: 200.0,
                 floating: false,
                 pinned: true,
-                leading: Container(), // Hide default leading
-                backgroundColor: AppTheme.darkBg,
+                leading: Container(),
+                backgroundColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
                   title: Text(widget.store.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   background: Image.network(
                     widget.store.imageUrl,
                     fit: BoxFit.cover,
-                     errorBuilder: (_,__,___) => Container(color: Colors.grey[800]),
+                    errorBuilder: (_,__,___) => Container(color: Colors.grey[800]),
                   ),
                 ),
               ),
               SliverToBoxAdapter(
                 child: Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.darkGradient,
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Productos Disponibles",
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                          Expanded(
+                            child: Text(
+                              "Productos Disponibles",
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
 
                           IconButton(
@@ -206,7 +221,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                             },
                           ),
 
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 4),
                               // Monedas
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -216,11 +231,12 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                                   border: Border.all(color: AppTheme.accentGold.withOpacity(0.5))
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.monetization_on, size: 14, color: AppTheme.accentGold),
                                     const SizedBox(width: 4),
                                     Text(
-                                      "${player?.coins ?? 0}",
+                                      _formatCoins(player?.coins ?? 0),
                                       style: const TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 13),
                                     ),
                                   ],
@@ -302,15 +318,15 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             ],
           ),
           
-          // Cyberpunk Back Button (Matching Inventory Screen)
+          // Back Button (mismo estilo que avatar_selection_screen)
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             left: 20,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -322,23 +338,22 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF0D0D0F),
+                    color: Colors.black.withOpacity(0.4),
                     border: Border.all(
-                      color: AppTheme.accentGold,
-                      width: 2.0,
+                      color: AppTheme.accentGold.withOpacity(0.6),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.accentGold.withOpacity(0.5),
+                        color: AppTheme.accentGold.withOpacity(0.1),
                         blurRadius: 8,
-                        spreadRadius: 1,
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.arrow_back,
                     color: Colors.white,
-                    size: 16,
+                    size: 20,
                   ),
                 ),
               ),
@@ -349,8 +364,25 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           if (_isLoading)
             Container(
               color: Colors.black54,
-              child: const Center(
-                child: CircularProgressIndicator(color: AppTheme.accentGold),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(color: AppTheme.accentGold),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Cargando...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(color: AppTheme.accentGold.withOpacity(0.5), blurRadius: 10),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

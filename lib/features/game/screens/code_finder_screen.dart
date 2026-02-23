@@ -164,13 +164,31 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   void _handleScannedCode(String scannedCode) {
+    // DEV: Simulated scan bypasses verification
+    if (scannedCode == "DEV_SKIP_CODE") {
+      _showSuccessDialog();
+      return;
+    }
+
     String pin = scannedCode;
     if (pin.startsWith("EVENT:")) {
       final parts = pin.split(':');
       if (parts.length >= 3) pin = parts[2];
     }
     _codeController.text = pin;
-    _verifyCode();
+    // Verify directly without showing PIN dialog (code came from scanner)
+    if (_codeController.text == widget.scenario.secretCode) {
+      _showSuccessDialog();
+    } else {
+      _shakeController.forward(from: 0.0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("El código escaneado no coincide."),
+          backgroundColor: AppTheme.dangerRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   String get _temperatureStatus {
@@ -198,18 +216,189 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   void _verifyCode() {
-    if (_codeController.text == widget.scenario.secretCode) {
-      _showSuccessDialog();
-    } else {
-      _shakeController.forward(from: 0.0);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("El código QR no coincide."),
-          backgroundColor: AppTheme.dangerRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    _showPinDialog();
+  }
+
+  void _showPinDialog() {
+    final List<TextEditingController> pinControllers = 
+        List.generate(6, (_) => TextEditingController());
+    final List<FocusNode> focusNodes = 
+        List.generate(6, (_) => FocusNode());
+    String? errorText;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        // Auto-focus first field
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          focusNodes[0].requestFocus();
+        });
+
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            void submitPin() {
+              final pin = pinControllers.map((c) => c.text).join();
+              if (pin.length < 6) {
+                setDialogState(() => errorText = 'Ingresa los 6 dígitos');
+                return;
+              }
+              _codeController.text = pin;
+              Navigator.pop(ctx);
+              if (_codeController.text == widget.scenario.secretCode) {
+                _showSuccessDialog();
+              } else {
+                _shakeController.forward(from: 0.0);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("El código no coincide."),
+                    backgroundColor: AppTheme.dangerRed,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            }
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentGold.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppTheme.accentGold.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1D),
+                    borderRadius: BorderRadius.circular(21),
+                    border: Border.all(
+                      color: AppTheme.accentGold.withOpacity(0.6),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock_open, color: AppTheme.accentGold, size: 36),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'VERIFICAR CÓDIGO',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Orbitron',
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ingresa el PIN de 6 dígitos',
+                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                      ),
+                      const SizedBox(height: 24),
+                      // 6 digit PIN fields
+                      Row(
+                        children: List.generate(6, (index) {
+                          return Expanded(
+                            child: Container(
+                              margin: EdgeInsets.only(right: index < 5 ? 6 : 0),
+                              height: 50,
+                              child: TextField(
+                                controller: pinControllers[index],
+                                focusNode: focusNodes[index],
+                                textAlign: TextAlign.center,
+                                textCapitalization: TextCapitalization.characters,
+                                keyboardType: TextInputType.text,
+                                maxLength: 1,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                decoration: InputDecoration(
+                                  counterText: '',
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.05),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(color: AppTheme.accentGold, width: 2),
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  setDialogState(() => errorText = null);
+                                  if (value.isNotEmpty && index < 5) {
+                                    focusNodes[index + 1].requestFocus();
+                                  }
+                                  // Auto-submit when all 6 digits entered
+                                  final pin = pinControllers.map((c) => c.text).join();
+                                  if (pin.length == 6) {
+                                    submitPin();
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      if (errorText != null) ...[
+                        const SizedBox(height: 12),
+                        Text(errorText!, style: const TextStyle(color: AppTheme.dangerRed, fontSize: 12)),
+                      ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(
+                                'CANCELAR',
+                                style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accentGold,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: submitPin,
+                              child: const Text('VERIFICAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      for (final c in pinControllers) c.dispose();
+      for (final f in focusNodes) f.dispose();
+    });
   }
 
   void _showSuccessDialog() {
@@ -569,7 +758,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          _temperatureColor.withOpacity(showInput ? 0.75 : 0.55),
+                          _temperatureColor.withOpacity(showInput ? 0.45 : 0.30),
                         ],
                       ),
                     ),
@@ -772,7 +961,7 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         ),
                                         onPressed: _verifyCode,
-                                        child: const Text("SOLICITAR ACCESO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        child: const Text("VERIFICAR CÓDIGO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                       ),
                                     ),
                                   ],

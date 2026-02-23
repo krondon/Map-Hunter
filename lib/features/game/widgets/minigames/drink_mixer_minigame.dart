@@ -9,6 +9,7 @@ import '../../providers/game_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
+import 'cyber_surrender_button.dart';
 import '../../../mall/screens/mall_screen.dart';
 import '../../../../shared/widgets/animated_cyber_background.dart';
 import '../race_track_widget.dart';
@@ -440,27 +441,9 @@ class _DrinkMixerMinigameState extends State<DrinkMixerMinigame> {
                 const SizedBox(height: 30),
 
                 // BOTÓN DE RENDICIÓN ABAJO
-                Padding(
-                  padding: EdgeInsets.zero,
-                  child: OutlinedButton(
-                    onPressed: _handleGiveUp,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 45),
-                      side: BorderSide(
-                          color: AppTheme.dangerRed.withOpacity(0.6), width: 1),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: Text(
-                      "RENDIRSE",
-                      style: TextStyle(
-                          color: AppTheme.dangerRed.withOpacity(0.8),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                CyberSurrenderButton(
+                  onPressed: _showOverlay ? null : _handleGiveUp,
                 ),
-                const SizedBox(height: 30),
               ],
             ),
           ),

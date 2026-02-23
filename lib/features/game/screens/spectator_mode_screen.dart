@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/spectator_feed_provider.dart';
@@ -27,6 +29,8 @@ import '../widgets/spectator_betting_pot_widget.dart'; // ADDED
 import '../widgets/my_bets_modal.dart';
 import '../services/betting_service.dart'; // ADDED
 import 'winner_celebration_screen.dart'; // ADDED: Podio redirect
+import '../../../shared/widgets/cyber_tutorial_overlay.dart';
+import '../../../shared/widgets/master_tutorial_content.dart';
 
 
 class SpectatorModeScreen extends StatefulWidget {
@@ -109,7 +113,204 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         _powerEffectProvider
             .startListening(playerProvider.currentPlayer!.gamePlayerId);
       }
+
+      _showSpectatorTutorial();
     });
+  }
+
+  void _showSpectatorTutorial({bool force = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!force) {
+      final hasSeen = prefs.getBool('has_seen_tutorial_SPECTATOR') ?? false;
+      if (hasSeen) return;
+    }
+
+    final steps = MasterTutorialContent.getStepsForSection('SPECTATOR', context);
+    if (steps.isEmpty) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => CyberTutorialOverlay(
+        steps: steps,
+        onFinish: () {
+          Navigator.pop(context);
+          prefs.setBool('has_seen_tutorial_SPECTATOR', true);
+        },
+      ),
+    );
+  }
+
+  void _showExitConfirmation() {
+    const Color accentColor = AppTheme.dGoldMain;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: anim1, curve: Curves.easeOut),
+          child: ScaleTransition(
+            scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
+            child: child,
+          ),
+        );
+      },
+      pageBuilder: (context, _, __) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: accentColor.withOpacity(0.5),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withOpacity(0.15),
+                    blurRadius: 30,
+                  ),
+                ],
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151517),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: accentColor, width: 2),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              accentColor.withOpacity(0.2),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.exit_to_app_rounded,
+                          color: accentColor,
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '¿Salir del modo espectador?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 40,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              accentColor.withOpacity(0.3),
+                              accentColor,
+                              accentColor.withOpacity(0.3),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Perderás la vista en tiempo real de la carrera.',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      // Salir button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFE33E5D), Color(0xFFB71C1C)],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE33E5D).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.exit_to_app_rounded, size: 20),
+                            label: const Text(
+                              'SALIR',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context); // Close dialog
+                              Navigator.of(context).pop(); // Exit spectator
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Cancelar
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: Colors.white70.withOpacity(0.5),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -143,159 +344,209 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       create: (_) => SpectatorFeedProvider(widget.eventId),
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0E27),
-        body: StreamBuilder<GameEvent>(
-          stream: _eventStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: AppTheme.secondaryPink));
-            }
-            
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
-            }
-            
-            if (!snapshot.hasData) {
-               return const Center(child: Text('Evento no encontrado', style: TextStyle(color: Colors.white)));
-            }
+        body: Stack(
+          children: [
+            // Background image based on day/night mode
+            Positioned.fill(
+              child: Image.asset(
+                actualDarkMode
+                    ? 'assets/images/fotogrupalnoche.png'
+                    : 'assets/images/personajesgrupal.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+            // Semi-transparent overlay to ensure legibility of content
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+              ),
+            ),
+            StreamBuilder<GameEvent>(
+              stream: _eventStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator(
+                          color: AppTheme.secondaryPink));
+                }
 
-            final event = snapshot.data!;
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.white)));
+                }
 
-            // --- REALTIME REDIRECT: When event completes → go to Podio ---
-            if (event.isCompleted && !_hasNavigatedToPodium) {
-              _hasNavigatedToPodium = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                debugPrint('🏆 SpectatorMode: Event completed. Redirecting to Podio...');
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => WinnerCelebrationScreen(
-                      eventId: widget.eventId,
-                      playerPosition: 0,
-                      totalCluesCompleted: 0,
-                      prizeWon: 0,
+                if (!snapshot.hasData) {
+                  return const Center(
+                      child: Text('Evento no encontrado',
+                          style: TextStyle(color: Colors.white)));
+                }
+
+                final event = snapshot.data!;
+
+                // --- REALTIME REDIRECT: When event completes → go to Podio ---
+                if (event.isCompleted && !_hasNavigatedToPodium) {
+                  _hasNavigatedToPodium = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    debugPrint(
+                        '🏆 SpectatorMode: Event completed. Redirecting to Podio...');
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => WinnerCelebrationScreen(
+                          eventId: widget.eventId,
+                          playerPosition: 0,
+                          totalCluesCompleted: 0,
+                          prizeWon: 0,
+                        ),
+                      ),
+                    );
+                  });
+                  return const Scaffold(
+                    backgroundColor: Colors.transparent, // Background visible during redirect
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFFFFD700)),
+                          SizedBox(height: 20),
+                          Text(
+                            '🏆 Redirigiendo al podio...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Orbitron',
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              });
-              return const Scaffold(
-                backgroundColor: Color(0xFF0A0E27),
-                body: Center(
+                  );
+                }
+                // -------------------------------------------------------
+
+                return SafeArea(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: Color(0xFFFFD700)),
-                      SizedBox(height: 20),
-                      Text(
-                        '🏆 Redirigiendo al podio...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Orbitron',
+                      // 1. Header Row with Back Button
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            CyberRingButton(
+                              size: 40,
+                              icon: Icons.arrow_back,
+                              onPressed: () => _showExitConfirmation(),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Orbitron',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 2. Body Condicional
+                      Expanded(
+                        child: Column(
+                          children: [
+                            // Banner de Victoria (Solo si terminó)
+                            if (event.isCompleted) _buildVictoryBanner(),
+
+                            // B. POTE DE APUESTAS (NUEVO)
+                            SpectatorBettingPotWidget(eventId: widget.eventId),
+
+                            // RESULTADOS DE APUESTAS (Solo si terminó)
+                            if (event.isCompleted)
+                              _buildUserWinningsSection(event.id),
+
+                            // C. Carrera en Curso / Finalizada (Race Tracker siempre visible)
+                            SizedBox(
+                              height: 300,
+                              child: Stack(
+                                children: [
+                                  _buildRaceView(),
+                                  Positioned(
+                                    top: 38,
+                                    right: 25,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.help_outline_rounded,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                      onPressed: () =>
+                                          _showSpectatorTutorial(force: true),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // C. Tabs Section (Siempre visible, pero adaptada)
+                            // Si es pending, quizás queramos ver menos cosas, pero mantendremos consistencia
+                            Expanded(
+                              flex: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.cardBg.withOpacity(0.9),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(30),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.4),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, -5),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    // El tab de inventario ahora es una pequeña franja superior si estamos en Actividad
+                                    if (_selectedTab == 0)
+                                      _buildMiniInventoryHeader(),
+
+                                    // Tabs selector principal
+                                    _buildTabSelector(),
+
+                                    // Contenido del tab
+                                    Expanded(
+                                      child: AnimatedSwitcher(
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        child: _selectedTab == 2
+                                            ? _buildStoreView()
+                                            : _selectedTab == 1
+                                                ? _rankingView(event)
+                                                : _buildLiveFeed(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              );
-            }
-            // -------------------------------------------------------
-
-            return SafeArea(
-              child: Column(
-                children: [
-                  // 1. Header Row with Back Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        Expanded(
-                          child: Text(
-                            event.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Orbitron',
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // 2. Body Condicional
-                  Expanded(
-                    child: Column(
-                      children: [
-                           // Banner de Victoria (Solo si terminó)
-                           if (event.isCompleted) _buildVictoryBanner(),
-                           
-                           // B. POTE DE APUESTAS (NUEVO)
-                           SpectatorBettingPotWidget(eventId: widget.eventId),
-
-                           // RESULTADOS DE APUESTAS (Solo si terminó)
-                           if (event.isCompleted) _buildUserWinningsSection(event.id),
-
-                           // C. Carrera en Curso / Finalizada (Race Tracker siempre visible)
-                           SizedBox(
-                             height: 300, 
-                             child: _buildRaceView(),
-                           ),
-
-                        // C. Tabs Section (Siempre visible, pero adaptada)
-                        // Si es pending, quizás queramos ver menos cosas, pero mantendremos consistencia
-                        Expanded(
-                          flex: 4,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppTheme.cardBg.withOpacity(0.9),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(30),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.4),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, -5),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                // El tab de inventario ahora es una pequeña franja superior si estamos en Actividad
-                                if (_selectedTab == 0) _buildMiniInventoryHeader(),
-          
-                                // Tabs selector principal
-                                _buildTabSelector(),
-                                
-                                // Contenido del tab
-                                Expanded(
-                                  child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 300),
-                                    child: _selectedTab == 2
-                                        ? _buildStoreView()
-                                        : _selectedTab == 1
-                                            ? _rankingView(event)
-                                            : _buildLiveFeed(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -1211,86 +1462,103 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   children: [
                     const SizedBox(height: 8),
                     // Header Row
-                    Row(
+                    // Header Row with Wrap to prevent horizontal overflow
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        const Icon(Icons.leaderboard,
-                            color: AppTheme.accentGold, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'RANKING',
-                          style: TextStyle(
-                            color: AppTheme.accentGold,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (event.status == 'pending')
-                          ElevatedButton(
-                            onPressed: () => _showBetDialog(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.accentGold,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.leaderboard,
+                                color: AppTheme.accentGold, size: 18),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'RANKING',
+                              style: TextStyle(
+                                color: AppTheme.accentGold,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                letterSpacing: 1.2,
+                              ),
                             ),
-                            child: const Text('Apostar'),
-                          )
-                        else
-                           Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                event.status == 'active' ? 'En Curso' : 'Finalizado',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                           ),
-                        const SizedBox(width: 8), // Spacing of My Bets
-                        OutlinedButton(
-                          onPressed: () => _showMyBetsDialog(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.accentGold,
-                            side: const BorderSide(color: AppTheme.accentGold),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                          ),
-                          child: const Text('Mis Apuestas'),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        Consumer<PlayerProvider>(
-                          builder: (context, playerProvider, child) {
-                            final clovers =
-                                playerProvider.currentPlayer?.clovers ?? 0;
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.primaryGradient,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Text('🍀',
-                                      style: TextStyle(fontSize: 14)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$clovers',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+                        
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (event.status == 'pending')
+                              ElevatedButton(
+                                onPressed: () => _showBetDialog(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.accentGold,
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                  minimumSize: const Size(0, 32),
+                                ),
+                                child: const Text('Apostar', style: TextStyle(fontSize: 11)),
+                              )
+                            else
+                               Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.white24),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                ],
+                                  child: Text(
+                                    event.status == 'active' ? 'En Curso' : 'Finalizado',
+                                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                  ),
+                               ),
+                            const SizedBox(width: 6),
+                            OutlinedButton(
+                              onPressed: () => _showMyBetsDialog(context),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.accentGold,
+                                side: const BorderSide(color: AppTheme.accentGold),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                                minimumSize: const Size(0, 32),
                               ),
-                            );
-                          },
+                              child: const Text('Mis Apuestas', style: TextStyle(fontSize: 11)),
+                            ),
+                            const SizedBox(width: 8),
+                            Consumer<PlayerProvider>(
+                              builder: (context, playerProvider, child) {
+                                final clovers =
+                                    playerProvider.currentPlayer?.clovers ?? 0;
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    gradient: AppTheme.primaryGradient,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Text('🍀',
+                                          style: TextStyle(fontSize: 12)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$clovers',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1305,29 +1573,37 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                           color: Colors.white.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            _buildPodiumPosition(
-                              displayLeaderboard[1],
-                              2,
-                              70,
-                              Colors.grey,
-                            ),
-                            _buildPodiumPosition(
-                              displayLeaderboard[0],
-                              1,
-                              90,
-                              AppTheme.accentGold,
-                            ),
-                            _buildPodiumPosition(
-                              displayLeaderboard[2],
-                              3,
-                              60,
-                              const Color(0xFFCD7F32),
-                            ),
-                          ],
+                        child: IntrinsicHeight(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: _buildPodiumPosition(
+                                  displayLeaderboard[1],
+                                  2,
+                                  90,
+                                  const Color(0xFFC0C0C0),
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildPodiumPosition(
+                                  displayLeaderboard[0],
+                                  1,
+                                  120,
+                                  AppTheme.accentGold,
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildPodiumPosition(
+                                  displayLeaderboard[2],
+                                  3,
+                                  70,
+                                  const Color(0xFFCD7F32),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1876,123 +2152,247 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
         return slug;
     }
   }
-  Widget _buildPodiumPosition(Player player, int position, double height, Color color) {
-    const Color currentText = Colors.white;
-    const Color currentTextSec = Colors.white70;
+  Widget _buildPodiumPosition(Player player, int position, double barHeight, Color color) {
+    String? avatarId = player.avatarId;
+    final String avatarUrl = player.avatarUrl;
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: color, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.4),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: Builder(
-                  builder: (context) {
-                    final avatarId = player.avatarId;
-                    
-                    // 1. Prioridad: Avatar Local
-                    if (avatarId != null && avatarId.isNotEmpty) {
-                      return Image.asset(
-                        'assets/images/avatars/$avatarId.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 30)),
-                      );
-                    }
-                    
-                    // 2. Fallback: Foto de perfil (URL)
-                    if (player.avatarUrl.isNotEmpty && player.avatarUrl.startsWith('http')) {
-                      return Image.network(
-                        player.avatarUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, color: Colors.white70, size: 30)),
-                      );
-                    }
-                    
-                    // 3. Fallback: Icono genérico
-                    return const Center(child: Icon(Icons.person, color: Colors.white70, size: 30));
-                  },
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
+        // Avatar with Laurel Wreath
+        SizedBox(
+          width: 82,
+          height: 82,
+          child: CustomPaint(
+            painter: _LaurelWreathPainter(color: color),
+            child: Center(
               child: Container(
-                padding: const EdgeInsets.all(4),
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: color,
                   shape: BoxShape.circle,
+                  color: Colors.black,
+                  border: Border.all(color: color, width: 2.0),
                 ),
-                child: Text(
-                  '$position',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Builder(
+                    builder: (context) {
+                      if (avatarId != null && avatarId.isNotEmpty) {
+                        return Image.asset(
+                          'assets/images/avatars/$avatarId.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.person, color: Colors.white70, size: 22),
+                        );
+                      }
+                      if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
+                        return Image.network(
+                          avatarUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                              color: Colors.white70, size: 22),
+                        );
+                      }
+                      return const Icon(Icons.person, color: Colors.white70, size: 22);
+                    },
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
+
+        // Name
         SizedBox(
           width: 80,
           child: Text(
             player.name,
             style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: currentText,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          'Lvl ${player.level}',
-          style: const TextStyle(
-            fontSize: 11,
-            color: currentTextSec,
-          ),
-        ),
-        const SizedBox(height: 8),
+
+        // Pedestal bar with position number at the bottom
         Container(
-          width: 80,
-          height: height,
+          width: double.infinity,
+          height: barHeight,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            border: Border.all(color: color, width: 2),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                color.withOpacity(0.45),
+                color.withOpacity(0.12),
+              ],
+            ),
+            border: Border(
+              top: BorderSide(color: color, width: 2),
+              left: BorderSide(color: color.withOpacity(0.3), width: 0.5),
+              right: BorderSide(color: color.withOpacity(0.3), width: 0.5),
+            ),
           ),
-          child: Center(
-            child: Text(
-              '${player.totalXP} Pistas',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: color,
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Text(
+                '$position',
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.w900,
+                  height: 0.8,
+                  color: color.withOpacity(0.7),
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Custom painter that draws a laurel wreath around the avatar matching the reference design
+class _LaurelWreathPainter extends CustomPainter {
+  final Color color;
+
+  _LaurelWreathPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width / 2) - 2;
+
+    final stemPaint = Paint()
+      ..color = color.withOpacity(0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8;
+
+    final leafPaint = Paint()
+      ..color = color.withOpacity(0.85)
+      ..style = PaintingStyle.fill;
+
+    // Draw U-shaped stem arc (open at the top) - brought closer to avatar
+    final rect = Rect.fromCircle(center: center, radius: radius * 0.68);
+    // Start at ~1:30 o'clock and sweep through the bottom to ~10:30 o'clock
+    canvas.drawArc(rect, -4/14 * math.pi, 22/14 * math.pi, false, stemPaint);
+
+    // Draw leaves in a circular "clock" distribution with a gap at the top
+    final int totalLeaves = 14; 
+    for (int i = 0; i < totalLeaves; i++) {
+      // Skip the top 3 positions to leave it open at the top (11, 12, 1 o'clock)
+      if (i == 0 || i == 1 || i == totalLeaves - 1) continue;
+      
+      // Distribute evenly around the circle
+      final angle = (2 * math.pi * i / totalLeaves) - math.pi / 2;
+      
+      _drawReferenceLeaf(canvas, center, radius * 0.68, angle, leafPaint, isOuter: true);
+      _drawReferenceLeaf(canvas, center, radius * 0.68, angle, leafPaint, isOuter: false);
+    }
+  }
+
+  void _drawReferenceLeaf(
+      Canvas canvas, Offset center, double radius, double angle, Paint paint,
+      {required bool isOuter}) {
+    final x = center.dx + radius * math.cos(angle);
+    final y = center.dy + radius * math.sin(angle);
+
+    canvas.save();
+    canvas.translate(x, y);
+
+    // Point leaf radially with a strong tilt to the right (+0.5 math.radians)
+    double rotation = isOuter ? angle + 0.5 : angle + math.pi + 0.5;
+    
+    canvas.rotate(rotation + math.pi / 2);
+
+    // Make inner leaves slightly smaller for better aesthetics
+    final scale = isOuter ? 1.0 : 0.75;
+    canvas.scale(scale, scale);
+
+    final path = Path();
+    final len = 13.0;
+    final width = 5.0;
+
+    // Pointed oval leaf (wider in middle, sharp tip)
+    path.moveTo(0, 0);
+    path.quadraticBezierTo(width * 1.2, -len * 0.45, 0, -len); // Outer curve
+    path.quadraticBezierTo(-width * 1.2, -len * 0.45, 0, 0); // Inner curve
+    path.close();
+
+    canvas.drawPath(path, paint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class CyberRingButton extends StatelessWidget {
+  final double size;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color color;
+
+  const CyberRingButton({
+    super.key,
+    required this.size,
+    required this.icon,
+    this.onPressed,
+    this.color = const Color(0xFFFECB00),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: size,
+        height: size,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1.0,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withOpacity(0.4),
+            border: Border.all(
+              color: color.withOpacity(0.6),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.1),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: size * 0.55,
+          ),
+        ),
+      ),
     );
   }
 }

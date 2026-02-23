@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/models/player.dart';
@@ -108,47 +109,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
                       children: [
-                        // Cyberpunk Back Button
-                        Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Container(
-                              width: 42,
-                              height: 42,
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppTheme.accentGold.withOpacity(0.3),
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF0D0D0F),
-                                  border: Border.all(
-                                    color: AppTheme.accentGold,
-                                    width: 2.0,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppTheme.accentGold.withOpacity(0.5),
-                                      blurRadius: 8,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+
+
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,30 +160,55 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A1D), // Explicitly dark
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.2)),
-                          ),
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.inventory_2,
-                                color: AppTheme.secondaryPink,
-                                size: 28,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D0D0F).withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppTheme.secondaryPink.withOpacity(0.6),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.secondaryPink.withOpacity(0.1),
+                                    blurRadius: 12,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${player.inventory.length}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Colors.white,
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(13),
+                                  border: Border.all(
+                                    color: AppTheme.secondaryPink.withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const Icon(
+                                      Icons.inventory_2,
+                                      color: AppTheme.secondaryPink,
+                                      size: 28,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${player.inventory.length}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ],

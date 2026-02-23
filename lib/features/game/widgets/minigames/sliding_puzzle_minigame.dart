@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -9,6 +10,7 @@ import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 import 'game_over_overlay.dart';
+import 'cyber_surrender_button.dart';
 import '../../../mall/screens/mall_screen.dart';
 
 class SlidingPuzzleMinigame extends StatefulWidget {
@@ -281,13 +283,22 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                     aspectRatio: 1,
                     child: Container(
                       margin: const EdgeInsets.all(20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                          child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          color: AppTheme.cardBg,
+                          color: Colors.white.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.15),
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withOpacity(0.2),
                                 blurRadius: 10)
                           ]),
                       child: GridView.builder(
@@ -339,27 +350,14 @@ class _SlidingPuzzleMinigameState extends State<SlidingPuzzleMinigame> {
                     ),
                   ),
                 ),
+                ),
+                ),
+                ),
               ),
 
               // Controles Inferiores
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _showOverlay
-                        ? null
-                        : _handleGiveUp, // Disable if overlay is up
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.cardBg,
-                      foregroundColor: AppTheme.dangerRed,
-                      side: const BorderSide(color: AppTheme.dangerRed),
-                    ),
-                    icon: const Icon(Icons.flag_outlined),
-                    label: const Text("RENDIRSE"),
-                  ),
-                ),
+              CyberSurrenderButton(
+                onPressed: _showOverlay ? null : _handleGiveUp,
               )
             ],
           ),

@@ -94,10 +94,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
         _DialogOption(
           icon: Icons.swap_horiz_rounded,
           label: 'CAMBIAR MODO',
-          gradientColors: isDarkMode
-              ? [AppTheme.dGoldMain, const Color(0xFFE5A700)]
-              : [AppTheme.lBrandMain, const Color(0xFF7B2CBF)],
-          textColor: isDarkMode ? Colors.black : Colors.white,
+          gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+          textColor: Colors.black,
           onTap: () {
             Navigator.pop(context);
             Navigator.of(context).pushAndRemoveUntil(
@@ -128,14 +126,11 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     required bool isDarkMode,
     required List<_DialogOption> options,
   }) {
-    final Color surfaceColor = isDarkMode
-        ? Colors.black.withOpacity(0.75)
-        : Colors.white.withOpacity(0.85);
-    final Color textColor = isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color textSecColor =
-        isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
-    final Color accentColor =
-        isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain;
+    // FORCED DARK: Always use dark cyberpunk styling for this dialog
+    final Color surfaceColor = const Color(0xFF151517).withOpacity(0.95);
+    final Color textColor = Colors.white;
+    final Color textSecColor = Colors.white70;
+    final Color accentColor = AppTheme.dGoldMain;
 
     showGeneralDialog(
       context: context,
@@ -159,145 +154,144 @@ class _ScenariosScreenState extends State<ScenariosScreen>
         return Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: accentColor.withOpacity(0.4),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withOpacity(0.15),
-                        blurRadius: 30,
-                        spreadRadius: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: accentColor.withOpacity(0.5),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withOpacity(0.15),
+                    blurRadius: 30,
+                  ),
+                ],
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151517),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: accentColor, width: 2),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon with glow
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              accentColor.withOpacity(0.2),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.games_rounded,
+                          color: accentColor,
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Title
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      // Accent line
+                      Container(
+                        width: 40,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              accentColor.withOpacity(0.3),
+                              accentColor,
+                              accentColor.withOpacity(0.3)
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Subtitle
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: textSecColor,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      // Option buttons
+                      ...options.map((opt) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                      colors: opt.gradientColors),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: opt.gradientColors.first
+                                          .withOpacity(0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  icon: Icon(opt.icon, size: 20),
+                                  label: Text(opt.label,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          letterSpacing: 1)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: opt.textColor,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
+                                  ),
+                                  onPressed: opt.onTap,
+                                ),
+                              ),
+                            ),
+                          )),
+                      // Cancel
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: textSecColor.withOpacity(0.5),
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Icon with glow
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  accentColor.withOpacity(0.2),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.games_rounded,
-                              color: accentColor,
-                              size: 40,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          // Title
-                          Text(
-                            title,
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          // Accent line
-                          Container(
-                            width: 40,
-                            height: 3,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  accentColor.withOpacity(0.3),
-                                  accentColor,
-                                  accentColor.withOpacity(0.3)
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          // Subtitle
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              color: textSecColor,
-                              fontSize: 14,
-                              height: 1.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          // Option buttons
-                          ...options.map((opt) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: 48,
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                          colors: opt.gradientColors),
-                                      borderRadius: BorderRadius.circular(14),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: opt.gradientColors.first
-                                              .withOpacity(0.3),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton.icon(
-                                      icon: Icon(opt.icon, size: 20),
-                                      label: Text(opt.label,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                              letterSpacing: 1)),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.transparent,
-                                        shadowColor: Colors.transparent,
-                                        foregroundColor: opt.textColor,
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(14)),
-                                      ),
-                                      onPressed: opt.onTap,
-                                    ),
-                                  ),
-                                ),
-                              )),
-                          // Cancel
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'Cancelar',
-                              style: TextStyle(
-                                color: textSecColor.withOpacity(0.5),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -1863,10 +1857,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             _DialogOption(
               icon: Icons.swap_horiz_rounded,
               label: 'CAMBIAR MODO',
-              gradientColors: isDarkMode
-                  ? [AppTheme.dGoldMain, const Color(0xFFE5A700)]
-                  : [AppTheme.lBrandMain, const Color(0xFF7B2CBF)],
-              textColor: isDarkMode ? Colors.black : Colors.white,
+              gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+              textColor: Colors.black,
               onTap: () {
                 Navigator.pop(context);
                 Navigator.of(context).pushAndRemoveUntil(
