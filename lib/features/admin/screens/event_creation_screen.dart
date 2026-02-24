@@ -1342,11 +1342,35 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                       "${store.products.length} productos",
                                       style: const TextStyle(
                                           color: Colors.white70)),
-                                  trailing: IconButton(
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () =>
-                                          provider.removePendingStore(index)),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.accentGold,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(Icons.qr_code_2,
+                                              color: Colors.black, size: 20),
+                                          tooltip: 'Ver QR de la tienda',
+                                          onPressed: () {
+                                            _showQRDialog(
+                                              store.qrCodeData,
+                                              store.name,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () =>
+                                            provider.removePendingStore(index),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

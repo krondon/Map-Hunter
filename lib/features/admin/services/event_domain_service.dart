@@ -55,7 +55,7 @@ class EventDomainService {
       description:
           'Tienda oficial para este evento online. ¡Adquiere poderes aquí!',
       imageUrl: '',
-      qrCodeData: 'ONLINE_STORE_$eventId',
+      qrCodeData: 'STORE:${eventId}:online',
       products: products,
     );
   }
