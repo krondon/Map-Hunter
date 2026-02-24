@@ -89,14 +89,46 @@ class GameService {
       {String? currentUserId}) async {
     try {
       // 1. Obtener la lista base del ranking desde la tabla game_players (reemplaza vista faltante)
+      //    ORDER: completed_clues_count DESC (más pistas = mejor),
+      //           last_active ASC (quien llegó primero a esa pista queda arriba)
       final List<dynamic> leaderboardData = await _supabase
           .from('game_players')
           .select(
-              'game_player_id:id, user_id, coins, completed_clues:completed_clues_count, status') // Added status for debug
+              'game_player_id:id, user_id, coins, completed_clues_count, status, is_protected, last_active')
           .eq('event_id', eventId)
           .neq('status', 'spectator')
           .order('completed_clues_count', ascending: false)
+          .order('last_active', ascending: true)
           .limit(50);
+
+      // --- INVISIBILITY FILTER --- 
+      // Fetch currently invisible players to exclude them from the list
+      try {
+        final invisiblePlayers = await _supabase
+           .from('active_powers')
+           .select('target_id')
+           .eq('event_id', eventId)
+           .eq('power_slug', 'invisibility')
+           .gt('expires_at', DateTime.now().toUtc().toIso8601String());
+        
+        final Set<String> invisibleIds = invisiblePlayers.map((e) => e['target_id']?.toString() ?? '').toSet();
+        
+        if (invisibleIds.isNotEmpty) {
+           // Remove invisible players from the main list (unless it's ME checking my own rank?)
+           // Requirement: "demás usuarios pueden verlo... debería de no aparecer"
+           // Usually I should still see MYSELF even if invisible.
+           leaderboardData.removeWhere((p) {
+              final pid = p['game_player_id']?.toString() ?? p['id']?.toString();
+              // Keep myself visible to me
+              final uid = p['user_id']?.toString();
+              if (currentUserId != null && uid == currentUserId) return false;
+              
+              return invisibleIds.contains(pid);
+           });
+        }
+      } catch (e) {
+        debugPrint('Error filtering invisible players: $e');
+      }
 
       debugPrint(
           "📊 getLeaderboard: eventId=$eventId, found ${leaderboardData.length} entries");
@@ -115,14 +147,19 @@ class GameService {
             final myData = await _supabase
                 .from('game_players')
                 .select(
-                    'game_player_id:id, user_id, coins, completed_clues:completed_clues_count, status')
+                    'game_player_id:id, user_id, coins, completed_clues_count, status, last_active')
                 .eq('event_id', eventId)
                 .eq('user_id', currentUserId)
                 .maybeSingle();
 
             if (myData != null) {
-              leaderboardData.add(myData);
-              debugPrint("👻 Current user added to leaderboard list.");
+              // FIX: Ensure we don't inject spectators into the race view
+              if (myData['status'] != 'spectator') {
+                leaderboardData.add(myData);
+                debugPrint("👻 Current user added to leaderboard list.");
+              } else {
+                 debugPrint("👻 Current user found but is SPECTATOR. Not adding to race view.");
+              }
             } else {
               debugPrint(
                   "⚠️ Current user has NO game_player record for this event.");
@@ -135,6 +172,7 @@ class GameService {
 
       if (leaderboardData.isNotEmpty) {
         debugPrint("📊 Sample Entry: ${leaderboardData.first}");
+        debugPrint("📊 Sample completed_clues_count: ${leaderboardData.first['completed_clues_count']}");
       } else {
         debugPrint("⚠️ getLeaderboard: NO DATA FOUND for event $eventId");
       }
@@ -165,8 +203,11 @@ class GameService {
 
         // Normalización de IDs obligatoria
         if (json['id'] == null) json['id'] = uid;
-        if (json['total_xp'] == null)
-          json['total_xp'] = json['completed_clues'];
+        // Map completed_clues_count to all expected keys
+        final int clueCount = json['completed_clues_count'] ?? json['completed_clues'] ?? 0;
+        json['total_xp'] = clueCount;
+        json['completed_clues'] = clueCount;
+        json['completed_clues_count'] = clueCount;
 
         // Inyectar datos del perfil si existen
         if (profilesMap.containsKey(uid)) {
@@ -233,15 +274,8 @@ class GameService {
               onProgressUpdate();
             }
 
-            final newRecord = payload.newRecord;
-            if (totalClues > 0) {
-              final int completed = newRecord['completed_clues_count'] ??
-                  newRecord['completed_clues'] ??
-                  0;
-              if (completed >= totalClues) {
-                onRaceCompleted(true, 'Realtime Subscription');
-              }
-            }
+            // REMOVED: Do not complete race locally based on individual progress.
+            // Race completion is now ONLY authoritative via the 'events' table status.
           },
         )
         // 2. Escuchar cambios en el evento (Finalización Global)
@@ -453,7 +487,7 @@ class GameService {
     try {
       final response = await _supabase
           .from('game_players')
-          .select('id, event_id, lives, completed_clues_count')
+          .select('id, event_id, lives, completed_clues_count, is_protected')
           .eq('user_id', userId)
           .order('joined_at', ascending: false)
           .limit(1)
@@ -554,6 +588,53 @@ class GameService {
     } catch (e) {
       debugPrint('GameService: Error fetching minigame true/false: $e');
       return [];
+    }
+  }
+  /// Obtiene el estado de un game_player específico por su ID.
+  /// Retorna el string del estado ('active', 'spectator', etc) o null si no existe.
+  Future<String?> getGamePlayerStatus(String gamePlayerId) async {
+    try {
+      final response = await _supabase
+          .from('game_players')
+          .select('status')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['status'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('GameService: Error getting game player status: $e');
+      return null;
+    }
+  }
+
+  /// Obtiene el nombre de un game_player específico por su ID.
+  Future<String?> getPlayerName(String gamePlayerId) async {
+    try {
+      // 1. Get user_id from game_players
+      final gp = await _supabase
+          .from('game_players')
+          .select('user_id')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
+      
+      if (gp == null) return null;
+      
+      final userId = gp['user_id'];
+      
+      // 2. Get name from profiles
+      final profile = await _supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', userId)
+          .maybeSingle();
+          
+      return profile?['name'] as String?;
+    } catch (e) {
+      debugPrint('GameService: Error getting player name: $e');
+      return null;
     }
   }
 }

@@ -10,16 +10,21 @@ class GameEvent {
   final DateTime date;
   final String createdByAdminId;
   final String imageUrl;
-  final String clue;        // <--- CAMBIO: Ahora es obligatorio (Pista de victoria)
+  final String clue; // <--- CAMBIO: Ahora es obligatorio (Pista de victoria)
   final int maxParticipants;
   final String pin;
-  final String status;      // Status: 'pending', 'active', 'completed'
+  final String status; // Status: 'pending', 'active', 'completed'
   final DateTime? completedAt;
   final String? winnerId;
   final String type;
   final int entryFee;
   final int currentParticipants;
-  final int configuredWinners; // NEW: Controls how many people get prizes (1, 2, or 3)
+  final int
+      configuredWinners; // NEW: Controls how many people get prizes (1, 2, or 3)
+  final int pot; // NEW: Total accumulated pot from DB
+  final Map<String, dynamic> spectatorConfig; // NEW: Spectator pricing
+  final int betTicketPrice; // NEW: Price per bet
+  final String? sponsorId; // NEW: Linked Sponsor
 
   GameEvent({
     required this.id,
@@ -30,7 +35,7 @@ class GameEvent {
     required this.longitude,
     required this.date,
     required this.createdByAdminId,
-    required this.clue,     // <--- CAMBIO: Ahora es 'required'
+    required this.clue, // <--- CAMBIO: Ahora es 'required'
     this.imageUrl = '',
     this.maxParticipants = 0,
     this.pin = '',
@@ -41,10 +46,14 @@ class GameEvent {
     this.entryFee = 0,
     this.currentParticipants = 0,
     this.configuredWinners = 3,
+    this.pot = 0, // NEW: Initialize
+    this.spectatorConfig = const {}, // NEW
+    this.betTicketPrice = 100, // NEW
+    this.sponsorId, // NEW
   });
 
   LatLng get location => LatLng(latitude, longitude);
-  
+
   bool get isCompleted => status == 'completed';
   bool get isActive => status == 'active';
   bool get isPending => status == 'pending';
@@ -55,8 +64,12 @@ class GameEvent {
       title: json['title'] as String,
       description: json['description'] as String,
       locationName: json['location_name'] ?? '',
-      latitude: (json['latitude'] is num) ? (json['latitude'] as num).toDouble() : 0.0,
-      longitude: (json['longitude'] is num) ? (json['longitude'] as num).toDouble() : 0.0,
+      latitude: (json['latitude'] is num)
+          ? (json['latitude'] as num).toDouble()
+          : 0.0,
+      longitude: (json['longitude'] is num)
+          ? (json['longitude'] as num).toDouble()
+          : 0.0,
       date: DateTime.parse(json['date']),
       createdByAdminId: json['created_by_admin_id'] ?? '',
       clue: json['clue'] ?? '',
@@ -64,12 +77,20 @@ class GameEvent {
       maxParticipants: (json['max_participants'] as num?)?.toInt() ?? 0,
       pin: json['pin'] ?? '',
       status: json['status'] ?? 'pending',
-      completedAt: json['completed_at'] != null ? DateTime.parse(json['completed_at']) : null,
+      completedAt: json['completed_at'] != null
+          ? DateTime.parse(json['completed_at'])
+          : null,
       winnerId: json['winner_id'],
       type: json['type'] ?? 'on_site',
       entryFee: (json['entry_fee'] as num?)?.toInt() ?? 0,
       currentParticipants: (json['current_participants'] as num?)?.toInt() ?? 0,
       configuredWinners: (json['configured_winners'] as num?)?.toInt() ?? 3,
+      pot: (json['pot'] as num?)?.toInt() ?? 0, // NEW: Read from DB
+      spectatorConfig: json['spectator_config'] != null
+          ? Map<String, dynamic>.from(json['spectator_config'])
+          : {}, // NEW
+      betTicketPrice: (json['bet_ticket_price'] as num?)?.toInt() ?? 100, // NEW
+      sponsorId: json['sponsor_id'] as String?, // NEW
     );
   }
 
@@ -93,6 +114,10 @@ class GameEvent {
       'type': type,
       'entry_fee': entryFee,
       'current_participants': currentParticipants,
+      'configured_winners': configuredWinners, // NEW
+      'pot': pot, // NEW: Include pot in serialization
+      'spectator_config': spectatorConfig, // NEW
+      'sponsor_id': sponsorId, // NEW
     };
   }
 }

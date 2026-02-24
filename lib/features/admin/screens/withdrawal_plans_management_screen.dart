@@ -28,6 +28,7 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
   double _exchangeRate = 0.0;
   bool _isLoadingRate = true;
   bool _isUpdatingRate = false;
+  bool _isBcvRateValid = true; // Fail-safe: assume valid until checked
   final _rateController = TextEditingController();
 
   @override
@@ -54,10 +55,14 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
   Future<void> _loadExchangeRate() async {
     setState(() => _isLoadingRate = true);
     try {
-      final rate = await _configService.getExchangeRate();
+      final results = await Future.wait([
+        _configService.getExchangeRate(),
+        _configService.isBcvRateValid(),
+      ]);
       setState(() {
-        _exchangeRate = rate;
-        _rateController.text = rate.toStringAsFixed(2);
+        _exchangeRate = results[0] as double;
+        _isBcvRateValid = results[1] as bool;
+        _rateController.text = _exchangeRate.toStringAsFixed(2);
         _isLoadingRate = false;
       });
     } catch (e) {
@@ -413,17 +418,42 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
           const SizedBox(height: 16),
           if (_isLoadingRate)
             const Center(child: CircularProgressIndicator(color: AppTheme.accentGold))
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${_exchangeRate.toStringAsFixed(2)} Bs/USD',
-                    style: const TextStyle(color: AppTheme.accentGold, fontSize: 28, fontWeight: FontWeight.bold),
+          else ...
+            [
+              // ── FAIL-SAFE: Stale Rate Warning ──
+              if (!_isBcvRateValid)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '⚠️ TASA DESACTUALIZADA — Los retiros están bloqueados. Actualiza la tasa para reactivar.',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${_exchangeRate.toStringAsFixed(2)} Bs/USD',
+                      style: const TextStyle(color: AppTheme.accentGold, fontSize: 28, fontWeight: FontWeight.bold),
+                    ),
+                  ),
               ],
             ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [

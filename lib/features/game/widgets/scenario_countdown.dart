@@ -54,21 +54,55 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
   @override
   Widget build(BuildContext context) {
     if (_isStarted) {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
-        ),
-        child: const Text(
-          "EN CURSO",
-          style: TextStyle(
-            color: Colors.greenAccent,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-            letterSpacing: 1,
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.greenAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.greenAccent.withOpacity(0.5), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.greenAccent.withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                )
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.greenAccent,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.greenAccent,
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  "EN CURSO",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontFamily: 'Orbitron',
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -77,8 +111,7 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
     if (_timeLeft == null) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.8),
         borderRadius: BorderRadius.circular(30),
@@ -87,14 +120,14 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
-          const SizedBox(width: 8),
+          const Icon(Icons.timer_outlined, color: Colors.white, size: 16),
+          const SizedBox(width: 6),
           Text(
             "${_timeLeft!.inDays}d ${_timeLeft!.inHours % 24}h ${_timeLeft!.inMinutes % 60}m ${_timeLeft!.inSeconds % 60}s",
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 13,
               fontFeatures: [FontFeature.tabularFigures()],
               letterSpacing: 1.0,
             ),

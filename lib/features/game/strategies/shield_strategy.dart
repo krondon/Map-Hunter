@@ -24,7 +24,7 @@ class ShieldStrategy implements PowerStrategy {
   }) async {
     final response = await _supabase.rpc('use_power_mechanic', params: {
       'p_caster_id': casterId,
-      'p_target_id': casterId, // Shield targets self
+      'p_target_id': targetId, // Fix: Target the intended recipient (Self or Other)
       'p_power_slug': slug,
     });
     return PowerUseResponse.fromRpcResponse(response);

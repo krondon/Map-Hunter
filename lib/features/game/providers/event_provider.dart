@@ -120,9 +120,9 @@ class EventProvider with ChangeNotifier {
   }
 
   // Obtener eventos
-  Future<void> fetchEvents() async {
+  Future<void> fetchEvents({String? type}) async {
     try {
-      _events = await _eventService.fetchEvents();
+      _events = await _eventService.fetchEvents(type: type);
       notifyListeners();
     } catch (e) {
       debugPrint('Error obteniendo eventos: $e');

@@ -210,8 +210,11 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
 
   @override
   Widget build(BuildContext context) {
+    const Color dGoldMain = Color(0xFFFECB00);
+    const Color dGoldLight = Color(0xFFFFF176);
+
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: const Color(0xFF0D0D0F),
       body: Stack(
         children: [
           // 1. Imagen de fondo base (Universal para evitar el pop visual)
@@ -277,67 +280,56 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
           SafeArea(
             child: Column(
               children: [
-                // Back Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white24),
-                          ),
-                          child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // // Back Button (Estilo Congelado/Segmentado)
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                //   child: Row(
+                //     children: [
+                //       CyberRingButton(
+                //         size: 48,
+                //         icon: Icons.arrow_back,
+                //         onPressed: () => Navigator.of(context).pop(),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 
-                const SizedBox(height: 10),
+                // const SizedBox(height: 10),
                 
-                // Header
+                // Header Cyberpunk
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primaryPurple.withOpacity(0.15),
-                        Colors.transparent,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
                   child: Column(
                     children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
-                        child: const Icon(
-                          Icons.person_search_outlined, 
-                          size: 50, 
-                          color: Colors.white,
+                      const Icon(
+                        Icons.person_search_rounded, 
+                        size: 50, 
+                        color: dGoldMain,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'ELIGE TU IDENTIDAD',
+                        style: TextStyle(
+                          fontFamily: 'Orbitron',
+                          fontSize: 24,
+                          letterSpacing: 2,
+                          color: dGoldMain,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: dGoldMain,
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      ShaderMask(
-                        shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
-                        child: Text(
-                          'ELIGE TU CAZADOR',
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            fontSize: 26,
-                            letterSpacing: 3,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(
-                                color: AppTheme.primaryPurple.withOpacity(0.6),
-                                blurRadius: 20,
-                              ),
-                            ],
+                      const SizedBox(height: 4),
+                      Container(
+                        height: 2,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.transparent, dGoldMain, Colors.transparent],
                           ),
                         ),
                       ),
@@ -370,21 +362,23 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
+                                  // Avatar Image with Hover Effect
                                   AnimatedBuilder(
                                     animation: _hoverController,
                                     builder: (context, child) {
                                       final double offset = isSelected 
-                                        ? Curves.easeInOut.transform(_hoverController.value) * 10 
+                                        ? Curves.easeInOut.transform(_hoverController.value) * 15 
                                         : 0;
                                       return Transform.translate(
                                         offset: Offset(0, -offset),
                                         child: child,
                                       );
                                     },
-                                    child: SizedBox(
-                                      height: 150,
-                                      width: 150,
-                                      child: Image.asset(
+                                      child: Container(
+                                        height: 200,
+                                        width: 200,
+                                        decoration: null,
+                                        child: Image.asset(
                                         'assets/images/avatars/${avatar['id']}.png',
                                         fit: BoxFit.contain,
                                         errorBuilder: (_, __, ___) => const Icon(
@@ -396,38 +390,27 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                                     ),
                                   ),
                                   const SizedBox(height: 30),
-                                  ShaderMask(
-                                    shaderCallback: (bounds) => isSelected
-                                        ? AppTheme.primaryGradient.createShader(bounds)
-                                        : LinearGradient(
-                                            colors: [Colors.white70, Colors.white70],
-                                          ).createShader(bounds),
-                                    child: Text(
-                                      avatar['name']!,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: isSelected ? 28 : 24,
-                                        letterSpacing: 2,
-                                        shadows: isSelected ? [
-                                          Shadow(
-                                            color: AppTheme.primaryPurple.withOpacity(0.5),
-                                            blurRadius: 10,
-                                          ),
-                                        ] : [],
-                                      ),
+                                  Text(
+                                    avatar['name']!,
+                                    style: TextStyle(
+                                      fontFamily: 'Orbitron',
+                                      color: isSelected ? dGoldMain : Colors.white70,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: isSelected ? 26 : 22,
+                                      letterSpacing: 2,
+                                      shadows: const [],
                                     ),
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                                    padding: const EdgeInsets.symmetric(horizontal: 50),
                                     child: Text(
                                       avatar['desc']!,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: isSelected ? Colors.white70 : Colors.white54,
-                                        fontSize: 16,
-                                        height: 1.4,
+                                        color: isSelected ? Colors.white : Colors.white54,
+                                        fontSize: 14,
+                                        height: 1.5,
                                       ),
                                     ),
                                   ),
@@ -438,18 +421,20 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                         },
                       ),
                       
-                      // Flechas siempre visibles
+                      // Flechas de Navegación (Estilo Congelado)
                       Positioned(
-                        left: 10,
-                        child: _buildArrowButton(
-                          icon: Icons.arrow_back_ios_new,
+                        left: 15,
+                        child: CyberRingButton(
+                          size: 48,
+                          icon: Icons.arrow_back,
                           onPressed: _previousPage,
                         ),
                       ),
                       Positioned(
-                        right: 10,
-                        child: _buildArrowButton(
-                          icon: Icons.arrow_forward_ios,
+                        right: 15,
+                        child: CyberRingButton(
+                          size: 48,
+                          icon: Icons.arrow_forward,
                           onPressed: _nextPage,
                         ),
                       ),
@@ -457,43 +442,62 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                   ),
                 ),
                 
-                // Confirm Button
+                // Confirm Button (Doble Borde Estilo Premium)
                 Padding(
-                  padding: const EdgeInsets.all(40),
+                  padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
                   child: Container(
-                    width: double.infinity,
-                    height: 60,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      gradient: AppTheme.primaryGradient,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryPurple.withOpacity(0.5),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: dGoldMain.withOpacity(0.4), width: 1),
                     ),
-                    child: ElevatedButton(
-                      onPressed: !_isSaving ? _handleConfirm : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+                    child: Container(
+                      width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [dGoldLight, dGoldMain],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                      ),
-                      child: _isSaving 
-                        ? const LoadingIndicator(fontSize: 14, color: Colors.white)
-                        : const Text(
-                            'CONFIRMAR IDENTIDAD',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold, 
-                              letterSpacing: 2, 
-                              fontSize: 16,
-                            ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: dGoldMain, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: dGoldMain.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: !_isSaving ? _handleConfirm : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.black,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isSaving 
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                              ),
+                            )
+                          : const Text(
+                              'CONFIRMAR IDENTIDAD',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900, 
+                                letterSpacing: 1.5, 
+                                fontSize: 16,
+                              ),
+                            ),
+                      ),
                     ),
                   ),
                 ),
@@ -505,29 +509,65 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
     );
   }
 
-  Widget _buildArrowButton({
-    required IconData icon,
-    required VoidCallback? onPressed,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: AppTheme.primaryGradient,
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.4),
-            blurRadius: 15,
-            spreadRadius: 2,
+  // Método _buildArrowButton removido a favor de CyberRingButton
+}
+
+class CyberRingButton extends StatelessWidget {
+  final double size;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color color;
+
+  const CyberRingButton({
+    super.key,
+    required this.size,
+    required this.icon,
+    this.onPressed,
+    this.color = const Color(0xFFFECB00),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: size,
+        height: size,
+        padding: const EdgeInsets.all(2), // Espacio para el anillo exterior
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1.0,
           ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white, size: 30),
-        onPressed: onPressed,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withOpacity(0.4),
+            border: Border.all(
+              color: color.withOpacity(0.6),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.1),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: size * 0.55,
+          ),
+        ),
       ),
     );
   }
 }
+
+// Eliminado el RingPainter fragmentado para volver al estilo sólido anterior.
 
 class ParticlePainter extends CustomPainter {
   final double animationValue;

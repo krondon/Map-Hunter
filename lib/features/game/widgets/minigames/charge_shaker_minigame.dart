@@ -7,6 +7,7 @@ import '../../utils/minigame_logic_helper.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../../mall/screens/mall_screen.dart';
@@ -97,6 +98,13 @@ class _ChargeShakerMinigameState extends State<ChargeShakerMinigame>
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return;
 
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
+
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
       } else {
@@ -112,6 +120,13 @@ class _ChargeShakerMinigameState extends State<ChargeShakerMinigame>
     _decayTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!mounted || _isGameOver) return;
 
+      // [FIX] Pause decay if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
+
       setState(() {
         if (_currentCharge > 0) {
           _currentCharge = max(0.0, _currentCharge - _decayRate);
@@ -126,6 +141,11 @@ class _ChargeShakerMinigameState extends State<ChargeShakerMinigame>
     _accelerometerSubscription =
         userAccelerometerEvents.listen((UserAccelerometerEvent event) {
       if (_isGameOver) return;
+
+      // [FIX] Ignore shakes if offline
+      final connectivity =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivity.isOnline) return;
 
       // Simple shake detection
       // Calculate magnitude of acceleration vector

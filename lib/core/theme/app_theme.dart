@@ -42,6 +42,10 @@ class AppTheme {
   static const Color secondaryPink = Color(0xFFD42AB3);
   static const Color warningOrange = Color(0xFFFF9F43);
   static const Color neonGreen = Color(0xFF00D9A3);
+  
+  // Aliases for compatibility
+  static const Color surfaceDark = dSurface1;
+  static const Color accentGreen = neonGreen;
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryPurple, secondaryPink],
@@ -62,31 +66,24 @@ class AppTheme {
   );
 
   static LinearGradient mainGradient(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return isDark 
-      ? const LinearGradient(
-          colors: [dSurface0, dSurface1],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        )
-      : const LinearGradient(
-          colors: [lSurface0, Color(0xFFE0E0E6)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        );
+    // Always dark gradient — UI is always dark-styled
+    return const LinearGradient(
+      colors: [dSurface0, dSurface1],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
   }
 
   static ThemeData get darkTheme => _buildTheme(Brightness.dark);
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
 
   static ThemeData _buildTheme(Brightness brightness) {
-    final bool isDark = brightness == Brightness.dark;
-    
-    final Color bg = isDark ? dSurface0 : lSurface0;
-    final Color surface = isDark ? dSurface1 : lSurface1;
-    final Color primary = isDark ? dBrandMain : lBrandMain;
-    final Color textColor = isDark ? Colors.white : const Color(0xFF1A1A1D);
-    final Color textSec = isDark ? Colors.white70 : const Color(0xFF4A4A5A);
+    // UI is always dark-styled — brightness only affects system overlays
+    const Color bg = dSurface0;
+    const Color surface = dSurface1;
+    const Color primary = dBrandMain;
+    const Color textColor = Colors.white;
+    final Color textSec = Colors.white70;
 
     return ThemeData(
       brightness: brightness,
@@ -95,26 +92,26 @@ class AppTheme {
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: primary,
-        secondary: isDark ? dGoldMain : lGoldAction,
+        secondary: dGoldMain,
         surface: surface,
         background: bg,
         error: dangerRed,
         onPrimary: Colors.white,
-        onSecondary: isDark ? Colors.black : Colors.white,
+        onSecondary: Colors.black,
         onSurface: textColor,
         onBackground: textColor,
         onError: Colors.white,
       ),
       textTheme: TextTheme(
-        displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor),
-        displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
+        displayLarge: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor),
+        displayMedium: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor),
         bodyLarge: TextStyle(fontSize: 16, color: textSec),
         bodyMedium: TextStyle(fontSize: 14, color: textSec),
         labelLarge: const TextStyle(fontWeight: FontWeight.bold),
       ),
       cardTheme: CardThemeData(
         color: surface,
-        elevation: isDark ? 0 : 2,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -128,9 +125,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
+        hintStyle: TextStyle(color: textColor.withOpacity(0.4), fontSize: 14),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? dBorder : lBorder)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primary, width: 2)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: dBorder)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: primary, width: 2)),
       ),
     );
   }

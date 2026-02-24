@@ -3,6 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_windows/webview_windows.dart' as webview_windows;
 import 'package:flutter/foundation.dart'; // For defaultTargetPlatform
 import 'package:flutter/gestures.dart'; // For EagerGestureRecognizer
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentWebViewModal extends StatefulWidget {
   final String paymentUrl;
@@ -20,15 +21,63 @@ class _PaymentWebViewModalState extends State<PaymentWebViewModal> {
   
   bool _isLoading = true;
   bool _isWindows = false;
+  bool _webLaunchStarted = false;
+  String? _webLaunchError;
 
   @override
   void initState() {
     super.initState();
+
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _launchPaymentInBrowser();
+        }
+      });
+      return;
+    }
+
     _isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (_isWindows) {
       _initWindowsController();
     } else {
       _initController();
+    }
+  }
+
+  Future<void> _launchPaymentInBrowser() async {
+    if (_webLaunchStarted) return;
+    _webLaunchStarted = true;
+
+    final Uri uri = Uri.parse(widget.paymentUrl);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        final fallbackLaunched = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+
+        if (!fallbackLaunched && mounted) {
+          setState(() {
+            _webLaunchError =
+                'No se pudo abrir automáticamente la pasarela. Usa el botón para reintentar.';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _webLaunchError =
+              'No se pudo abrir la pasarela en una nueva pestaña. Usa el botón para reintentar.';
+        });
+      }
+      debugPrint('Web launch error: $e');
     }
   }
   
@@ -103,6 +152,87 @@ class _PaymentWebViewModalState extends State<PaymentWebViewModal> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.lock_outline, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Pago Seguro',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black54),
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'La pasarela de pagos se abre en una pestaña nueva por seguridad del navegador.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_webLaunchError != null) ...[
+                      Text(
+                        _webLaunchError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    ElevatedButton(
+                      onPressed: _launchPaymentInBrowser,
+                      child: const Text('Abrir pasarela de pago'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Ya completé mi pago'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     // Altura controlada por el ModalBottomsheet pero aseguramos estructura
     return Scaffold(
       backgroundColor: Colors.white,

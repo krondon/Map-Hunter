@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +30,8 @@ import '../../../core/services/app_config_service.dart';
 import '../../wallet/models/transaction_item.dart';
 import '../../wallet/repositories/transaction_repository.dart';
 import '../../wallet/widgets/transaction_card.dart';
+import '../../wallet/providers/payment_method_provider.dart';
+import '../../wallet/widgets/edit_payment_method_dialog.dart';
 
 class WalletScreen extends StatefulWidget {
   final bool hideScaffold;
@@ -51,6 +54,14 @@ class _WalletScreenState extends State<WalletScreen> {
   void initState() {
     super.initState();
     _loadRecentTransactions();
+    _loadPaymentMethods();
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    final userId = Provider.of<PlayerProvider>(context, listen: false).currentPlayer?.userId;
+    if (userId != null) {
+      await Provider.of<PaymentMethodProvider>(context, listen: false).loadMethods(userId);
+    }
   }
 
   Future<void> _loadRecentTransactions() async {
@@ -78,7 +89,8 @@ class _WalletScreenState extends State<WalletScreen> {
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
 
-    final isDarkMode = playerProvider.isDarkMode;
+    // FORCED TO TRUE: Always use dark mode colors in wallet, even in day mode
+    final isDarkMode = true; // Previously: playerProvider.isDarkMode;
     final player = playerProvider.currentPlayer;
     final cloverBalance = player?.clovers ?? 0;
 
@@ -87,9 +99,9 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               // Custom AppBar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: SizedBox(
-                  height: 80,
+                  height: 60,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -109,11 +121,16 @@ class _WalletScreenState extends State<WalletScreen> {
                           ),
                         ),
                       
-                      // Centered Logo
-                      Image.asset(
-                        playerProvider.isDarkMode ? 'assets/images/maphunter_titulo.png' : 'assets/images/logocopia2.png',
-                        height: 65,
-                        fit: BoxFit.contain,
+                      // WALLET TITLE - Restored to center
+                      const Text(
+                        'WALLET',
+                        style: TextStyle(
+                          color: AppTheme.accentGold,
+                          fontFamily: 'Orbitron',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                        ),
                       ),
                     ],
                   ),
@@ -122,78 +139,82 @@ class _WalletScreenState extends State<WalletScreen> {
 
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Balance Card with Custom Clover Icon
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF10B981).withOpacity(0.3),
-                              const Color(0xFF059669).withOpacity(0.2),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: const Color(0xFF10B981).withOpacity(0.5),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.3),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              'TRÉBOLES',
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white70 : Colors.black54,
-                                fontSize: 12,
-                                letterSpacing: 4,
-                                fontWeight: FontWeight.w900,
+                      const SizedBox(height: 10),
+                      // Balance Card with Custom Clover Icon - GLASSMORPISM STYLE
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(34),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(34),
+                              border: Border.all(
+                                color: const Color(0xFF10B981).withOpacity(0.6),
+                                width: 1.5,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            
-                            // Custom Clover Icon (4-leaf clover made with circles)
-                            Transform.scale(
-                              scale: 0.6,
-                              child: _buildCustomCloverIcon(),
-                            ),
-                            
-                            const SizedBox(height: 6),
-                            
-                            // Balance Amount
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Text(
-                                  cloverBalance.toString(),
-                                  style: TextStyle(
-                                    color: isDarkMode ? Colors.white : Colors.black87,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1,
-                                  ),
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: const Color(0xFF10B981).withOpacity(0.2),
+                                  width: 1.0,
                                 ),
-                              ],
+                                color: const Color(0xFF10B981).withOpacity(0.02),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'TRÉBOLES:',
+                                        style: TextStyle(
+                                          color: isDarkMode ? Colors.white : Colors.black87,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.2,
+                                          fontFamily: 'Orbitron',
+                                        ),
+                                      ),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerRight,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                cloverBalance.toString(),
+                                                style: TextStyle(
+                                                  color: isDarkMode ? Colors.white : Colors.black87,
+                                                  fontSize: 42,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text(
+                                                "🍀",
+                                                style: TextStyle(fontSize: 28),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            // Massive Conversion info
-                            const SizedBox(height: 12),
-                            
-                          ],
+                          ),
                         ),
                       ),
 
@@ -231,74 +252,79 @@ class _WalletScreenState extends State<WalletScreen> {
 
                       const SizedBox(height: 40),
 
-                      // Transaction History Section (Placeholder -> Entry Point)
-                      // Recent Transactions Section
+                      // Recent Transactions Section - PREVIOUS STYLE (DOUBLE BORDER)
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? AppTheme.cardBg.withOpacity(0.5) : Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(28),
                           border: Border.all(
-                            color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 2,
+                            ),
+                          ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.history,
-                                      color: AppTheme.accentGold,
-                                      size: 20,
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.accentGold.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: AppTheme.accentGold.withOpacity(0.2)),
+                                      ),
+                                      child: const Icon(
+                                        Icons.history,
+                                        color: AppTheme.accentGold,
+                                        size: 16,
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 12),
                                     Text(
-                                      'ÚLTIMOS MOVIMIENTOS',
+                                      'HISTORIAL RECIENTE',
                                       style: TextStyle(
                                         color: isDarkMode ? Colors.white : Colors.black87,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        letterSpacing: 1,
+                                        fontFamily: 'Orbitron',
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const TransactionHistoryScreen(),
+                                          ),
+                                        ).then((_) => _loadRecentTransactions());
+                                      },
+                                      child: const Text(
+                                        'Ver Todo',
+                                        style: TextStyle(
+                                          color: AppTheme.accentGold,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const TransactionHistoryScreen(),
-                                      ),
-                                    ).then((_) => _loadRecentTransactions()); // Refresh on return
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        'Ver todo',
-                                        style: TextStyle(
-                                          color: AppTheme.accentGold,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        color: AppTheme.accentGold,
-                                        size: 10,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
+                                const SizedBox(height: 24),
                             
                             if (_isLoadingHistory)
                                const Center(child: LoadingIndicator(fontSize: 14))
@@ -362,7 +388,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                             );
                                             
                                             if (confirm != true) return;
-
+ 
                                             setState(() => _isLoadingHistory = true);
                                             final success = await _transactionRepository.cancelOrder(_recentTransactions[index].id);
                                             if (mounted) {
@@ -378,8 +404,9 @@ class _WalletScreenState extends State<WalletScreen> {
                                         : null,
                                   );
                                 },
-                              ),
-                          ],
+                               ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -397,7 +424,7 @@ class _WalletScreenState extends State<WalletScreen> {
     if (widget.hideScaffold) return content;
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: const Color(0xFF151517),
       extendBody: true,
       bottomNavigationBar: _buildBottomNavBar(),
       body: content,
@@ -532,44 +559,60 @@ class _WalletScreenState extends State<WalletScreen> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              color.withOpacity(0.3),
-              color.withOpacity(0.1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: color.withOpacity(0.5),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 15,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: color.withOpacity(0.6),
+                width: 1.5,
               ),
             ),
-          ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: color.withOpacity(0.2),
+                  width: 1.0,
+                ),
+                color: color.withOpacity(0.02),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: color.withOpacity(0.4)),
+                    ),
+                    child: Icon(icon, color: color, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: 'Orbitron',
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -667,129 +710,206 @@ class _WalletScreenState extends State<WalletScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-            ),
-            title: Row(
-              children: [
-                Icon(Icons.add_circle, color: AppTheme.accentGold),
-                const SizedBox(width: 12),
-                const Text(
-                  'Comprar Tréboles',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: AppTheme.accentGold.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppTheme.accentGold.withOpacity(0.2), width: 1),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151517),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.accentGold.withOpacity(0.5), width: 1.5),
                 ),
-              ],
-            ),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: FutureBuilder<List<dynamic>>(
-                future: combinedFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 200,
-                      child: LoadingIndicator(),
-                    );
-                  }
-                  
-                  if (snapshot.hasError) {
-                    return SizedBox(
-                      height: 100,
-                      child: Center(
-                        child: Text(
-                          'Error cargando planes: ${snapshot.error}',
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  final plans = (snapshot.data?[0] as List<CloverPlan>?) ?? [];
-                  final gatewayFee = (snapshot.data?[1] as double?) ?? 0.0;
-                  
-                  if (plans.isEmpty) {
-                    return const SizedBox(
-                      height: 100,
-                      child: Center(
-                        child: Text(
-                          'No hay planes disponibles',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  return Column(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SingleChildScrollView(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Title
+                      Row(
+                        children: [
+                          Icon(Icons.add_circle, color: AppTheme.accentGold, size: 22),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Comprar Tréboles',
+                            style: TextStyle(
+                              color: Colors.white, 
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 18,
+                              fontFamily: 'Orbitron',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
                       const Text(
                         'Selecciona un plan de tréboles:',
-                        style: TextStyle(color: Colors.white70),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
-                      if (gatewayFee > 0) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Nota: La pasarela cobra +${gatewayFee.toStringAsFixed(1)}% de comisión',
-                          style: TextStyle(color: Colors.amber.withOpacity(0.8), fontSize: 11),
-                        ),
-                      ],
                       const SizedBox(height: 16),
-                      // Plan Cards Grid
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: plans.map((plan) {
-                          return SizedBox(
-                            width: (MediaQuery.of(context).size.width - 140) / 2,
-                            child: CloverPlanCard(
+
+                      FutureBuilder<List<dynamic>>(
+                        future: combinedFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 150,
+                              child: LoadingIndicator(),
+                            );
+                          }
+                          
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                              ),
+                            );
+                          }
+                          
+                          final plans = (snapshot.data?[0] as List<CloverPlan>?) ?? [];
+                          
+                          // Ensure specific order: Basico, Pro (top) and Elite (bottom)
+                          // Sorting by quantity: 50, 150, 500
+                          plans.sort((a, b) => a.cloversQuantity.compareTo(b.cloversQuantity));
+                          
+                          final gatewayFee = (snapshot.data?[1] as double?) ?? 0.0;
+                          
+                          // Helper to build a plan card with consistent styling
+                          Widget buildPlanItem(CloverPlan plan) {
+                            return CloverPlanCard(
                               plan: plan,
                               isSelected: selectedPlanId == plan.id,
                               feePercentage: gatewayFee,
                               onTap: () {
                                 setState(() => selectedPlanId = plan.id);
                               },
-                            ),
+                            );
+                          }
+
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (gatewayFee > 0) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.orange.withOpacity(0.6), width: 1.2),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Text(
+                                        'Nota:',
+                                        style: TextStyle(
+                                          color: Colors.orangeAccent, 
+                                          fontWeight: FontWeight.w900, 
+                                          fontSize: 14,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'La pasarela cobra el ${gatewayFee.toStringAsFixed(0)}% de comisión',
+                                        style: const TextStyle(
+                                          color: Colors.orangeAccent, 
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+
+                              if (plans.length >= 3)
+                                Column(
+                                  children: [
+                                    // Row 1: Basico & Pro
+                                    Row(
+                                      children: [
+                                        Expanded(child: buildPlanItem(plans[0])),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: buildPlanItem(plans[1])),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    // Row 2: Elite (Centered)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 150, // Fixed width for the last one to stay centered
+                                          child: buildPlanItem(plans[2]),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              else
+                                // Fallback for fewer plans
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: plans.map((p) => SizedBox(width: 150, child: buildPlanItem(p))).toList(),
+                                ),
+                            ],
                           );
-                        }).toList(),
+                        },
                       ),
-                      if (_isLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20.0),
-                          child: LoadingIndicator(fontSize: 14),
-                        ),
+                      
+                      const SizedBox(height: 32),
+
+                      // Actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: _isLoading ? null : () => Navigator.pop(ctx),
+                            child: const Text('Cancelar', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: (_isLoading || selectedPlanId == null) ? null : () async {
+                              setState(() => _isLoading = true);
+                              await _initiatePayment(context, selectedPlanId!);
+                              if (mounted) {
+                                setState(() => _isLoading = false);
+                                Navigator.pop(ctx);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentGold,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            child: _isLoading 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                              : const Text('Pagar', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: _isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
-              ),
-              ElevatedButton(
-                onPressed: (_isLoading || selectedPlanId == null) ? null : () async {
-                  setState(() => _isLoading = true);
-                  
-                  await _initiatePayment(context, selectedPlanId!);
-
-                  if (mounted) {
-                    setState(() => _isLoading = false);
-                    Navigator.pop(ctx);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentGold,
-                  foregroundColor: Colors.black,
-                  disabledBackgroundColor: Colors.grey.withOpacity(0.3),
-                ),
-                child: const Text('Pagar'),
-              ),
-            ],
           );
         }
       ),
@@ -870,12 +990,12 @@ class _WalletScreenState extends State<WalletScreen> {
 
       if (result == true) {
          if (!mounted) return;
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(
-             content: Text('¡Pago Exitoso! Verificando saldo...'),
-             backgroundColor: AppTheme.successGreen,
-           ),
-         );
+        //  ScaffoldMessenger.of(context).showSnackBar(
+        //    const SnackBar(
+        //      content: Text('¡Pago Exitoso! Verificando saldo...'),
+        //      backgroundColor: AppTheme.successGreen,
+        //    ),
+        //  );
          
          await Future.delayed(const Duration(seconds: 2));
          if (mounted) {
@@ -925,19 +1045,26 @@ class _WalletScreenState extends State<WalletScreen> {
     final bankCode = method['bank_code'] ?? '???';
     final phone = method['phone_number'] ?? '???';
 
+    // Combined future: check rate validity AND load plans in parallel
+    final configService = AppConfigService(supabaseClient: Supabase.instance.client);
+    final combinedFuture = Future.wait([
+      WithdrawalPlanService(supabaseClient: Supabase.instance.client).fetchActivePlans(),
+      configService.isBcvRateValid(),
+    ]);
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            backgroundColor: AppTheme.cardBg,
+            backgroundColor: const Color(0xFF1A1A1D),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: AppTheme.secondaryPink.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(24),
+              side: const BorderSide(color: AppTheme.secondaryPink, width: 1),
             ),
             title: Row(
               children: [
-                const Icon(Icons.monetization_on, color: AppTheme.secondaryPink),
+                const Icon(Icons.publish_rounded, color: AppTheme.secondaryPink, size: 28),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -958,10 +1085,8 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
             content: SizedBox(
               width: double.maxFinite,
-              child: FutureBuilder<List<WithdrawalPlan>>(
-                future: WithdrawalPlanService(
-                  supabaseClient: Supabase.instance.client,
-                ).fetchActivePlans(),
+              child: FutureBuilder<List<dynamic>>(
+                future: combinedFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox(
@@ -982,7 +1107,9 @@ class _WalletScreenState extends State<WalletScreen> {
                     );
                   }
 
-                  final plans = snapshot.data ?? [];
+                  final plans = (snapshot.data?[0] as List<WithdrawalPlan>?) ?? [];
+                  final isRateValid = (snapshot.data?[1] as bool?) ?? false;
+
                   if (plans.isEmpty) {
                     return const SizedBox(
                       height: 100,
@@ -999,6 +1126,30 @@ class _WalletScreenState extends State<WalletScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── FAIL-SAFE: Maintenance Banner ──
+                      if (!isRateValid) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 22),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'El sistema de cambio está en mantenimiento temporal. Los retiros no están disponibles en este momento.',
+                                  style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       const Text(
                         'Selecciona cuántos tréboles quieres retirar:',
                         style: TextStyle(color: Colors.white70),
@@ -1008,87 +1159,92 @@ class _WalletScreenState extends State<WalletScreen> {
                       ...plans.map((plan) {
                         final isSelected = selectedPlanId == plan.id;
                         return GestureDetector(
-                          onTap: () => setState(() => selectedPlanId = plan.id),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppTheme.secondaryPink.withOpacity(0.2)
-                                  : Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
+                          onTap: isRateValid
+                              ? () => setState(() => selectedPlanId = plan.id)
+                              : null, // Disable selection when rate is stale
+                          child: Opacity(
+                            opacity: isRateValid ? 1.0 : 0.5,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppTheme.secondaryPink
-                                    : Colors.white.withOpacity(0.1),
-                                width: isSelected ? 2 : 1,
+                                    ? AppTheme.secondaryPink.withOpacity(0.2)
+                                    : Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppTheme.secondaryPink
+                                      : Colors.white.withOpacity(0.1),
+                                  width: isSelected ? 2 : 1,
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                // Icon
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.secondaryPink.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      plan.icon ?? '💸',
-                                      style: const TextStyle(fontSize: 24),
+                              child: Row(
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.secondaryPink.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        plan.icon ?? '💸',
+                                        style: const TextStyle(fontSize: 24),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Info
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  const SizedBox(width: 12),
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          plan.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Costo: ${plan.cloversCost} 🍀',
+                                          style: const TextStyle(
+                                            color: Colors.white60,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Amount
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        plan.name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        plan.formattedAmountUsd,
+                                        style: TextStyle(
+                                          color: isSelected ? AppTheme.secondaryPink : Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                          fontSize: 18,
                                         ),
                                       ),
-                                      Text(
-                                        'Costo: ${plan.cloversCost} 🍀',
-                                        style: const TextStyle(
-                                          color: Colors.white60,
-                                          fontSize: 14,
-                                        ),
+                                      const Text(
+                                        'USD',
+                                        style: TextStyle(color: Colors.white54, fontSize: 12),
                                       ),
                                     ],
                                   ),
-                                ),
-                                // Amount
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      plan.formattedAmountUsd,
-                                      style: TextStyle(
-                                        color: isSelected ? AppTheme.secondaryPink : Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                    const Text(
-                                      'USD',
-                                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                                    ),
+                                  // Check
+                                  if (isSelected) ...[
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.check_circle, color: AppTheme.secondaryPink),
                                   ],
-                                ),
-                                // Check
-                                if (isSelected) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.check_circle, color: AppTheme.secondaryPink),
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         );
@@ -1106,24 +1262,40 @@ class _WalletScreenState extends State<WalletScreen> {
             actions: [
               TextButton(
                 onPressed: _isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
-              ),
-              ElevatedButton(
-                onPressed: (_isLoading || selectedPlanId == null)
-                    ? null
-                    : () async {
-                        setState(() => _isLoading = true);
-                        await _processWithdrawalWithPlan(context, selectedPlanId!, method);
-                        if (mounted) {
-                          setState(() => _isLoading = false);
-                          Navigator.pop(ctx);
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.secondaryPink,
-                  disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                child: const Text(
+                  'Cancelar', 
+                  style: TextStyle(
+                    color: Colors.white54, 
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
-                child: const Text('Confirmar Retiro', style: TextStyle(color: Colors.white)),
+              ),
+              FutureBuilder<List<dynamic>>(
+                future: combinedFuture,
+                builder: (context, snapshot) {
+                  final isRateValid = (snapshot.data?[1] as bool?) ?? false;
+                  return ElevatedButton(
+                    onPressed: (_isLoading || selectedPlanId == null || !isRateValid)
+                        ? null
+                        : () async {
+                            setState(() => _isLoading = true);
+                            await _processWithdrawalWithPlan(context, selectedPlanId!, method);
+                            if (mounted) {
+                              setState(() => _isLoading = false);
+                              Navigator.pop(ctx);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.secondaryPink,
+                      disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                    ),
+                    child: Text(
+                      isRateValid ? 'Confirmar Retiro' : 'En Mantenimiento',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                },
               ),
             ],
           );

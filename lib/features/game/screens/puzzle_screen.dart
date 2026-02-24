@@ -644,59 +644,136 @@ void showClueSelector(BuildContext context, Clue currentClue) {
 void showSkipDialog(BuildContext context, VoidCallback? onLegalExit) {
   showDialog(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      backgroundColor: AppTheme.cardBg,
-      title: const Text('¿Rendirse?', style: TextStyle(color: Colors.white)),
-      content: const Text(
-        '¡Lástima! Si te rindes, NO podrás desbloquear la siguiente pista porque no resolviste este desafío.',
-        style: TextStyle(color: Colors.white70),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Cancelar'),
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 36),
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: AppTheme.dangerRed.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: AppTheme.dangerRed.withOpacity(0.4),
+            width: 1,
+          ),
         ),
-        ElevatedButton(
-          onPressed: () async {
-            // RENDICIÓN = SALIDA LEGAL
-            if (onLegalExit != null) {
-              onLegalExit();
-            }
-
-            // Usamos dialogContext para cerrar el diálogo
-            Navigator.pop(dialogContext);
-            // Usamos context (el argumento original de la función) para cerrar el PuzzleScreen
-            if (context.mounted) {
-              Navigator.pop(context);
-            }
-
-            // Deduct life logic
-            final playerProvider =
-                Provider.of<PlayerProvider>(context, listen: false);
-            final gameProvider =
-                Provider.of<GameProvider>(context, listen: false);
-
-            if (playerProvider.currentPlayer != null) {
-              // USAR HELPER CENTRALIZADO
-              await MinigameLogicHelper.executeLoseLife(context);
-            }
-
-            // No llamamos a skipCurrentClue(), simplemente salimos.
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                      'Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.'),
-                  backgroundColor: AppTheme.warningOrange,
-                  duration: Duration(seconds: 3),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1D),
+            borderRadius: BorderRadius.circular(21),
+            border: Border.all(
+              color: AppTheme.dangerRed.withOpacity(0.7),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.dangerRed, width: 2.5),
                 ),
-              );
-            }
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRed),
-          child: const Text('Rendirse'),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: AppTheme.dangerRed,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                '¿RENDIRSE?',
+                style: TextStyle(
+                  color: AppTheme.dangerRed,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Orbitron',
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '¡Lástima! Si te rindes, NO podrás desbloquear la siguiente pista porque no resolviste este desafío.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(
+                        'CANCELAR',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (onLegalExit != null) {
+                          onLegalExit();
+                        }
+                        Navigator.pop(dialogContext);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                        final playerProvider =
+                            Provider.of<PlayerProvider>(context, listen: false);
+                        final gameProvider =
+                            Provider.of<GameProvider>(context, listen: false);
+                        if (playerProvider.currentPlayer != null) {
+                          await MinigameLogicHelper.executeLoseLife(context);
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.'),
+                              backgroundColor: AppTheme.warningOrange,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.dangerRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'RENDIRSE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     ),
   );
 }
@@ -1353,14 +1430,28 @@ Widget _buildMinigameScaffold(
     child: child,
   );
 
+  final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
+
   return SabotageOverlay(
     child: Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.darkGradient,
-        ),
-        child: SafeArea(
+      body: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              isDarkMode ? 'assets/images/hero.png' : 'assets/images/loginclaro.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Dark overlay for readability
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(isDarkMode ? 0.5 : 0.3),
+            ),
+          ),
+          // Content
+          SafeArea(
           child: Consumer<GameProvider>(
             builder: (context, game, _) {
               return Stack(
@@ -1504,7 +1595,8 @@ Widget _buildMinigameScaffold(
               );
             },
           ),
-        ),
+          ),
+        ],
       ),
     ),
   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/game_provider.dart';
+import '../widgets/sponsor_banner.dart';
 import '../../../core/theme/app_theme.dart';
 import 'dart:math' as math;
 import '../models/clue.dart';
@@ -284,12 +285,7 @@ class _GeolocationScreenState extends State<GeolocationScreen>
         title: const Text('Búsqueda por Ubicación'),
         backgroundColor: AppTheme.darkBg,
         actions: [
-          // SIMULATION BUTTON (DEBUG)
-          IconButton(
-            icon: const Icon(Icons.directions_run),
-            tooltip: 'Simular Avance (Debug)',
-            onPressed: _simulateApproach,
-          )
+
         ],
       ),
       body: Container(
@@ -383,6 +379,14 @@ class _GeolocationScreenState extends State<GeolocationScreen>
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
+              // Sponsor Banner
+              Consumer<GameProvider>(
+                builder: (context, game, _) {
+                  return SponsorBanner(sponsor: game.currentSponsor);
+                },
+              ),
+              const SizedBox(height: 10),
             ],
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -114,6 +115,14 @@ class _MatchThreeMinigameState extends State<MatchThreeMinigame> {
         return;
       }
       setState(() {
+        // [FIX] Pause timer if connectivity is bad OR if game is frozen (sabotage)
+        final gameProvider = Provider.of<GameProvider>(context, listen: false);
+        final connectivityByProvider =
+            Provider.of<ConnectivityProvider>(context, listen: false);
+        if (!connectivityByProvider.isOnline || gameProvider.isFrozen) {
+          return; // Skip tick
+        }
+
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
         } else {
@@ -125,6 +134,11 @@ class _MatchThreeMinigameState extends State<MatchThreeMinigame> {
 
   void _handleTap(int index) {
     if (_isGameOver || _isProcessing) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
 
     if (_selectedindex == null) {
       setState(() {

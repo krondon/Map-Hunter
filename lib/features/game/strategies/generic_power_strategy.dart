@@ -24,16 +24,8 @@ class GenericPowerStrategy implements PowerStrategy {
     bool isSpectator = false,
   }) async {
     
-    // SPECTATOR HANDLING
-    if (isSpectator) {
-        return SpectatorHelper.executeSpectatorPower(
-          supabase: _supabase,
-          casterId: casterId,
-          targetId: targetId,
-          powerSlug: slug,
-          eventId: eventId,
-        );
-    }
+    // Unified execution: All users (players & spectators) go through RPC
+    // to ensure consistent validation and side-effects (e.g. shielding).
 
     final response = await _supabase.rpc('use_power_mechanic', params: {
       'p_caster_id': casterId,

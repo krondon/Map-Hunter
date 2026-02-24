@@ -10,6 +10,9 @@ abstract class PowerRepository {
   /// Stream of combat events (shield blocks, reflections, etc.)
   Stream<List<Map<String, dynamic>>> getCombatEventsStream({required String targetId});
 
+  /// Stream of specific game player updates (for is_protected sync)
+  Stream<Map<String, dynamic>?> getGamePlayerStream({required String playerId});
+
   /// Resolves a power slug from a power effect object/map
   Future<String?> resolveEffectSlug(Map<String, dynamic> effect);
 
@@ -23,4 +26,12 @@ abstract class PowerRepository {
     required String targetId,
     required String powerSlug,
   });
+
+  /// Deactivates the current defense power for the given player.
+  /// Clears is_protected and removes expired defense rows from active_powers.
+  Future<void> deactivateDefense({required String gamePlayerId});
+
+  /// Fetches the name of a player/spectator from their gamePlayerId.
+  /// Needed for gift notifications when the sender is not in the local leaderboard (spectators).
+  Future<String?> getGifterName({required String gamePlayerId});
 }

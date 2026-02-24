@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math';
 import '../../models/clue.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -79,6 +80,15 @@ class _EmojiMovieMinigameState extends State<EmojiMovieMinigame>
 
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return;
+
+      if (gameProvider.isFrozen) return;
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
@@ -209,6 +219,11 @@ class _EmojiMovieMinigameState extends State<EmojiMovieMinigame>
 
   void _checkAnswer(String selectedOption) {
     if (_isGameOver) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
 
     // Safety check for options like "Sin Datos"
     if (_validAnswers.contains("error") && selectedOption == "Reintentar") {

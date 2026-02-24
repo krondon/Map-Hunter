@@ -30,6 +30,7 @@ class PaymentMethodCreate {
 abstract class IPaymentMethodRepository {
   Future<List<Map<String, dynamic>>> getPaymentMethods(String userId);
   Future<void> createPaymentMethod(PaymentMethodCreate data);
+  Future<void> updatePaymentMethod(String id, PaymentMethodCreate data);
   Future<void> deletePaymentMethod(String id);
 }
 
@@ -62,6 +63,21 @@ class PaymentMethodRepository implements IPaymentMethodRepository {
       await _supabase.from('user_payment_methods').insert(data.toJson());
     } catch (e) {
       debugPrint('PaymentMethodRepository: Error creating method: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updatePaymentMethod(String id, PaymentMethodCreate data) async {
+    try {
+      await _supabase.from('user_payment_methods').update({
+        'bank_code': data.bankCode,
+        'phone_number': data.phoneNumber,
+        'dni': data.dni,
+        'is_default': data.isDefault,
+      }).eq('id', id);
+    } catch (e) {
+      debugPrint('PaymentMethodRepository: Error updating method: $e');
       rethrow;
     }
   }

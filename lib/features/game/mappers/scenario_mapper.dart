@@ -25,6 +25,8 @@ class ScenarioMapper {
       type: event.type,
       entryFee: event.entryFee,
       currentParticipants: event.currentParticipants,
+      status: event.status,
+      pot: event.pot,
     );
   }
 

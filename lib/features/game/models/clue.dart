@@ -7,6 +7,8 @@ enum ClueType {
   npcInteraction,
 }
 
+enum MinigameDifficulty { easy, medium, hard }
+
 enum PuzzleType {
   slidingPuzzle,
   ticTacToe,
@@ -39,6 +41,64 @@ enum PuzzleType {
   matchThree;
 
   String get dbValue => toString().split('.').last;
+
+  /// Difficulty level for automation and balancing
+  MinigameDifficulty get difficulty {
+    switch (this) {
+      // EASY: Simple logic, fast completion
+      case PuzzleType.slidingPuzzle:
+      case PuzzleType.ticTacToe:
+      case PuzzleType.imageTrivia:
+      case PuzzleType.trueFalse:
+      case PuzzleType.virusTap:
+      case PuzzleType.flags:
+      case PuzzleType.matchThree:
+      case PuzzleType.fastNumber:
+        return MinigameDifficulty.easy;
+
+      // MEDIUM: Requires some focus or memory
+      case PuzzleType.hangman:
+      case PuzzleType.wordScramble:
+      case PuzzleType.memorySequence:
+      case PuzzleType.emojiMovie:
+      case PuzzleType.bagShuffle:
+      case PuzzleType.droneDodge:
+      case PuzzleType.missingOperator:
+      case PuzzleType.capitalCities:
+        return MinigameDifficulty.medium;
+
+      // HARD: High focus, strategy, or math
+      case PuzzleType.tetris:
+      case PuzzleType.minesweeper:
+      case PuzzleType.snake:
+      case PuzzleType.blockFill:
+      case PuzzleType.codeBreaker:
+      case PuzzleType.holographicPanels:
+      case PuzzleType.primeNetwork:
+      case PuzzleType.percentageCalculation:
+      case PuzzleType.chronologicalOrder:
+      case PuzzleType.drinkMixer:
+      case PuzzleType.librarySort:
+      case PuzzleType.findDifference:
+        return MinigameDifficulty.hard;
+
+      default:
+        return MinigameDifficulty.medium;
+    }
+  }
+
+  /// Whether this minigame is suitable for auto-generation
+  bool get automationAvailable {
+    // Exclude chargeShaker as it was noted as problematic/manual in some contexts
+    if (this == PuzzleType.chargeShaker) return false;
+    return true;
+  }
+
+  /// Helper to get all puzzles of a specific difficulty
+  static Iterable<PuzzleType> byDifficulty(MinigameDifficulty level) {
+    return PuzzleType.values
+        .where((p) => p.automationAvailable && p.difficulty == level);
+  }
 
   String get label {
     switch (this) {

@@ -11,7 +11,10 @@ import '../models/player.dart';
 class GameSessionMonitor extends StatefulWidget {
   final Widget child;
 
-  const GameSessionMonitor({super.key, required this.child});
+  const GameSessionMonitor({
+    super.key,
+    required this.child,
+  });
 
   // Static constant to avoid rebuilds of the child if not needed
   static final GlobalKey<NavigatorState> monitorNavigatorKey =
@@ -27,9 +30,18 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final playerProvider = Provider.of<PlayerProvider>(context);
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
 
+    final playerProvider = Provider.of<PlayerProvider>(context);
+
+    // [FIX] Guard: If user is logged out, skip all session checks.
+    // This prevents accessing GameProvider during logout teardown,
+    // which was contributing to the _dependents.isEmpty crash.
+    if (playerProvider.currentPlayer == null) {
+      _lastGamePlayerId = null;
+      return;
+    }
+
+    final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final currentGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
     final isBanned =
         playerProvider.currentPlayer?.status == PlayerStatus.banned;
@@ -41,26 +53,23 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
 
     bool shouldKick = false;
 
-    // Caso 1: Transición de TENER inscripción a NO TENERLA (Sesión invalidada)
-    // PERO solo si el usuario sigue logueado. Si se deslogueó, el AuthMonitor maneja la salida.
-    if (playerProvider.currentPlayer == null) {
-      _lastGamePlayerId = null;
-      return;
-    }
-
     if (_lastGamePlayerId != null && currentGamePlayerId == null) {
       // SOLO expulsar si el evento que se perdió es el que estamos jugando actualmente
       final currentPlayingEventId = gameProvider.currentEventId;
-      final lostSessionEventId = playerProvider.currentPlayer?.currentEventId;
 
       debugPrint("🕒 GameSessionMonitor: 🚫 PÉRDIDA DE SESIÓN DETECTADA.");
       debugPrint("   - Prev GP ID: $_lastGamePlayerId");
       debugPrint("   - Curr GP ID: null");
       debugPrint("   - Current Playing Event: $currentPlayingEventId");
+      debugPrint("   - Race Completed: ${gameProvider.isRaceCompleted}");
 
-      // Si el usuario ya no tiene currentEventId (porque se borró su GP),
-      // pero el monitorNavigator tiene un evento activo, es sospechoso.
-      if (currentPlayingEventId != null) {
+      // GRACE PERIOD: If the race is completed, this is a legitimate transition
+      // (game_players.status changed to 'completed'), NOT a session loss.
+      // Do NOT kick the player — let the race completion flow handle navigation.
+      if (gameProvider.isRaceCompleted) {
+        debugPrint(
+            "🕒 GameSessionMonitor: ⚠️ GP ID disappeared but race is COMPLETED. Ignoring (transition grace).");
+      } else if (currentPlayingEventId != null) {
         shouldKick = true;
       }
     }
@@ -78,13 +87,13 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
 
     if (shouldKick) {
       debugPrint("🕒 GameSessionMonitor: ⚡ Iniciando expulsión del jugador...");
-      _handleGameReset();
+      _handleGameReset(isBanned);
     }
 
     _lastGamePlayerId = currentGamePlayerId;
   }
 
-  void _handleGameReset() {
+  void _handleGameReset(bool isBanned) {
     // 2. Notificar al usuario, Redirigir y Limpiar estado
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // CRITICAL: Exit early if widget was disposed
@@ -101,16 +110,20 @@ class _GameSessionMonitorState extends State<GameSessionMonitor> {
           (route) => route.isFirst,
         );
 
+        final kickMessage = isBanned
+            ? "Has sido baneado de la competencia."
+            : "Tu sesión en el evento ha sido reiniciada por un administrador.";
+
         ScaffoldMessenger.of(rootNavigatorKey.currentContext!).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.white),
-                SizedBox(width: 12),
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "Has sido baneado de la competencia.",
-                    style: TextStyle(color: Colors.white),
+                    kickMessage,
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],

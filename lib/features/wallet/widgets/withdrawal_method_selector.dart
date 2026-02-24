@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../providers/payment_method_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import 'add_withdrawal_method_dialog.dart';
+import 'edit_payment_method_dialog.dart';
 
 /// Pure UI Widget for selecting withdrawal methods
 /// 
@@ -179,10 +180,33 @@ class _WithdrawalMethodSelectorState extends State<WithdrawalMethodSelector> {
                           phone,
                           style: const TextStyle(color: Colors.white70),
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.white38),
-                          onPressed: () => _deleteMethod(method['id']),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () {}, // Bubble block
+                              child: IconButton(
+                                icon: const Icon(Icons.edit_outlined, color: Colors.white38),
+                                onPressed: () async {
+                                  final result = await showDialog(
+                                    context: context,
+                                    builder: (_) => EditPaymentMethodDialog(method: method),
+                                  );
+                                  if (result == true) {
+                                    _loadMethods();
+                                  }
+                                },
+                              ),
+                            ),
+                            GestureDetector(
+                               onTap: () {}, // Bubble block
+                               child: IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.white38),
+                                onPressed: () => _deleteMethod(method['id']),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );

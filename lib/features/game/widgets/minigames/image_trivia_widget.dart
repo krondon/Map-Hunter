@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../utils/minigame_logic_helper.dart';
@@ -12,7 +13,8 @@ class ImageTriviaWidget extends StatefulWidget {
   final Clue clue;
   final VoidCallback onSuccess;
 
-  const ImageTriviaWidget({super.key, required this.clue, required this.onSuccess});
+  const ImageTriviaWidget(
+      {super.key, required this.clue, required this.onSuccess});
 
   @override
   State<ImageTriviaWidget> createState() => _ImageTriviaWidgetState();
@@ -30,7 +32,11 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
   bool _canRetry = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -44,9 +50,14 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     if (gameProvider.isFrozen) return;
 
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     final userAnswer = _controller.text.trim().toLowerCase();
     final correctAnswer = widget.clue.riddleAnswer?.trim().toLowerCase() ?? "";
-    
+
     if (userAnswer == correctAnswer ||
         (correctAnswer.isNotEmpty &&
             userAnswer.contains(correctAnswer.split(' ').first))) {
@@ -73,33 +84,31 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
   void _loseLife(String reason) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
 
       if (!mounted) return;
-      
+
       final playerLives = playerProvider.currentPlayer?.lives ?? 0;
       final gameLives = gameProvider.lives;
 
       if (gameLives <= 0 || playerLives <= 0) {
-         _showOverlayState(
-            title: "GAME OVER", 
+        _showOverlayState(
+            title: "GAME OVER",
             message: "Te has quedado sin vidas.",
             retry: false,
-            showShop: true
-         );
+            showShop: true);
       } else {
-         setState(() {
-           _attempts = 3;
-           _controller.clear();
-         });
-         _showOverlayState(
-            title: "¡FALLASTE!", 
+        setState(() {
+          _attempts = 3;
+          _controller.clear();
+        });
+        _showOverlayState(
+            title: "¡FALLASTE!",
             message: "$reason",
             retry: true,
-            showShop: false
-         );
+            showShop: false);
       }
     }
   }
@@ -133,7 +142,7 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Imagen del desafío
                 Container(
                   decoration: BoxDecoration(
@@ -148,7 +157,8 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      widget.clue.minigameUrl ?? 'https://via.placeholder.com/400',
+                      widget.clue.minigameUrl ??
+                          'https://via.placeholder.com/400',
                       height: 180,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -156,14 +166,15 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                         height: 180,
                         color: AppTheme.cardBg,
                         child: const Center(
-                          child: Icon(Icons.broken_image, color: Colors.white38),
+                          child:
+                              Icon(Icons.broken_image, color: Colors.white38),
                         ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Pregunta
                 Text(
                   widget.clue.riddleQuestion ?? "¿Qué es esto?",
@@ -175,7 +186,7 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Campo de respuesta
                 TextField(
                   controller: _controller,
@@ -193,7 +204,7 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Pista (si está visible)
                 if (_showHint)
                   Container(
@@ -209,7 +220,7 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ),
-                
+
                 // Botones de acción
                 Row(
                   children: [
@@ -223,7 +234,9 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
-                        onPressed: _showOverlay ? null : _checkAnswer, // Disable if overlay is up
+                        onPressed: _showOverlay
+                            ? null
+                            : _checkAnswer, // Disable if overlay is up
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.successGreen,
                         ),
@@ -241,29 +254,35 @@ class _ImageTriviaWidgetState extends State<ImageTriviaWidget> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                });
-                // Reset has already been done in logic
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                      });
+                      // Reset has already been done in logic
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },

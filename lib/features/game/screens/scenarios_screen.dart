@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,10 +13,12 @@ import '../models/scenario.dart';
 import '../providers/event_provider.dart';
 import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
+import '../../social/screens/profile_screen.dart';
 import '../../auth/providers/player_inventory_provider.dart'; // NEW
 import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/power_interfaces.dart';
 import '../../../core/providers/app_mode_provider.dart';
 import '../providers/game_request_provider.dart';
@@ -40,16 +44,24 @@ import '../../social/screens/profile_screen.dart'; // For navigation
 import '../../social/screens/wallet_screen.dart'; // For wallet navigation
 import 'package:shared_preferences/shared_preferences.dart'; // For prize persistence
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/utils/global_keys.dart'; // To access routeObserver
+
 
 class ScenariosScreen extends StatefulWidget {
-  const ScenariosScreen({super.key});
+  final bool isOnline;
+
+  const ScenariosScreen({
+    super.key,
+    this.isOnline = false, // Default to false (Presential)
+  });
 
   @override
   State<ScenariosScreen> createState() => _ScenariosScreenState();
 }
 
 class _ScenariosScreenState extends State<ScenariosScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, RouteAware {
+
   late PageController _pageController;
   late AnimationController _hoverController;
   late Animation<Offset> _hoverAnimation;
@@ -67,183 +79,484 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   // Cache for participant status to show "Entering..." vs "Request Access"
   Map<String, bool> _participantStatusMap = {};
 
+  // Cache for user role to determine button state (Player vs Spectator)
+  Map<String, String> _eventRoleMap = {}; // NEW
+
   // Cache for ban status to show banned button
   Map<String, String?> _banStatusMap = {}; // NEW
 
   // The default user role for scenario selection
   UserRole get role => UserRole.player;
-  bool get isDarkMode => Theme.of(context).brightness == Brightness.dark;
+  bool get isDarkMode => true /* always dark UI */;
 
   void _showLogoutDialog() {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final isDarkMode = playerProvider.isDarkMode;
 
-    final Color currentSurface =
-        isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
-    final Color currentText =
-        isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
-    final Color currentTextSec =
-        isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+    _showPremiumExitDialog(
+      title: '¿Qué deseas hacer?',
+      subtitle: 'Puedes cambiar de modo de juego o cerrar tu sesión.',
+      isDarkMode: isDarkMode,
+      options: [
+        _DialogOption(
+          icon: Icons.swap_horiz_rounded,
+          label: 'CAMBIAR MODO',
+          gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+          textColor: Colors.black,
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const GameModeSelectorScreen()),
+              (route) => false,
+            );
+          },
+        ),
+        _DialogOption(
+          icon: Icons.logout_rounded,
+          label: 'CERRAR SESIÓN',
+          gradientColors: [AppTheme.dangerRed, const Color(0xFFB71C1C)],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.pop(context);
+            playerProvider.logout();
+            // AuthMonitor handles navigation to LoginScreen
+          },
+        ),
+      ],
+    );
+  }
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: currentSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.dangerRed.withOpacity(0.5)),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.logout, color: AppTheme.dangerRed),
-            const SizedBox(width: 12),
-            Text('Cerrar Sesión',
-                style:
-                    TextStyle(color: currentText, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(
-          '¿Estás seguro que deseas cerrar sesión?',
-          style: TextStyle(color: currentTextSec),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style: TextStyle(color: currentTextSec.withOpacity(0.6))),
+  void _showJoinOptionDialog(Scenario scenario) {
+    // --- EMAIL VERIFICATION GATE ---
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final player = playerProvider.currentPlayer;
+    if (player != null && !player.emailVerified) {
+      _showPremiumExitDialog(
+        title: 'VERIFICACIÓN REQUERIDA',
+        subtitle:
+            'Debes verificar tu correo electrónico antes de participar en eventos. '
+            'Revisa tu bandeja de entrada.',
+        isDarkMode: true,
+        options: [
+          _DialogOption(
+            icon: Icons.edit_outlined,
+            label: 'EDITAR CORREO',
+            gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+            textColor: Colors.black,
+            onTap: () {
+              Navigator.pop(context);
+              // Navigate to profile screen to edit email
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const ProfileScreen()),
+              );
+            },
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.dangerRed,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await playerProvider.logout();
+          _DialogOption(
+            icon: Icons.refresh_rounded,
+            label: 'YA VERIFIQUÉ',
+            gradientColors: [AppTheme.dBrandMain, const Color(0xFF7B2CBF)],
+            textColor: Colors.white,
+            onTap: () async {
+              Navigator.pop(context);
+              // Consult the profile from DB via provider to check if email was verified
+              await playerProvider.reloadProfile();
               if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
+                final updatedPlayer = playerProvider.currentPlayer;
+                if (updatedPlayer != null && updatedPlayer.emailVerified) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('¡Email verificado! Ya puedes participar.'),
+                      backgroundColor: AppTheme.successGreen,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Tu email aún no está verificado. Revisa tu bandeja.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               }
             },
-            child: const Text('SALIR'),
           ),
         ],
-      ),
+      );
+      return;
+    }
+
+    // FORCED TO TRUE: Scenarios screen is always dark
+    const isDarkMode = true;
+    final isPaid = scenario.entryFee > 0;
+
+    _showPremiumExitDialog(
+      title: scenario.name.toUpperCase(),
+      subtitle: '¿Cómo deseas participar en esta aventura?',
+      isDarkMode: isDarkMode,
+      options: [
+        _DialogOption(
+          icon: isPaid ? Icons.payments_rounded : Icons.sports_esports_rounded,
+          label: isPaid ? 'INSCRIBIRSE JUGADOR' : 'MODO JUGADOR',
+          gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+          textColor: Colors.black,
+          onTap: () {
+            Navigator.pop(context);
+            _onScenarioSelected(scenario);
+          },
+        ),
+        _DialogOption(
+          icon: Icons.visibility_rounded,
+          label: 'MODO ESPECTADOR',
+          gradientColors: [AppTheme.dBrandMain, const Color(0xFF7B2CBF)],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.pop(context);
+            _showSpectatorWarningDialog(scenario);
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showSpectatorWarningDialog(Scenario scenario) {
+    const isDarkMode = true;
+    _showPremiumExitDialog(
+      title: '¡ADVERTENCIA!',
+      subtitle: 'Si ingresas como espectador, no podrás inscribirte como participante después en este evento.',
+      isDarkMode: isDarkMode,
+      options: [
+        _DialogOption(
+          icon: Icons.visibility_rounded,
+          label: 'ENTRAR COMO ESPECTADOR',
+          gradientColors: [AppTheme.dangerRed, const Color(0xFFB71C1C)],
+          textColor: Colors.white,
+          onTap: () {
+            Navigator.pop(context);
+            _onSpectatorSelected(scenario);
+          },
+        ),
+      ],
+    );
+  }
+
+
+  /// Reusable premium dialog with glassmorphism and game-style buttons.
+  void _showPremiumExitDialog({
+    required String title,
+    required String subtitle,
+    required bool isDarkMode,
+    required List<_DialogOption> options,
+  }) {
+    // FORCED DARK: Always use dark cyberpunk styling for this dialog
+    final Color surfaceColor = const Color(0xFF151517).withOpacity(0.95);
+    final Color textColor = Colors.white;
+    final Color textSecColor = Colors.white70;
+    final Color accentColor = AppTheme.dGoldMain;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: anim1, curve: Curves.easeOut),
+          child: ScaleTransition(
+            scale: CurvedAnimation(
+              parent: anim1,
+              curve: Curves.easeOutBack,
+            ),
+            child: child,
+          ),
+        );
+      },
+      pageBuilder: (context, _, __) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: accentColor.withOpacity(0.5),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withOpacity(0.15),
+                    blurRadius: 30,
+                  ),
+                ],
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151517),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: accentColor, width: 2),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon with glow
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              accentColor.withOpacity(0.2),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.games_rounded,
+                          color: accentColor,
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Title
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      // Accent line
+                      Container(
+                        width: 40,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              accentColor.withOpacity(0.3),
+                              accentColor,
+                              accentColor.withOpacity(0.3)
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Subtitle
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: textSecColor,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      // Option buttons
+                      ...options.map((opt) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                      colors: opt.gradientColors),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: opt.gradientColors.first
+                                          .withOpacity(0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  icon: Icon(opt.icon, size: 20),
+                                  label: Text(opt.label,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          letterSpacing: 1)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: opt.textColor,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
+                                  ),
+                                  onPressed: opt.onTap,
+                                ),
+                              ),
+                            ),
+                          )),
+                      // Cancel
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            color: textSecColor.withOpacity(0.5),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   void _showAboutDialog() {
+    const Color currentOrange = Color(0xFFFF9800);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor:
-            Provider.of<PlayerProvider>(context, listen: false).isDarkMode
-                ? AppTheme.cardBg
-                : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.info_outline, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            Text('Conócenos',
-                style: TextStyle(
-                    color: Provider.of<PlayerProvider>(context, listen: false)
-                            .isDarkMode
-                        ? Colors.white
-                        : const Color(0xFF1A1A1D),
-                    fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(
-          'MapHunter es una experiencia de búsqueda del tesoro con realidad aumentada. '
-          '¡Explora, resuelve pistas y compite por premios increíbles!',
-          style: TextStyle(
-              color:
-                  Provider.of<PlayerProvider>(context, listen: false).isDarkMode
-                      ? Colors.white70
-                      : const Color(0xFF4A4A5A)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Entendido', style: TextStyle(color: AppTheme.accentGold)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentOrange.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
           ),
-        ],
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentOrange, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, color: currentOrange, size: 40),
+                const SizedBox(height: 16),
+                const Text('Conócenos',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text(
+                  'MapHunter es una experiencia de búsqueda del tesoro con realidad aumentada. ¡Explora, resuelve pistas y compite por premios increíbles!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ENTENDIDO',
+                      style: TextStyle(
+                          color: currentOrange, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  void _showTermsDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.description_outlined, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            const Text('Términos y Condiciones',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Al utilizar MapHunter, aceptas nuestros términos de servicio y política de privacidad. '
-            'Para más información, visita nuestro sitio web.',
-            style: TextStyle(color: Colors.white70),
+  Future<void> _showTermsDialog() async {
+
+   // 1. Cambiamos const por final
+  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+
+  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
+  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
+
+    
+    
+    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
+    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir los Términos y Condiciones.'),
+            backgroundColor: Colors.redAccent,
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Entendido', style: TextStyle(color: AppTheme.accentGold)),
-          ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
+
 
   void _showSupportDialog() {
+    const Color currentOrange = Color(0xFFFF9800);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.support_agent_outlined, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            const Text('Soporte',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Text(
-          '¿Necesitas ayuda? Contáctanos a través de nuestro correo de soporte: soporte@maphunter.com',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Entendido', style: TextStyle(color: AppTheme.accentGold)),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: currentOrange.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
           ),
-        ],
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: currentOrange, width: 2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.support_agent_outlined,
+                    color: currentOrange, size: 40),
+                const SizedBox(height: 16),
+                const Text('Soporte',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text(
+                  '¿Necesitas ayuda? Contáctanos a través de nuestro correo de soporte: soporte@maphunter.com',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ENTENDIDO',
+                      style: TextStyle(
+                          color: currentOrange, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -304,6 +617,20 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route observer to detect when returning to this screen
+    routeObserver.subscribe(this, ModalRoute.of(context) as ModalRoute<void>);
+
+    // Precargar imágenes de fondo para transiciones suaves
+    precacheImage(
+        const AssetImage('assets/images/personajesgrupal.png'), context);
+    precacheImage(
+        const AssetImage('assets/images/fotogrupalnoche.png'), context);
+  }
+
+
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
     final bool hasSeenTutorial = prefs.getBool('seen_home_tutorial') ?? false;
@@ -326,10 +653,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               icon: Icons.map_outlined,
             ),
             TutorialStep(
-              title: "TABERNA Y LOCALES",
+              title: "MODOS DE JUEGO",
               description:
-                  "En la pestaña 'Local' podrás ver comercios aliados, ofertas exclusivas y puntos de interés cercanos.",
-              icon: Icons.storefront_outlined,
+                  "En la pestaña 'Modos' podrás elegir entre jugar de forma presencial u online.",
+              icon: Icons.sports_esports_outlined,
             ),
             TutorialStep(
               title: "TU CARTERA",
@@ -369,6 +696,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   Future<void> _loadEvents() async {
+    if (!mounted) return;
+    print("DEBUG: _loadEvents start");
+    setState(() => _isLoading = true);
 
     final eventProvider = Provider.of<EventProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
@@ -382,21 +712,47 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     if (userId != null) {
       final Map<String, bool> statusMap = {};
       final Map<String, String?> banMap = {}; // NEW
-      for (final event in eventProvider.events) {
-        try {
-          final data =
-              await requestProvider.isPlayerParticipant(userId, event.id);
-          statusMap[event.id] = data['isParticipant'] as bool? ?? false;
-          banMap[event.id] = data['status'] as String?; // NEW: Track ban status
-        } catch (e) {
+      final Map<String, String> roleMap = {}; // NEW - Role tracking
+
+      // Fetch all participations in a single query to prevent N+1 bottleneck
+      try {
+        final allParticipations =
+            await requestProvider.getAllUserParticipations(userId);
+
+        // Pre-fill defaults
+        for (final event in eventProvider.events) {
           statusMap[event.id] = false;
-          banMap[event.id] = null; // NEW
+          banMap[event.id] = null;
+          roleMap[event.id] = 'none';
+        }
+
+        // Apply actual data
+        for (final participation in allParticipations) {
+          final eventId = participation['event_id'] as String;
+          final status = participation['status'] as String?;
+
+          statusMap[eventId] = true;
+          banMap[eventId] = status;
+
+          if (status == 'spectator') {
+            roleMap[eventId] = 'spectator';
+          } else {
+            roleMap[eventId] = 'player';
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading all participations: $e');
+        for (final event in eventProvider.events) {
+          statusMap[event.id] = false;
+          banMap[event.id] = null;
+          roleMap[event.id] = 'none';
         }
       }
       if (mounted) {
         setState(() {
           _participantStatusMap = statusMap;
           _banStatusMap = banMap; // NEW
+          _eventRoleMap = roleMap; // NEW
         });
       }
     }
@@ -406,7 +762,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       setState(() {
         _isLoading = false;
       });
-      
+
       // Show tutorial if first time viewing scenarios
       _showScenariosTutorial();
     }
@@ -417,7 +773,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final hasSeen = prefs.getBool('has_seen_tutorial_SCENARIOS') ?? false;
     if (hasSeen) return;
 
-    final steps = MasterTutorialContent.getStepsForSection('SCENARIOS', context);
+    final steps =
+        MasterTutorialContent.getStepsForSection('SCENARIOS', context);
     if (steps.isEmpty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -438,6 +795,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this); // Unsubscribe from route observer
     _pageController.dispose();
     _hoverController.dispose();
     _shimmerController.dispose();
@@ -446,8 +804,16 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     super.dispose();
   }
 
+  @override
+  void didPopNext() {
+    // This is called when the top route has been popped off, and this route shows up.
+    debugPrint("🔄 ScenariosScreen: didPopNext - Refreshing data...");
+    _loadEvents();
+  }
+
+
   Future<void> _onScenarioSelected(Scenario scenario) async {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = true /* always dark UI */;
     if (_isProcessing) return;
 
     if (scenario.isCompleted) {
@@ -472,9 +838,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           MaterialPageRoute(
             builder: (_) => WinnerCelebrationScreen(
               eventId: scenario.id,
-              playerPosition: 0,
+              playerPosition: 0, // Will be corrected by screen if participant
               totalCluesCompleted: 0,
-              prizeWon: prizeWon, // PASS RETRIEVED PRIZE
+              prizeWon: prizeWon ?? 0, // Pass 0 if null
             ),
           ),
         );
@@ -664,7 +1030,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                   setState(() => _isProcessing = true);
                   LoadingOverlay.show(context);
 
-                  final success = await requestProvider.joinOnlinePaidEvent(
+                  final result = await requestProvider.joinOnlinePaidEvent(
                       playerProvider.currentPlayer!.userId,
                       scenario.id,
                       scenario.entryFee);
@@ -673,11 +1039,17 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                   await Future.delayed(const Duration(seconds: 2));
 
                   if (!mounted) return;
-                  Navigator.pop(context);
+                  LoadingOverlay.hide(context);
 
+                  final success = result['success'] == true;
                   if (success) {
-                    playerProvider
-                        .updateLocalClovers(userClovers - scenario.entryFee);
+                    final newBalance = (result['new_balance'] as num?)?.toInt();
+                    if (newBalance != null) {
+                      playerProvider.updateLocalClovers(newBalance);
+                    } else {
+                      playerProvider
+                          .updateLocalClovers(userClovers - scenario.entryFee);
+                    }
                     await playerProvider.refreshProfile();
                     setState(() {
                       _participantStatusMap[scenario.id] = true;
@@ -692,8 +1064,11 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                   HomeScreen(eventId: scenario.id)));
                     }
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Error procesando el pago.')));
+                    final error = result['error'] ?? 'Error desconocido';
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(error == 'PAYMENT_FAILED'
+                            ? 'Saldo insuficiente al procesar el pago.'
+                            : 'Error procesando el pago.')));
                   }
                   setState(() => _isProcessing = false);
                 }
@@ -788,77 +1163,66 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           final userClovers = playerProvider.currentPlayer?.clovers ?? 0;
 
           if (userClovers >= entryFee) {
-            // Caso 1: Tiene saldo suficiente -> Confirmar y Pagar
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                backgroundColor: AppTheme.cardBg,
-                title: const Text('Confirmar Inscripción',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
-                content: Text(
-                  'Este evento tiene un costo de $entryFee 🍀.\n\n'
-                  'Tu saldo: $userClovers 🍀\n'
-                  'Despues del pago: ${userClovers - entryFee} 🍀',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancelar',
-                        style: TextStyle(color: Colors.white54)),
+            if (scenario.type == 'online') {
+              // ── ONLINE PAID: Atomic payment + join via RPC ──
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: AppTheme.cardBg,
+                  title: const Text('Confirmar Inscripción',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  content: Text(
+                    'Este evento tiene un costo de $entryFee 🍀.\n\n'
+                    'Tu saldo: $userClovers 🍀\n'
+                    'Despues del pago: ${userClovers - entryFee} 🍀',
+                    style: const TextStyle(color: Colors.white70),
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentGold,
-                      foregroundColor: Colors.black,
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancelar',
+                          style: TextStyle(color: Colors.white54)),
                     ),
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('PAGAR Y ENTRAR'),
-                  ),
-                ],
-              ),
-            );
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentGold,
+                        foregroundColor: Colors.black,
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('PAGAR Y ENTRAR'),
+                    ),
+                  ],
+                ),
+              );
 
-            if (confirm == true) {
-              // Procesar Pago
-              setState(() => _isProcessing = true);
-              LoadingOverlay.show(context);
+              if (confirm == true) {
+                setState(() => _isProcessing = true);
+                LoadingOverlay.show(context);
 
-              // Usar función apropiada según tipo de evento
-              final bool success;
-              if (scenario.type == 'online') {
-                // Online: Pago + inscripción directa (sin esperar admin)
-                success = await requestProvider.joinOnlinePaidEvent(
+                final joinResult = await requestProvider.joinOnlinePaidEvent(
                     playerProvider.currentPlayer!.userId,
                     scenario.id,
                     entryFee);
-              } else {
-                // Presencial: Solo pago (luego pasa por flujo de solicitud)
-                success = await requestProvider.processEventPayment(
-                    playerProvider.currentPlayer!.userId,
-                    scenario.id,
-                    entryFee);
-              }
 
-              if (!mounted) return;
-              LoadingOverlay.hide(context); // Close loading overlay
+                if (!mounted) return;
+                LoadingOverlay.hide(context);
 
-              if (success) {
-                // Actualizar saldo localmente para reflejar cambio inmediato
-                playerProvider.updateLocalClovers(userClovers - entryFee);
-                await playerProvider.refreshProfile();
+                if (joinResult['success'] == true) {
+                  final newBalance =
+                      (joinResult['new_balance'] as num?)?.toInt();
+                  if (newBalance != null) {
+                    playerProvider.updateLocalClovers(newBalance);
+                  } else {
+                    playerProvider.updateLocalClovers(userClovers - entryFee);
+                  }
+                  await playerProvider.refreshProfile();
 
-                // Actualizar mapa de participación
-                setState(() {
-                  _participantStatusMap[scenario.id] =
-                      (scenario.type == 'online');
-                });
+                  setState(() {
+                    _participantStatusMap[scenario.id] = true;
+                  });
 
-                // Navegar al flujo correcto según tipo de evento
-                if (mounted) {
-                  if (scenario.type == 'online') {
-                    // Online: Ir directo a la carrera (ya está inscrito)
+                  if (mounted) {
                     final gameProvider =
                         Provider.of<GameProvider>(context, listen: false);
                     await gameProvider.fetchClues(eventId: scenario.id);
@@ -867,23 +1231,25 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                       MaterialPageRoute(
                           builder: (_) => HomeScreen(eventId: scenario.id)),
                     );
-                  } else {
-                    // Presencial: Mostrar termómetro primero -> QR -> Solicitar Acceso
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => CodeFinderScreen(scenario: scenario)),
-                    );
                   }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(joinResult['error'] == 'PAYMENT_FAILED'
+                            ? 'Saldo insuficiente al procesar.'
+                            : 'Error al inscribirse. Intenta de nuevo.')),
+                  );
                 }
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content:
-                          Text('Error procesando el pago. Intenta de nuevo.')),
-                );
+                setState(() => _isProcessing = false);
               }
-              setState(() => _isProcessing = false);
+            } else {
+              // ── ON-SITE PAID: Navigate directly to CodeFinder ──
+              // Payment warning and request submission will happen AFTER scanning the QR code.
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => CodeFinderScreen(scenario: scenario)),
+              );
             }
           } else {
             // Caso 2: Saldo Insuficiente -> Redirigir Wallet
@@ -937,215 +1303,205 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               builder: (ctx) {
                 final isDarkMode = Theme.of(ctx).brightness == Brightness.dark;
                 return BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Dialog(
                     backgroundColor: Colors.transparent,
                     insetPadding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 24),
                     child: Container(
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDarkMode
-                              ? [
-                                  const Color(0xFF1A1F3A).withOpacity(0.95),
-                                  const Color(0xFF0A0E27).withOpacity(0.95)
-                                ]
-                              : [
-                                  Colors.white.withOpacity(0.98),
-                                  const Color(0xFFF0F0F7).withOpacity(0.98)
-                                ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
+                        color: AppTheme.secondaryPink.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(28),
                         border: Border.all(
-                          color: AppTheme.secondaryPink.withOpacity(0.5),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.secondaryPink.withOpacity(0.15),
-                            blurRadius: 25,
-                            spreadRadius: 2,
-                          ),
-                        ],
+                            color: AppTheme.secondaryPink.withOpacity(0.5),
+                            width: 1),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header area with a subtle glow
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppTheme.secondaryPink.withOpacity(0.05),
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(22)),
-                                ),
-                              ),
-                              Column(
-                                children: [
-                                  const SizedBox(height: 20),
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppTheme.secondaryPink,
-                                          AppTheme.secondaryPink
-                                              .withOpacity(0.7),
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.secondaryPink
-                                              .withOpacity(0.4),
-                                          blurRadius: 15,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.group_off_rounded,
-                                      color: Colors.white,
-                                      size: 36,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          Text(
-                            '¡EVENTO LLENO!',
-                            style: TextStyle(
-                              color: isDarkMode
-                                  ? Colors.white
-                                  : AppTheme.secondaryPink,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF151517),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                              color: AppTheme.secondaryPink, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.secondaryPink.withOpacity(0.1),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Content
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: Column(
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Header area with a subtle glow (Restaurado)
+                            Stack(
+                              alignment: Alignment.center,
                               children: [
-                                Text(
-                                  result.message ??
-                                      'El cupo de jugadores activos (${scenario.maxPlayers}) ha sido alcanzado.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? Colors.white
-                                        : const Color(0xFF2D3436),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                Container(
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondaryPink
+                                        .withOpacity(0.05),
+                                    borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(22)),
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No te preocupes, aún puedes vivir la experiencia desde el modo espectador.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? Colors.white70
-                                        : const Color(0xFF636E72),
-                                    fontSize: 14,
-                                    height: 1.6,
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-
-                                // Main Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 56,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          AppTheme.secondaryPink,
-                                          Color(0xFFFF4081)
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.secondaryPink
-                                              .withOpacity(0.35),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
+                                Column(
+                                  children: [
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTheme.secondaryPink,
+                                            AppTheme.secondaryPink
+                                                .withOpacity(0.7),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                         ),
-                                      ],
-                                    ),
-                                    child: ElevatedButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.transparent,
-                                        shadowColor: Colors.transparent,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                      ),
-                                      child: const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.visibility_rounded,
-                                              color: Colors.white),
-                                          SizedBox(width: 12),
-                                          Text(
-                                            'MODO ESPECTADOR',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1.2,
-                                            ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.secondaryPink
+                                                .withOpacity(0.4),
+                                            blurRadius: 15,
+                                            spreadRadius: 2,
                                           ),
                                         ],
                                       ),
+                                      child: const Icon(
+                                        Icons.group_off_rounded,
+                                        color: Colors.white,
+                                        size: 36,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                                const SizedBox(height: 16),
-
-                                // Cancel Button
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.white38,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12, horizontal: 24),
-                                  ),
-                                  child: Text(
-                                    'VOLVER AL INICIO',
-                                    style: TextStyle(
-                                      color: isDarkMode
-                                          ? Colors.white38
-                                          : Colors.grey,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
                               ],
                             ),
-                          ),
-                        ],
+
+                            Text(
+                              '¡EVENTO LLENO!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Content
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 30),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    result.message ??
+                                        'El cupo de jugadores activos (${scenario.maxPlayers}) ha sido alcanzado.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'No te preocupes, aún puedes vivir la experiencia desde el modo espectador.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
+
+                                  // Main Button (Restaurado con degradado original)
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            AppTheme.secondaryPink,
+                                            Color(0xFFFF4081)
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.secondaryPink
+                                                .withOpacity(0.35),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          shadowColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.visibility_rounded,
+                                                color: Colors.white),
+                                            SizedBox(width: 12),
+                                            Text(
+                                              'MODO ESPECTADOR',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 1.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Cancel Button (Restaurado)
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white38,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 24),
+                                    ),
+                                    child: const Text(
+                                      'VOLVER AL INICIO',
+                                      style: TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1189,6 +1545,24 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   Future<void> _onSpectatorSelected(Scenario scenario) async {
     if (_isProcessing) return;
 
+    if (scenario.isCompleted) {
+      // Direct navigation to results screen for finished events
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WinnerCelebrationScreen(
+              eventId: scenario.id,
+              playerPosition: 0,
+              totalCluesCompleted: 0,
+              prizeWon: 0,
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
     });
@@ -1198,12 +1572,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           Provider.of<PlayerProvider>(context, listen: false);
 
       // Diálogo de carga
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => const Center(
-            child: CircularProgressIndicator(color: AppTheme.accentGold)),
-      );
+      LoadingOverlay.show(context);
 
       // 1. Set role to spectator (local)
       playerProvider.setSpectatorRole(true);
@@ -1233,7 +1602,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   void _showErrorDialog(String msg, {String title = 'Atención'}) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // FORCED TO TRUE: Scenarios screen is always dark
+    const isDarkMode = true;
     final Color currentText =
         isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
     final Color currentCard =
@@ -1263,59 +1633,128 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   void _showComingSoonDialog(String featureName) {
+    const Color purpleAccent = Color(0xFF9D4EDD);
+    const Color cardBg = Color(0xFF151517);
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.3)),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.construction, color: AppTheme.accentGold),
-            const SizedBox(width: 12),
-            const Text(
-              'Próximamente',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: purpleAccent.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: purpleAccent.withOpacity(0.5), width: 1),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: purpleAccent, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: purpleAccent.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-          ],
-        ),
-        content: Text(
-          'La sección "$featureName" estará disponible muy pronto. ¡Mantente atento a las actualizaciones!',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Entendido',
-              style: TextStyle(color: AppTheme.accentGold),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: purpleAccent, width: 2),
+                    color: purpleAccent.withOpacity(0.1),
+                  ),
+                  child: const Icon(Icons.construction, color: purpleAccent, size: 32),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Próximamente',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Orbitron',
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'La sección "$featureName" estará disponible muy pronto. ¡Mantente atento a las actualizaciones!',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: purpleAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'ENTENDIDO',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Orbitron',
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildBottomNavBar() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(0, Icons.weekend, 'Local'),
-            _buildNavItem(1, Icons.explore, 'Escenarios'),
-            _buildNavItem(2, Icons.account_balance_wallet, 'Recargas'),
-            _buildNavItem(3, Icons.person, 'Perfil'),
-          ],
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFF000000).withOpacity(0.4),
+            border: const Border(
+              top: BorderSide(
+                color: AppTheme.dGoldMain,
+                width: 1.0, // Moderately thicker as requested
+              ),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                  left: 16, right: 16, top: 4, bottom: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(0, Icons.sports_esports_outlined, 'Modos'),
+                  _buildNavItem(1, Icons.explore_outlined, 'Escenarios'),
+                  _buildNavItem(
+                      2, Icons.account_balance_wallet_outlined, 'Wallet'),
+                  _buildNavItem(3, Icons.person_outline, 'Perfil'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -1323,56 +1762,93 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _navIndex == index;
-    final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
+    final activeColor = AppTheme.dGoldMain;
 
-    final Color activeColor =
-        isDarkMode ? AppTheme.dGoldMain : AppTheme.lBrandMain;
-    final Color inactiveColor =
-        isDarkMode ? Colors.white54 : const Color(0xFF4A4A5A);
-    final Color activeBg = activeColor.withOpacity(0.1);
+    if (isSelected) {
+      // SELECTED STATE - Restored Cyberpunk Style
+      return GestureDetector(
+        onTap: () {
+          // Refresh data if switching to Scenarios tab (index 1) from another tab
+          if (index == 1 && _navIndex != 1) {
+            _loadEvents();
+          }
+          setState(() => _navIndex = index);
+        },
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _navIndex = index;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 16 : 12,
-          vertical: 8,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? activeBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected
-              ? Border.all(color: activeColor.withOpacity(0.3))
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? activeColor : inactiveColor,
-              size: isSelected ? 24 : 22,
+        child: Container(
+          width: 85,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: activeColor.withOpacity(0.1),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(5),
+              bottomRight: Radius.circular(5),
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 6),
+            border: Border.all(
+              color: activeColor,
+              width: 1.0, // Matching line thickness
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: activeColor.withOpacity(0.4),
+                blurRadius: 10,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: activeColor,
+                size: 20,
+                shadows: [
+                  Shadow(color: activeColor.withOpacity(0.8), blurRadius: 8)
+                ],
+              ),
+              const SizedBox(height: 2),
               Text(
                 label,
                 style: TextStyle(
-                  color: activeColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
+                    color: activeColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 9,
+                    fontFamily: 'Avenir',
+                    letterSpacing: 0.5,
+                    shadows: [
+                      Shadow(color: activeColor.withOpacity(0.5), blurRadius: 4)
+                    ]),
               ),
             ],
-          ],
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // UNSELECTED STATE
+      return GestureDetector(
+        onTap: () {
+          // Refresh data if switching to Scenarios tab (index 1) from another tab
+          if (index == 1 && _navIndex != 1) {
+            _loadEvents();
+          }
+          setState(() => _navIndex = index);
+        },
+
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: Colors.transparent,
+          child: Icon(
+            icon,
+            color: Colors.white70,
+            size: 22,
+          ),
+        ),
+      );
+    }
   }
 
   /// Builds a custom button for banned users that navigates to spectator mode
@@ -1458,7 +1934,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final eventProvider = Provider.of<EventProvider>(context);
     final appMode = Provider.of<AppModeProvider>(context);
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final isDarkMode = playerProvider.isDarkMode;
+    // FORCED TO TRUE: Always use dark mode colors in scenarios section (including dialogs)
+    final isDarkMode = true; // Previously: playerProvider.isDarkMode;
 
     // Colores según el modo
     final Color currentBg =
@@ -1469,20 +1946,24 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     // Filtrar eventos según el modo seleccionado
     List<GameEvent> visibleEvents = eventProvider.events;
     if (appMode.isOnlineMode) {
-      visibleEvents = visibleEvents.where((e) => e.type == 'online').toList();
+      visibleEvents = visibleEvents.where((e) => e.type.toLowerCase() == 'online').toList();
     } else if (appMode.isPresencialMode) {
       // Presencial: Todo lo que NO sea online (o explícitamente presencial si hubiera ese tipo)
-      visibleEvents = visibleEvents.where((e) => e.type != 'online').toList();
+      visibleEvents = visibleEvents.where((e) => e.type.toLowerCase() != 'online').toList();
     }
 
     // APLICAR FILTRO DE ESTADO (Active vs Pending vs Completed)
     visibleEvents = visibleEvents.where((e) {
-      if (_selectedFilter == 'completed') return e.status == 'completed';
-      if (e.status == 'completed') return false; // Hide completed in other tabs
-      if (_selectedFilter == 'active') return e.status == 'active';
-      if (_selectedFilter == 'pending') return e.status == 'pending';
-      return false;
-    }).toList();
+    if (_selectedFilter == 'completed') return e.status == 'completed';
+    if (e.status == 'completed') return false;
+    if (_selectedFilter == 'active') return e.status == 'active';
+    if (_selectedFilter == 'pending') return e.status == 'pending';
+    return false;
+  }).toList();
+
+  if (_selectedFilter == 'completed') {
+    visibleEvents = visibleEvents.take(5).toList();
+  }
 
     // Convertir Eventos a Escenarios usando Mapper
     final List<Scenario> scenarios = ScenarioMapper.fromEvents(visibleEvents);
@@ -1495,56 +1976,55 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       onPopInvoked: (didPop) async {
         if (didPop) return;
 
-        final shouldExit = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: isDarkMode ? AppTheme.dSurface1 : Colors.white,
-            title: Text('¿Salir de MapHunter?',
-                style: TextStyle(color: currentText)),
-            content: Text(
-              '¿Estás seguro que deseas salir de la aplicación?',
-              style: TextStyle(
-                  color: isDarkMode ? Colors.white70 : Colors.black87),
+        _showPremiumExitDialog(
+          title: '¿Qué deseas hacer?',
+          subtitle: 'Puedes cambiar de modo de juego o salir de la aplicación.',
+          isDarkMode: isDarkMode,
+          options: [
+            _DialogOption(
+              icon: Icons.swap_horiz_rounded,
+              label: 'CAMBIAR MODO',
+              gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+              textColor: Colors.black,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                      builder: (_) => const GameModeSelectorScreen()),
+                  (route) => false,
+                );
+              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text('Cancelar',
-                    style: TextStyle(
-                        color: isDarkMode ? Colors.white54 : Colors.grey)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.dangerRed,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('SALIR'),
-              ),
-            ],
-          ),
+            _DialogOption(
+              icon: Icons.exit_to_app_rounded,
+              label: 'SALIR DE LA APP',
+              gradientColors: [AppTheme.dangerRed, const Color(0xFFB71C1C)],
+              textColor: Colors.white,
+              onTap: () {
+                Navigator.pop(context);
+                SystemNavigator.pop();
+              },
+            ),
+          ],
         );
-
-        if (shouldExit == true) {
-          SystemNavigator.pop();
-        }
       },
       child: AnimatedCyberBackground(
         child: Stack(
           children: [
-            // Fondo con degradado radial dinámico (Compartido para todas las pestañas)
+            // Fondo con imagen dinámica (Diferente para Día y Noche)
+            Positioned.fill(
+              child: Image.asset(
+                playerProvider.isDarkMode
+                    ? 'assets/images/fotogrupalnoche.png'
+                    : 'assets/images/personajesgrupal.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+            // Overlay oscuro para mejorar legibilidad sobre la imagen
             Positioned.fill(
               child: Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.8, -0.6),
-                    radius: 1.5,
-                    colors: [
-                      currentBrandDeep,
-                      currentBg,
-                    ],
-                  ),
-                ),
+                color: Colors.black.withOpacity(0.6),
               ),
             ),
             Scaffold(
@@ -1555,17 +2035,266 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                 bottom: true,
                 child: _buildBottomNavBar(),
               ),
-              body: IndexedStack(
-                index: _navIndex,
+              body: (playerProvider.currentPlayer != null &&
+                      !playerProvider.currentPlayer!.emailVerified &&
+                      _navIndex != 3)
+                  ? _buildVerificationBlock()
+                  : IndexedStack(
+                      index: _navIndex,
+                      children: [
+                        _buildLocalSection(),
+                        _buildScenariosContent(scenarios),
+                        const WalletScreen(hideScaffold: true),
+                        const ProfileScreen(hideScaffold: true),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerificationBlock() {
+    final currentAction = AppTheme.dGoldMain;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.mark_email_unread_outlined, color: AppTheme.accentGold, size: 80),
+          const SizedBox(height: 24),
+          const Text(
+            "VERIFICACIÓN REQUERIDA",
+            style: TextStyle(
+              fontFamily: 'Orbitron',
+              color: AppTheme.accentGold,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "Debes verificar tu correo electrónico antes de acceder a las diferentes secciones.\n\nRevisa tu bandeja de entrada o dirígete a tu perfil para actualizar o reenviar el enlace de verificación.",
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 15,
+              height: 1.5,
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          ElevatedButton.icon(
+            onPressed: () => setState(() => _navIndex = 3),
+            icon: const Icon(Icons.person),
+            label: const Text('IR A MI PERFIL'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: currentAction,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () async {
+              final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+              
+              // Just consult the provider which re-fetches from DB
+              await playerProvider.reloadProfile();
+              if (mounted) {
+                final updatedPlayer = playerProvider.currentPlayer;
+                if (updatedPlayer != null && updatedPlayer.emailVerified) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Email verificado correctamente. ¡Bienvenido!"),
+                      backgroundColor: AppTheme.successGreen,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Aún no has verificado tu email."),
+                      backgroundColor: AppTheme.dangerRed,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('YA VERIFIQUÉ'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocalSection() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        children: [
+          const Text(
+            "MODOS",
+            style: TextStyle(
+              fontFamily: 'Orbitron',
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.dGoldMain,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "¿Cómo deseas jugar hoy?",
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 40),
+          _buildModeCard(
+            title: "MODO PRESENCIAL",
+            description: "Aventura real con GPS y códigos QR.",
+            icon: Icons.location_on_outlined,
+            color: AppTheme.dGoldMain,
+            onTap: () {
+            // ACTUALIZAR PROVIDER GLOBAL
+            context
+                .read<AppModeProvider>()
+                .setMode(GameMode.presencial);
+
+            // Navegar a escenarios (flujo normal)
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const ScenariosScreen(isOnline: false)));
+          },
+          ),
+          const SizedBox(height: 16),
+          _buildModeCard(
+            title: "MODO ONLINE",
+            description: "Juega desde cualquier lugar con PIN.",
+            icon: Icons.wifi,
+            color: const Color(0xFF00F0FF),
+            onTap: () {
+            // ACTUALIZAR PROVIDER GLOBAL
+            context
+                .read<AppModeProvider>()
+                .setMode(GameMode.online);
+
+            // Navegar a escenarios o input de PIN
+            Navigator.push(
+                context,
+                MaterialPageRoute(  
+                    builder: (_) =>
+                        const ScenariosScreen(isOnline: true)));
+          },
+          ),
+          const SizedBox(height: 16),
+          _buildModeCard(
+            title: "MODO LOCAL",
+            description: "Juega en casa con amigos. Próximamente.",
+            icon: Icons.home_outlined,
+            color: const Color(0xFF9D4EDD),
+            onTap: () => _showComingSoonDialog("Modo Local"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(4), // Space for double border effect
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: color.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF150826).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: color.withOpacity(0.6),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.1),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Row(
                 children: [
-                  _buildComingSoonContent('Local'),
-                  _buildScenariosContent(scenarios),
-                  const WalletScreen(hideScaffold: true),
-                  const ProfileScreen(hideScaffold: true),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color.withOpacity(0.1),
+                      border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+                    ),
+                    child: Icon(icon, color: color, size: 26),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Orbitron',
+                            fontSize: 15,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          description,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: color.withOpacity(0.6), size: 24),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -1588,17 +2317,13 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-              title == 'Local'
-                  ? "UN MODO DE JUEGO PARA JUGAR EN CASA"
-                  : "PRÓXIMAMENTE",
+          const Text(
+              "PRÓXIMAMENTE",
               style: TextStyle(
-                color: Provider.of<PlayerProvider>(context).isDarkMode
-                    ? Colors.white70
-                    : const Color(0xFF4A4A5A),
-                letterSpacing: title == 'Local' ? 2 : 8,
+                color: Colors.white70,
+                letterSpacing: 2,
                 fontWeight: FontWeight.bold,
-                fontSize: title == 'Local' ? 14 : 12,
+                fontSize: 14,
               )),
           const SizedBox(height: 40),
           ElevatedButton(
@@ -1616,9 +2341,10 @@ class _ScenariosScreenState extends State<ScenariosScreen>
 
   Widget _buildScenariosContent(List<Scenario> scenarios) {
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final isDarkMode = playerProvider.isDarkMode;
+    // FORCED TO TRUE: Always use dark mode colors in scenarios/simulator section
+    final isDarkMode = true; // Previously: playerProvider.isDarkMode;
 
-    // Colores dinámicos
+    // Colores dinámicos (ahora siempre serán los del modo oscuro)
     final Color currentSurface =
         isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
     final Color currentText =
@@ -1654,42 +2380,11 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                         clipBehavior: Clip.none,
                         alignment: Alignment.center,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 30.0),
-                            child: Center(
-                              child: Image.asset(
-                                isDarkMode
-                                    ? 'assets/images/maphunter_titulo.png'
-                                    : 'assets/images/logocopia2.png',
-                                height: 65,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: -20,
-                            child: Text(
-                              "Búsqueda del tesoro ☘️",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: currentTextSec,
-                                fontWeight: FontWeight.w300,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ),
+                          const SizedBox(height: 50), // Reduced header space
+                          // Removed "Búsqueda del tesoro" from here to move it lower
                           Positioned(
                             left: 0,
-                            top: -24,
-                            child: IconButton(
-                              icon: Icon(Icons.logout,
-                                  color: currentText, size: 28),
-                              onPressed: _showLogoutDialog,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: -24,
+                            top: 0,
                             child: Theme(
                               data: Theme.of(context).copyWith(
                                 dividerTheme: DividerThemeData(
@@ -1786,12 +2481,76 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                               ),
                             ),
                           ),
+                          Positioned(
+                            right: 0,
+                            top: 10,
+                            child: GestureDetector(
+                              onTap: _showLogoutDialog,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppTheme.dangerRed.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.dangerRed.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppTheme.dangerRed,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            AppTheme.dangerRed.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                      )
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.logout_rounded,
+                                    color: AppTheme.dangerRed,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
+                    Center(
+                      child: Image.asset(
+                        'assets/images/logo4.1.png',
+                        height: 140, // Reduced size
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 4), // Reduced spacer
+
+                    Center(
+                      child: Text(
+                        "Búsqueda del tesoro ☘️",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: currentTextSec,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(40, 40, 40, 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: Text(
                         '¡Embárcate en una emocionante búsqueda del tesoro resolviendo pistas intrigantes para descubrir el gran premio oculto!',
                         textAlign: TextAlign.center,
@@ -1803,6 +2562,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                       ),
                     ),
 
+                    const SizedBox(height: 8), // Gap between both texts
+
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Center(
@@ -1810,13 +2571,14 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                           "ELIGE TU AVENTURA",
                           style: TextStyle(
                               color: currentAction,
-                              fontSize: 22,
+                              fontSize: 18, // Reduced size
                               fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(
+                        height: 5), // Small gap between text and filters
 
                     // CONTROLES DE FILTRO
                     Padding(
@@ -1830,8 +2592,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                             isActive: _selectedFilter == 'active',
                             onTap: () =>
                                 setState(() => _selectedFilter = 'active'),
-                            activeColor: currentAction,
-                            textColor: isDarkMode ? Colors.black : Colors.white,
+                            activeColor:
+                                AppTheme.dGoldMain, // Forzado a dorado oscuro
+                            textColor: Colors.black, // Negro sobre dorado
                           ),
                           const SizedBox(width: 12),
                           _buildFilterChip(
@@ -1840,7 +2603,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                             onTap: () =>
                                 setState(() => _selectedFilter = 'pending'),
                             activeColor: Colors.blueAccent,
-                            textColor: Colors.white,
+                            textColor: Colors.white, // Blanco sobre azul
                           ),
                           const SizedBox(width: 12),
                           _buildFilterChip(
@@ -1848,10 +2611,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                             isActive: _selectedFilter == 'completed',
                             onTap: () =>
                                 setState(() => _selectedFilter = 'completed'),
-                            activeColor: isDarkMode
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade400,
-                            textColor: Colors.white,
+                            activeColor:
+                                Colors.grey.shade700, // Forzado a gris oscuro
+                            textColor: Colors.white, // Blanco sobre gris
                           ),
                         ],
                       ),
@@ -1897,30 +2659,39 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                     ? 1.0
                                                     : 0.7;
                                               }
-                                              return Center(
-                                                child: SizedBox(
-                                                  height: Curves.easeOut
-                                                          .transform(value) *
-                                                      constraints.maxHeight,
-                                                  width: Curves.easeOut
-                                                          .transform(value) *
-                                                      340,
-                                                  child: child,
+                                              return Align(
+                                                alignment: Alignment
+                                                    .bottomCenter, // Pushes the card towards the dots
+                                                child: Container(
+                                                  margin: EdgeInsets
+                                                      .zero, // Removed margin to lower it more
+                                                  child: SizedBox(
+                                                    height: Curves.easeOut
+                                                            .transform(value) *
+                                                        constraints.maxHeight *
+                                                        1.0, // Occupy 100% of available height
+                                                    width: Curves.easeOut
+                                                            .transform(value) *
+                                                        360, // Slightly wider to match new height
+                                                    child: child,
+                                                  ),
                                                 ),
                                               );
                                             },
                                             child: GestureDetector(
                                               onTap: () {
                                                 // Don't intercept tap if user is banned - let the banned button handle it
-                                                if (_banStatusMap[
-                                                            scenario.id] !=
-                                                        'banned' &&
-                                                    _banStatusMap[
-                                                            scenario.id] !=
-                                                        'suspended') {
-                                                  _onScenarioSelected(scenario);
+                                                if (_banStatusMap[scenario.id] != 'banned' &&
+                                                    _banStatusMap[scenario.id] != 'suspended') {
+                                                  // Show choice dialog between Player and Spectator
+                                                  if (scenario.isCompleted) {
+                                                    _onScenarioSelected(scenario);
+                                                  } else {
+                                                    _showJoinOptionDialog(scenario);
+                                                  }
                                                 }
                                               },
+
                                               child: Container(
                                                 margin:
                                                     const EdgeInsets.symmetric(
@@ -1947,25 +2718,24 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                   child: Stack(
                                                     fit: StackFit.expand,
                                                     children: [
-                                                      scenario.imageUrl.isNotEmpty && scenario.imageUrl.startsWith('http')
+                                                      scenario.imageUrl.isNotEmpty &&
+                                                              scenario.imageUrl
+                                                                  .startsWith(
+                                                                      'http')
                                                           ? Image.network(
                                                               scenario.imageUrl,
-                                                              fit: BoxFit.cover,
-                                                              errorBuilder: (c, e, s) => Container(
-                                                                  color: isDarkMode
-                                                                      ? Colors.grey[
-                                                                          800]
-                                                                      : Colors.grey[
-                                                                          200],
-                                                                  child: Icon(Icons.broken_image,
-                                                                      color:
-                                                                          currentTextSec)))
-                                                          : Container(
-                                                              color: isDarkMode
-                                                                  ? Colors
-                                                                      .grey[900]
-                                                                  : Colors.grey[100],
-                                                              child: Icon(Icons.image_not_supported, color: currentTextSec.withOpacity(0.5))),
+                                                              fit: (scenario.type == 'online')
+                                                                  ? BoxFit
+                                                                      .contain
+                                                                  : BoxFit
+                                                                      .cover,
+                                                              errorBuilder: (c, e, s) => Image.asset(
+                                                                  'assets/images/logo4.1.png',
+                                                                  fit: BoxFit
+                                                                      .contain))
+                                                          : Image.asset(
+                                                              'assets/images/logo4.1.png',
+                                                              fit: BoxFit.contain),
                                                       Container(
                                                         decoration:
                                                             BoxDecoration(
@@ -1997,134 +2767,33 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                           ),
                                                         ),
                                                       ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(24.0),
-                                                        child: FittedBox(
-                                                          fit: BoxFit.scaleDown,
-                                                          alignment: Alignment
-                                                              .bottomCenter,
+                                                      Align(
+                                                        alignment: Alignment
+                                                            .bottomCenter,
+                                                        child:
+                                                            SingleChildScrollView(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(24.0),
                                                           child: Column(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
                                                             crossAxisAlignment:
                                                                 CrossAxisAlignment
                                                                     .start,
                                                             children: [
-                                                              Container(
-                                                                padding: const EdgeInsets
-                                                                    .symmetric(
-                                                                    horizontal:
-                                                                        12,
-                                                                    vertical:
-                                                                        6),
-                                                                decoration: BoxDecoration(
-                                                                    color: scenario.isCompleted
-                                                                        ? AppTheme
-                                                                            .dangerRed
-                                                                        : Colors
-                                                                            .black54,
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            20),
-                                                                    border: Border.all(
-                                                                        color: Colors
-                                                                            .white24)),
-                                                                child: Row(
-                                                                  children: [
-                                                                    const Icon(
-                                                                        Icons
-                                                                            .people,
-                                                                        color: Colors
-                                                                            .white,
-                                                                        size:
-                                                                            14),
-                                                                    const SizedBox(
-                                                                        width:
-                                                                            6),
-                                                                    Text(
-                                                                        scenario.isCompleted
-                                                                            ? 'FINALIZADA'
-                                                                            : 'MAX ${scenario.maxPlayers}',
-                                                                        style: const TextStyle(
-                                                                            color:
-                                                                                Colors.white,
-                                                                            fontWeight: FontWeight.bold,
-                                                                            fontSize: 12)),
-                                                                  ],
-                                                                ),
-                                                              ),
-
-                                                              // POT DISPLAY (NEW)
-                                                              if (!scenario
-                                                                      .isCompleted &&
-                                                                  scenario.entryFee >
-                                                                      0)
-                                                                Padding(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .only(
-                                                                          left:
-                                                                              8),
-                                                                  child:
-                                                                      Container(
-                                                                    padding: const EdgeInsets
-                                                                        .symmetric(
-                                                                        horizontal:
-                                                                            10,
-                                                                        vertical:
-                                                                            6),
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      color: AppTheme
-                                                                          .accentGold
-                                                                          .withOpacity(
-                                                                              0.3),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              20),
-                                                                      border: Border.all(
-                                                                          color: AppTheme.accentGold.withOpacity(
-                                                                              0.8),
-                                                                          width:
-                                                                              1),
-                                                                    ),
-                                                                    child: Row(
-                                                                      mainAxisSize:
-                                                                          MainAxisSize
-                                                                              .min,
-                                                                      children: [
-                                                                        const Icon(
-                                                                            Icons
-                                                                                .emoji_events,
-                                                                            color:
-                                                                                AppTheme.accentGold,
-                                                                            size: 14),
-                                                                        const SizedBox(
-                                                                            width:
-                                                                                4),
-                                                                        Text(
-                                                                          "${(scenario.currentParticipants * scenario.entryFee * 0.70).toStringAsFixed(0)} 🍀",
-                                                                          style: const TextStyle(
-                                                                              color: Colors.white,
-                                                                              fontWeight: FontWeight.w800,
-                                                                              fontSize: 12),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              const SizedBox(
-                                                                  height: 12),
                                                               Text(
                                                                   scenario.name,
+                                                                  maxLines: 1,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
                                                                   style: const TextStyle(
                                                                       color: Colors
                                                                           .white,
                                                                       fontSize:
-                                                                          24,
+                                                                          18.0,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .bold)),
@@ -2143,19 +2812,214 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                       TextOverflow
                                                                           .ellipsis),
                                                               const SizedBox(
-                                                                  height: 10),
-                                                              if (scenario.date !=
-                                                                      null &&
-                                                                  !scenario
-                                                                      .isCompleted)
-                                                                ScenarioCountdown(
-                                                                    targetDate:
-                                                                        scenario
-                                                                            .date!),
+                                                                  height: 12),
+                                                              Center(
+                                                                child:
+                                                                    SingleChildScrollView(
+                                                                  scrollDirection:
+                                                                      Axis.horizontal,
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          8),
+                                                                  clipBehavior:
+                                                                      Clip.none,
+                                                                  child: Row(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      // MODIFIED: Prioritize Status 'active'
+                                                                      if (scenario
+                                                                              .status ==
+                                                                          'active')
+                                                                        Container(
+                                                                          padding: const EdgeInsets
+                                                                              .symmetric(
+                                                                              horizontal: 8,
+                                                                              vertical: 4),
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            color:
+                                                                                AppTheme.successGreen.withOpacity(0.8),
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(20),
+                                                                            border:
+                                                                                Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                                                                          ),
+                                                                          child:
+                                                                              const Row(
+                                                                            mainAxisSize:
+                                                                                MainAxisSize.min,
+                                                                            children: [
+                                                                              Icon(Icons.play_circle_fill, color: Colors.white, size: 14),
+                                                                              SizedBox(width: 4),
+                                                                              Text(
+                                                                                'EN CURSO',
+                                                                                style: TextStyle(
+                                                                                  color: Colors.white,
+                                                                                  fontWeight: FontWeight.bold,
+                                                                                  fontSize: 10,
+                                                                                  letterSpacing: 0.5,
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        )
+                                                                      else if (scenario.date !=
+                                                                              null &&
+                                                                          !scenario
+                                                                              .isCompleted)
+                                                                        ScenarioCountdown(
+                                                                            targetDate:
+                                                                                scenario.date!),
+
+                                                                      if (scenario.date !=
+                                                                              null &&
+                                                                          !scenario
+                                                                              .isCompleted)
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                8),
+
+                                                                      // BADGE: MAX PLAYERS
+                                                                      Container(
+                                                                        padding: const EdgeInsets
+                                                                            .symmetric(
+                                                                            horizontal:
+                                                                                8,
+                                                                            vertical:
+                                                                                4),
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          color: scenario.isCompleted
+                                                                              ? AppTheme.dangerRed.withOpacity(0.8)
+                                                                              : Colors.black.withOpacity(0.6),
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(20),
+                                                                          border: Border.all(
+                                                                              color: Colors.white.withOpacity(0.2),
+                                                                              width: 1),
+                                                                        ),
+                                                                        child:
+                                                                            Row(
+                                                                          mainAxisSize:
+                                                                              MainAxisSize.min,
+                                                                          children: [
+                                                                            const Icon(Icons.people_outline,
+                                                                                color: Colors.white,
+                                                                                size: 14),
+                                                                            const SizedBox(width: 4),
+                                                                            Text(
+                                                                              scenario.isCompleted ? 'FINALIZADA' : 'MÁX: ${scenario.maxPlayers}',
+                                                                              style: const TextStyle(
+                                                                                color: Colors.white,
+                                                                                fontWeight: FontWeight.bold,
+                                                                                fontSize: 10,
+                                                                                letterSpacing: 0.5,
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+
+                                                                      // BADGE: POT / PRIZE (BOTÍN)
+                                                                      if (!scenario
+                                                                              .isCompleted &&
+                                                                          scenario.entryFee >
+                                                                              0)
+                                                                        const SizedBox(
+                                                                            width:
+                                                                                8),
+
+                                                                      if (!scenario
+                                                                              .isCompleted &&
+                                                                          scenario.entryFee >
+                                                                              0)
+                                                                        Container(
+                                                                          padding: const EdgeInsets
+                                                                              .symmetric(
+                                                                              horizontal: 8,
+                                                                              vertical: 4),
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            gradient:
+                                                                                LinearGradient(
+                                                                              colors: [
+                                                                                AppTheme.accentGold.withOpacity(0.4),
+                                                                                AppTheme.accentGold.withOpacity(0.1),
+                                                                              ],
+                                                                            ),
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(20),
+                                                                            border:
+                                                                                Border.all(color: AppTheme.accentGold.withOpacity(0.5), width: 1),
+                                                                            boxShadow: [
+                                                                              BoxShadow(
+                                                                                color: AppTheme.accentGold.withOpacity(0.2),
+                                                                                blurRadius: 8,
+                                                                                spreadRadius: -2,
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          child:
+                                                                              Row(
+                                                                            mainAxisSize:
+                                                                                MainAxisSize.min,
+                                                                            children: [
+                                                                              const Icon(Icons.workspace_premium, color: AppTheme.accentGold, size: 14),
+                                                                              const SizedBox(width: 4),
+                                                                              Text(
+                                                                                "BOTÍN: ${(scenario.pot * 0.70).toStringAsFixed(0)} 🍀",
+                                                                                style: const TextStyle(
+                                                                                  color: AppTheme.accentGold,
+                                                                                  fontWeight: FontWeight.bold,
+                                                                                  fontSize: 10,
+                                                                                  letterSpacing: 0.5,
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      const SizedBox(
+                                                                          width:
+                                                                              8), // Extra space at the end to prevent clipping
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ),
                                                               const SizedBox(
                                                                   height: 10),
-                                                              // CONDITIONAL BUTTON RENDERING based on banned status
-                                                              if (_banStatusMap[
+                                                              // CONDITIONAL BUTTON RENDERING based on event status and user role
+                                                              if (scenario.isCompleted)
+                                                                // 0. COMPLETED -> ALL users see "VER PODIO" (no matter their role)
+                                                                Center(
+                                                                  child: SizedBox(
+                                                                    width: 250,
+                                                                    child: ElevatedButton(
+                                                                      onPressed: () =>
+                                                                          _onScenarioSelected(scenario),
+                                                                      style: ElevatedButton.styleFrom(
+                                                                        backgroundColor: AppTheme.accentGold,
+                                                                        foregroundColor: Colors.black,
+                                                                        shape: RoundedRectangleBorder(
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(20))),
+                                                                      child: const Row(
+                                                                        mainAxisAlignment:
+                                                                            MainAxisAlignment.center,
+                                                                        children: [
+                                                                          Icon(Icons.emoji_events, size: 18),
+                                                                          SizedBox(width: 8),
+                                                                          Text('VER PODIO',
+                                                                              style: TextStyle(
+                                                                                  fontWeight: FontWeight.bold)),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              else if (_banStatusMap[
                                                                           scenario
                                                                               .id] ==
                                                                       'banned' ||
@@ -2163,89 +3027,128 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                           scenario
                                                                               .id] ==
                                                                       'suspended')
-                                                                // Show banned button
-                                                                SizedBox(
-                                                                  width: 250,
-                                                                  child: _buildBannedButton(
-                                                                      scenario),
-                                                                )
-                                                              else ...[
-                                                                // Show normal buttons
-                                                                SizedBox(
-                                                                  width: 250,
+                                                                // 1. BANNED/SUSPENDED -> Show Red Button
+                                                                Center(
                                                                   child:
-                                                                      ElevatedButton(
-                                                                    onPressed: () =>
-                                                                        _onScenarioSelected(
-                                                                            scenario),
-                                                                    style: ElevatedButton.styleFrom(
-                                                                        backgroundColor:
-                                                                            currentAction,
-                                                                        foregroundColor: (isDarkMode && currentAction == AppTheme.dGoldMain)
-                                                                            ? Colors
-                                                                                .black
-                                                                            : Colors
-                                                                                .white,
-                                                                        shape: RoundedRectangleBorder(
-                                                                            borderRadius:
-                                                                                BorderRadius.circular(20))),
-                                                                    child: scenario
-                                                                            .isCompleted
-                                                                        ? const Text(
-                                                                            "VER PODIO")
-                                                                        : _participantStatusMap[scenario.id] ==
-                                                                                true
-                                                                            ? const Text(
-                                                                                "ENTRAR")
-                                                                            : Text(scenario.entryFee == 0
-                                                                                ? "INSCRIBETE (GRATIS)"
-                                                                                : "INSCRIBETE (${scenario.entryFee} 🍀)"),
+                                                                      SizedBox(
+                                                                    width: 250,
+                                                                    child: _buildBannedButton(
+                                                                        scenario),
                                                                   ),
-                                                                ),
-                                                                if (!scenario
-                                                                    .isCompleted) ...[
-                                                                  const SizedBox(
-                                                                      height:
-                                                                          8),
-                                                                  SizedBox(
+                                                                )
+                                                              else if (_eventRoleMap[
+                                                                      scenario
+                                                                          .id] ==
+                                                                  'spectator')
+                                                                // 2. SPECTATOR -> Show "MODO ESPECTADOR" Main Button
+                                                                Center(
+                                                                  child:
+                                                                      SizedBox(
                                                                     width: 250,
                                                                     child:
-                                                                        TextButton(
+                                                                        ElevatedButton(
                                                                       onPressed:
                                                                           () =>
                                                                               _onSpectatorSelected(scenario),
-                                                                      style: TextButton
+                                                                      style: ElevatedButton
                                                                           .styleFrom(
+                                                                        backgroundColor:
+                                                                            Colors.transparent, // Glass style
                                                                         foregroundColor:
                                                                             Colors.white,
                                                                         side: const BorderSide(
                                                                             color:
-                                                                                Colors.white30),
+                                                                                Colors.white60,
+                                                                            width: 1.5),
                                                                         shape: RoundedRectangleBorder(
                                                                             borderRadius:
                                                                                 BorderRadius.circular(20)),
-                                                                        backgroundColor:
-                                                                            Colors.black26,
+                                                                        elevation:
+                                                                            0,
                                                                       ),
                                                                       child:
                                                                           const Row(
                                                                         mainAxisAlignment:
                                                                             MainAxisAlignment.center,
                                                                         children: [
-                                                                          Icon(
-                                                                              Icons.visibility,
-                                                                              size: 16),
+                                                                          Icon(Icons
+                                                                              .visibility),
                                                                           SizedBox(
                                                                               width: 8),
                                                                           Text(
                                                                               "MODO ESPECTADOR",
-                                                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                                                              style: TextStyle(fontWeight: FontWeight.bold)),
                                                                         ],
                                                                       ),
                                                                     ),
                                                                   ),
-                                                                ],
-                                                              ],
+                                                                )
+                                                              else
+                                                                // 3. PLAYER OR NONE -> Show Standard Logic
+                                                                Column(
+                                                                  children: [
+                                                                    // Main Action Button (Enter/Register)
+                                                                    Center(
+                                                                      child:
+                                                                          SizedBox(
+                                                                        width:
+                                                                            250,
+                                                                        child:
+                                                                            ElevatedButton(
+                                                                          onPressed: () =>
+                                                                              _onScenarioSelected(scenario),
+                                                                          style: ElevatedButton.styleFrom(
+                                                                              backgroundColor: currentAction,
+                                                                              foregroundColor: (isDarkMode && currentAction == AppTheme.dGoldMain) ? Colors.black : Colors.white,
+                                                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                                                                          child: scenario.isCompleted
+                                                                              ? const Text("VER PODIO", style: TextStyle(fontWeight: FontWeight.bold))
+                                                                              : _participantStatusMap[scenario.id] == true
+                                                                                  ? const Text("ENTRAR", style: TextStyle(fontWeight: FontWeight.bold)) // Already Player
+                                                                                  : Text(scenario.entryFee == 0 ? "INSCRIBETE (GRATIS)" : "INSCRIBETE (${scenario.entryFee} 🍀)", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+
+                                                                    // Spectator Link (Only if NOT a participant yet)
+                                                                    if (!scenario
+                                                                            .isCompleted &&
+                                                                        _participantStatusMap[scenario.id] !=
+                                                                            true) ...[
+                                                                      const SizedBox(
+                                                                          height:
+                                                                              8),
+                                                                      Center(
+                                                                        child:
+                                                                            SizedBox(
+                                                                          width:
+                                                                              250,
+                                                                          child:
+                                                                              TextButton(
+                                                                            onPressed: () =>
+                                                                                _showSpectatorWarningDialog(scenario),
+                                                                            style:
+                                                                                TextButton.styleFrom(
+                                                                              foregroundColor: Colors.white,
+                                                                              side: const BorderSide(color: Colors.white30),
+                                                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                                              backgroundColor: Colors.black26,
+                                                                            ),
+                                                                            child:
+                                                                                const Row(
+                                                                              mainAxisAlignment: MainAxisAlignment.center,
+                                                                              children: [
+                                                                                Icon(Icons.visibility, size: 16),
+                                                                                SizedBox(width: 8),
+                                                                                Text("MODO ESPECTADOR", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                                                              ],
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ],
+                                                                ),
                                                             ],
                                                           ),
                                                         ),
@@ -2262,6 +3165,29 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                         },
                       ),
                     ),
+                    // PAGE INDICATOR (DOTS)
+                    if (scenarios.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 5, top: 10), // Lowered dots
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(scenarios.length, (index) {
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              height: 8,
+                              width: _currentPage == index ? 24 : 8,
+                              decoration: BoxDecoration(
+                                color: _currentPage == index
+                                    ? currentAction
+                                    : currentAction.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -2283,21 +3209,19 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     final backgroundColor = isActive ? activeColor : Colors.transparent;
     final borderColor = isActive
         ? activeColor
-        : (Provider.of<PlayerProvider>(context).isDarkMode
-            ? Colors.white24
-            : Colors.black12);
+        : Colors
+            .white24; // Siempre usar color claro para el borde ya que el fondo es oscuro
     final labelColor = isActive
         ? textColor
-        : (Provider.of<PlayerProvider>(context).isDarkMode
-            ? Colors.white60
-            : Colors.black54);
+        : Colors
+            .white60; // Siempre usar color claro para el texto ya que el fondo es oscuro
     final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(20),
@@ -2308,10 +3232,27 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           style: TextStyle(
             color: labelColor,
             fontWeight: fontWeight,
-            fontSize: 14,
+            fontSize: 12,
           ),
         ),
       ),
     );
   }
+}
+
+/// Simple data class for premium dialog options.
+class _DialogOption {
+  final IconData icon;
+  final String label;
+  final List<Color> gradientColors;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  const _DialogOption({
+    required this.icon,
+    required this.label,
+    required this.gradientColors,
+    required this.textColor,
+    required this.onTap,
+  });
 }

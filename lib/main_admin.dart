@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:ui'; // Para PointerDeviceKind
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -88,10 +89,14 @@ class TreasureHuntAdminApp extends StatelessWidget {
         }),
         ChangeNotifierProvider(create: (_) {
           final supabase = Supabase.instance.client;
+          final authService = AuthService(supabaseClient: supabase);
           return PlayerProvider(
             supabaseClient: supabase,
-            authService: AuthService(supabaseClient: supabase),
-            adminService: AdminService(supabaseClient: supabase),
+            authService: authService,
+            adminService: AdminService(
+              supabaseClient: supabase,
+              authService: authService,
+            ),
             inventoryService: InventoryService(supabaseClient: supabase),
             powerService: PowerService(supabaseClient: supabase),
           );
@@ -110,6 +115,15 @@ class TreasureHuntAdminApp extends StatelessWidget {
       child: MaterialApp(
         title: 'MapHunter Admin',
         debugShowCheckedModeBanner: false,
+        scrollBehavior: const MaterialScrollBehavior().copyWith(
+          dragDevices: {
+            PointerDeviceKind.mouse,
+            PointerDeviceKind.touch,
+            PointerDeviceKind.stylus,
+            PointerDeviceKind.trackpad,
+            PointerDeviceKind.unknown,
+          },
+        ),
         theme: AppTheme.darkTheme,
         // Usamos AuthGate para manejar la sesión
         home: const AuthGate(),

@@ -118,14 +118,40 @@ class SpectatorFeedProvider extends ChangeNotifier {
         .subscribe();
   }
 
-  Future<int> _calculateRank(int cluesCompleted) async {
+  Future<int> _calculateRank(int cluesCompleted, {String? userId}) async {
     try {
-      final res = await _supabase
+      // 1. Players strictly ahead (more completed clues)
+      final aheadCount = await _supabase
           .from('game_players')
           .count()
           .eq('event_id', _eventId)
           .gt('completed_clues_count', cluesCompleted);
-      return res + 1;
+
+      if (userId == null) return aheadCount + 1;
+
+      // 2. Resolve ties: fetch this player's last_active timestamp
+      final playerRow = await _supabase
+          .from('game_players')
+          .select('last_active')
+          .eq('event_id', _eventId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (playerRow == null || playerRow['last_active'] == null) {
+        return aheadCount + 1;
+      }
+
+      final myLastActive = playerRow['last_active'] as String;
+
+      // 3. Players with same clues who reached that count earlier
+      final tiedAheadCount = await _supabase
+          .from('game_players')
+          .count()
+          .eq('event_id', _eventId)
+          .eq('completed_clues_count', cluesCompleted)
+          .lt('last_active', myLastActive);
+
+      return aheadCount + tiedAheadCount + 1;
     } catch (_) {
       return 0;
     }
@@ -155,7 +181,10 @@ class SpectatorFeedProvider extends ChangeNotifier {
             if (newClues > oldClues) {
               final playerName =
                   await _getPlayerName(newRecord['user_id']?.toString());
-              final rank = await _calculateRank(newClues);
+              final rank = await _calculateRank(
+                newClues,
+                userId: newRecord['user_id']?.toString(),
+              );
               final rankStr = rank > 0 ? ' (Va $rankº)' : '';
 
               _addEvent(GameFeedEvent(

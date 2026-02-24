@@ -16,6 +16,9 @@ import '../../auth/screens/login_screen.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import 'minigames/sequence_config_screen.dart';
 import 'minigames/drink_mixer_config_screen.dart';
+import 'audit_logs_screen.dart';
+import 'sponsors_management_screen.dart';
+import 'online_automation_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,11 +34,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     "Dashboard",
     "Crear Evento",
     "Competencias",
+    "Modo Online",
     "Usuarios",
     "Compras",
     "Retiros",
     "Reportes",
     "Minijuegos",
+    "Patrocinadores",
+    "Auditoría",
     "Configuración"
   ];
 
@@ -43,11 +49,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.dashboard,
     Icons.add_circle_outline,
     Icons.emoji_events,
+    Icons.cloud_done,
     Icons.people,
     Icons.local_offer,
     Icons.money_off,
     Icons.bar_chart,
     Icons.games,
+    Icons.business_center,
+    Icons.history_edu,
     Icons.settings,
   ];
 
@@ -115,14 +124,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
 
       const CompetitionsManagementScreen(), // Index 2
-      const UserManagementScreen(), // Index 3
-      const CloverPlansManagementScreen(), // Index 4 - Planes Compra
-      const WithdrawalPlansManagementScreen(), // Index 5 - Planes Retiro
+      const OnlineAutomationScreen(), // Index 3 - Modo Online
+      const UserManagementScreen(), // Index 4
+      const CloverPlansManagementScreen(), // Index 5 - Planes Compra
+      const WithdrawalPlansManagementScreen(), // Index 6 - Planes Retiro
       const Center(
           child: Text('Reportes - En desarrollo',
               style: TextStyle(color: Colors.white54))), // Index 6 - Reportes
       const _MinigamesListView(), // Index 7 - Minijuegos
-      const GlobalConfigScreen(), // Index 8 - Configuración
+      const SponsorsManagementScreen(), // Index 8 - Patrocinadores
+      const AuditLogsScreen(), // Index 9 - Auditoría
+      const GlobalConfigScreen(), // Index 10 - Configuración
     ];
 
     return LayoutBuilder(
@@ -464,7 +476,8 @@ class _MinigamesListView extends StatelessWidget {
         children: [
           const Text(
             "Configuración de Minijuegos",
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           const Text(
@@ -494,11 +507,18 @@ class _MinigamesListView extends StatelessWidget {
                       ),
                       child: Icon(mg['icon'], color: mg['color']),
                     ),
-                    title: Text(mg['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    subtitle: Text(mg['subtitle'], style: const TextStyle(color: Colors.white70)),
-                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+                    title: Text(mg['title'],
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18)),
+                    subtitle: Text(mg['subtitle'],
+                        style: const TextStyle(color: Colors.white70)),
+                    trailing: const Icon(Icons.arrow_forward_ios,
+                        color: Colors.white24, size: 16),
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => mg['screen']));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => mg['screen']));
                     },
                   ),
                 );

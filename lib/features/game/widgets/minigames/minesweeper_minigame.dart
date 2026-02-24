@@ -6,6 +6,7 @@ import '../../utils/minigame_logic_helper.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../../../mall/screens/mall_screen.dart';
@@ -33,11 +34,11 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
   late List<List<Cell>> _grid;
   bool _isFirstMove = true;
   bool _isGameOver = false;
-  
+
   // Timer State
   Timer? _timer;
   int _secondsRemaining = 120; // 2 minutos
-  
+
   // Stats
   int _flagsAvailable = totalMines;
   int _shields = 3; // Intentos Locales (Escudos)
@@ -49,7 +50,11 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
   bool _canRetry = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -64,7 +69,7 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
     super.initState();
     _startNewGame();
   }
-  
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -79,6 +84,13 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
       // Check for freeze state
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return; // Pause timer
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
 
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
@@ -97,9 +109,10 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
     _isFirstMove = true;
     _flagsAvailable = totalMines;
     _shields = 3; // Reiniciar escudos
-    
+
     // Generar grid vacío
-    _grid = List.generate(rows, (r) => List.generate(cols, (c) => Cell(row: r, col: c)));
+    _grid = List.generate(
+        rows, (r) => List.generate(cols, (c) => Cell(row: r, col: c)));
 
     _startTimer();
     setState(() {});
@@ -115,40 +128,51 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
 
       // Reducir el radio de seguridad para que abra menos bloques al iniciar (~5 bloques en lugar de 9)
       if ((r - safeRow).abs() + (c - safeCol).abs() <= 1) continue;
-      
+
       if (!_grid[r][c].isMine) {
         _grid[r][c].isMine = true;
         minesPlanted++;
       }
     }
-    
+
     // Calcular números adyacentes
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         if (!_grid[r][c].isMine) {
-           _grid[r][c].adjacentMines = _countAdjacentMines(r, c);
+          _grid[r][c].adjacentMines = _countAdjacentMines(r, c);
         }
       }
     }
   }
-  
+
   int _countAdjacentMines(int r, int c) {
     int count = 0;
     for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
-            int nr = r + i;
-            int nc = c + j;
-            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && _grid[nr][nc].isMine) {
-                count++;
-            }
+      for (int j = -1; j <= 1; j++) {
+        int nr = r + i;
+        int nc = c + j;
+        if (nr >= 0 &&
+            nr < rows &&
+            nc >= 0 &&
+            nc < cols &&
+            _grid[nr][nc].isMine) {
+          count++;
         }
+      }
     }
     return count;
   }
 
   void _handleCellTap(int r, int c) {
     if (_isGameOver) return;
-    if (_grid[r][c].isRevealed) return; // FIX: No interactuar si ya está revelada
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
+    if (_grid[r][c].isRevealed)
+      return; // FIX: No interactuar si ya está revelada
     if (_grid[r][c].isFlagged) return; // No abrir si tiene bandera
 
     if (_isFirstMove) {
@@ -165,94 +189,106 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
   }
 
   void _handleCellLongPress(int r, int c) {
-     if (_isGameOver || _grid[r][c].isRevealed) return;
-     
-     setState(() {
-         if (_grid[r][c].isFlagged) {
-             _grid[r][c].isFlagged = false;
-             _flagsAvailable++;
-         } else {
-             if (_flagsAvailable > 0) {
-                 _grid[r][c].isFlagged = true;
-                 _flagsAvailable--;
-             } else {
-                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No quedan banderas 🚩"), duration: Duration(milliseconds: 500)));
-             }
-         }
-     });
+    if (_isGameOver || _grid[r][c].isRevealed) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
+    setState(() {
+      if (_grid[r][c].isFlagged) {
+        _grid[r][c].isFlagged = false;
+        _flagsAvailable++;
+      } else {
+        if (_flagsAvailable > 0) {
+          _grid[r][c].isFlagged = true;
+          _flagsAvailable--;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("No quedan banderas 🚩"),
+              duration: Duration(milliseconds: 500)));
+        }
+      }
+    });
   }
 
   void _revealCell(int r, int c) {
-    if (r < 0 || r >= rows || c < 0 || c >= cols || _grid[r][c].isRevealed || _grid[r][c].isFlagged) return;
+    if (r < 0 ||
+        r >= rows ||
+        c < 0 ||
+        c >= cols ||
+        _grid[r][c].isRevealed ||
+        _grid[r][c].isFlagged) return;
 
     setState(() {
-       _grid[r][c].isRevealed = true;
+      _grid[r][c].isRevealed = true;
     });
 
     if (_grid[r][c].adjacentMines == 0) {
-       // Flood fill recursivo
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-               if (i != 0 || j != 0) _revealCell(r + i, c + j);
-            }
+      // Flood fill recursivo
+      for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+          if (i != 0 || j != 0) _revealCell(r + i, c + j);
         }
+      }
     }
   }
 
   void _triggerMine(int r, int c) {
-      setState(() {
-          _grid[r][c].isExploded = true;
-          _grid[r][c].isRevealed = true; // Solo revelar esa mina
-          _shields--; // Restar escudo
-      });
+    setState(() {
+      _grid[r][c].isExploded = true;
+      _grid[r][c].isRevealed = true; // Solo revelar esa mina
+      _shields--; // Restar escudo
+    });
 
-      if (_shields <= 0) {
-          // Game Over Real: Revelar todo
-          // FIX: Bloquear interacciones inmediatamente
-          _isGameOver = true; 
-          
-          setState(() {
-            for(var row in _grid) {
-                for(var cell in row) {
-                    if (cell.isMine) cell.isRevealed = true;
-                }
-            }
-          });
-          _loseGlobalLife("¡BOOM! Te quedaste sin escudos.");
-      } else {
-          // Feedback de escudo roto
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("¡Mina detonada! Escudos restantes: $_shields"),
-              backgroundColor: AppTheme.dangerRed,
-              duration: const Duration(seconds: 1),
-            ),
-          );
-      }
+    if (_shields <= 0) {
+      // Game Over Real: Revelar todo
+      // FIX: Bloquear interacciones inmediatamente
+      _isGameOver = true;
+
+      setState(() {
+        for (var row in _grid) {
+          for (var cell in row) {
+            if (cell.isMine) cell.isRevealed = true;
+          }
+        }
+      });
+      _loseGlobalLife("¡BOOM! Te quedaste sin escudos.");
+    } else {
+      // Feedback de escudo roto
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("¡Mina detonada! Escudos restantes: $_shields"),
+          backgroundColor: AppTheme.dangerRed,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   void _checkWin() {
-      bool won = true;
-      for (var row in _grid) {
-          for (var cell in row) {
-              if (!cell.isMine && !cell.isRevealed) {
-                  won = false;
-                  break;
-              }
-          }
+    bool won = true;
+    for (var row in _grid) {
+      for (var cell in row) {
+        if (!cell.isMine && !cell.isRevealed) {
+          won = false;
+          break;
+        }
       }
-      
-      if (won) {
-          _timer?.cancel();
-          _isGameOver = true;
-          widget.onSuccess();
-      }
+    }
+
+    if (won) {
+      _timer?.cancel();
+      _isGameOver = true;
+      widget.onSuccess();
+    }
   }
 
   void _loseGlobalLife(String reason, {bool timeOut = false}) async {
     _timer?.cancel(); // Detener timer inmediatamente
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
 
@@ -260,22 +296,20 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
 
       if (newLives <= 0) {
         _showOverlayState(
-          title: "GAME OVER", 
-          message: "Te has quedado sin vidas globales.",
-          retry: false,
-          showShop: true
-        );
+            title: "GAME OVER",
+            message: "Te has quedado sin vidas globales.",
+            retry: false,
+            showShop: true);
       } else {
         // Pausa breve antes de mostrar el overlay de fallo
         Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) {
-               _showOverlayState(
-                  title: "¡EXPLOSIÓN!", 
-                  message: "$reason\nHas perdido 1 vida.",
-                  retry: true,
-                  showShop: false
-               );
-            }
+          if (mounted) {
+            _showOverlayState(
+                title: "¡EXPLOSIÓN!",
+                message: "$reason\nHas perdido 1 vida.",
+                retry: true,
+                showShop: false);
+          }
         });
       }
     }
@@ -299,83 +333,105 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                      // Flag Counter
-                       Container(
-                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                       decoration: BoxDecoration(
-                         color: Colors.black54,
-                         borderRadius: BorderRadius.circular(8),
-                         border: Border.all(color: AppTheme.primaryPurple),
-                       ),
-                       child: Row(
-                          children: [
-                            const Icon(Icons.flag, color: AppTheme.dangerRed, size: 20),
-                            const SizedBox(width: 8),
-                            Text("$_flagsAvailable", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                          ],
-                       ),
-                     ),
-                     
-                     // ESCUDOS (Nuevo)
-                     Container(
-                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                       decoration: BoxDecoration(
-                         color: Colors.black54,
-                         borderRadius: BorderRadius.circular(8),
-                         border: Border.all(color: Colors.blueAccent),
-                       ),
-                       child: Row(
-                          children: [
-                            const Icon(Icons.shield, color: Colors.blueAccent, size: 20),
-                            const SizedBox(width: 8),
-                            Text("$_shields", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                          ],
-                       ),
-                     ),
-                      
-                     // Timer
-                     Container(
-                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                       decoration: BoxDecoration(
-                         color: isLowTime ? AppTheme.dangerRed : Colors.black54,
-                         borderRadius: BorderRadius.circular(8),
-                       ),
-                       child: Row(
-                          children: [
-                            const Icon(Icons.timer, color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                            Text("$minutes:$seconds", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                          ],
-                       ),
-                     ),
+                    // Flag Counter
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.primaryPurple),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.flag,
+                              color: AppTheme.dangerRed, size: 20),
+                          const SizedBox(width: 8),
+                          Text("$_flagsAvailable",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                        ],
+                      ),
+                    ),
+
+                    // ESCUDOS (Nuevo)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blueAccent),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.shield,
+                              color: Colors.blueAccent, size: 20),
+                          const SizedBox(width: 8),
+                          Text("$_shields",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                        ],
+                      ),
+                    ),
+
+                    // Timer
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isLowTime ? AppTheme.dangerRed : Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.timer,
+                              color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          Text("$minutes:$seconds",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              
+
               // Vidas Globales (Solo visualización)
               Consumer<GameProvider>(
-                  builder: (context, game, _) {
+                builder: (context, game, _) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(3, (index) {
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (index) {
                         return Icon(
-                            index < game.lives ? Icons.favorite : Icons.favorite_border,
-                            color: AppTheme.dangerRed,
-                            size: 24,
+                          index < game.lives
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: AppTheme.dangerRed,
+                          size: 24,
                         );
-                        }),
+                      }),
                     ),
                   );
-                  },
+                },
               ),
 
-              const Text("Toca para abrir. Mantén para marcar 🚩", style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const Text("Toca para abrir. Mantén para marcar 🚩",
+                  style: TextStyle(color: Colors.white54, fontSize: 12)),
               const SizedBox(height: 10),
 
               // GRID
@@ -384,18 +440,20 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(8), 
-                        border: Border.all(color: Colors.grey[700]!, width: 4),
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[700]!, width: 4),
                     ),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320, maxHeight: 320),
+                      constraints:
+                          const BoxConstraints(maxWidth: 320, maxHeight: 320),
                       child: AspectRatio(
                         aspectRatio: 1, // Square grid
                         child: GridView.builder(
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: rows * cols,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: cols,
                             crossAxisSpacing: 2,
                             mainAxisSpacing: 2,
@@ -411,7 +469,7 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 20),
             ],
           ),
@@ -421,29 +479,35 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                });
-                _startNewGame();
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                      });
+                      _startNewGame();
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },
@@ -452,78 +516,90 @@ class _MinesweeperMinigameState extends State<MinesweeperMinigame> {
       ),
     );
   }
-  
+
   Widget _buildCell(int r, int c) {
-      final cell = _grid[r][c];
-      
-      Color bgColor;
-      Widget? child;
-      
-      if (!cell.isRevealed) {
-          bgColor = Colors.blueGrey[700]!;
-          if (cell.isFlagged) {
-             child = const Icon(Icons.flag, color: AppTheme.dangerRed, size: 24);
-          }
+    final cell = _grid[r][c];
+
+    Color bgColor;
+    Widget? child;
+
+    if (!cell.isRevealed) {
+      bgColor = Colors.blueGrey[700]!;
+      if (cell.isFlagged) {
+        child = const Icon(Icons.flag, color: AppTheme.dangerRed, size: 24);
+      }
+    } else {
+      // Revelado
+      if (cell.isMine) {
+        bgColor = cell.isExploded ? Colors.red : Colors.grey[400]!;
+        child = const Icon(Icons.dangerous, color: Colors.black, size: 24);
       } else {
-          // Revelado
-          if (cell.isMine) {
-             bgColor = cell.isExploded ? Colors.red : Colors.grey[400]!;
-             child = const Icon(Icons.dangerous, color: Colors.black, size: 24);
-          } else {
-             bgColor = Colors.grey[200]!;
-             if (cell.adjacentMines > 0) {
-                 child = Text(
-                     '${cell.adjacentMines}',
-                     style: TextStyle(
-                         fontWeight: FontWeight.w900,
-                         fontSize: 20,
-                         color: _getNumberColor(cell.adjacentMines),
-                         shadows: [
-                            Shadow(color: Colors.black.withOpacity(0.2), offset: const Offset(1, 1), blurRadius: 1)
-                         ]
-                     ),
-                 );
-             }
-          }
+        bgColor = Colors.grey[200]!;
+        if (cell.adjacentMines > 0) {
+          child = Text(
+            '${cell.adjacentMines}',
+            style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                color: _getNumberColor(cell.adjacentMines),
+                shadows: [
+                  Shadow(
+                      color: Colors.black.withOpacity(0.2),
+                      offset: const Offset(1, 1),
+                      blurRadius: 1)
+                ]),
+          );
+        }
       }
-      
-      return GestureDetector(
-          onTap: () => _handleCellTap(r, c),
-          onLongPress: () => _handleCellLongPress(r, c),
-          child: Container(
-              decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(2),
-                  border: !cell.isRevealed ? Border.all(color: Colors.white10) : null,
-                  boxShadow: !cell.isRevealed ? [
-                      BoxShadow(color: Colors.black.withOpacity(0.3), offset: const Offset(1,1), blurRadius: 1)
-                  ] : null
-              ),
-              child: Center(child: child),
-          ),
-      );
+    }
+
+    return GestureDetector(
+      onTap: () => _handleCellTap(r, c),
+      onLongPress: () => _handleCellLongPress(r, c),
+      child: Container(
+        decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(2),
+            border: !cell.isRevealed ? Border.all(color: Colors.white10) : null,
+            boxShadow: !cell.isRevealed
+                ? [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(1, 1),
+                        blurRadius: 1)
+                  ]
+                : null),
+        child: Center(child: child),
+      ),
+    );
   }
-  
+
   Color _getNumberColor(int n) {
-      switch(n) {
-          case 1: return Colors.blue[800]!;
-          case 2: return Colors.green[800]!;
-          case 3: return Colors.red[800]!;
-          case 4: return Colors.purple[800]!;
-          case 5: return Colors.orange[800]!;
-          default: return Colors.black;
-      }
+    switch (n) {
+      case 1:
+        return Colors.blue[800]!;
+      case 2:
+        return Colors.green[800]!;
+      case 3:
+        return Colors.red[800]!;
+      case 4:
+        return Colors.purple[800]!;
+      case 5:
+        return Colors.orange[800]!;
+      default:
+        return Colors.black;
+    }
   }
 }
 
 class Cell {
-    final int row;
-    final int col;
-    bool isMine = false;
-    bool isRevealed = false;
-    bool isFlagged = false;
-    bool isExploded = false;
-    int adjacentMines = 0;
-    
-    Cell({required this.row, required this.col});
+  final int row;
+  final int col;
+  bool isMine = false;
+  bool isRevealed = false;
+  bool isFlagged = false;
+  bool isExploded = false;
+  int adjacentMines = 0;
+
+  Cell({required this.row, required this.col});
 }

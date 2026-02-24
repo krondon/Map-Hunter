@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/clue.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'game_over_overlay.dart';
 import '../race_track_widget.dart';
@@ -29,17 +30,18 @@ class FastNumberMinigame extends StatefulWidget {
 
 enum GameState { preparing, showing, inputting, finished }
 
-class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTickerProviderStateMixin {
+class _FastNumberMinigameState extends State<FastNumberMinigame>
+    with SingleTickerProviderStateMixin {
   GameState _state = GameState.preparing;
   String _targetNumber = "";
   String _currentInput = "";
   late AnimationController _animationController;
   late Animation<Offset> _flyAnimation;
-  
+
   Timer? _stateTimer;
   int _preparationCountdown = 3;
   int _attemptsRemaining = 3; // internal attempts per life
-  
+
   // Stats
   late Timer _gameTimer;
   int _secondsRemaining = 45;
@@ -61,12 +63,13 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1700), // Adjusted speed - slightly faster
+      duration: const Duration(
+          milliseconds: 1700), // Adjusted speed - slightly faster
     );
-    
+
     _flyAnimation = Tween<Offset>(
       begin: const Offset(-1.5, 0.0), // Start from left outside
-      end: const Offset(1.5, 0.0),   // End at right outside
+      end: const Offset(1.5, 0.0), // End at right outside
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.linear,
@@ -90,6 +93,15 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       if (gameProvider.isFrozen) return;
 
+      if (gameProvider.isFrozen) return;
+
+      // [FIX] Pause timer if connectivity is bad
+      final connectivityByProvider =
+          Provider.of<ConnectivityProvider>(context, listen: false);
+      if (!connectivityByProvider.isOnline) {
+        return; // Skip tick
+      }
+
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
       } else {
@@ -109,7 +121,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
     _targetNumber = _generateRandomNumber(5);
     _currentInput = "";
     _statusMessage = "";
-    
+
     _stateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_preparationCountdown > 1) {
@@ -135,10 +147,10 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
 
   void _showNumberTransition() async {
     setState(() => _state = GameState.showing);
-    
+
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
-    
+
     _animationController.forward().then((_) {
       if (mounted) {
         setState(() => _state = GameState.inputting);
@@ -149,7 +161,12 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
 
   void _onKeyPress(String value) {
     if (_state != GameState.inputting || _isGameOver) return;
-    
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     HapticFeedback.lightImpact();
     setState(() {
       if (_currentInput.length < 5) {
@@ -164,8 +181,15 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
 
   void _onDelete() {
     if (_state != GameState.inputting || _isGameOver) return;
+
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     if (_currentInput.isNotEmpty) {
-      setState(() => _currentInput = _currentInput.substring(0, _currentInput.length - 1));
+      setState(() =>
+          _currentInput = _currentInput.substring(0, _currentInput.length - 1));
       HapticFeedback.selectionClick();
     }
   }
@@ -181,7 +205,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
         _statusColor = AppTheme.dangerRed;
         _currentInput = ""; // Clear input for next attempt
       });
-      
+
       if (_attemptsRemaining > 0) {
         HapticFeedback.vibrate();
         // Wait a small moment to show the error before restarting
@@ -211,9 +235,9 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
   void _loseLife(String reason) async {
     _gameTimer.cancel();
     _stateTimer?.cancel();
-    
+
     int livesLeftCount = await MinigameLogicHelper.executeLoseLife(context);
-    
+
     if (mounted) {
       if (livesLeftCount <= 0) {
         setState(() => _isGameOver = true);
@@ -237,7 +261,11 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
     _loseLife("Abandono.");
   }
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool victory = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool victory = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -257,7 +285,7 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
         Column(
           children: [
             const SizedBox(height: 10),
-            
+
             // STATUS & PROGRESS
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -267,15 +295,23 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("ESTADO:", style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1, decoration: TextDecoration.none)),
+                      const Text("ESTADO:",
+                          style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                              letterSpacing: 1,
+                              decoration: TextDecoration.none)),
                       Text(
-                        _state == GameState.showing 
-                          ? "¡ATENTO AL NÚMERO!" 
-                          : _state == GameState.inputting 
-                            ? "INGRESA EL NÚMERO" 
-                            : "PREPARANDO...", 
-                        style: TextStyle(color: _statusColor, fontSize: 13, fontWeight: FontWeight.bold, decoration: TextDecoration.none)
-                      ),
+                          _state == GameState.showing
+                              ? "¡ATENTO AL NÚMERO!"
+                              : _state == GameState.inputting
+                                  ? "INGRESA EL NÚMERO"
+                                  : "PREPARANDO...",
+                          style: TextStyle(
+                              color: _statusColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.none)),
                     ],
                   ),
                   _buildStatusPill(Icons.speed, "CAPTURA VELOZ"),
@@ -298,7 +334,14 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                 child: ClipRect(
                   child: Stack(
                     children: [
-                      Center(child: Text(_state == GameState.inputting ? "???" : "", style: TextStyle(color: Colors.white.withOpacity(0.05), fontSize: 80, fontWeight: FontWeight.bold, decoration: TextDecoration.none))),
+                      Center(
+                          child: Text(
+                              _state == GameState.inputting ? "???" : "",
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.05),
+                                  fontSize: 80,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.none))),
                       if (_state == GameState.showing)
                         SlideTransition(
                           position: _flyAnimation,
@@ -310,7 +353,11 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                                 fontSize: 80,
                                 fontWeight: FontWeight.w900,
                                 decoration: TextDecoration.none,
-                                shadows: [Shadow(color: AppTheme.accentGold, blurRadius: 20)],
+                                shadows: [
+                                  Shadow(
+                                      color: AppTheme.accentGold,
+                                      blurRadius: 20)
+                                ],
                               ),
                             ),
                           ),
@@ -325,10 +372,12 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
             Expanded(
               flex: 3,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.3),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(30)),
                   border: Border.all(color: Colors.white.withOpacity(0.05)),
                 ),
                 child: Column(
@@ -340,18 +389,19 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                       decoration: BoxDecoration(
                         color: Colors.black26,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: _isError ? AppTheme.dangerRed : Colors.white24),
+                        border: Border.all(
+                            color:
+                                _isError ? AppTheme.dangerRed : Colors.white24),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         _currentInput.isEmpty ? "----" : _currentInput,
                         style: TextStyle(
-                          color: _isError ? AppTheme.dangerRed : Colors.white,
-                          fontSize: 32,
-                          letterSpacing: 10,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.none
-                        ),
+                            color: _isError ? AppTheme.dangerRed : Colors.white,
+                            fontSize: 32,
+                            letterSpacing: 10,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -359,7 +409,8 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                     Expanded(
                       child: GridView.builder(
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
                           childAspectRatio: 2.3,
                           crossAxisSpacing: 10,
@@ -367,12 +418,18 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
                         ),
                         itemCount: 12,
                         itemBuilder: (context, index) {
-                          if (index == 9) return _buildKey("C", Colors.white38, _clearInput);
-                          if (index == 10) return _buildKey("0", Colors.white, () => _handleKeyPress("0"));
-                          if (index == 11) return _buildKey("OK", AppTheme.successGreen, _submitInput);
-                          
+                          if (index == 9)
+                            return _buildKey("C", Colors.white38, _clearInput);
+                          if (index == 10)
+                            return _buildKey(
+                                "0", Colors.white, () => _handleKeyPress("0"));
+                          if (index == 11)
+                            return _buildKey(
+                                "OK", AppTheme.successGreen, _submitInput);
+
                           String key = (index + 1).toString();
-                          return _buildKey(key, Colors.white, () => _handleKeyPress(key));
+                          return _buildKey(
+                              key, Colors.white, () => _handleKeyPress(key));
                         },
                       ),
                     ),
@@ -382,22 +439,24 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
             ),
           ],
         ),
-
         if (_showOverlay)
           GameOverOverlay(
             title: _overlayTitle,
             message: _overlayMessage,
             isVictory: _isVictory,
             onRetry: _canRetry ? _resetGame : null,
-            onGoToShop: _showShopButton ? () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const MallScreen()));
-              if (mounted) {
-                setState(() {
-                  _canRetry = true;
-                  _showShopButton = false;
-                });
-              }
-            } : null,
+            onGoToShop: _showShopButton
+                ? () async {
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()));
+                    if (mounted) {
+                      setState(() {
+                        _canRetry = true;
+                        _showShopButton = false;
+                      });
+                    }
+                  }
+                : null,
             onExit: () => Navigator.pop(context),
           ),
       ],
@@ -417,7 +476,12 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
         children: [
           Icon(icon, color: AppTheme.accentGold, size: 12),
           const SizedBox(width: 5),
-          Text(label, style: const TextStyle(color: AppTheme.accentGold, fontSize: 9, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+          Text(label,
+              style: const TextStyle(
+                  color: AppTheme.accentGold,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.none)),
         ],
       ),
     );
@@ -446,12 +510,11 @@ class _FastNumberMinigameState extends State<FastNumberMinigame> with SingleTick
         child: Text(
           label,
           style: TextStyle(
-            color: color, 
-            fontSize: 22, 
-            fontWeight: FontWeight.w900, 
-            letterSpacing: 1,
-            decoration: TextDecoration.none
-          ),
+              color: color,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              decoration: TextDecoration.none),
         ),
       ),
     );

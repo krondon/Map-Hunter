@@ -33,7 +33,16 @@ class PowerRepositoryImpl implements PowerRepository {
         .stream(primaryKey: ['id'])
         .eq('target_id', targetId)
         .order('created_at', ascending: false)
-        .order('created_at', ascending: false);
+        .order('created_at', ascending: false); // Note: Keep existing weird ordering if it was there, or clean it up.
+  }
+
+  @override
+  Stream<Map<String, dynamic>?> getGamePlayerStream({required String playerId}) {
+    return _supabase
+        .from('game_players')
+        .stream(primaryKey: ['id'])
+        .eq('id', playerId)
+        .map((data) => data.isNotEmpty ? data.first : null);
   }
 
   @override
@@ -115,6 +124,37 @@ class PowerRepositoryImpl implements PowerRepository {
     } catch (e) {
       debugPrint('[PowerRepository] validateCombatEvent error: $e');
       return false; // Fail safe
+    }
+  }
+
+  @override
+  Future<void> deactivateDefense({required String gamePlayerId}) async {
+    try {
+      final result = await _supabase.rpc('deactivate_defense', params: {
+        'p_game_player_id': gamePlayerId,
+      });
+      debugPrint('[PowerRepository] deactivateDefense result: $result');
+    } catch (e) {
+      debugPrint('[PowerRepository] deactivateDefense error: $e');
+    }
+  }
+
+  @override
+  Future<String?> getGifterName({required String gamePlayerId}) async {
+    try {
+      final res = await _supabase
+          .from('game_players')
+          .select('user_id, profiles(name)')
+          .eq('id', gamePlayerId)
+          .maybeSingle();
+      
+      if (res == null) return null;
+      
+      final profile = res['profiles'] as Map<String, dynamic>?;
+      return profile?['name']?.toString();
+    } catch (e) {
+      debugPrint('[PowerRepository] getGifterName error: $e');
+      return null;
     }
   }
 }

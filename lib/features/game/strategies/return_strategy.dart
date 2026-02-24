@@ -23,7 +23,7 @@ class ReturnStrategy implements PowerStrategy {
   }) async {
     final response = await _supabase.rpc('use_power_mechanic', params: {
       'p_caster_id': casterId,
-      'p_target_id': casterId, // Return targets self (reflects next attack)
+      'p_target_id': targetId, // Fix: Target the intended recipient (Self or Other)
       'p_power_slug': slug,
     });
     return PowerUseResponse.fromRpcResponse(response);

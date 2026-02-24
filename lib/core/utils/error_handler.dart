@@ -10,6 +10,9 @@ class ErrorHandler {
     // FunctionException: extract the friendly message from details['error']
     // instead of showing the raw exception toString.
     if (error is FunctionException) {
+      if (error.status == 409 || error.toString().contains('409')) {
+        return 'Este correo ya está registrado. Intenta iniciar sesión.';
+      }
       final details = error.details;
       if (details is Map && details['error'] is String) {
         final serverMsg = details['error'] as String;
@@ -19,6 +22,13 @@ class ErrorHandler {
     }
 
     final String message = error.toString().toLowerCase();
+
+    // Errores de Registro / Código 409
+    if (message.contains('409') || 
+        message.contains('conflict') || 
+        message.contains('already exists')) {
+      return 'Este correo ya está registrado. Intenta iniciar sesión.';
+    }
 
     // Errores de conexión / Red
     if (message.contains('socketexception') || 
@@ -56,6 +66,10 @@ class ErrorHandler {
     
     if (message.contains('password should be at least')) {
         return 'La contraseña es muy corta.';
+    }
+    
+    if (message.contains('422') || message.contains('different from the old password')) {
+        return 'La nueva contraseña debe ser diferente a la anterior.';
     }
 
     // Errores de Baneo

@@ -52,13 +52,15 @@ class GameRequest {
     };
   }
 
-  bool get isApproved => status == 'approved';
+  bool get isApproved => status == 'approved' || status == 'paid';
+  bool get isPaid => status == 'paid';
   bool get isRejected => status == 'rejected';
   bool get isPending => status == 'pending';
 
   Color get statusColor {
     switch (status) {
       case 'approved':
+      case 'paid':
         return Colors.green;
       case 'rejected':
         return Colors.red;
@@ -71,6 +73,8 @@ class GameRequest {
     switch (status) {
       case 'approved':
         return 'Aprobado';
+      case 'paid':
+        return 'Pagado';
       case 'rejected':
         return 'Rechazado';
       default:

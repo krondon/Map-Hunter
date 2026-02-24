@@ -18,12 +18,14 @@ class InventoryResult {
 class PurchaseResult {
   final bool success;
   final int? newCoins;
+  final int? newClovers;
   final int? newLives;
   final String? errorMessage;
 
   PurchaseResult({
     required this.success,
     this.newCoins,
+    this.newClovers,
     this.newLives,
     this.errorMessage,
   });
@@ -137,7 +139,9 @@ class InventoryService {
     }
   }
 
-  /// Compra manual para espectadores (bypass RPC buy_item que pide status active)
+  /// Compra de poder para espectadores usando tréboles (profiles.clovers).
+  /// Llama al RPC `secure_clover_payment` para deducción atómica de tréboles
+  /// y luego inserta el poder en el inventario.
   Future<PurchaseResult> purchaseItemAsSpectator({
     required String userId,
     required String eventId,
@@ -162,7 +166,6 @@ class InventoryService {
           'lives': 0,
         });
         
-        // Re-fetch después de insertar
         gp = await _supabase
             .from('game_players')
             .select('id')
@@ -182,20 +185,27 @@ class InventoryService {
           .single();
       final String powerId = power['id'];
 
-      // 3. Verificar monedas (game_players - Session Based)
-      final gpCheck = await _supabase
-          .from('game_players')
-          .select('coins')
-          .eq('id', gpId)
-          .single();
-          
-      final int currentCoins = (gpCheck['coins'] as num?)?.toInt() ?? 0;
-      if (currentCoins < cost) throw 'No tienes suficientes monedas';
+      // 3. Deducir tréboles atómicamente desde profiles.clovers (RPC)
+      final paymentResult = await _supabase.rpc('secure_clover_payment', params: {
+        'p_user_id': userId,
+        'p_amount': cost,
+        'p_reason': 'spectator_buy_$itemId',
+      });
 
-      // 4. Descontar monedas
-      await _supabase.from('game_players').update({'coins': currentCoins - cost}).eq('id', gpId);
+      final Map<String, dynamic> payment = paymentResult is Map<String, dynamic>
+          ? paymentResult
+          : Map<String, dynamic>.from(paymentResult as Map);
 
-      // 5. Añadir poder al inventario
+      if (payment['success'] != true) {
+        final error = payment['error'] ?? 'Pago con tréboles fallido';
+        if (error == 'INSUFFICIENT_CLOVERS') {
+          throw 'No tienes tréboles suficientes (tienes: ${payment['current']}, necesitas: ${payment['required']})';
+        }
+        throw error;
+      }
+      final int newBalance = (payment['new_balance'] as num).toInt();
+
+      // 4. Añadir poder al inventario
       final existingPower = await _supabase
           .from('player_powers')
           .select('id, quantity')
@@ -216,9 +226,9 @@ class InventoryService {
         });
       }
 
-      return PurchaseResult(success: true, newCoins: currentCoins - cost);
+      return PurchaseResult(success: true, newClovers: newBalance);
     } catch (e) {
-      debugPrint('InventoryService: Error en compra manual de espectador: $e');
+      debugPrint('InventoryService: Error en compra espectador (tréboles): $e');
       rethrow;
     }
   }

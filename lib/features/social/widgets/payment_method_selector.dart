@@ -19,7 +19,7 @@ class PaymentMethodSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppTheme.cardBg : Colors.white,
+        color: const Color(0xFF151517),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         border: Border(top: BorderSide(color: AppTheme.accentGold.withOpacity(0.3))),
       ),
@@ -32,18 +32,20 @@ class PaymentMethodSelector extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDarkMode ? Colors.white24 : Colors.black12,
+                color: Colors.white24,
                 borderRadius: BorderRadius.circular(2)
               ),
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            'Selecciona Método de Pago',
+          const Text(
+            'Selecciona el Método de Pago',
             style: TextStyle(
-              color: isDarkMode ? Colors.white : const Color(0xFF1A1A1D),
+              color: Colors.white,
               fontSize: 18,
+              fontFamily: 'Orbitron',
               fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
             ),
           ),
           const SizedBox(height: 20),
@@ -120,10 +122,10 @@ class PaymentMethodSelector extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: enabled ? color.withOpacity(0.2) : (isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                    color: enabled ? color.withOpacity(0.2) : Colors.white10,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: enabled ? color : (isDarkMode ? Colors.white24 : Colors.black12), size: 24),
+                  child: Icon(icon, color: enabled ? color : Colors.white24, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -133,7 +135,7 @@ class PaymentMethodSelector extends StatelessWidget {
                         Text(
                           name,
                           style: TextStyle(
-                            color: enabled ? (isDarkMode ? Colors.white : const Color(0xFF1A1A1D)) : (isDarkMode ? Colors.white54 : Colors.black38),
+                            color: enabled ? Colors.white : Colors.white54,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -142,7 +144,7 @@ class PaymentMethodSelector extends StatelessWidget {
                         Text(
                           description,
                           style: TextStyle(
-                            color: enabled ? (isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A)) : (isDarkMode ? Colors.white24 : Colors.black12),
+                            color: enabled ? Colors.white70 : Colors.white24,
                             fontSize: 12,
                           ),
                         ),

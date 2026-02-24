@@ -69,7 +69,9 @@ class PaymentService {
       }
 
       final responseData = functionResponse.data;
-      debugPrint('[PaymentService] RAW RESPONSE: $responseData');
+      if (kDebugMode) {
+        debugPrint('[PaymentService] RAW RESPONSE: $responseData');
+      }
 
       if (responseData == null) {
          throw Exception('Respuesta vacía del servicio de pagos');
@@ -98,13 +100,15 @@ class PaymentService {
       final String finalPaymentUrl = originalUri.replace(queryParameters: updatedParams).toString();
 
       // 4. Persistence: "Truth of Intent" (Client-Side)
-      debugPrint('[PaymentService] PRE-INSERT CHECK:');
-      debugPrint(' - user_id type: ${userId.runtimeType} ($userId)');
-      debugPrint(' - order_id type: ${orderId.runtimeType} ($orderId)');
-      debugPrint(' - amount type: ${amount.runtimeType} ($amount)');
-      debugPrint(' - status: pending');
-      
-      debugPrint('[PaymentService] Persisting order $orderId to DB (clover_orders)...');
+      if (kDebugMode) {
+        debugPrint('[PaymentService] PRE-INSERT CHECK:');
+        debugPrint(' - user_id type: ${userId.runtimeType} ($userId)');
+        debugPrint(' - order_id type: ${orderId.runtimeType} ($orderId)');
+        debugPrint(' - amount type: ${amount.runtimeType} ($amount)');
+        debugPrint(' - status: pending');
+        
+        debugPrint('[PaymentService] Persisting order $orderId to DB (clover_orders)...');
+      }
       
       try {
         await _supabase.from('clover_orders').insert({
@@ -126,16 +130,18 @@ class PaymentService {
         debugPrint('[PaymentService] INSERT SUCCESS for order $orderId'); // Block check passed
 
       } on PostgrestException catch (error) {
-        // 1. Logs de Postgrest
-        debugPrint('[PaymentService] POSTGRES ERROR CAUGHT!');
-        debugPrint(' - error.message: ${error.message}');
-        debugPrint(' - error.code: ${error.code}'); // e.g. 23503 (FK), 42703 (Column)
-        debugPrint(' - error.hint: ${error.hint}');
-        debugPrint(' - error.details: ${error.details}');
-        
-        // 2. Verificación de Integridad Referencial (Foreign Keys)
-        if (error.code == '23503') {
-           debugPrint('[PaymentService] ALERT: Llave foránea violada. El user_id $userId podría no existir en public.profiles?');
+        if (kDebugMode) {
+          // 1. Logs de Postgrest
+          debugPrint('[PaymentService] POSTGRES ERROR CAUGHT!');
+          debugPrint(' - error.message: ${error.message}');
+          debugPrint(' - error.code: ${error.code}'); // e.g. 23503 (FK), 42703 (Column)
+          debugPrint(' - error.hint: ${error.hint}');
+          debugPrint(' - error.details: ${error.details}');
+          
+          // 2. Verificación de Integridad Referencial (Foreign Keys)
+          if (error.code == '23503') {
+             debugPrint('[PaymentService] ALERT: Llave foránea violada. El user_id $userId podría no existir en public.profiles?');
+          }
         }
         
         throw Exception('DB Error: ${error.message} (Code: ${error.code})');

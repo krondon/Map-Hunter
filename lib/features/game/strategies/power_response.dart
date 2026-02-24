@@ -9,6 +9,7 @@ class PowerUseResponse {
   final bool stealFailed;
   final String? stealFailReason;
   final bool blockedByShield;
+  final bool gifted;
   final String? errorMessage;
 
   PowerUseResponse({
@@ -18,6 +19,7 @@ class PowerUseResponse {
     this.stealFailed = false,
     this.stealFailReason,
     this.blockedByShield = false,
+    this.gifted = false,
     this.errorMessage,
   });
 
@@ -42,13 +44,15 @@ class PowerUseResponse {
       );
 
   static PowerUseResponse fromRpcResponse(dynamic response) {
-    // 1. Check for explicit success/failure
+    print("DEBUG: PowerUseResponse raw: $response");
     if (response is Map) {
+      // 1. Check for explicit error
       if (response['success'] == false) {
         final error = response['error'];
          if (error == 'unauthorized') return PowerUseResponse.error('No tienes permiso para usar este poder');
          if (error == 'target_invisible') return PowerUseResponse.error('¡El objetivo es invisible!');
          if (error == 'shield_already_active') return PowerUseResponse.error('¡El escudo ya está activo!');
+         if (error == 'target_already_protected') return PowerUseResponse.error('¡El objetivo ya está protegido!');
          return PowerUseResponse.error(error?.toString() ?? 'Error desconocido');
       }
       
@@ -62,6 +66,14 @@ class PowerUseResponse {
         return PowerUseResponse.reflected(response['returned_by_name'] ?? 'Un rival');
       }
 
+      // 3.1 Check for gifted
+      if (response['gifted'] == true) {
+        return PowerUseResponse(
+            result: PowerUseResultType.success,
+            gifted: true,
+        );
+      }
+
       // 4. Check for steal fail
       if (response['stolen'] == false && response['reason'] == 'target_no_lives') {
         return PowerUseResponse(
@@ -72,11 +84,9 @@ class PowerUseResponse {
       }
     }
 
-    // 5. Handle scalars (bool, string, int)
+    // 5. Handle scalars (bool, string, int) or default success
     if (response is bool && response == false) return PowerUseResponse.error('Falló la ejecución del poder');
-    if (response is String && response.toLowerCase() == 'false') return PowerUseResponse.error('Falló la ejecución del poder');
-
-    // Default success if no error structure found
+    
     return PowerUseResponse.success();
   }
 }

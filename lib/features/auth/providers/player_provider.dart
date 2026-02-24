@@ -14,7 +14,15 @@ import '../services/power_service.dart';
 import '../../admin/services/admin_service.dart';
 import '../../game/strategies/power_response.dart';
 
-enum PowerUseResult { success, reflected, error, blocked, gameFinished, targetFinished }
+enum PowerUseResult {
+  success,
+  reflected,
+  error,
+  blocked,
+  gameFinished,
+  targetFinished,
+  gifted
+}
 
 /// Core Player Provider - Handles player identity, session, and coordination.
 ///
@@ -46,7 +54,9 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   Timer? _pollingTimer;
   bool _isSpectatorSession = false; // NEW: Flag for spectator mode choice
   bool _isDarkMode = false; // Global theme state
-  
+  bool _isAutoTheme = true; // Auto theme based on Venezuela time
+  Timer? _themeTimer; // Timer to periodically check time
+
   List<PowerItem> _shopItems = PowerItem.getShopItems();
 
   Player? get currentPlayer => _currentPlayer;
@@ -54,10 +64,11 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   bool get isLoggedIn => _currentPlayer != null;
   List<PowerItem> get shopItems => _shopItems;
   bool get isDarkMode => _isDarkMode;
+  bool get isAutoTheme => _isAutoTheme;
 
   String? _banMessage;
   String? get banMessage => _banMessage;
-  
+
   // Error handling for powers
   String? _lastPowerError;
   String? get lastPowerError => _lastPowerError;
@@ -80,16 +91,64 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     notifyListeners();
   }
 
+  /// Toggle dark mode manually — disables auto theme.
   void toggleDarkMode(bool value) async {
     _isDarkMode = value;
+    _isAutoTheme = false; // Manual override disables auto
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_dark_mode', value);
+    await prefs.setBool('is_auto_theme', false);
+  }
+
+  /// Reset to automatic theme based on Venezuela time.
+  void resetToAutoTheme() async {
+    _isAutoTheme = true;
+    _applyVenezuelaTime();
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_auto_theme', true);
+    await prefs.remove('is_dark_mode');
+  }
+
+  /// Get current Venezuela hour (UTC-4).
+  int _getVenezuelaHour() {
+    final utcNow = DateTime.now().toUtc();
+    final venezuelaTime = utcNow.subtract(const Duration(hours: 4));
+    return venezuelaTime.hour;
+  }
+
+  /// Apply theme based on Venezuela time: day = 6AM-6PM, night = 6PM-6AM.
+  void _applyVenezuelaTime() {
+    final hour = _getVenezuelaHour();
+    final shouldBeDark = hour < 6 || hour >= 18; // Night: 6PM - 6AM
+    if (_isDarkMode != shouldBeDark) {
+      _isDarkMode = shouldBeDark;
+      notifyListeners();
+    }
+  }
+
+  /// Start periodic timer to check Venezuela time (every 5 minutes).
+  void _startThemeTimer() {
+    _themeTimer?.cancel();
+    _themeTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (_isAutoTheme) {
+        _applyVenezuelaTime();
+      }
+    });
   }
 
   Future<void> loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool('is_dark_mode') ?? false;
+    _isAutoTheme = prefs.getBool('is_auto_theme') ?? true; // Default: auto
+
+    if (_isAutoTheme) {
+      _applyVenezuelaTime();
+    } else {
+      _isDarkMode = prefs.getBool('is_dark_mode') ?? false;
+    }
+
+    _startThemeTimer();
     notifyListeners();
   }
 
@@ -146,29 +205,48 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   }
 
   /// Load shop items configuration from service.
+  /// Load shop items configuration from service.
   Future<void> loadShopItems() async {
     try {
       final configs = await _powerService.getPowerConfigs();
+
+      // NEW: Fetch Spectator Prices if applicable
+      Map<String, dynamic> spectatorPrices = {};
+      if (_isSpectatorSession && _currentPlayer?.currentEventId != null) {
+        spectatorPrices = await _powerService
+            .getSpectatorConfig(_currentPlayer!.currentEventId!);
+      }
+
+      // Refresh base items to ensure clean slate
+      _shopItems = PowerItem.getShopItems();
 
       _shopItems = _shopItems.map((item) {
         final matches = configs.where((d) => d['slug'] == item.id);
         final config = matches.isNotEmpty ? matches.first : null;
 
-        if (config != null) {
-          final int duration = (config['duration'] as num?)?.toInt() ?? 0;
+        // Base logic for duration updates
+        int duration = item.durationSeconds;
+        String newDesc = item.description;
 
-          String newDesc = item.description;
+        if (config != null) {
+          duration = (config['duration'] as num?)?.toInt() ?? 0;
           if (duration > 0) {
             newDesc =
                 newDesc.replaceAll(RegExp(r'\b\d+\s*s\b'), '${duration}s');
           }
-
-          return item.copyWith(
-            durationSeconds: duration,
-            description: newDesc,
-          );
         }
-        return item;
+
+        // NEW: Spectator Price Override
+        int finalCost = item.cost;
+        if (_isSpectatorSession && spectatorPrices.containsKey(item.id)) {
+          finalCost = (spectatorPrices[item.id] as num).toInt();
+        }
+
+        return item.copyWith(
+          durationSeconds: duration,
+          description: newDesc,
+          cost: finalCost, // Apply override
+        );
       }).toList();
 
       notifyListeners();
@@ -196,7 +274,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     try {
       final userId = await _authService.register(name, email, password,
           cedula: cedula, phone: phone);
-      
+
       // Solo intentamos restaurar sesión si realmente tenemos una activa
       if (_supabase.auth.currentSession != null) {
         await restoreSession(userId);
@@ -246,32 +324,34 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<void> updateProfile(
-      {String? name, String? email, String? cedula, String? phone}) async {
-    if (_currentPlayer == null) return;
-    try {
-      await _authService.updateProfile(
-        _currentPlayer!.userId,
-        name: name,
-        email: email,
-        cedula: cedula,
-        phone: phone,
-      );
+  Future<bool> updateProfile(
+    {String? name, String? email, String? phone, String? cedula}) async {
+  if (_currentPlayer == null) return false;
+  try {
+    final emailChanged = await _authService.updateProfile(
+      _currentPlayer!.userId,
+      name: name,
+      email: email,
+      phone: phone,
+      cedula: cedula,
+    );
 
-      // Actualizar localmente
-      _currentPlayer = _currentPlayer!.copyWith(
-        name: name,
-        email: email,
-        cedula: cedula,
-        phone: phone,
-      );
+    // Actualizar localmente
+    _currentPlayer = _currentPlayer!.copyWith(
+      name: name,
+      email: email,
+      phone: phone,
+      cedula: cedula,
+      emailVerified: emailChanged ? false : null,
+    );
 
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error updating profile in provider: $e');
-      rethrow;
-    }
+    notifyListeners();
+    return emailChanged;
+  } catch (e) {
+    debugPrint('Error updating profile in provider: $e');
+    rethrow;
   }
+}
 
   Future<void> addPaymentMethod({required String bankCode}) async {
     try {
@@ -286,17 +366,24 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     if (_isLoggingOut) return;
     _isLoggingOut = true;
 
-    // Use centralized AuthService logout which triggers callbacks
-    await _authService.logout();
+    try {
+      // Use centralized AuthService logout which triggers callbacks
+      await _authService.logout();
 
-    // Note: Local reset() will be called via callback registered in main.dart
-    // But we keep basic cleanup locally for safety if not registered
+      // Note: Local resetState() will be called via callback registered in main.dart
+      // But we keep basic cleanup locally for safety if not registered
+      if (clearBanMessage) {
+        _banMessage = null;
+      }
 
-    if (clearBanMessage) {
-      _banMessage = null;
+      // Safety call if callback didn't fire for some reason
+      if (_currentPlayer != null) {
+        resetState();
+      }
+    } finally {
+      _isLoggingOut = false;
+      notifyListeners();
     }
-
-    _isLoggingOut = false;
   }
 
   /// Elimina la cuenta del usuario permanentemente.
@@ -335,6 +422,10 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
     // For now, clear it.
     _banMessage = null;
 
+    // CRITICAL: Reset spectator flag so the next login (even a different user, e.g. admin)
+    // does not inherit a stale spectator-role override from a previous session.
+    _isSpectatorSession = false;
+
     notifyListeners();
   }
 
@@ -364,9 +455,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   void setSpectatorRole(bool isSpectator) {
     _isSpectatorSession = isSpectator;
     if (_currentPlayer != null) {
-      _currentPlayer =
-          _currentPlayer!.copyWith(role: isSpectator ? 'spectator' : 'user');
-      notifyListeners();
+      if (isSpectator) {
+        // Override role to 'spectator' for the duration of spectator mode.
+        _currentPlayer = _currentPlayer!.copyWith(role: 'spectator');
+        loadShopItems();
+        notifyListeners();
+      } else {
+        // Restore the actual role from DB instead of hardcoding 'user'.
+        // This prevents admins (or any non-user role) from losing their real role
+        // when spectator mode is cleared.
+        reloadProfile();
+      }
     }
   }
 
@@ -489,7 +588,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       }
 
       if (result.success) {
-        _currentPlayer!.coins -= cost;
+        if (_isSpectatorSession) {
+          // Espectadores pagan con tréboles (profiles.clovers)
+          if (result.newClovers != null) {
+            _currentPlayer!.clovers = result.newClovers!;
+          } else {
+            _currentPlayer!.clovers -= cost;
+          }
+        } else {
+          // Jugadores activos pagan con monedas de sesión (game_players.coins)
+          _currentPlayer!.coins -= cost;
+        }
         await fetchInventory(_currentPlayer!.userId, eventId);
         notifyListeners();
       }
@@ -632,8 +741,10 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       // Configure PowerEffectProvider
 
       debugPrint('[DEBUG] 🎯 Configuring PowerEffectProvider...');
-      effectProvider
-          ?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
+      // REMOVED: Redundant and causes race condition (undoes optimistic update).
+      // PowerEffectProvider manages its own state via startListening() stream.
+      // effectProvider
+      //    ?.setShielded(_currentPlayer!.status == PlayerStatus.shielded);
       // effectProvider?.configureReturnHandler - REMOVED: Return logic is now handled by strategies
 
       debugPrint(
@@ -666,23 +777,27 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       return PowerUseResult.error;
     }
     if (_isProcessing) {
-      debugPrint('PlayerProvider: ⚠️ usePower aborted: _isProcessing is TRUE (Busy)');
+      debugPrint(
+          'PlayerProvider: ⚠️ usePower aborted: _isProcessing is TRUE (Busy)');
       return PowerUseResult.error;
     }
     _isProcessing = true;
     _lastPowerError = null; // Reset error state
-    debugPrint('PlayerProvider: 🚀 usePower STARTED: $powerSlug -> $targetGamePlayerId');
+    debugPrint(
+        'PlayerProvider: 🚀 usePower STARTED: $powerSlug -> $targetGamePlayerId');
 
     final casterGamePlayerId = _currentPlayer!.gamePlayerId;
     if (casterGamePlayerId == null || casterGamePlayerId.isEmpty) {
-      debugPrint('PlayerProvider: ❌ usePower aborted: casterGamePlayerId is NULL/Empty');
+      debugPrint(
+          'PlayerProvider: ❌ usePower aborted: casterGamePlayerId is NULL/Empty');
       _isProcessing = false;
       return PowerUseResult.error;
     }
 
     // --- RACE FINISHED CHECKS ---
     if (gameProvider != null) {
-       debugPrint('PlayerProvider: 🏁 Checking Race Status. Clues: ${_currentPlayer!.completedCluesCount} / ${gameProvider.totalClues}');
+      debugPrint(
+          'PlayerProvider: 🏁 Checking Race Status. Clues: ${_currentPlayer!.completedCluesCount} / ${gameProvider.totalClues}');
     }
 
     if (gameProvider != null && gameProvider.totalClues > 0) {
@@ -696,13 +811,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       // 2. Check if Target has finished
       // We need to find target in leaderboard to check their progress
       final targetPlayer = gameProvider.leaderboard.firstWhere(
-        (p) => p.gamePlayerId == targetGamePlayerId || p.userId == targetGamePlayerId,
-        orElse: () => Player(userId: 'unknown', name: 'Unknown', email: ''), // Dummy fallback
+        (p) =>
+            p.gamePlayerId == targetGamePlayerId ||
+            p.userId == targetGamePlayerId,
+        orElse: () => Player(
+            userId: 'unknown', name: 'Unknown', email: ''), // Dummy fallback
       );
 
-      if (targetPlayer.userId != 'unknown' && 
+      if (targetPlayer.userId != 'unknown' &&
           targetPlayer.completedCluesCount >= gameProvider.totalClues) {
-        debugPrint('PlayerProvider: 🛑 Target finished race. Cannot be targeted.');
+        debugPrint(
+            'PlayerProvider: 🛑 Target finished race. Cannot be targeted.');
         _isProcessing = false;
         return PowerUseResult.targetFinished;
       }
@@ -710,7 +829,15 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     try {
       // --- EXCLUSIVITY CHECK ---
-      if (!effectProvider.canActivateDefensePower(powerSlug)) {
+      // Fix: Only apply exclusivity check for DEFENSE powers when SELF-CASTING.
+      // When gifting (caster != target), skip this check — server handles it.
+      final isDefensivePower =
+          ['shield', 'invisibility', 'return'].contains(powerSlug);
+      final isSelfCast = casterGamePlayerId == targetGamePlayerId;
+
+      if (isDefensivePower &&
+          isSelfCast &&
+          !effectProvider.canActivateDefensePower(powerSlug)) {
         debugPrint(
             'PlayerProvider: 🛑 Blocked usage of $powerSlug (Defense Exclusivity)');
         return PowerUseResult.error;
@@ -773,6 +900,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
           return PowerUseResult.reflected;
 
         case PowerUseResultType.success:
+          debugPrint("DEBUG: usePower success. Gifted? ${response.gifted}");
+          if (response.gifted) {
+            // No effects on self, just inventory sync
+            await syncRealInventory(effectProvider: effectProvider);
+            return PowerUseResult.gifted;
+          }
+
           if (response.stealFailed) {
             effectProvider.notifyStealFailed();
           }
@@ -784,8 +918,10 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
         case PowerUseResultType.error:
         default:
-          _lastPowerError = response.errorMessage ?? "Error desconocido tras ejecución";
-          debugPrint("PlayerProvider: ❌ Power Execution Error: $_lastPowerError");
+          _lastPowerError =
+              response.errorMessage ?? "Error desconocido tras ejecución";
+          debugPrint(
+              "PlayerProvider: ❌ Power Execution Error: $_lastPowerError");
           return PowerUseResult.error;
       }
     } catch (e) {
@@ -821,12 +957,13 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
     // FECHA DE CORTE: 12 de Febrero 2026
     // Usuarios creados ANTES de esta fecha se consideran "Veteranos" y no ven tutoriales.
-    final cutoffDate = DateTime(2026, 2, 12); 
+    final cutoffDate = DateTime(2026, 2, 12);
 
     if (_currentPlayer!.createdAt!.isBefore(cutoffDate)) {
-      debugPrint("PlayerProvider: 🛡️ Legacy user detected (Created: ${_currentPlayer!.createdAt}). Marking tutorials as seen.");
+      debugPrint(
+          "PlayerProvider: 🛡️ Legacy user detected (Created: ${_currentPlayer!.createdAt}). Marking tutorials as seen.");
       final prefs = await SharedPreferences.getInstance();
-      
+
       final tutorialKeys = [
         'has_seen_tutorial_MODE_SELECTOR',
         'has_seen_tutorial_SCENARIOS',
@@ -841,7 +978,7 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       for (var key in tutorialKeys) {
         if (!prefs.containsKey(key)) {
-           await prefs.setBool(key, true);
+          await prefs.setBool(key, true);
         }
       }
     }
@@ -962,7 +1099,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
 
       newPlayer.lives = actualLives;
       if (actualCoins != null) {
-         newPlayer.coins = actualCoins; // [REF] Overwrite global coins with session coins
+        newPlayer.coins =
+            actualCoins; // [REF] Overwrite global coins with session coins
       }
       newPlayer.inventory = realInventory;
       newPlayer.gamePlayerId = gamePlayerId;
@@ -983,6 +1121,8 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
       }
 
       _currentPlayer = finalPlayer;
+      // Reload prices for new event/role context
+      loadShopItems();
       debugPrint(
           '🔍 PlayerProvider: notifyListeners(). gamePlayerId: ${_currentPlayer?.gamePlayerId}, eventId: ${_currentPlayer?.currentEventId}, role: ${_currentPlayer?.role}');
       notifyListeners();
@@ -1117,6 +1257,14 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
                   '🚫 PlayerProvider: BAN detected for current event ($eventId) via Stream!');
               banDetectedForCurrentEvent = true;
               break;
+            }
+
+            // GRACE: If status changed to 'completed', this is a race finish,
+            // NOT a ban. Do NOT trigger aggressive refresh that could null gamePlayerId.
+            if (eventId == currentEventId && status == 'completed') {
+              debugPrint(
+                  '🏁 PlayerProvider: Race completion detected for event ($eventId) via Stream. Skipping aggressive refresh.');
+              return; // Early return — let the race completion flow handle navigation
             }
           }
 

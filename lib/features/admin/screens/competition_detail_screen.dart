@@ -24,6 +24,7 @@ import '../../mall/providers/store_provider.dart';
 import '../widgets/store_edit_dialog.dart';
 import '../widgets/clue_form_dialog.dart';
 import '../../mall/models/mall_store.dart';
+import '../widgets/competition_financials_widget.dart';
 
 class CompetitionDetailScreen extends StatefulWidget {
   final GameEvent event;
@@ -78,6 +79,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
   XFile? _selectedImage;
   bool _isLoading = false;
   bool _prizesDistributed = false; // New state
+  int _pot = 0; // State for pot
   List<Map<String, dynamic>> _leaderboardData = [];
 
   // Search state for participants tab
@@ -112,14 +114,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
   Future<void> _fetchLeaderboard() async {
     try {
-      // 1. Fetch ranking from game_players
+      // 1. Fetch ranking from game_players (ordered by clues DESC, then arrival ASC)
       final playersData = await Supabase.instance.client
           .from('game_players')
-          .select('user_id, completed_clues:completed_clues_count')
+          .select('user_id, completed_clues:completed_clues_count, last_active')
           .eq('event_id', widget.event.id)
           .neq('status', 'spectator')
-          .order('completed_clues_count', ascending: false);
-      
+          .order('completed_clues_count', ascending: false)
+          .order('last_active', ascending: true);
+
       if (playersData.isEmpty) {
         if (mounted) setState(() => _leaderboardData = []);
         return;
@@ -148,7 +151,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
       if (mounted) {
         setState(() {
-            _leaderboardData = List<Map<String, dynamic>>.from(enrichedData);
+          _leaderboardData = List<Map<String, dynamic>>.from(enrichedData);
         });
       }
     } catch (e) {
@@ -156,10 +159,28 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     }
   }
 
+  Future<void> _fetchEventDetails() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('events')
+          .select('pot')
+          .eq('id', widget.event.id)
+          .single();
+
+      if (mounted) {
+        setState(() {
+          _pot = (data['pot'] as num?)?.toInt() ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error refreshing event details: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
 
     _tabController.addListener(() {
       setState(() {}); // Rebuild to show/hide FAB
@@ -177,6 +198,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     _maxParticipants = widget.event.maxParticipants;
     _entryFee = widget.event.entryFee; // NEW: Init
     _selectedDate = widget.event.date;
+    _pot = widget.event.pot; // Init pot
 
     // Load requests for this event
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -222,6 +244,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
                 if (mounted) {
                   _fetchPlayerStatuses(adminService);
+                  _fetchEventDetails(); // Refresh pot on player changes
                 }
               },
             )
@@ -239,15 +262,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
         debugPrint(
             '🔔 CompetitionDetailScreen: Failed to setup subscription: $e');
       }
-      
+
       _checkPrizeStatus(adminService); // Check on init
     });
   }
 
   Future<void> _checkPrizeStatus([AdminService? service]) async {
     try {
-      final adminService = service ?? Provider.of<AdminService>(context, listen: false);
-      final distributed = await adminService.checkPrizeDistributionStatus(widget.event.id);
+      final adminService =
+          service ?? Provider.of<AdminService>(context, listen: false);
+      final distributed =
+          await adminService.checkPrizeDistributionStatus(widget.event.id);
       if (mounted) {
         setState(() => _prizesDistributed = distributed);
       }
@@ -553,6 +578,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
+      final ext = image.name.split('.').last.toLowerCase();
+      if (ext != 'jpg' && ext != 'jpeg' && ext != 'png') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '⚠️ Formato no soportado (.$ext). Solo se permiten imágenes JPG o PNG.'),
+              backgroundColor: Colors.orange.shade800,
+            ),
+          );
+        }
+        return;
+      }
       setState(() {
         _selectedImage = image;
       });
@@ -639,11 +677,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
         .length;
   }
 
-  double get _currentPot {
-    // Si el evento está completado, idealmente deberíamos mostrar el bote final guardado.
-    // Pero como no guardamos el bote en BD, lo recalculamos.
-    return (_activeParticipantCount * _entryFee * 0.70);
-  }
+  // Use the local state pot
+  int get _currentPot => _pot;
 
   void _loadData() {
     setState(() {});
@@ -651,6 +686,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     _fetchLeaderboard();
     _fetchPlayerStatuses();
     _checkPrizeStatus(); // Re-check status on reload
+    _fetchEventDetails(); // Refresh pot
   }
 
   Future<void> _distributePrizes() async {
@@ -666,7 +702,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bote Acumulado: ${_currentPot.toStringAsFixed(0)} 🍀',
+              'Pote Acumulado: $_currentPot 🍀',
               style: const TextStyle(
                   color: AppTheme.accentGold,
                   fontSize: 18,
@@ -721,7 +757,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Bote Total: ${result['pot']} 🍀',
+                    Text('Pote Total: ${result['pot']} 🍀',
                         style: const TextStyle(
                             color: AppTheme.accentGold,
                             fontWeight: FontWeight.bold)),
@@ -781,8 +817,78 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.darkBg,
-        title: Text(widget.event.title),
+        title: Text(
+          widget.event.title,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
         actions: [
+          if (widget.event.status == 'pending')
+            IconButton(
+              icon: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.greenAccent, size: 30),
+              tooltip: "Forzar Inicio (Ya!)",
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppTheme.cardBg,
+                    title: const Text("¿Iniciar Evento Ahora?",
+                        style: TextStyle(color: Colors.white)),
+                    content: const Text(
+                      "El evento pasará a estado 'active' inmediatamente, permitiendo que los jugadores entren y vean las pistas, sin importar la fecha programada.",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text("Cancelar"),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text("INICIAR",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm != true) return;
+
+                setState(() => _isLoading = true);
+                try {
+                  await Provider.of<EventProvider>(context, listen: false)
+                      .updateEventStatus(widget.event.id, 'active');
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('🚀 ¡Evento iniciado correctamente!'),
+                          backgroundColor: Colors.green),
+                    );
+                    Navigator.pop(context); // Close screen or refresh?
+                    // Better to just refresh state or let the provider notify listeners
+                    // But since status changed, the UI might need a full reload or just setState
+                    // We are listening to provider changes in the parent list, but here?
+                    // The widget.event is final, so it won't update automatically unless we navigate back
+                    // or re-fetch.
+                    // Let's pop to list to be safe and simple.
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('Error al iniciar: $e'),
+                          backgroundColor: Colors.red),
+                    );
+                  }
+                } finally {
+                  if (mounted) setState(() => _isLoading = false);
+                }
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.restart_alt, color: Colors.orangeAccent),
             tooltip: "Reiniciar Competencia",
@@ -842,6 +948,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
             Tab(text: "Participantes"),
             Tab(text: "Pistas de Juego"),
             Tab(text: "Tiendas"),
+            Tab(text: "Finanzas"),
           ],
         ),
       ),
@@ -854,6 +961,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
             _buildParticipantsTab(),
             _buildCluesTab(),
             _buildStoresTab(),
+            CompetitionFinancialsWidget(event: widget.event),
           ],
         ),
       ),
@@ -870,7 +978,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
         widget.event.date.isUtc ? widget.event.date : widget.event.date.toUtc();
     final nowUtc = now.toUtc();
 
-    return widget.event.isActive || nowUtc.isAfter(eventDate);
+    // Si el evento está activo O completado, bloqueamos la edición.
+    return widget.event.isActive || widget.event.status == 'completed' || nowUtc.isAfter(eventDate);
   }
 
   Widget? _getFAB() {
@@ -981,7 +1090,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 ),
                 child: Column(
                   children: [
-                    const Text('BOTE ACUMULADO',
+                    const Text('POTE ACUMULADO',
                         style: TextStyle(
                             color: AppTheme.accentGold,
                             fontSize: 12,
@@ -993,8 +1102,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                             color: Colors.white,
                             fontSize: 32,
                             fontWeight: FontWeight.w900)),
-                    Text(
-                        'Total: $_activeParticipantCount x $_entryFee | Reparto Dinámico (Tiers)',
+                    Text('Total Acumulado en Base de Datos',
                         style: const TextStyle(
                             color: Colors.white38, fontSize: 12)),
                   ],
@@ -1247,35 +1355,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-
-            if (_isEventActive || _prizesDistributed) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: (_prizesDistributed) ? null : _distributePrizes,
-                  icon: Icon(
-                    _prizesDistributed ? Icons.check_circle : Icons.emoji_events, 
-                    color: _prizesDistributed ? Colors.white38 : Colors.black
-                  ),
-                  label: Text(
-                      _prizesDistributed ? "PREMIOS YA DISTRIBUIDOS" : "FINALIZAR Y PREMIAR",
-                      style: TextStyle(
-                          color: _prizesDistributed ? Colors.white38 : Colors.black, 
-                          fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _prizesDistributed ? Colors.white10 : AppTheme.accentGold,
-                    foregroundColor: _prizesDistributed ? Colors.white38 : Colors.black,
-                    disabledBackgroundColor: Colors.white10,
-                    disabledForegroundColor: Colors.white38,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
 
             const SizedBox(height: 40),
           ],

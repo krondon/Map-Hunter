@@ -65,15 +65,25 @@ class RaceLogicService {
     bool isVisible(Player p) {
       if (_normalizeId(p.userId) == normalizedCurrentUserId)
         return true; // I always see myself
+
       // Check active powers for invisibility
-      final isStealthed = activePowers.any((e) =>
-          _normalizeId(e.targetId) ==
-              _normalizeId(p
-                  .id) && // Powers target by GamePlayerID (usually) but let's keep generic ID here as powers use ID
-          (e.powerSlug == 'invisibility' || e.powerSlug == 'stealth') &&
-          !e.isExpired);
+      // FIX: Check against BOTH userId and gamePlayerId to ensure we catch all cases
+      final isStealthed = activePowers.any((e) {
+        final targetId = _normalizeId(e.targetId);
+        final playerId = _normalizeId(p.userId); // Use userId (UUID)
+        final playerGameId = _normalizeId(p.gamePlayerId); // Use gamePlayerId (INT)
+        
+        // Match against EITHER id or gamePlayerId
+        final isMatch = (targetId == playerId || targetId == playerGameId);
+        
+        return isMatch &&
+            (e.powerSlug == 'invisibility' || e.powerSlug == 'stealth') &&
+            !e.isExpired;
+      });
+
       if (isStealthed) return false;
       if (p.isInvisible) return false;
+      
       return true;
     }
 

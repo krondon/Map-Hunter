@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../game/providers/game_provider.dart';
-import '../../auth/providers/player_provider.dart';
+import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
+import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../widgets/race_track_widget.dart';
+import '../widgets/sponsor_banner.dart'; // NEW
+import '../providers/spectator_feed_provider.dart';
 
 import 'winner_celebration_screen.dart';
 
@@ -30,24 +33,24 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final gameProvider = Provider.of<GameProvider>(context, listen: false);
-        _gameProviderRef = gameProvider; 
-        
+        _gameProviderRef = gameProvider;
+
         // Ensure we are fetching updates
         gameProvider.startLeaderboardUpdates();
-        
+
         // Listen for global completion
         gameProvider.addListener(_onGameProviderChange);
-        
+
         // Check immediately
-        gameProvider.checkRaceStatus(); 
+        gameProvider.checkRaceStatus();
 
         // 🟢 START POLLING: Check race status every 5 seconds
         // This acts as a fallback if Realtime fails
         _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-           if (mounted) {
-              debugPrint("⏳ WaitingRoom: Polling race status...");
-              gameProvider.checkRaceStatus();
-           }
+          if (mounted) {
+            debugPrint("⏳ WaitingRoom: Polling race status...");
+            gameProvider.checkRaceStatus();
+          }
         });
       }
     });
@@ -69,7 +72,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   void _checkIfRaceCompleted() {
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     if (gameProvider.isRaceCompleted) {
-       _navigateToWinnerScreen();
+      _navigateToWinnerScreen();
     }
   }
 
@@ -77,7 +80,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     // Navigate to WinnerCelebrationScreen
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     // Calculate final position
     int playerPosition = 0;
     final currentPlayerId = playerProvider.currentPlayer?.id ?? '';
@@ -98,7 +101,7 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
           totalCluesCompleted: gameProvider.completedClues,
           // Prize might be null if we are waiting, or maybe we already got it.
           // We can check GameProvider.currentPrizeWon
-          prizeWon: gameProvider.currentPrizeWon, 
+          prizeWon: gameProvider.currentPrizeWon,
         ),
       ),
     );
@@ -106,159 +109,462 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Provider.of<PlayerProvider>(context).isDarkMode;
+    return ChangeNotifierProvider(
+      create: (_) => SpectatorFeedProvider(widget.eventId),
+      child: _buildBody(isDarkMode),
+    );
+  }
+
+  Widget _buildBody(bool isDarkMode) {
     return Scaffold(
+      backgroundColor: AppTheme.dSurface0,
       body: AnimatedCyberBackground(
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Header Message
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardBg.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.accentGold.withOpacity(0.5)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accentGold.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    )
-                  ]
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.check_circle_outline, color: AppTheme.successGreen, size: 50),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "¡CARRERA COMPLETADA!",
-                      style: TextStyle(
-                        color: AppTheme.successGreen,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        letterSpacing: 1.2
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                      const Text(
-                        "Esperando resultados finales...",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // FALLBACK POLLING INDICATOR (Debug/Visual aid)
-                      Consumer<GameProvider>(
-                         builder: (context, gp, _) {
-                            return gp.isLoading 
-                              ? const SizedBox(
-                                  height: 20, 
-                                  width: 20, 
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24)
-                                ) 
-                              : const SizedBox.shrink();
-                         }
-                      )
-                  ],
-                ),
+        child: Stack(
+          children: [
+            // Background image
+            Positioned.fill(
+              child: Image.asset(
+                isDarkMode
+                    ? 'assets/images/fotogrupalnoche.png'
+                    : 'assets/images/personajesgrupal.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
               ),
+            ),
 
-              // Position Display (NEW)
-              const SizedBox(height: 20),
-              Consumer<GameProvider>(builder: (context, game, child) {
-                 final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                 final myId = playerProvider.currentPlayer?.userId;
-                 int myRank = 0;
-                 if (game.leaderboard.isNotEmpty && myId != null) {
-                    final idx = game.leaderboard.indexWhere((p) => p.userId == myId || p.id == myId);
-                    if (idx >= 0) myRank = idx + 1;
-                 }
-                 
-                 if (myRank == 0) return const SizedBox.shrink();
+            // Dark overlay for readability
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.72),
+              ),
+            ),
 
-                 return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.accentGold)
+            // Content
+            SafeArea(
+              child: Column(
+                children: [
+                  // ── Header ──────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppTheme.dSurface1.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.successGreen.withOpacity(0.6),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.successGreen.withOpacity(0.15),
+                            blurRadius: 18,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.successGreen.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.check_circle_rounded,
+                                color: AppTheme.successGreen, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "DESAFÍO COMPLETADO",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'Orbitron',
+                                    fontSize: 14,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  "Esperando resultados finales...",
+                                  style: TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Rank badge inline
+                          Consumer<GameProvider>(
+                              builder: (context, game, _) {
+                            final playerProvider =
+                                Provider.of<PlayerProvider>(context,
+                                    listen: false);
+                            final myId =
+                                playerProvider.currentPlayer?.userId;
+                            int myRank = 0;
+                            if (game.leaderboard.isNotEmpty &&
+                                myId != null) {
+                              final idx = game.leaderboard.indexWhere(
+                                  (p) =>
+                                      p.userId == myId || p.id == myId);
+                              if (idx >= 0) myRank = idx + 1;
+                            }
+                            if (myRank == 0) {
+                              return const SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: CircularProgressIndicator(
+                                  color: AppTheme.accentGold,
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            }
+                            return Column(
+                              children: [
+                                Text(
+                                  "#$myRank",
+                                  style: const TextStyle(
+                                    color: AppTheme.accentGold,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'Orbitron',
+                                  ),
+                                ),
+                                const Text(
+                                  "RANK",
+                                  style: TextStyle(
+                                    color: AppTheme.accentGold,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
                     ),
-                    child: Column(
+                  ),
+
+                  // ── Race Tracker Label ───────────────────────────────
+                  Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                    child: Row(
                       children: [
-                        const Text("TU POSICIÓN PARCIAL", style: TextStyle(color: AppTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold)),
-                        Text("#$myRank", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        Container(
+                          width: 3,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryPink,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "TABLA DE POSICIONES EN VIVO",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: 'Orbitron',
+                            fontSize: 11,
+                            letterSpacing: 1.8,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTheme.successGreen.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color:
+                                  AppTheme.successGreen.withOpacity(0.4),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.successGreen,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Text(
+                                "EN VIVO",
+                                style: TextStyle(
+                                  color: AppTheme.successGreen,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                 );
-              }),
+                  ),
 
-              const SizedBox(height: 30),
+                  // ── Race Tracker + Live Feed ────────────────────────
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Column(
+                        children: [
+                          // Race Tracker — intrinsic height, same as clues_screen
+                          Consumer<GameProvider>(
+                            builder: (context, gameProvider, child) {
+                              final playerProvider =
+                                  Provider.of<PlayerProvider>(context,
+                                      listen: false);
+                              final currentPlayerId =
+                                  playerProvider.currentPlayer?.userId ?? '';
 
-              // Race Tracker View
-              Expanded(
-                child: Consumer<GameProvider>(
-                  builder: (context, gameProvider, child) {
-                     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                     final currentPlayerId = playerProvider.currentPlayer?.userId ?? '';
+                              if (gameProvider.leaderboard.isEmpty) {
+                                return const SizedBox(
+                                  height: 80,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.accentGold,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                );
+                              }
 
-                     if (gameProvider.leaderboard.isEmpty) {
-                        return const Center(child: CircularProgressIndicator());
-                     }
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                           color: Colors.black26,
-                           borderRadius: BorderRadius.circular(16)
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          children: [
-                            const Text(
-                              "TABLA DE POSICIONES EN VIVO",
-                              style: TextStyle(
-                                color: AppTheme.secondaryPink,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                letterSpacing: 1.5
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Expanded(
-                              child: RaceTrackWidget(
+                              return RaceTrackWidget(
                                 leaderboard: gameProvider.leaderboard,
                                 currentPlayerId: currentPlayerId,
                                 totalClues: gameProvider.totalClues,
-                                compact: false,
+                                compact: true,
+                                isReadOnly: true,
+                              );
+                            },
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          // Live Activity Feed — fills remaining space
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.dSurface1.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppTheme.successGreen.withOpacity(0.6),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.successGreen.withOpacity(0.15),
+                                    blurRadius: 18,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
+                              child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Feed header
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 3,
+                                      height: 14,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.accentGold,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'ACTIVIDAD EN VIVO',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontFamily: 'Orbitron',
+                                        fontSize: 10,
+                                        letterSpacing: 1.6,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 10,
+                                          height: 10,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white.withOpacity(0.35),
+                                            strokeWidth: 1.5,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "Actualizando...",
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.35),
+                                            fontSize: 9,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Expanded(
+                                  child: Consumer<SpectatorFeedProvider>(
+                                    builder: (context, feedProvider, _) {
+                                      if (feedProvider.events.isEmpty) {
+                                        return Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.bolt_outlined,
+                                                size: 28,
+                                                color: Colors.white
+                                                    .withOpacity(0.15),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                'Sin actividad reciente',
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withOpacity(0.3),
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                      return ListView.builder(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        itemCount: feedProvider.events.length,
+                                        itemBuilder: (ctx, i) =>
+                                            _buildFeedCard(feedProvider.events[i]),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+
+                ],
               ),
-              
-              const SizedBox(height: 20),
-              
-              // Loading/Waiting Animation
-              const CircularProgressIndicator(color: AppTheme.accentGold),
-              const SizedBox(height: 10),
-              const Text(
-                "Actualizando en tiempo real...",
-                style: TextStyle(color: Colors.white38, fontSize: 10),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  // ── Feed helpers ──────────────────────────────────────────────────────────
+
+  Widget _buildFeedCard(GameFeedEvent event) {
+    final color = _eventColor(event.type);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.28), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                event.icon ?? '⚡',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      event.action,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('HH:mm').format(event.timestamp),
+                      style: const TextStyle(
+                          color: Colors.white38, fontSize: 9),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  event.detail,
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _eventColor(String? type) {
+    switch (type) {
+      case 'power':
+        return Colors.amber;
+      case 'clue':
+        return Colors.greenAccent;
+      case 'life':
+        return Colors.redAccent;
+      case 'join':
+        return Colors.blueAccent;
+      case 'shop':
+        return Colors.orangeAccent;
+      default:
+        return Colors.white;
+    }
   }
 }

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../utils/minigame_logic_helper.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import 'game_over_overlay.dart';
 import '../../../mall/screens/mall_screen.dart';
 
@@ -13,7 +14,8 @@ class CodeBreakerWidget extends StatefulWidget {
   final Clue clue;
   final VoidCallback onSuccess;
 
-  const CodeBreakerWidget({super.key, required this.clue, required this.onSuccess});
+  const CodeBreakerWidget(
+      {super.key, required this.clue, required this.onSuccess});
 
   @override
   State<CodeBreakerWidget> createState() => _CodeBreakerWidgetState();
@@ -22,7 +24,7 @@ class CodeBreakerWidget extends StatefulWidget {
 class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
   String _enteredCode = "";
   bool _isError = false;
-  
+
   // Overlay State
   bool _showOverlay = false;
   String _overlayTitle = "";
@@ -30,7 +32,11 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
   bool _canRetry = false;
   bool _showShopButton = false;
 
-  void _showOverlayState({required String title, required String message, bool retry = false, bool showShop = false}) {
+  void _showOverlayState(
+      {required String title,
+      required String message,
+      bool retry = false,
+      bool showShop = false}) {
     setState(() {
       _showOverlay = true;
       _overlayTitle = title;
@@ -39,6 +45,7 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
       _showShopButton = showShop;
     });
   }
+
   int _attempts = 3;
 
   void _checkCode() {
@@ -68,19 +75,18 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
 
   void _loseLife(String reason) async {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    
+
     if (playerProvider.currentPlayer != null) {
       final newLives = await MinigameLogicHelper.executeLoseLife(context);
-      
+
       if (!mounted) return;
-      
+
       if (newLives <= 0) {
         _showOverlayState(
-          title: "GAME OVER", 
-          message: "Te has quedado sin vidas.",
-          retry: false,
-          showShop: true
-        );
+            title: "GAME OVER",
+            message: "Te has quedado sin vidas.",
+            retry: false,
+            showShop: true);
       } else {
         setState(() {
           _attempts = 3;
@@ -88,17 +94,20 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
           _enteredCode = "";
         });
         _showOverlayState(
-          title: "¡FALLASTE!", 
-          message: "$reason",
-          retry: true,
-          showShop: false
-        );
+            title: "¡FALLASTE!",
+            message: "$reason",
+            retry: true,
+            showShop: false);
       }
     }
   }
 
-
   void _onDigitPress(String digit) {
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     if (_enteredCode.length < 4) {
       setState(() {
         _enteredCode += digit;
@@ -108,6 +117,11 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
   }
 
   void _onDelete() {
+    // [FIX] Prevent interaction if offline
+    final connectivity =
+        Provider.of<ConnectivityProvider>(context, listen: false);
+    if (!connectivity.isOnline) return;
+
     if (_enteredCode.isNotEmpty) {
       setState(() {
         _enteredCode = _enteredCode.substring(0, _enteredCode.length - 1);
@@ -157,12 +171,13 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.clue.riddleQuestion ?? "Ingresa el código de 4 dígitos",
+                  widget.clue.riddleQuestion ??
+                      "Ingresa el código de 4 dígitos",
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Display de dígitos
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -180,7 +195,9 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                         border: Border.all(
                           color: _isError
                               ? AppTheme.dangerRed
-                              : (hasDigit ? AppTheme.successGreen : Colors.grey),
+                              : (hasDigit
+                                  ? AppTheme.successGreen
+                                  : Colors.grey),
                           width: 2,
                         ),
                       ),
@@ -198,7 +215,7 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                   }),
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Teclado numérico
                 GridView.builder(
                   shrinkWrap: true,
@@ -227,7 +244,9 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
                     if (index == 11) {
                       return _buildKey(
                         icon: Icons.check_circle,
-                        onTap: _showOverlay ? null : (_enteredCode.length == 4 ? _checkCode : null),
+                        onTap: _showOverlay
+                            ? null
+                            : (_enteredCode.length == 4 ? _checkCode : null),
                         color: AppTheme.successGreen,
                       );
                     }
@@ -247,29 +266,35 @@ class _CodeBreakerWidgetState extends State<CodeBreakerWidget> {
             GameOverOverlay(
               title: _overlayTitle,
               message: _overlayMessage,
-              onRetry: _canRetry ? () {
-                setState(() {
-                  _showOverlay = false;
-                });
-                // Reset has already been done in logic
-              } : null,
-              onGoToShop: _showShopButton ? () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MallScreen()),
-                );
-                // Check lives upon return
-                if (!context.mounted) return;
-                final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
-                if ((player?.lives ?? 0) > 0) {
-                  setState(() {
-                    _canRetry = true;
-                    _showShopButton = false;
-                    _overlayTitle = "¡VIDAS OBTENIDAS!";
-                    _overlayMessage = "Puedes continuar jugando.";
-                  });
-                }
-              } : null,
+              onRetry: _canRetry
+                  ? () {
+                      setState(() {
+                        _showOverlay = false;
+                      });
+                      // Reset has already been done in logic
+                    }
+                  : null,
+              onGoToShop: _showShopButton
+                  ? () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MallScreen()),
+                      );
+                      // Check lives upon return
+                      if (!context.mounted) return;
+                      final player =
+                          Provider.of<PlayerProvider>(context, listen: false)
+                              .currentPlayer;
+                      if ((player?.lives ?? 0) > 0) {
+                        setState(() {
+                          _canRetry = true;
+                          _showShopButton = false;
+                          _overlayTitle = "¡VIDAS OBTENIDAS!";
+                          _overlayMessage = "Puedes continuar jugando.";
+                        });
+                      }
+                    }
+                  : null,
               onExit: () {
                 Navigator.pop(context);
               },

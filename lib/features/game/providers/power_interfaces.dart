@@ -4,7 +4,7 @@ import '../../mall/models/power_item.dart';
 import '../../../core/services/effect_timer_service.dart';
 
 /// Enum for types of feedback the user receives from power interactions.
-enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess, returned, stealFailed, returnSuccess, returnRejection }
+enum PowerFeedbackType { lifeStolen, shieldBroken, attackBlocked, defenseSuccess, returned, stealFailed, returnSuccess, returnRejection, giftReceived }
 
 /// Event emitted when a power interaction occurs that requires user feedback.
 class PowerFeedbackEvent {
@@ -71,6 +71,8 @@ abstract class PowerEffectManager implements PowerEffectReader {
   void setManualCasting(bool value);
   void armReturn();
   Future<void> armShield();
+  void armInvisibility();
+  Future<void> deactivateDefense();
   void setShielded(bool value, {String? sourceSlug});
   void clearActiveEffect();
   

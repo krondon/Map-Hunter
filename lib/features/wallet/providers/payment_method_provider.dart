@@ -57,6 +57,19 @@ class PaymentMethodProvider extends ChangeNotifier implements IResettable {
     }
   }
 
+  /// Update an existing payment method
+  Future<bool> updateMethod(String id, PaymentMethodCreate data) async {
+    try {
+      await _repository.updatePaymentMethod(id, data);
+      await loadMethods(data.userId);
+      return true;
+    } catch (e) {
+      _error = 'Error actualizando: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Delete a payment method by ID
   Future<bool> deleteMethod(String id, String userId) async {
     try {

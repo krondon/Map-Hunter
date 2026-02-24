@@ -103,4 +103,23 @@ class PowerService {
       rethrow;
     }
   }
+
+  /// Obtiene la configuración de precios para espectadores de un evento.
+  Future<Map<String, dynamic>> getSpectatorConfig(String eventId) async {
+    try {
+      final response = await _supabase
+          .from('events')
+          .select('spectator_config')
+          .eq('id', eventId)
+          .maybeSingle();
+
+      if (response != null && response['spectator_config'] != null) {
+        return Map<String, dynamic>.from(response['spectator_config']);
+      }
+      return {};
+    } catch (e) {
+      debugPrint('PowerService: Error fetching spectator config: $e');
+      return {};
+    }
+  }
 }

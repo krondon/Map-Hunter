@@ -8,7 +8,7 @@ import '../../../shared/models/player.dart';
 
 /// Widget tile para mostrar solicitudes de acceso a eventos
 /// y participantes inscritos con su estado y progreso.
-class RequestTile extends StatelessWidget {
+class RequestTile extends StatefulWidget {
   final GameRequest request;
   final bool isReadOnly;
   final int? rank;
@@ -25,6 +25,13 @@ class RequestTile extends StatelessWidget {
     this.currentStatus,
     this.onBanToggled,
   });
+
+  @override
+  State<RequestTile> createState() => _RequestTileState();
+}
+
+class _RequestTileState extends State<RequestTile> {
+  bool _isApproving = false;
 
   /// Formatea la fecha en formato legible dd/MM/yyyy HH:mm
   String _formatDate(DateTime date) {
@@ -68,9 +75,9 @@ class RequestTile extends StatelessWidget {
                 debugPrint('RequestTile: toggleGameBanUser SUCCESS');
                 
                 // Notify parent to refresh UI
-                if (onBanToggled != null) {
+                if (widget.onBanToggled != null) {
                   debugPrint('RequestTile: Calling onBanToggled callback');
-                  onBanToggled!();
+                  widget.onBanToggled!();
                 }
                 
                 if (context.mounted) {
@@ -92,6 +99,62 @@ class RequestTile extends StatelessWidget {
     );
   }
 
+  Future<void> _handleApprove(BuildContext context) async {
+    if (_isApproving) return; // Prevent double-tap
+    setState(() => _isApproving = true);
+
+    try {
+      final provider = Provider.of<GameRequestProvider>(context, listen: false);
+      final result = await provider.approveRequest(widget.request.id);
+
+      if (!mounted) return;
+
+      final success = result['success'] == true;
+      if (success) {
+        final paid = result['paid'] == true;
+        final amount = result['amount'] ?? 0;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(paid
+                ? '✅ Aprobado y cobrado: $amount 🍀'
+                : '✅ Aprobado (evento gratuito)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final error = result['error'] ?? 'UNKNOWN';
+        String message;
+        switch (error) {
+          case 'PAYMENT_FAILED':
+            final paymentError = result['payment_error'] ?? '';
+            message = paymentError == 'INSUFFICIENT_CLOVERS'
+                ? '❌ Saldo insuficiente del usuario'
+                : '❌ Error en el pago: $paymentError';
+            break;
+          case 'REQUEST_NOT_PENDING':
+            message = '⚠️ La solicitud ya no está pendiente (${result['current_status']})';
+            break;
+          case 'REQUEST_NOT_FOUND':
+            message = '⚠️ Solicitud no encontrada';
+            break;
+          default:
+            message = '❌ Error: $error';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al aprobar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isApproving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PlayerProvider>(
@@ -100,12 +163,12 @@ class RequestTile extends StatelessWidget {
         // Si no existe, buscamos el global (fallback)
         final bool isBanned;
         
-        if (currentStatus != null) {
+        if (widget.currentStatus != null) {
           // Aceptamos 'banned' o 'suspended' como estado de baneo local
-          isBanned = currentStatus == 'banned' || currentStatus == 'suspended';
+          isBanned = widget.currentStatus == 'banned' || widget.currentStatus == 'suspended';
         } else {
            final globalStatus = playerProvider.allPlayers
-            .firstWhere((p) => p.id == request.playerId,
+            .firstWhere((p) => p.id == widget.request.playerId,
                  orElse: () => Player(userId: '', email: '', name: '', role: '', status: PlayerStatus.active))
             .status;
             isBanned = globalStatus == PlayerStatus.banned;
@@ -115,15 +178,15 @@ class RequestTile extends StatelessWidget {
           color: isBanned ? Colors.red.withOpacity(0.1) : AppTheme.cardBg,
           margin: const EdgeInsets.only(bottom: 10),
           child: ListTile(
-            leading: (isReadOnly && rank != null) 
+            leading: (widget.isReadOnly && widget.rank != null) 
               ? CircleAvatar(
-                  backgroundColor: _getRankColor(rank!),
+                  backgroundColor: _getRankColor(widget.rank!),
                   foregroundColor: Colors.white,
-                  child: Text("#$rank", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text("#${widget.rank}", style: const TextStyle(fontWeight: FontWeight.bold)),
                 )
               : null,
             title: Text(
-              request.playerName ?? 'Desconocido', 
+              widget.request.playerName ?? 'Desconocido', 
               style: TextStyle(
                 color: isBanned ? Colors.redAccent : Colors.white,
                 decoration: isBanned ? TextDecoration.lineThrough : null,
@@ -133,21 +196,21 @@ class RequestTile extends StatelessWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(request.playerEmail ?? 'No email', style: const TextStyle(color: Colors.white54)),
+                Text(widget.request.playerEmail ?? 'No email', style: const TextStyle(color: Colors.white54)),
                 // Fecha de creación de la solicitud
-                if (request.createdAt != null)
+                if (widget.request.createdAt != null)
                   Text(
-                    'Solicitud: ${_formatDate(request.createdAt!)}',
+                    'Solicitud: ${_formatDate(widget.request.createdAt!)}',
                     style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
-                if (isReadOnly && progress != null)
-                   Text("Pistas completadas: $progress", style: const TextStyle(color: AppTheme.accentGold, fontSize: 12)),
+                if (widget.isReadOnly && widget.progress != null)
+                   Text("Pistas completadas: ${widget.progress}", style: const TextStyle(color: AppTheme.accentGold, fontSize: 12)),
               ],
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (isReadOnly) ...[
+                if (widget.isReadOnly) ...[
                    // Si está baneado, mostramos estado 'SUSPENDIDO' en lugar del check
                    if (isBanned)
                       Container(
@@ -167,17 +230,20 @@ class RequestTile extends StatelessWidget {
                      icon: Icon(isBanned ? Icons.lock_open : Icons.block),
                      color: isBanned ? Colors.greenAccent : Colors.red,
                      tooltip: isBanned ? "Desbanear" : "Banear",
-                     onPressed: () => _toggleBan(context, playerProvider, request.playerId, request.eventId, isBanned),
+                     onPressed: () => _toggleBan(context, playerProvider, widget.request.playerId, widget.request.eventId, isBanned),
                    ),
                 ] else ...[
                    IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => Provider.of<GameRequestProvider>(context, listen: false).rejectRequest(request.id),
+                    onPressed: _isApproving ? null : () => Provider.of<GameRequestProvider>(context, listen: false).rejectRequest(widget.request.id),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => Provider.of<GameRequestProvider>(context, listen: false).approveRequest(request.id),
-                  ),
+                  if (_isApproving)
+                    const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.check, color: Colors.green),
+                      onPressed: () => _handleApprove(context),
+                    ),
                 ],
               ],
             ),

@@ -62,7 +62,8 @@ class _BlurScreenEffectState extends State<BlurScreenEffect>
               return BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
                 child: Container(
-                  color: Colors.black.withOpacity(_opacityAnimation.value * 0.6),
+                  color:
+                      Colors.black.withOpacity(_opacityAnimation.value * 0.6),
                 ),
               );
             },

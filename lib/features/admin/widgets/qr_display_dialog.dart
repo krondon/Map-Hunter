@@ -23,6 +23,11 @@ class QRDisplayDialog extends StatelessWidget {
   Future<Uint8List> _generatePdf(PdfPageFormat format) async {
     final doc = pw.Document();
 
+    // Load Unicode-compatible fonts (supports Spanish accented characters)
+    final fontRegular = await PdfGoogleFonts.nunitoRegular();
+    final fontBold = await PdfGoogleFonts.nunitoBold();
+    final fontItalic = await PdfGoogleFonts.nunitoItalic();
+
     doc.addPage(
       pw.Page(
         pageFormat: format,
@@ -34,6 +39,7 @@ class QRDisplayDialog extends StatelessWidget {
                 pw.Text(
                   title,
                   style: pw.TextStyle(
+                    font: fontBold,
                     fontSize: 24,
                     fontWeight: pw.FontWeight.bold,
                   ),
@@ -51,10 +57,11 @@ class QRDisplayDialog extends StatelessWidget {
                     hint!,
                     textAlign: pw.TextAlign.center,
                     style: pw.TextStyle(
+                      font: fontItalic,
                       fontSize: 16,
                       fontWeight: pw.FontWeight.normal,
                       fontStyle: pw.FontStyle.italic,
-                      color: PdfColors.black, // Explicit color
+                      color: PdfColors.black,
                     ),
                   ),
                 ],

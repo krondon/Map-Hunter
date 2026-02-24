@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
@@ -22,6 +23,7 @@ class ShopItemCard extends StatefulWidget {
 
 class _ShopItemCardState extends State<ShopItemCard> {
   int _quantity = 1;
+  bool _isPurchasing = false;
 
   void _increment() {
     final available = widget.maxPerEvent - (widget.ownedCount ?? 0);
@@ -47,79 +49,97 @@ class _ShopItemCardState extends State<ShopItemCard> {
     final Color accentColor = isLife ? AppTheme.dangerRed : AppTheme.primaryPurple;
   
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: atLimit ? Colors.white10 : accentColor.withOpacity(0.3),
-          width: 1.5,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Icono compacto
-                  _buildIconFrame(atLimit, accentColor),
-                  const SizedBox(width: 14),
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.item.name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.item.description,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.6),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        _buildStatusBadge(atLimit, currentOwned, isLife),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(color: Colors.white10, height: 1),
-              ),
-              
-              // Footer compacto
-              Row(
-                children: [
-                  if (!atLimit) ...[
-                    _buildQuantitySelector(accentColor),
-                    const SizedBox(width: 12),
-                  ],
-                  
-                  Expanded(
-                    child: _buildBuyButton(atLimit),
-                  ),
-                ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D0D0F).withOpacity(0.6),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: atLimit ? Colors.white10 : accentColor.withOpacity(0.6),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withOpacity(0.05),
+                blurRadius: 20,
               ),
             ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: atLimit ? Colors.white10 : accentColor.withOpacity(0.2),
+                width: 1.0,
+              ),
+              color: accentColor.withOpacity(0.02),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Icono compacto
+                    _buildIconFrame(atLimit, accentColor),
+                    const SizedBox(width: 14),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.item.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.item.description,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildStatusBadge(atLimit, currentOwned, isLife),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: Colors.white10, height: 1),
+                ),
+                
+                // Footer compacto
+                Row(
+                  children: [
+                    if (!atLimit) ...[
+                      _buildQuantitySelector(accentColor),
+                      const SizedBox(width: 12),
+                    ],
+                    
+                    Expanded(
+                      child: _buildBuyButton(atLimit),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -127,19 +147,45 @@ class _ShopItemCardState extends State<ShopItemCard> {
   }
 
   Widget _buildIconFrame(bool atLimit, Color accentColor) {
-    return Container(
-      width: 55,
-      height: 55,
-      decoration: BoxDecoration(
-        gradient: atLimit 
-          ? LinearGradient(colors: [Colors.grey.shade800, Colors.grey.shade900])
-          : AppTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Text(
-          widget.item.icon,
-          style: const TextStyle(fontSize: 28),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          width: 55,
+          height: 55,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: accentColor.withOpacity(atLimit ? 0.05 : 0.1),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: atLimit ? Colors.white12 : accentColor.withOpacity(0.5),
+              width: 1.5,
+            ),
+            boxShadow: [
+              if (!atLimit)
+                BoxShadow(
+                  color: accentColor.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+            ],
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: atLimit ? Colors.white10 : accentColor.withOpacity(0.15),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                widget.item.icon,
+                style: const TextStyle(fontSize: 28),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -207,40 +253,70 @@ class _ShopItemCardState extends State<ShopItemCard> {
 
   Widget _buildBuyButton(bool atLimit) {
     return ElevatedButton(
-      onPressed: atLimit ? null : () => widget.onPurchase(_quantity),
+      onPressed: (atLimit || _isPurchasing) ? null : () async {
+        setState(() => _isPurchasing = true);
+        try {
+          await widget.onPurchase(_quantity);
+        } finally {
+          if (mounted) setState(() => _isPurchasing = false);
+        }
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.successGreen,
-        disabledBackgroundColor: AppTheme.dangerRed,
+        disabledBackgroundColor: atLimit ? AppTheme.dangerRed : AppTheme.successGreen.withOpacity(0.5),
         disabledForegroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      child: atLimit
-        ? const Text(
-            'AGOTADO', 
-            style: TextStyle(
-              fontWeight: FontWeight.bold, 
-              color: Colors.white,
-              letterSpacing: 1.2,
-            )
-          )
-        : Row(
+      child: _isPurchasing
+        ? const Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Comprar',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(width: 6),
-              const Icon(Icons.monetization_on, size: 14, color: AppTheme.accentGold),
-              const SizedBox(width: 2),
+              SizedBox(width: 8),
               Text(
-                '${widget.item.cost * _quantity}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                'Cargando...',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ],
-          ),
+          )
+        : atLimit
+          ? const Text(
+              'AGOTADO', 
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                color: Colors.white,
+                letterSpacing: 1.2,
+              )
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Comprar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.monetization_on, size: 14, color: AppTheme.accentGold),
+                const SizedBox(width: 2),
+                Text(
+                  '${widget.item.cost * _quantity}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
     );
   }
 }

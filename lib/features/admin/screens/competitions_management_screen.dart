@@ -17,6 +17,15 @@ class _CompetitionsManagementScreenState
     extends State<CompetitionsManagementScreen> {
   bool _isLoading = true;
   String _selectedFilter = 'active'; // 'active' or 'pending'
+  String _selectedTypeFilter = 'all';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -81,16 +90,35 @@ class _CompetitionsManagementScreenState
   @override
   Widget build(BuildContext context) {
     final allEvents = Provider.of<EventProvider>(context).events;
-    
-    // FILTRO
+
+    // FILTRO COMBINADO: estado + tipo + título
     final events = allEvents.where((e) {
+      // 1) Estado
       if (_selectedFilter == 'completed') return e.status == 'completed';
       // If NOT selecting completed, HIDE completed events
-      if (e.status == 'completed') return false; 
-      
-      if (_selectedFilter == 'active') return e.status == 'active';
-      if (_selectedFilter == 'pending') return e.status == 'pending';
-      return false;
+      if (e.status == 'completed') return false;
+
+      final matchesStatus = _selectedFilter == 'active'
+          ? e.status == 'active'
+          : _selectedFilter == 'pending'
+              ? e.status == 'pending'
+              : false;
+
+      if (!matchesStatus) return false;
+
+      // 2) Tipo de evento
+      if (_selectedTypeFilter != 'all' && e.type != _selectedTypeFilter) {
+        return false;
+      }
+
+      // 3) Búsqueda por título
+      if (_searchQuery.trim().isNotEmpty) {
+        final title = e.title.toLowerCase();
+        final query = _searchQuery.trim().toLowerCase();
+        if (!title.contains(query)) return false;
+      }
+
+      return true;
     }).toList();
 
     // Solo retornamos el contenido, el Dashboard provee el Scaffold y Header
@@ -126,7 +154,7 @@ class _CompetitionsManagementScreenState
             ),
           ),
           
-          // CONTROLES DE FILTRO
+          // CONTROLES DE FILTRO (ESTADO)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Row(
@@ -159,6 +187,90 @@ class _CompetitionsManagementScreenState
             ),
           ),
 
+          // CONTROLES ADICIONALES (TIPO + BÚSQUEDA)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedTypeFilter,
+                    dropdownColor: AppTheme.cardBg,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Tipo de evento',
+                      labelStyle: const TextStyle(color: Colors.white70),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Colors.white24),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'all',
+                        child: Text('Todos'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'online',
+                        child: Text('Online'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'on_site',
+                        child: Text('Presencial'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _selectedTypeFilter = value);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por título...',
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Colors.white24),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.03),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -171,7 +283,7 @@ class _CompetitionsManagementScreenState
                                 size: 64, color: Colors.white.withOpacity(0.3)),
                             const SizedBox(height: 16),
                             const Text(
-                              "No hay competencias activas",
+                              "No hay competencias con esos filtros",
                               style: TextStyle(
                                   color: Colors.white70, fontSize: 18),
                             ),

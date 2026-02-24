@@ -10,7 +10,7 @@ class SpectatorHelper {
     required String powerSlug,
     String? eventId,
   }) async {
-    debugPrint('SpectatorHelper: 👻 Spectator Sabotage: $powerSlug against $targetId');
+    debugPrint('SpectatorHelper: ⚠️ DEPRECATED CALL. Use RPC instead. 👻 Spectator Sabotage: $powerSlug against $targetId');
 
     try {
       // 1. Check/Decrement Ammo

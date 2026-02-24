@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -11,7 +12,8 @@ import '../../mall/providers/store_provider.dart';
 import '../../mall/models/mall_store.dart';
 import '../services/event_domain_service.dart';
 import '../../mall/models/power_item.dart'; // NEW
-
+import '../models/sponsor.dart';
+import '../services/sponsor_service.dart';
 
 class EventCreationProvider extends ChangeNotifier {
   // Estado del Formulario
@@ -28,26 +30,29 @@ class EventCreationProvider extends ChangeNotifier {
   DateTime _selectedDate = DateTime.now();
   String _eventType = 'on_site'; // 'on_site' or 'online'
   int _configuredWinners = 3; // Default 3 winners
+  int _betTicketPrice = 100; // NEW: Default betting price
+  String? _sponsorId; // Linked Sponsor ID
+  List<Sponsor> _sponsors = []; // Available sponsors cache
 
   // Imágenes
   XFile? _selectedImage;
-  
+
   // Pistas
   int _numberOfClues = 0;
   List<Map<String, dynamic>> _clueForms = [];
   int _currentClueIndex = 0;
-  
+
   // Tiendas
   List<Map<String, dynamic>> _pendingStores = [];
-  
-  // Power Prices (Online)
-  Map<String, int> _powerPrices = {};
+
+  // Spectator Prices (All Modes)
+  Map<String, int> _spectatorPrices = {};
 
   // Control
   bool _isLoading = false;
   String _eventId = const Uuid().v4();
   bool _isFormValid = false;
-  
+
   // Getters
   String get title => _title;
   String get description => _description;
@@ -61,18 +66,21 @@ class EventCreationProvider extends ChangeNotifier {
   DateTime get selectedDate => _selectedDate;
   XFile? get selectedImage => _selectedImage;
   int get configuredWinners => _configuredWinners;
+  int get betTicketPrice => _betTicketPrice; // NEW
   int get numberOfClues => _numberOfClues;
   List<Map<String, dynamic>> get clueForms => _clueForms;
   int get currentClueIndex => _currentClueIndex;
   List<Map<String, dynamic>> get pendingStores => _pendingStores;
-  Map<String, int> get powerPrices => _powerPrices;
+  Map<String, int> get spectatorPrices => _spectatorPrices;
   bool get isLoading => _isLoading;
   String get eventId => _eventId;
   bool get isFormValid => _isFormValid;
   String get eventType => _eventType;
+  String? get sponsorId => _sponsorId;
+  List<Sponsor> get sponsors => _sponsors;
 
   // --- Initializers ---
-  
+
   void init(GameEvent? event) {
     if (event != null) {
       _eventId = event.id;
@@ -87,12 +95,36 @@ class EventCreationProvider extends ChangeNotifier {
       _entryFee = event.entryFee;
       _selectedDate = event.date;
       _eventType = event.type;
+      _selectedDate = event.date;
+      _eventType = event.type;
       _configuredWinners = event.configuredWinners;
+      _betTicketPrice = event.betTicketPrice; // NEW
+      _sponsorId = event.sponsorId; // NEW
       // Note: Image and Clues are not fully loaded here in original code either
     } else {
       resetForm();
     }
     checkFormValidity();
+    // Start loading sponsors if not loaded
+    if (_sponsors.isEmpty) loadSponsors();
+  }
+
+  // --- Sponsor Logic ---
+
+  Future<void> loadSponsors() async {
+    try {
+      final service = SponsorService();
+      _sponsors = await service.getSponsors();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading sponsors: $e");
+    }
+  }
+
+  void setSponsorId(String? id) {
+    _sponsorId = id;
+    checkFormValidity();
+    notifyListeners();
   }
 
   void resetForm() {
@@ -107,6 +139,8 @@ class EventCreationProvider extends ChangeNotifier {
     _entryFee = null; // Reset to null
     _selectedDate = DateTime.now();
     _configuredWinners = 3;
+    _betTicketPrice = 100; // Reset
+    _sponsorId = null;
     _selectedImage = null;
     _numberOfClues = 0;
     _clueForms = [];
@@ -116,14 +150,16 @@ class EventCreationProvider extends ChangeNotifier {
     _eventId = const Uuid().v4();
     _isFormValid = false;
     _eventType = 'on_site';
-    
-    // Initialize default power prices
-    _powerPrices = {};
+
+    // Initialize default spectator prices
+    _spectatorPrices = {};
     for (var item in PowerItem.getShopItems()) {
-       _powerPrices[item.id] = item.cost;
+      _spectatorPrices[item.id] = item.cost;
     }
-    
+
     notifyListeners();
+    // Ensure sponsors are loaded for new forms too
+    if (_sponsors.isEmpty) loadSponsors();
   }
 
   // --- Setters & Logic ---
@@ -134,8 +170,16 @@ class EventCreationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setTitle(String value) { _title = value; checkFormValidity(); }
-  void setDescription(String value) { _description = value; checkFormValidity(); }
+  void setTitle(String value) {
+    _title = value;
+    checkFormValidity();
+  }
+
+  void setDescription(String value) {
+    _description = value;
+    checkFormValidity();
+  }
+
   void setLocation(double lat, double lng, String address) {
     _latitude = lat;
     _longitude = lng;
@@ -143,23 +187,27 @@ class EventCreationProvider extends ChangeNotifier {
     checkFormValidity();
     notifyListeners(); // Notify because UI might show map/address
   }
-  
-  void setClue(String value) { _clue = value; checkFormValidity(); }
-  void setPin(String value) { 
-    _pin = value; 
-    checkFormValidity(); 
+
+  void setClue(String value) {
+    _clue = value;
+    checkFormValidity();
+  }
+
+  void setPin(String value) {
+    _pin = value;
+    checkFormValidity();
     // No notify needed if controlled by text controller, but validity updates
   }
-  
+
   void generateRandomPin() {
     _pin = EventDomainService.generatePin(isOnline: _eventType == 'online');
     checkFormValidity();
     notifyListeners();
   }
 
-  void setMaxParticipants(int value) { 
-    _maxParticipants = value; 
-    checkFormValidity(); 
+  void setMaxParticipants(int value) {
+    _maxParticipants = value;
+    checkFormValidity();
   }
 
   void setEntryFee(int? value) {
@@ -168,9 +216,9 @@ class EventCreationProvider extends ChangeNotifier {
     checkFormValidity(); // If future validation depends on fee
     notifyListeners();
   }
-  
+
   void setNumberOfClues(int value) {
-    if (value > 12) value = 12;
+    if (value > 20) value = 20;
     if (value < 0) value = 0;
     _numberOfClues = value;
     notifyListeners();
@@ -188,51 +236,86 @@ class EventCreationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setBetTicketPrice(int value) {
+    if (value < 0) value = 0;
+    _betTicketPrice = value;
+    notifyListeners();
+  }
+
+  static const _allowedImageExtensions = {'jpg', 'jpeg', 'png'};
+
+  /// Validates file extension. Returns error message if invalid, null if OK.
+  String? _validateImageFormat(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    if (!_allowedImageExtensions.contains(ext)) {
+      return 'Formato no soportado (.$ext). Solo se permiten imágenes JPG o PNG.';
+    }
+    return null;
+  }
+
   /// Platform-aware image picker:
   /// - Windows/Linux/macOS: Uses file_picker (more reliable on desktop)
   /// - Mobile/Web: Uses image_picker
-  Future<void> pickImage() async {
+  /// Returns error message if format is invalid, null on success.
+  Future<String?> pickImage() async {
     try {
       // Check if running on desktop
-      final isDesktop = !kIsWeb && 
+      final isDesktop = !kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.windows ||
-           defaultTargetPlatform == TargetPlatform.linux ||
-           defaultTargetPlatform == TargetPlatform.macOS);
-      
+              defaultTargetPlatform == TargetPlatform.linux ||
+              defaultTargetPlatform == TargetPlatform.macOS);
+
       if (isDesktop) {
         // Use file_picker on desktop for better compatibility
+        // Changed from FileType.custom to FileType.image to prevent Windows freeze
+        debugPrint("Opening Desktop FilePicker (FileType.image)...");
         final result = await FilePicker.platform.pickFiles(
           type: FileType.image,
+          allowedExtensions: ['jpg', 'jpeg', 'png'],
           allowMultiple: false,
         );
-        
+        debugPrint("FilePicker closed. Result: ${result != null ? 'Selected' : 'Cancelled'}");
+
         if (result != null && result.files.isNotEmpty) {
           final file = result.files.first;
           if (file.path != null) {
+            // Strict extension check retained from strict business rule
+            final error = _validateImageFormat(file.name);
+            if (error != null) return error;
+            
             _selectedImage = XFile(file.path!);
             checkFormValidity();
             notifyListeners();
           }
         }
       } else {
-        // Use image_picker on mobile
+        // Use image_picker on mobile/web
         final ImagePicker picker = ImagePicker();
-        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+        final XFile? image =
+            await picker.pickImage(source: ImageSource.gallery);
         if (image != null) {
+          final error = _validateImageFormat(image.name);
+          if (error != null) return error;
           _selectedImage = image;
           checkFormValidity();
           notifyListeners();
         }
       }
+      return null;
     } catch (e) {
       debugPrint('Error picking image: $e');
       // Fallback: try file_picker as last resort
       try {
         final result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png'],
           allowMultiple: false,
         );
-        if (result != null && result.files.isNotEmpty && result.files.first.path != null) {
+        if (result != null &&
+            result.files.isNotEmpty &&
+            result.files.first.path != null) {
+          final error = _validateImageFormat(result.files.first.name);
+          if (error != null) return error;
           _selectedImage = XFile(result.files.first.path!);
           checkFormValidity();
           notifyListeners();
@@ -240,6 +323,7 @@ class EventCreationProvider extends ChangeNotifier {
       } catch (fallbackError) {
         debugPrint('Fallback image picker also failed: $fallbackError');
       }
+      return null;
     }
   }
 
@@ -251,14 +335,17 @@ class EventCreationProvider extends ChangeNotifier {
       if (_clueForms.length < _numberOfClues) {
         final newItems = _numberOfClues - _clueForms.length;
         for (int i = 0; i < newItems; i++) {
-          final defaultPuzzleType = PuzzleType.slidingPuzzle;
+          final defaultPuzzleType = PuzzleType.ticTacToe;
           _clueForms.add({
             'id': const Uuid().v4(),
-            'title': _eventType == 'online' ? 'Minijuego ${_clueForms.length + 1}' : 'Pista ${_clueForms.length + 1}',
+            'title': _eventType == 'online'
+                ? 'Minijuego ${_clueForms.length + 1}'
+                : '???', // Mystery title for on-site clues
             'description': '',
             'type': 'minigame',
             'puzzle_type': defaultPuzzleType.dbValue,
-            'riddle_question': defaultPuzzleType.defaultQuestion, // Set default instruction
+            'riddle_question':
+                defaultPuzzleType.defaultQuestion, // Set default instruction
             'riddle_answer': defaultPuzzleType.isAutoValidation ? 'WIN' : '',
             'xp_reward': 50,
             'hint': '',
@@ -267,8 +354,8 @@ class EventCreationProvider extends ChangeNotifier {
           });
         }
       } else {
-         // Trim if reduced
-         _clueForms = _clueForms.sublist(0, _numberOfClues);
+        // Trim if reduced
+        _clueForms = _clueForms.sublist(0, _numberOfClues);
       }
     } else {
       _clueForms = [];
@@ -281,32 +368,31 @@ class EventCreationProvider extends ChangeNotifier {
       _clueForms[index][key] = value;
       // Note: deep update, might not need full notify if we bind fields to this map directly
       // But safe to notify for UI consistency or validation
-      // notifyListeners(); - Skipping to avoid cursor issues if fields bind directly, 
-      // but UI loop uses _clueForms[index]. 
+      // notifyListeners(); - Skipping to avoid cursor issues if fields bind directly,
+      // but UI loop uses _clueForms[index].
     }
   }
 
   void setCluePuzzleType(int index, String typeValue) {
-      if (index < 0 || index >= _clueForms.length) return;
-      
-      _clueForms[index]['puzzle_type'] = typeValue;
-      _clueForms[index]['type'] = 'minigame';
+    if (index < 0 || index >= _clueForms.length) return;
 
-      final selectedType = PuzzleType.values.firstWhere(
-        (e) => e.dbValue == typeValue, 
-        orElse: () => PuzzleType.slidingPuzzle
-      );
+    _clueForms[index]['puzzle_type'] = typeValue;
+    _clueForms[index]['type'] = 'minigame';
 
-      if (selectedType.isAutoValidation) {
-        _clueForms[index]['riddle_answer'] = 'WIN'; 
-      } else if (selectedType == PuzzleType.hangman) {
-        _clueForms[index]['riddle_answer'] = ''; 
-      } else {
-        _clueForms[index]['riddle_answer'] = '';
-      }
+    final selectedType = PuzzleType.values.firstWhere(
+        (e) => e.dbValue == typeValue,
+        orElse: () => PuzzleType.slidingPuzzle);
 
-      _clueForms[index]['riddle_question'] = selectedType.defaultQuestion;
-      notifyListeners();
+    if (selectedType.isAutoValidation) {
+      _clueForms[index]['riddle_answer'] = 'WIN';
+    } else if (selectedType == PuzzleType.hangman) {
+      _clueForms[index]['riddle_answer'] = '';
+    } else {
+      _clueForms[index]['riddle_answer'] = '';
+    }
+
+    _clueForms[index]['riddle_question'] = selectedType.defaultQuestion;
+    notifyListeners();
   }
 
   void nextClue() {
@@ -322,21 +408,21 @@ class EventCreationProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   void setMyLocationForClue(int index, double lat, double lng) {
-      if (index >= 0 && index < _clueForms.length) {
-          _clueForms[index]['latitude'] = lat;
-          _clueForms[index]['longitude'] = lng;
-          notifyListeners();
-      }
+    if (index >= 0 && index < _clueForms.length) {
+      _clueForms[index]['latitude'] = lat;
+      _clueForms[index]['longitude'] = lng;
+      notifyListeners();
+    }
   }
-  
+
   void setEventLocationForClue(int index) {
-      if (index >= 0 && index < _clueForms.length) {
-          _clueForms[index]['latitude'] = _latitude;
-          _clueForms[index]['longitude'] = _longitude;
-          notifyListeners();
-      }
+    if (index >= 0 && index < _clueForms.length) {
+      _clueForms[index]['latitude'] = _latitude;
+      _clueForms[index]['longitude'] = _longitude;
+      notifyListeners();
+    }
   }
 
   // --- Stores Logic ---
@@ -351,10 +437,10 @@ class EventCreationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Power Prices Logic ---
-  void setPowerPrice(String powerId, int price) {
+  // --- Spectator Prices Logic ---
+  void setSpectatorPrice(String powerId, int price) {
     if (price < 0) return;
-    _powerPrices[powerId] = price;
+    _spectatorPrices[powerId] = price;
     notifyListeners();
   }
 
@@ -369,13 +455,13 @@ class EventCreationProvider extends ChangeNotifier {
     if (_maxParticipants <= 0) isValid = false;
     if (_clue.isEmpty && _eventType != 'online') isValid = false;
     if (_selectedImage == null) isValid = false;
-    
+
     // Validate fields based on mode
     if (_eventType == 'on_site') {
       if (_pin.length != 6) isValid = false;
       if (_latitude == null || _longitude == null) isValid = false;
-    } 
-    
+    }
+
     // Validate key fields for all modes
     if (_entryFee == null) isValid = false;
 
@@ -396,12 +482,12 @@ class EventCreationProvider extends ChangeNotifier {
     required Function(String) onError,
   }) async {
     if (_isLoading) return false;
-    
+
     // Final check
     checkFormValidity();
     if (!_isFormValid) {
-       onError("Faltan campos por completar");
-       return false;
+      onError("Faltan campos por completar");
+      return false;
     }
 
     _isLoading = true;
@@ -426,6 +512,9 @@ class EventCreationProvider extends ChangeNotifier {
         imageFileName: _selectedImage!.name,
         entryFee: _entryFee ?? 0, // Validated to be non-null above
         configuredWinners: _configuredWinners,
+        spectatorConfig: _spectatorPrices,
+        betTicketPrice: _betTicketPrice, // NEW
+        sponsorId: _sponsorId, // NEW
       );
 
       // Update PIN state for UI feedback (domain service may have auto-generated it)
@@ -434,73 +523,75 @@ class EventCreationProvider extends ChangeNotifier {
       }
 
       // 1. Create Event
-      createdEventId = await eventProvider.createEvent(newEvent, _selectedImage);
+      createdEventId =
+          await eventProvider.createEvent(newEvent, _selectedImage);
 
       // 2. Create Clues
       if (createdEventId != null && _clueForms.isNotEmpty) {
         // Sanitize Clues for Online Mode
         if (_eventType == 'online') {
-            EventDomainService.sanitizeCluesForOnline(_clueForms);
+          EventDomainService.sanitizeCluesForOnline(_clueForms);
         }
 
         await eventProvider.createCluesBatch(createdEventId, _clueForms);
       }
-      
+
       // 3. Create Stores
       if (createdEventId != null) {
         if (_eventType == 'online') {
-            // Default Online Store via Domain Service
-            // Default Online Store via Domain Service
-            try {
-               final defaultStore = EventDomainService.createDefaultOnlineStore(
-                 createdEventId,
-                 customPrices: _powerPrices, // PASSING CUSTOM PRICES
-               );
-               // We pass null for imageFile as we don't have one selected
-               await storeProvider.createStore(defaultStore, null);
-            } catch (e) {
-               debugPrint("Error creating default online store: $e");
-            }
+          // Default Online Store via Domain Service
+          // Default Online Store via Domain Service
+          try {
+            final defaultStore = EventDomainService.createDefaultOnlineStore(
+              createdEventId,
+              // customPrices: _spectatorPrices, // OLD: Used to set store prices directly
+              // NEW: Store keeps default prices for Players. Spectators use spectator_config override.
+              customPrices: null,
+            );
+            // We pass null for imageFile as we don't have one selected
+            await storeProvider.createStore(defaultStore, null);
+          } catch (e) {
+            debugPrint("Error creating default online store: $e");
+          }
         } else {
-           // On-site: Create pending stores
-           if (_pendingStores.isNotEmpty) {
-               for (var storeData in _pendingStores) {
-                 try {
-                    final store = storeData['store'] as MallStore;
-                    final imageFile = storeData['imageFile'] as XFile?;
-                    
-                    final storeToCreate = MallStore(
-                      id: store.id,
-                      eventId: createdEventId, 
-                      name: store.name,
-                      description: store.description,
-                      imageUrl: store.imageUrl,
-                      qrCodeData: store.qrCodeData,
-                      products: store.products,
-                    );
-                    await storeProvider.createStore(storeToCreate, imageFile);
-                 } catch (e) {
-                   debugPrint("Error creating store for event: $e");
-                 }
-               }
-           }
+          // On-site: Create pending stores
+          if (_pendingStores.isNotEmpty) {
+            for (var storeData in _pendingStores) {
+              try {
+                final store = storeData['store'] as MallStore;
+                final imageFile = storeData['imageFile'] as XFile?;
+
+                final storeToCreate = MallStore(
+                  id: store.id,
+                  eventId: createdEventId,
+                  name: store.name,
+                  description: store.description,
+                  imageUrl: store.imageUrl,
+                  qrCodeData: store.qrCodeData,
+                  products: store.products,
+                );
+                await storeProvider.createStore(storeToCreate, imageFile);
+              } catch (e) {
+                debugPrint("Error creating store for event: $e");
+              }
+            }
+          }
         }
       }
 
-      String successMessage = _eventType == 'online' 
-          ? 'Competencia Online creada. PIN: ${newEvent.pin}' 
+      String successMessage = _eventType == 'online'
+          ? 'Competencia Online creada. PIN: ${newEvent.pin}'
           : 'Competencia creada con éxito';
-      
+
       onSuccess(successMessage);
       resetForm();
       return true;
-
     } catch (error) {
       if (createdEventId != null) {
         try {
           await eventProvider.deleteEvent(createdEventId);
         } catch (e) {
-           debugPrint("Rollback error: $e");
+          debugPrint("Rollback error: $e");
         }
       }
       onError("Error al crear evento: $error");
