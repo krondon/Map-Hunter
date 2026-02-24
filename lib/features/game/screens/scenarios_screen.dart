@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import '../../auth/providers/player_inventory_provider.dart'; // NEW
 import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/power_interfaces.dart';
 import '../../../core/providers/app_mode_provider.dart';
 import '../providers/game_request_provider.dart';
@@ -478,63 +480,31 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     );
   }
 
-  void _showTermsDialog() {
-    const Color currentOrange = Color(0xFFFF9800);
-    const Color cardBg = Color(0xFF151517);
+  Future<void> _showTermsDialog() async {
 
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: currentOrange.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: currentOrange.withOpacity(0.5), width: 1),
+   // 1. Cambiamos const por final
+  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+
+  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
+  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
+
+    
+    
+    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
+    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir los Términos y Condiciones.'),
+            backgroundColor: Colors.redAccent,
           ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: currentOrange, width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.description_outlined,
-                    color: currentOrange, size: 40),
-                const SizedBox(height: 16),
-                const Text('Términos y Condiciones',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                const SingleChildScrollView(
-                  child: Text(
-                    'Al utilizar MapHunter, aceptas nuestros términos de servicio y política de privacidad. Para más información, visita nuestro sitio web.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('ENTENDIDO',
-                      style: TextStyle(
-                          color: currentOrange, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+        );
+      }
+    }
   }
+
 
   void _showSupportDialog() {
     const Color currentOrange = Color(0xFFFF9800);

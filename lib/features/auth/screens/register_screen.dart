@@ -9,7 +9,11 @@ import '../../../core/utils/error_handler.dart';
 import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/loading_overlay.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'login_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+
 
 // RE-FORCE CLEAN VERSION - NO _isDarkMode
 class RegisterScreen extends StatefulWidget {
@@ -27,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _cedulaController = TextEditingController();
   final _phoneController = TextEditingController();
+
   
   // Selectores para cédula y teléfono
   String _selectedNationalityType = 'V'; // V o E
@@ -217,65 +222,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _showTermsDialog(bool isDarkMode) {
-    const Color dSurface1 = Color(0xFF1A1A1D);
-    const Color dMysticPurple = Color(0xFF7B2CBF);
-    const Color dBorderGray = Color(0xFF3D3D4D);
-    const Color dGoldMain = Color(0xFFFECB00);
+  Future<void> _showTermsDialog(bool isDarkMode) async {
+
+   // 1. Cambiamos const por final
+  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+
+  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
+  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
+
     
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: dSurface1,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: isDarkMode ? dMysticPurple.withOpacity(0.6) : dGoldMain, 
-            width: 2.0
+    
+    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
+    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir los Términos y Condiciones.'),
+            backgroundColor: Colors.redAccent,
           ),
-        ),
-        title: const Text(
-          "Términos y Condiciones", 
-          style: TextStyle(
-            color: Colors.white, 
-            fontWeight: FontWeight.bold, 
-            fontFamily: 'Orbitron',
-            fontSize: 18,
-            letterSpacing: 1.2,
-          )
-        ),
-        content: const SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Al unirte a MapHunter, aceptas las siguientes reglas del gremio:\n\n"
-                "• Tu cuenta es personal e intransferible.\n"
-                "• El uso de hacks o GPS falsos resultará en baneo permanente.\n"
-                "• Los premios ganados están sujetos a verificación de identidad.\n"
-                "• Respetar a otros cazadores en las ubicaciones físicas.\n\n"
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-                style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "ENTENDIDO", 
-              style: TextStyle(
-                color: dMysticPurple, 
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              )
-            ),
-          ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
   @override

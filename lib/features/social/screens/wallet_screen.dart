@@ -303,6 +303,25 @@ class _WalletScreenState extends State<WalletScreen> {
                                         letterSpacing: 1.0,
                                       ),
                                     ),
+                                    const Spacer(),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const TransactionHistoryScreen(),
+                                          ),
+                                        ).then((_) => _loadRecentTransactions());
+                                      },
+                                      child: const Text(
+                                        'Ver Todo',
+                                        style: TextStyle(
+                                          color: AppTheme.accentGold,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 24),
@@ -971,12 +990,12 @@ class _WalletScreenState extends State<WalletScreen> {
 
       if (result == true) {
          if (!mounted) return;
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(
-             content: Text('¡Pago Exitoso! Verificando saldo...'),
-             backgroundColor: AppTheme.successGreen,
-           ),
-         );
+        //  ScaffoldMessenger.of(context).showSnackBar(
+        //    const SnackBar(
+        //      content: Text('¡Pago Exitoso! Verificando saldo...'),
+        //      backgroundColor: AppTheme.successGreen,
+        //    ),
+        //  );
          
          await Future.delayed(const Duration(seconds: 2));
          if (mounted) {

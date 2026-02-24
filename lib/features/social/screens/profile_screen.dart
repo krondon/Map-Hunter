@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../game/providers/game_provider.dart';
 import '../../game/providers/power_effect_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import '../../game/models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/login_screen.dart';
@@ -17,6 +19,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/utils/global_keys.dart';
 import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool hideScaffold;
@@ -1355,85 +1358,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showTermsDialog() {
-    const Color currentGold = AppTheme.accentGold;
-    const Color cardBg = Color(0xFF151517);
+   Future<void> _showTermsDialog() async {
 
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: currentGold.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: currentGold.withOpacity(0.5), width: 1),
+   // 1. Cambiamos const por final
+  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+
+  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
+  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
+
+    
+    
+    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
+    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
+
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir los Términos y Condiciones.'),
+            backgroundColor: Colors.redAccent,
           ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: currentGold, width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.description_outlined, color: currentGold),
-                    const SizedBox(width: 12),
-                    const Text('Términos',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18)),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close,
-                          color: Colors.white38, size: 20),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const SizedBox(
-                  height: 200,
-                  child: SingleChildScrollView(
-                    child: Text(
-                      'Al utilizar el protocolo Asthoria, aceptas que toda actividad de exploración queda bajo tu responsabilidad. '
-                      'El equipo de MapHunter no se hace responsable por encuentros con entidades digitales o físicas durante la recolección de sellos.\n\n'
-                      'Tus datos están protegidos por encriptación de grado militar y nunca serán compartidos fuera de la red local del evento. '
-                      'Cualquier intento de sabotaje o hackeo del sistema resultará en la expulsión inmediata y pérdida deXP.',
-                      style: TextStyle(
-                          color: Colors.white70, fontSize: 13, height: 1.5),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: currentGold,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('ENTENDIDO',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+        );
+      }
+    }
   }
+
 
   void _showComingSoonDialog(String featureName) {
     showDialog(

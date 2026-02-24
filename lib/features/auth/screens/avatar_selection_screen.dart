@@ -280,21 +280,21 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
           SafeArea(
             child: Column(
               children: [
-                // Back Button (Estilo Congelado/Segmentado)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Row(
-                    children: [
-                      CyberRingButton(
-                        size: 48,
-                        icon: Icons.arrow_back,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
-                ),
+                // // Back Button (Estilo Congelado/Segmentado)
+                // Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                //   child: Row(
+                //     children: [
+                //       CyberRingButton(
+                //         size: 48,
+                //         icon: Icons.arrow_back,
+                //         onPressed: () => Navigator.of(context).pop(),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 
-                const SizedBox(height: 10),
+                // const SizedBox(height: 10),
                 
                 // Header Cyberpunk
                 Container(

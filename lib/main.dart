@@ -156,6 +156,12 @@ class _TreasureHuntAppState extends State<TreasureHuntApp>
                 )),
 
         // --- NEW: Infrastructure Layer (DIP) ---
+        Provider<SupabaseLivesRepository>(
+          create: (_) => SupabaseLivesRepository(),
+        ),
+        Provider<MockPaymentRepository>(
+          create: (_) => MockPaymentRepository(),
+        ),
 
         // --- Existing Providers ---
         ChangeNotifierProvider(create: (context) {
