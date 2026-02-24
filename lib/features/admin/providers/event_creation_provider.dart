@@ -340,7 +340,7 @@ class EventCreationProvider extends ChangeNotifier {
             'id': const Uuid().v4(),
             'title': _eventType == 'online'
                 ? 'Minijuego ${_clueForms.length + 1}'
-                : 'Pista ${_clueForms.length + 1}',
+                : '???', // Mystery title for on-site clues
             'description': '',
             'type': 'minigame',
             'puzzle_type': defaultPuzzleType.dbValue,
