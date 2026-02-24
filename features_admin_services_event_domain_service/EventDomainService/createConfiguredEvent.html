@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the createConfiguredEvent method from the EventDomainService class, for the Dart programming language.">
+  <title>createConfiguredEvent method - EventDomainService class - event_domain_service library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_admin_services_event_domain_service/">features&#47;admin&#47;services&#47;event_domain_service.dart</a></li>
+    <li><a href="../../features_admin_services_event_domain_service/EventDomainService-class.html">EventDomainService</a></li>
+    <li class="self-crumb">createConfiguredEvent static method</li>
+  </ol>
+  <div class="self-name">createConfiguredEvent</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_admin_services_event_domain_service&#47;EventDomainService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">createConfiguredEvent</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="../../features_game_models_event/GameEvent-class.html">GameEvent</a></span>
+<span class="name ">createConfiguredEvent</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="createConfiguredEvent-param-id"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-title"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">title</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-description"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">description</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-locationName"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">locationName</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-latitude"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">latitude</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-longitude"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">longitude</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-date"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a></span> <span class="parameter-name">date</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-clue"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clue</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-maxParticipants"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">maxParticipants</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-pin"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">pin</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-eventType"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventType</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-imageFileName"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">imageFileName</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-entryType"><span class="type-annotation"><a href="../../core_enums_entry_types/EntryType.html">EntryType</a></span> <span class="parameter-name">entryType</span> = <span class="default-value">EntryType.free</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-entryFee"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">entryFee</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-currency"><span class="type-annotation"><a href="../../core_enums_entry_types/CurrencyType.html">CurrencyType</a></span> <span class="parameter-name">currency</span> = <span class="default-value">CurrencyType.treboles</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-configuredWinners"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">configuredWinners</span> = <span class="default-value">3</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-spectatorConfig"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">spectatorConfig</span> = <span class="default-value">const {}</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-betTicketPrice"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">betTicketPrice</span> = <span class="default-value">100</span>, </span></li>
+<li><span class="parameter" id="createConfiguredEvent-param-sponsorId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">sponsorId</span>, </span></li>
+</ol>})
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Creates a fully configured GameEvent with mode-specific defaults.</p>
+<p>Handles the following mode-specific logic:</p>
+<ul>
+<li>Online: locationName='Online', lat/long=0.0, auto-generates PIN</li>
+<li>On-Site: Uses provided location and PIN</li>
+<li>Paid: Requires entry fee and currency type</li>
+</ul>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static GameEvent createConfiguredEvent({
+  required String id,
+  required String title,
+  required String description,
+  required String? locationName,
+  required double? latitude,
+  required double? longitude,
+  required DateTime date,
+  required String clue,
+  required int maxParticipants,
+  required String pin,
+  required String eventType,
+  required String imageFileName,
+  &#47;&#47; --- NEW: Wallet Support ---
+  EntryType entryType = EntryType.free,
+  int? entryFee, &#47;&#47; Changed to int to match GameEvent
+  CurrencyType currency = CurrencyType.treboles,
+  int configuredWinners = 3, &#47;&#47; NEW: Default to 3
+  Map&lt;String, dynamic&gt; spectatorConfig = const {}, &#47;&#47; NEW
+  int betTicketPrice = 100, &#47;&#47; NEW
+  String? sponsorId, &#47;&#47; NEW
+}) {
+  final isOnline = eventType == &#39;online&#39;;
+  final finalPin = isOnline ? generatePin(isOnline: true) : pin;
+
+  &#47;&#47; Validate entry fee if paid
+  if (entryType == EntryType.paid) {
+    final error = validateEntryFee(entryFee, entryType);
+    if (error != null) {
+      throw ArgumentError(error);
+    }
+  }
+
+  return GameEvent(
+    id: id,
+    title: title,
+    description: description,
+    locationName: isOnline ? &#39;Online&#39; : (locationName ?? &#39;Unknown&#39;),
+    latitude: isOnline ? 0.0 : latitude!,
+    longitude: isOnline ? 0.0 : longitude!,
+    date: date,
+    createdByAdminId: &#39;admin_1&#39;,
+    imageUrl: imageFileName,
+    clue: clue,
+    maxParticipants: maxParticipants,
+    pin: finalPin,
+    type: eventType,
+    entryFee: entryFee ?? 0,
+    configuredWinners: configuredWinners,
+    spectatorConfig: spectatorConfig,
+    betTicketPrice: betTicketPrice, &#47;&#47; NEW
+    sponsorId: sponsorId, &#47;&#47; NEW
+  );
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_admin_services_event_domain_service/">event_domain_service</a></li>
+    <li><a href="../../features_admin_services_event_domain_service/EventDomainService-class.html">EventDomainService</a></li>
+    <li class="self-crumb">createConfiguredEvent static method</li>
+</ol>
+
+    <h5>EventDomainService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

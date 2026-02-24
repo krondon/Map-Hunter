@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the submitEvent method from the EventCreationProvider class, for the Dart programming language.">
+  <title>submitEvent method - EventCreationProvider class - event_creation_provider library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_admin_providers_event_creation_provider/">features&#47;admin&#47;providers&#47;event_creation_provider.dart</a></li>
+    <li><a href="../../features_admin_providers_event_creation_provider/EventCreationProvider-class.html">EventCreationProvider</a></li>
+    <li class="self-crumb">submitEvent method</li>
+  </ol>
+  <div class="self-name">submitEvent</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_admin_providers_event_creation_provider&#47;EventCreationProvider-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">submitEvent</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+<span class="name ">submitEvent</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="submitEvent-param-eventProvider"><span>required</span> <span class="type-annotation"><a href="../../features_game_providers_event_provider/EventProvider-class.html">EventProvider</a></span> <span class="parameter-name">eventProvider</span>, </span></li>
+<li><span class="parameter" id="submitEvent-param-storeProvider"><span>required</span> <span class="type-annotation"><a href="../../features_mall_providers_store_provider/StoreProvider-class.html">StoreProvider</a></span> <span class="parameter-name">storeProvider</span>, </span></li>
+<li><span class="parameter" id="submitEvent-param-onSuccess"><span>required</span> <span class="type-annotation">dynamic</span> <span class="parameter-name">onSuccess</span>(<ol class="parameter-list single-line"> <li><span class="parameter" id="param-"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span></span></li>
+</ol>), </span></li>
+<li><span class="parameter" id="submitEvent-param-onError"><span>required</span> <span class="type-annotation">dynamic</span> <span class="parameter-name">onError</span>(<ol class="parameter-list single-line"> <li><span class="parameter" id="param-"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span></span></li>
+</ol>), </span></li>
+</ol>})
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;bool&gt; submitEvent({
+  required EventProvider eventProvider,
+  required StoreProvider storeProvider,
+  required Function(String) onSuccess,
+  required Function(String) onError,
+}) async {
+  if (_isLoading) return false;
+
+  &#47;&#47; Final check
+  checkFormValidity();
+  if (!_isFormValid) {
+    onError(&quot;Faltan campos por completar&quot;);
+    return false;
+  }
+
+  _isLoading = true;
+  notifyListeners();
+
+  String? createdEventId;
+
+  try {
+    &#47;&#47; Delegate event construction to domain service
+    final newEvent = EventDomainService.createConfiguredEvent(
+      id: _eventId,
+      title: _title,
+      description: _description,
+      locationName: _locationName,
+      latitude: _latitude,
+      longitude: _longitude,
+      date: _selectedDate,
+      clue: _clue,
+      maxParticipants: _maxParticipants,
+      pin: _pin,
+      eventType: _eventType,
+      imageFileName: _selectedImage!.name,
+      entryFee: _entryFee ?? 0, &#47;&#47; Validated to be non-null above
+      configuredWinners: _configuredWinners,
+      spectatorConfig: _spectatorPrices,
+      betTicketPrice: _betTicketPrice, &#47;&#47; NEW
+      sponsorId: _sponsorId, &#47;&#47; NEW
+    );
+
+    &#47;&#47; Update PIN state for UI feedback (domain service may have auto-generated it)
+    if (_eventType == &#39;online&#39;) {
+      _pin = newEvent.pin;
+    }
+
+    &#47;&#47; 1. Create Event
+    createdEventId =
+        await eventProvider.createEvent(newEvent, _selectedImage);
+
+    &#47;&#47; 2. Create Clues
+    if (createdEventId != null &amp;&amp; _clueForms.isNotEmpty) {
+      &#47;&#47; Sanitize Clues for Online Mode
+      if (_eventType == &#39;online&#39;) {
+        EventDomainService.sanitizeCluesForOnline(_clueForms);
+      }
+
+      await eventProvider.createCluesBatch(createdEventId, _clueForms);
+    }
+
+    &#47;&#47; 3. Create Stores
+    if (createdEventId != null) {
+      if (_eventType == &#39;online&#39;) {
+        &#47;&#47; Default Online Store via Domain Service
+        &#47;&#47; Default Online Store via Domain Service
+        try {
+          final defaultStore = EventDomainService.createDefaultOnlineStore(
+            createdEventId,
+            &#47;&#47; customPrices: _spectatorPrices, &#47;&#47; OLD: Used to set store prices directly
+            &#47;&#47; NEW: Store keeps default prices for Players. Spectators use spectator_config override.
+            customPrices: null,
+          );
+          &#47;&#47; We pass null for imageFile as we don&#39;t have one selected
+          await storeProvider.createStore(defaultStore, null);
+        } catch (e) {
+          debugPrint(&quot;Error creating default online store: $e&quot;);
+        }
+      } else {
+        &#47;&#47; On-site: Create pending stores
+        if (_pendingStores.isNotEmpty) {
+          for (var storeData in _pendingStores) {
+            try {
+              final store = storeData[&#39;store&#39;] as MallStore;
+              final imageFile = storeData[&#39;imageFile&#39;] as XFile?;
+
+              final storeToCreate = MallStore(
+                id: store.id,
+                eventId: createdEventId,
+                name: store.name,
+                description: store.description,
+                imageUrl: store.imageUrl,
+                qrCodeData: store.qrCodeData,
+                products: store.products,
+              );
+              await storeProvider.createStore(storeToCreate, imageFile);
+            } catch (e) {
+              debugPrint(&quot;Error creating store for event: $e&quot;);
+            }
+          }
+        }
+      }
+    }
+
+    String successMessage = _eventType == &#39;online&#39;
+        ? &#39;Competencia Online creada. PIN: ${newEvent.pin}&#39;
+        : &#39;Competencia creada con éxito&#39;;
+
+    onSuccess(successMessage);
+    resetForm();
+    return true;
+  } catch (error) {
+    if (createdEventId != null) {
+      try {
+        await eventProvider.deleteEvent(createdEventId);
+      } catch (e) {
+        debugPrint(&quot;Rollback error: $e&quot;);
+      }
+    }
+    onError(&quot;Error al crear evento: $error&quot;);
+    return false;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_admin_providers_event_creation_provider/">event_creation_provider</a></li>
+    <li><a href="../../features_admin_providers_event_creation_provider/EventCreationProvider-class.html">EventCreationProvider</a></li>
+    <li class="self-crumb">submitEvent method</li>
+</ol>
+
+    <h5>EventCreationProvider class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

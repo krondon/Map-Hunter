@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the Player.fromJson constructor from Class Player from the player library, for the Dart programming language.">
+  <title>Player.fromJson constructor - Player - player library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../shared_models_player/">shared&#47;models&#47;player.dart</a></li>
+    <li><a href="../../shared_models_player/Player-class.html">Player</a></li>
+    <li class="self-crumb">Player.fromJson factory constructor</li>
+  </ol>
+  <div class="self-name">Player.fromJson</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="shared_models_player&#47;Player-class-sidebar.html"
+      data-below-sidebar="">
+      <div>
+<h1><span class="kind-constructor">Player.fromJson</span> constructor 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+      <span class="name ">Player.fromJson</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="fromJson-param-json"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">json</span></span></li>
+</ol>)
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">factory Player.fromJson(Map&lt;String, dynamic&gt; json) {
+  debugPrint(&#39;DEBUG: Player.fromJson input: $json&#39;);
+  String? avatar = json[&#39;avatar_url&#39;];
+  if (avatar != null &amp;&amp; (avatar.contains(&#39;file:&#39;) || avatar.contains(&#39;C:&#47;&#39;))) {
+     avatar = null; &#47;&#47; Sanitize local paths
+  }
+
+  &#47;&#47; INSPECCIÓN DE LLAVES (Para diagnosticar por qué no se ve el avatar)
+  debugPrint(&#39;DEBUG: Player.fromJson Keys for ${json[&#39;name&#39;]}: ${json.keys.toList()}&#39;);
+
+  String? avatarUrlCol = json[&#39;avatar_url&#39;]?.toString();
+  dynamic profilesData = json[&#39;profiles&#39;];
+  String? extractedAvatarId;
+
+  if (profilesData is Map) {
+    extractedAvatarId = profilesData[&#39;avatar_id&#39;]?.toString() ?? profilesData[&#39;avatarId&#39;]?.toString();
+  } else if (profilesData is List &amp;&amp; profilesData.isNotEmpty) {
+    extractedAvatarId = profilesData.first[&#39;avatar_id&#39;]?.toString() ?? profilesData.first[&#39;avatarId&#39;]?.toString();
+  }
+
+  &#47;&#47; Si avatar_url no es una URL real, podría ser el ID
+  if (avatarUrlCol != null &amp;&amp; !avatarUrlCol.startsWith(&#39;http&#39;) &amp;&amp; avatarUrlCol.isNotEmpty &amp;&amp; !avatarUrlCol.contains(&#39;&#47;&#39;)) {
+    extractedAvatarId ??= avatarUrlCol;
+  }
+
+  &#47;&#47; Lista de posibles nombres para el ID del sprite
+  final avatarId = json[&#39;avatar_id&#39;] ??
+                   json[&#39;avatarId&#39;] ??
+                   json[&#39;sprite_id&#39;] ??
+                   json[&#39;avatar_url_local&#39;] ??
+                   json[&#39;avatar&#39;] ??
+                   extractedAvatarId;
+
+  debugPrint(&#39;DEBUG: Player.fromJson final avatarId mapping result for ${json[&#39;name&#39;]}: $avatarId&#39;);
+
+  &#47;&#47; Parse document type from DNI if missing
+  final String? dniVal = json[&#39;cedula&#39;]?.toString() ?? json[&#39;dni&#39;]?.toString();
+  String? docTypeVal = json[&#39;document&#39;];
+
+  &#47;&#47; If document is null but DNI exists and starts with a letter, extract it.
+  if (docTypeVal == null &amp;&amp; dniVal != null &amp;&amp; dniVal.length &gt; 1) {
+     final firstChar = dniVal[0].toUpperCase();
+     if ([&#39;V&#39;, &#39;E&#39;, &#39;J&#39;, &#39;G&#39;].contains(firstChar)) {
+        docTypeVal = firstChar;
+     }
+  }
+
+  return Player(
+    userId: json[&#39;user_id&#39;] ?? json[&#39;id&#39;] ?? &#39;&#39;,
+    name: json[&#39;name&#39;] ?? &#39;&#39;,
+    email: json[&#39;email&#39;] ?? &#39;&#39;,
+    avatarUrl: avatar ?? &#39;&#39;,
+    role: json[&#39;role&#39;] ?? &#39;user&#39;,
+    level: json[&#39;level&#39;] ?? 1,
+    experience: json[&#39;experience&#39;] ?? 0,
+    totalXP: json[&#39;total_xp&#39;] ?? 0,
+    completedCluesCount: json[&#39;completed_clues_count&#39;] ?? json[&#39;completed_clues&#39;] ?? 0,
+    profession: json[&#39;profession&#39;] ?? &#39;Novice&#39;,
+    &#47;&#47; [REF] Coins now prioritize active session (game_players) over global profile
+    coins: () {
+      &#47;&#47; 1. Try to extract from nested game_players object
+      if (json[&#39;game_players&#39;] != null) {
+        final gp = json[&#39;game_players&#39;];
+        if (gp is List &amp;&amp; gp.isNotEmpty) return gp.first[&#39;coins&#39;];
+        if (gp is Map) return gp[&#39;coins&#39;];
+      }
+      &#47;&#47; 2. Fallback to direct field (handled by provider overwrite or legacy)
+      return (json[&#39;total_coins&#39;] is num
+        ? (json[&#39;total_coins&#39;] as num).toInt()
+        : (json[&#39;coins&#39;] is num
+            ? (json[&#39;coins&#39;] as num).toInt()
+            : int.tryParse(json[&#39;coins&#39;]?.toString() ?? &#39;300&#39;) ?? 300));
+    }(),
+    status: _parseStatus(json[&#39;status&#39;]),
+    frozenUntil: json[&#39;frozen_until&#39;] != null
+        ? DateTime.parse(json[&#39;frozen_until&#39;])
+        : null,
+    &#47;&#47; [FIX] Parsear last_completion_time para desempate en Race Tracker
+    lastCompletionTime: json[&#39;last_completion_time&#39;] != null
+        ? DateTime.tryParse(json[&#39;last_completion_time&#39;])
+        : null,
+    stats: {
+      &#39;speed&#39;: json[&#39;stat_speed&#39;] ?? 0,
+      &#39;strength&#39;: json[&#39;stat_strength&#39;] ?? 0,
+      &#39;intelligence&#39;: json[&#39;stat_intelligence&#39;] ?? 0,
+    },
+    eventsCompleted: json[&#39;events_completed&#39;] != null
+        ? List&lt;String&gt;.from(json[&#39;events_completed&#39;])
+        : [],
+    inventory:
+        json[&#39;inventory&#39;] != null ? List&lt;String&gt;.from(json[&#39;inventory&#39;]) : [],
+    gamePlayerId: json[&#39;player_id&#39;] ?? json[&#39;game_player_id&#39;],
+    avatarId: avatarId,
+    clovers: json[&#39;clovers&#39;] ?? 0,
+    documentType: docTypeVal,
+    &#47;&#47; Map &#39;dni&#39; (int) from DB to &#39;cedula&#39; (String) in model if &#39;cedula&#39; is null
+    cedula: dniVal,
+    phone: json[&#39;phone&#39;],
+    createdAt: json[&#39;created_at&#39;] != null ? DateTime.tryParse(json[&#39;created_at&#39;].toString()) : null,
+    isProtected: json[&#39;is_protected&#39;] ?? false,
+    emailVerified: json[&#39;email_verified&#39;] ?? true,
+  );
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../shared_models_player/">player</a></li>
+    <li><a href="../../shared_models_player/Player-class.html">Player</a></li>
+    <li class="self-crumb">Player.fromJson factory constructor</li>
+</ol>
+
+    <h5>Player class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

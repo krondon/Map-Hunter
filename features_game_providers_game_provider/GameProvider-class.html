@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the GameProvider class from the game_provider library, for the Dart programming language.">
+  <title>GameProvider class - game_provider library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../features_game_providers_game_provider/">features&#47;game&#47;providers&#47;game_provider.dart</a></li>
+    <li class="self-crumb">GameProvider class</li>
+  </ol>
+  <div class="self-name">GameProvider</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_game_providers_game_provider&#47;features_game_providers_game_provider-library-sidebar.html"
+    data-below-sidebar="features_game_providers_game_provider&#47;GameProvider-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">GameProvider</span> class 
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>Provider principal que gestiona el estado global del juego.</p>
+<p>Responsabilidades:</p>
+<ul>
+<li>Gestión de Pistas (Clues) y progreso del jugador.</li>
+<li>Control de Vidas (Lives) y sincronización con el servidor.</li>
+<li>Ranking en tiempo real (Leaderboard).</li>
+<li>Estado de la carrera (Race Status) para detectar ganadores.</li>
+<li>Gestión de efectos visuales globales (Congelamiento, etc.).</li>
+</ul>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+  <dt>Inheritance</dt>
+  <dd>
+    <ul class="gt-separated dark clazz-relationships">
+      <li><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></li>
+        <li><a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier-class.html">ChangeNotifier</a></li>
+      <li>GameProvider</li>
+    </ul>
+  </dd>
+
+        
+  <dt>Implemented types</dt>
+  <dd>
+    <ul class="comma-separated clazz-relationships">
+        <li><a href="../shared_interfaces_i_resettable/IResettable-class.html">IResettable</a></li>
+    </ul>
+  </dd>
+        
+
+
+        
+        
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="GameProvider.new" class="callable">
+          <span class="name"><a href="../features_game_providers_game_provider/GameProvider/GameProvider.html">GameProvider</a></span><span class="signature">({<span class="parameter" id="-param-gameService"><span>required</span> <span class="type-annotation"><a href="../features_game_services_game_service/GameService-class.html">GameService</a></span> <span class="parameter-name">gameService</span></span>})</span>
+        </dt>
+        <dd>
+          
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="activeHintText" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/activeHintText.html">activeHintText</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="activePowerEffects" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/activePowerEffects.html">activePowerEffects</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_game_models_power_effect/PowerEffect-class.html">PowerEffect</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="clues" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/clues.html">clues</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_game_models_clue/Clue-class.html">Clue</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="completedClues" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/completedClues.html">completedClues</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="currentClue" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/currentClue.html">currentClue</a></span>
+  <span class="signature">&#8594; <a href="../features_game_models_clue/Clue-class.html">Clue</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="currentClueIndex" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/currentClueIndex.html">currentClueIndex</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="currentEventId" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/currentEventId.html">currentEventId</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="currentPrizeWon" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/currentPrizeWon.html">currentPrizeWon</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="currentSponsor" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/currentSponsor.html">currentSponsor</a></span>
+  <span class="signature">&#8594; <a href="../features_admin_models_sponsor/Sponsor-class.html">Sponsor</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="errorMessage" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/errorMessage.html">errorMessage</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="hasCompletedAllClues" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/hasCompletedAllClues.html">hasCompletedAllClues</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hasListeners" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier/hasListeners.html">hasListeners</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  Whether any listeners are currently registered.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hintActive" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/hintActive.html">hintActive</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isFrozen" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isFrozen.html">isFrozen</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isGameActive" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isGameActive.html">isGameActive</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isLoading" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isLoading.html">isLoading</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isMinigameDataLoading" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isMinigameDataLoading.html">isMinigameDataLoading</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isPowerActionLoading" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isPowerActionLoading.html">isPowerActionLoading</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isRaceCompleted" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isRaceCompleted.html">isRaceCompleted</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="leaderboard" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/leaderboard.html">leaderboard</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../shared_models_player/Player-class.html">Player</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="lives" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/lives.html">lives</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="minigameCapitals" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/minigameCapitals.html">minigameCapitals</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="minigameTFStatements" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/minigameTFStatements.html">minigameTFStatements</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="targetPlayerId" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/targetPlayerId.html">targetPlayerId</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="totalClues" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/totalClues.html">totalClues</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="addListener" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier/addListener.html">addListener</a></span><span class="signature">(<wbr><span class="parameter" id="addListener-param-listener"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-ui/VoidCallback.html">VoidCallback</a></span> <span class="parameter-name">listener</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Register a closure to be called when the object changes.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="applyHintForCurrentClue" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/applyHintForCurrentClue.html">applyHintForCurrentClue</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="applyTimePenaltyToPlayer" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/applyTimePenaltyToPlayer.html">applyTimePenaltyToPlayer</a></span><span class="signature">(<wbr><span class="parameter" id="applyTimePenaltyToPlayer-param-targetGamePlayerId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">targetGamePlayerId</span>, {</span><span class="parameter" id="applyTimePenaltyToPlayer-param-penalty"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">penalty</span> = <span class="default-value">1</span></span>})
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="checkRaceStatus" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/checkRaceStatus.html">checkRaceStatus</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="checkUserEventStatus" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/checkUserEventStatus.html">checkUserEventStatus</a></span><span class="signature">(<wbr><span class="parameter" id="checkUserEventStatus-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_game_providers_game_provider/UserEventStatusResult-class.html">UserEventStatusResult</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Verifica el estado del usuario respecto a eventos.
+Sigue una jerarquía estricta de seguridad:
+  
+
+</dd>
+
+        <dt id="clearHint" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/clearHint.html">clearHint</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="completeCurrentClue" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/completeCurrentClue.html">completeCurrentClue</a></span><span class="signature">(<wbr><span class="parameter" id="completeCurrentClue-param-answer"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">answer</span>, {</span><span class="parameter" id="completeCurrentClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">clueId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Completa una pista y retorna los datos del servidor incluyendo coins_earned.
+Retorna null si falla, o un Map con success, raceCompleted, coins_earned.
+  
+
+</dd>
+
+        <dt id="completeLocalClue" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/completeLocalClue.html">completeLocalClue</a></span><span class="signature">(<wbr><span class="parameter" id="completeLocalClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clueId</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="dispose" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/dispose.html">dispose</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Discards any resources used by the object. After this is called, the
+object is not in a usable state and should be discarded (calls to
+<a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier/addListener.html">addListener</a> will throw after the object is disposed).
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="fetchClues" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/fetchClues.html">fetchClues</a></span><span class="signature">(<wbr>{<span class="parameter" id="fetchClues-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="fetchClues-param-silent"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">silent</span> = <span class="default-value">false</span>, </span><span class="parameter" id="fetchClues-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">userId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="fetchLeaderboard" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/fetchLeaderboard.html">fetchLeaderboard</a></span><span class="signature">(<wbr>{<span class="parameter" id="fetchLeaderboard-param-silent"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">silent</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="fetchLives" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/fetchLives.html">fetchLives</a></span><span class="signature">(<wbr><span class="parameter" id="fetchLives-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Obtiene el número actual de vidas del jugador desde el servidor.
+  
+
+</dd>
+
+        <dt id="getPlayerName" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/getPlayerName.html">getPlayerName</a></span><span class="signature">(<wbr><span class="parameter" id="getPlayerName-param-gamePlayerId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">gamePlayerId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Helper para obtener el nombre real de un jugador (incluso si está invisible)
+  
+
+</dd>
+
+        <dt id="getPlayerStatus" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/getPlayerStatus.html">getPlayerStatus</a></span><span class="signature">(<wbr><span class="parameter" id="getPlayerStatus-param-gamePlayerId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">gamePlayerId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Helper para obtener el estado de un jugador (útil para diferenciar spectadores de invisibles)
+  
+
+</dd>
+
+        <dt id="initializeGameForApprovedUser" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/initializeGameForApprovedUser.html">initializeGameForApprovedUser</a></span><span class="signature">(<wbr><span class="parameter" id="initializeGameForApprovedUser-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="initializeGameForApprovedUser-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Inicializa el juego para un usuario con solicitud aprobada.
+Llama al RPC initialize_game_for_user y espera el resultado.
+  
+
+</dd>
+
+        <dt id="loadMinigameData" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/loadMinigameData.html">loadMinigameData</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Carga los datos de los minijuegos desde Supabase si no han sido cargados.
+  
+
+</dd>
+
+        <dt id="loseLife" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/loseLife.html">loseLife</a></span><span class="signature">(<wbr><span class="parameter" id="loseLife-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Ejecuta la pérdida de una vida (Optimistic UI).
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="notifyListeners" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier/notifyListeners.html">notifyListeners</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Call all the registered listeners.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="removeListener" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier/removeListener.html">removeListener</a></span><span class="signature">(<wbr><span class="parameter" id="removeListener-param-listener"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-ui/VoidCallback.html">VoidCallback</a></span> <span class="parameter-name">listener</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Remove a previously registered closure from the list of closures that are
+notified when the object changes.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="resetState" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/resetState.html">resetState</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Limpia COMPLETAMENTE el estado del juego (Global Reset)
+Implementación de IResettable
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setFrozen" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/setFrozen.html">setFrozen</a></span><span class="signature">(<wbr><span class="parameter" id="setFrozen-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the frozen state (called by PowerEffectProvider)
+  
+
+</dd>
+
+        <dt id="setPowerActionLoading" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/setPowerActionLoading.html">setPowerActionLoading</a></span><span class="signature">(<wbr><span class="parameter" id="setPowerActionLoading-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the power action loading state (called by PowerActionDispatcher)
+  
+
+</dd>
+
+        <dt id="setTargetPlayerId" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/setTargetPlayerId.html">setTargetPlayerId</a></span><span class="signature">(<wbr><span class="parameter" id="setTargetPlayerId-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="skipCurrentClue" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/skipCurrentClue.html">skipCurrentClue</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="startGame" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/startGame.html">startGame</a></span><span class="signature">(<wbr><span class="parameter" id="startGame-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="startLeaderboardUpdates" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/startLeaderboardUpdates.html">startLeaderboardUpdates</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Inicia el polling periódico del Leaderboard (cada 5 segundos).
+  
+
+</dd>
+
+        <dt id="stopLeaderboardUpdates" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/stopLeaderboardUpdates.html">stopLeaderboardUpdates</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Detiene las actualizaciones automáticas del leaderboard y el race status.
+⚠️ NO cancela la suscripción de vidas (Single Responsibility Principle)
+  
+
+</dd>
+
+        <dt id="stopLivesSubscription" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/stopLivesSubscription.html">stopLivesSubscription</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Detiene la suscripción Realtime de vidas.
+Solo debe llamarse cuando el usuario sale del evento o cierra sesión.
+  
+
+</dd>
+
+        <dt id="subscribeToLives" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/subscribeToLives.html">subscribeToLives</a></span><span class="signature">(<wbr><span class="parameter" id="subscribeToLives-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="subscribeToLives-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Suscribe a cambios en las vidas del jugador en tiempo real.
+Cuando la tabla game_players actualice el campo 'lives', el Provider
+se actualizará automáticamente sin necesidad de fetch manual.
+  
+
+</dd>
+
+        <dt id="subscribeToRaceStatus" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/subscribeToRaceStatus.html">subscribeToRaceStatus</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="switchToClue" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/switchToClue.html">switchToClue</a></span><span class="signature">(<wbr><span class="parameter" id="switchToClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clueId</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="syncLives" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/syncLives.html">syncLives</a></span><span class="signature">(<wbr><span class="parameter" id="syncLives-param-newLives"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">newLives</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="unlockClue" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/unlockClue.html">unlockClue</a></span><span class="signature">(<wbr><span class="parameter" id="unlockClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clueId</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="updateLeaderboard" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/updateLeaderboard.html">updateLeaderboard</a></span><span class="signature">(<wbr><span class="parameter" id="updateLeaderboard-param-player"><span class="type-annotation"><a href="../shared_models_player/Player-class.html">Player</a></span> <span class="parameter-name">player</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../features_game_providers_game_provider/">game_provider</a></li>
+    <li class="self-crumb">GameProvider class</li>
+</ol>
+
+    <h5>game_provider library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

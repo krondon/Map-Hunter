@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the submitRequest method from the GameRequestProvider class, for the Dart programming language.">
+  <title>submitRequest method - GameRequestProvider class - game_request_provider library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_providers_game_request_provider/">features&#47;game&#47;providers&#47;game_request_provider.dart</a></li>
+    <li><a href="../../features_game_providers_game_request_provider/GameRequestProvider-class.html">GameRequestProvider</a></li>
+    <li class="self-crumb">submitRequest method</li>
+  </ol>
+  <div class="self-name">submitRequest</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_game_providers_game_request_provider&#47;GameRequestProvider-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">submitRequest</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../features_game_providers_game_request_provider/SubmitRequestResult.html">SubmitRequestResult</a></span>&gt;</span></span>
+<span class="name ">submitRequest</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="submitRequest-param-player"><span class="type-annotation"><a href="../../shared_models_player/Player-class.html">Player</a></span> <span class="parameter-name">player</span>, </span></li>
+<li><span class="parameter" id="submitRequest-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span></li>
+<li><span class="parameter" id="submitRequest-param-maxPlayers"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">maxPlayers</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Envía una solicitud de acceso a un evento.</p>
+<p>Verifica primero si el usuario ya es un game_player o ya tiene una solicitud.
+Retorna el resultado de la operación.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;SubmitRequestResult&gt; submitRequest(Player player, String eventId, int maxPlayers) async {
+  try {
+    _lastError = null; &#47;&#47; Reset error
+    &#47;&#47; IMPORTANTE: Usar player.userId para consultas de BD, no player.id (que puede ser gamePlayerId)
+    final String userId = player.userId;
+    debugPrint(&#39;[REQUEST_SUBMIT] 🎯 START: userId=$userId, eventId=$eventId&#39;);
+
+    &#47;&#47; PASO 0: Verificar si el evento está lleno
+    debugPrint(&#39;[REQUEST_SUBMIT] 🔍 Step 0: Checking if event is full...&#39;);
+    final participantCount = await _repository.getParticipantCount(eventId);
+    if (participantCount &gt;= maxPlayers) {
+      debugPrint(&#39;[REQUEST_SUBMIT] ⚠️ RESULT: Event is full ($participantCount&#47;$maxPlayers). Aborting.&#39;);
+      return SubmitRequestResult.eventFull;
+    }
+
+    &#47;&#47; PASO 1: Verificar si ya es un game_player para este evento
+    debugPrint(&#39;[REQUEST_SUBMIT] 🔍 Step 1: Checking if already game_player...&#39;);
+    final participation = await _repository.getPlayerParticipation(userId, eventId);
+
+    if (participation[&#39;isParticipant&#39;] == true) {
+      final status = participation[&#39;status&#39;];
+      final gamePlayerId = participation[&#39;gamePlayerId&#39;];
+      if (status == &#39;spectator&#39; &amp;&amp; gamePlayerId != null) {
+         debugPrint(&#39;[REQUEST_SUBMIT] ⚠️ User is spectator. Deleting spectator record to allow player upgrade...&#39;);
+         await _repository.deleteGamePlayer(gamePlayerId);
+         &#47;&#47; Proceed to create request
+      } else {
+         debugPrint(&#39;[REQUEST_SUBMIT] ⚠️ RESULT: User is already a game_player (Status: $status). Aborting.&#39;);
+         return SubmitRequestResult.alreadyPlayer;
+      }
+    }
+
+    &#47;&#47; PASO 2: Verificar si ya tiene una solicitud para este evento
+    debugPrint(&#39;[REQUEST_SUBMIT] 🔍 Step 2: Checking existing request...&#39;);
+    final existingRequest = await _repository.getRequestForPlayer(userId, eventId);
+
+    if (existingRequest != null) {
+      debugPrint(&#39;[REQUEST_SUBMIT] ⚠️ RESULT: Already has request (status: ${existingRequest.status}). Aborting.&#39;);
+      return SubmitRequestResult.alreadyRequested;
+    }
+
+    &#47;&#47; PASO 3: Crear nueva solicitud
+    debugPrint(&#39;[REQUEST_SUBMIT] ✏️ Step 3: Inserting new request...&#39;);
+    await _repository.createRequest(userId, eventId);
+
+    debugPrint(&#39;[REQUEST_SUBMIT] ✅ SUCCESS: Request submitted successfully&#39;);
+    notifyListeners();
+    return SubmitRequestResult.submitted;
+  } on PostgrestException catch (e) {
+    &#47;&#47; Captura específica de errores de Supabase
+    debugPrint(&#39;[REQUEST_SUBMIT] ❌ PostgrestException:&#39;);
+    debugPrint(&#39;[REQUEST_SUBMIT]   - Code: ${e.code}&#39;);
+    debugPrint(&#39;[REQUEST_SUBMIT]   - Message: ${e.message}&#39;);
+    debugPrint(&#39;[REQUEST_SUBMIT]   - Details: ${e.details}&#39;);
+    _lastError = e.message; &#47;&#47; Capture specific DB error
+    return SubmitRequestResult.error;
+  } catch (e, stackTrace) {
+    debugPrint(&#39;[REQUEST_SUBMIT] ❌ ERROR: $e&#39;);
+    debugPrint(&#39;[REQUEST_SUBMIT] Stack trace: $stackTrace&#39;);
+    _lastError = e.toString(); &#47;&#47; Capture generic error
+    return SubmitRequestResult.error;
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_providers_game_request_provider/">game_request_provider</a></li>
+    <li><a href="../../features_game_providers_game_request_provider/GameRequestProvider-class.html">GameRequestProvider</a></li>
+    <li class="self-crumb">submitRequest method</li>
+</ol>
+
+    <h5>GameRequestProvider class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

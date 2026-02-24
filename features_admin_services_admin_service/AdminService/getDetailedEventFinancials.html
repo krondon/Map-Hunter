@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getDetailedEventFinancials method from the AdminService class, for the Dart programming language.">
+  <title>getDetailedEventFinancials method - AdminService class - admin_service library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_admin_services_admin_service/">features&#47;admin&#47;services&#47;admin_service.dart</a></li>
+    <li><a href="../../features_admin_services_admin_service/AdminService-class.html">AdminService</a></li>
+    <li class="self-crumb">getDetailedEventFinancials method</li>
+  </ol>
+  <div class="self-name">getDetailedEventFinancials</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_admin_services_admin_service&#47;AdminService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getDetailedEventFinancials</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+<span class="name ">getDetailedEventFinancials</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="getDetailedEventFinancials-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Obtiene los resultados financieros detallados de un evento.
+Agrega:</p>
+<ol>
+<li>Premios distribuidos (Podio) con fallback desde game_players</li>
+<li>Apuestas realizadas (Total y por usuario)</li>
+<li>Ganancias de apuestas (Wallet Ledger)</li>
+<li>Perfiles de usuarios (Nombres y Avatares)</li>
+</ol>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;&gt; getDetailedEventFinancials(String eventId) async {
+  debugPrint(&#39;💰 AdminService: Getting DETAILED financial results for $eventId&#39;);
+  try {
+    &#47;&#47; 1. Fetch Prize Distributions (Podium)
+    List&lt;dynamic&gt; prizeDistributions = [];
+    try {
+      prizeDistributions = await _supabase
+          .from(&#39;prize_distributions&#39;)
+          .select()
+          .eq(&#39;event_id&#39;, eventId)
+          .eq(&#39;rpc_success&#39;, true)
+          .order(&#39;position&#39;, ascending: true);
+      debugPrint(&#39;💰 Prize distributions found: ${prizeDistributions.length}&#39;);
+    } catch (e) {
+      debugPrint(&#39;💰 Error fetching prize_distributions: $e&#39;);
+    }
+
+    &#47;&#47; 2. Fetch Bets
+    List&lt;dynamic&gt; bets = [];
+    try {
+      bets = await _supabase
+          .from(&#39;bets&#39;)
+          .select()
+          .eq(&#39;event_id&#39;, eventId)
+          .order(&#39;created_at&#39;, ascending: false);
+      debugPrint(&#39;💰 Bets found: ${bets.length}&#39;);
+    } catch (e) {
+      debugPrint(&#39;💰 Error fetching bets: $e&#39;);
+    }
+
+    &#47;&#47; 3. Fetch Wallet Ledger (Payouts for Bets)
+    &#47;&#47; Use description-based filter (more reliable than JSONB metadata-&gt;&gt; in PostgREST)
+    List&lt;dynamic&gt; payouts = [];
+    try {
+      payouts = await _supabase
+          .from(&#39;wallet_ledger&#39;)
+          .select()
+          .ilike(&#39;description&#39;, &#39;%Apuesta Ganada%&#39;)
+          .contains(&#39;metadata&#39;, {&#39;event_id&#39;: eventId});
+      debugPrint(&#39;💰 Bet payouts found: ${payouts.length}&#39;);
+    } catch (e) {
+      debugPrint(&#39;💰 Error fetching wallet_ledger payouts (trying fallback): $e&#39;);
+      &#47;&#47; Fallback: try simpler query without metadata filter
+      try {
+        payouts = await _supabase
+            .from(&#39;wallet_ledger&#39;)
+            .select()
+            .ilike(&#39;description&#39;, &#39;%Apuesta Ganada%&#39;);
+        &#47;&#47; Filter client-side by event_id in metadata
+        payouts = payouts.where((p) {
+          final meta = p[&#39;metadata&#39;];
+          if (meta is Map) {
+            return meta[&#39;event_id&#39;]?.toString() == eventId;
+          }
+          return false;
+        }).toList();
+        debugPrint(&#39;💰 Bet payouts found (fallback): ${payouts.length}&#39;);
+      } catch (e2) {
+        debugPrint(&#39;💰 Error fetching wallet_ledger payouts (fallback also failed): $e2&#39;);
+      }
+    }
+
+    &#47;&#47; 4. Fetch Event data for pot calculation
+    int pot = 0;
+    try {
+      final eventData = await _supabase
+          .from(&#39;events&#39;)
+          .select(&#39;pot, configured_winners&#39;)
+          .eq(&#39;id&#39;, eventId)
+          .single();
+
+      &#47;&#47; Use actual pot from DB (accumulated from real payments)
+      final dbPot = (eventData[&#39;pot&#39;] as num?)?.toInt() ?? 0;
+      pot = (dbPot * 0.70).toInt();
+      debugPrint(&#39;💰 Pot from DB: $dbPot, distributable (70%): $pot&#39;);
+    } catch (e) {
+      debugPrint(&#39;💰 Error calculating pot: $e&#39;);
+    }
+
+    &#47;&#47; 5. Collect User IDs to fetch profiles
+    final Set&lt;String&gt; userIds = {};
+    for (var p in prizeDistributions) userIds.add(p[&#39;user_id&#39;] as String);
+    for (var b in bets) userIds.add(b[&#39;user_id&#39;] as String);
+    for (var p in payouts) userIds.add(p[&#39;user_id&#39;] as String);
+
+    &#47;&#47; 6. Fetch Profiles
+    Map&lt;String, Map&lt;String, dynamic&gt;&gt; profilesMap = {};
+    if (userIds.isNotEmpty) {
+      final profiles = await _supabase
+          .from(&#39;profiles&#39;)
+          .select(&#39;id, name, avatar_id&#39;)
+          .inFilter(&#39;id&#39;, userIds.toList());
+
+      for (var p in profiles) {
+        profilesMap[p[&#39;id&#39;] as String] = p;
+      }
+    }
+
+    &#47;&#47; 7. Build Podium
+    List&lt;Map&lt;String, dynamic&gt;&gt; podium = [];
+
+    if (prizeDistributions.isNotEmpty) {
+      &#47;&#47; Primary source: prize_distributions table
+      for (var p in prizeDistributions) {
+        final uid = p[&#39;user_id&#39;] as String;
+        final profile = profilesMap[uid] ?? {};
+        podium.add({
+          &#39;user_id&#39;: uid,
+          &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Usuario&#39;,
+          &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
+          &#39;rank&#39;: p[&#39;position&#39;],
+          &#39;amount&#39;: p[&#39;amount&#39;],
+        });
+      }
+    } else {
+      &#47;&#47; Fallback: Build podium from game_players.final_placement
+      debugPrint(&#39;💰 No prize_distributions found, building podium from game_players&#39;);
+      try {
+        final topPlayers = await _supabase
+            .from(&#39;game_players&#39;)
+            .select(&#39;user_id, final_placement, completed_clues_count&#39;)
+            .eq(&#39;event_id&#39;, eventId)
+            .not(&#39;final_placement&#39;, &#39;is&#39;, null)
+            .neq(&#39;status&#39;, &#39;spectator&#39;)
+            .order(&#39;final_placement&#39;, ascending: true)
+            .limit(3);
+
+        &#47;&#47; Fetch profiles for podium players
+        final podiumUserIds = topPlayers.map((p) =&gt; p[&#39;user_id&#39;] as String).toList();
+        if (podiumUserIds.isNotEmpty) {
+          final podiumProfiles = await _supabase
+              .from(&#39;profiles&#39;)
+              .select(&#39;id, name, avatar_id&#39;)
+              .inFilter(&#39;id&#39;, podiumUserIds);
+          for (var p in podiumProfiles) {
+            profilesMap[p[&#39;id&#39;] as String] = p;
+          }
+        }
+
+        for (var p in topPlayers) {
+          final uid = p[&#39;user_id&#39;] as String;
+          final profile = profilesMap[uid] ?? {};
+          podium.add({
+            &#39;user_id&#39;: uid,
+            &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Usuario&#39;,
+            &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
+            &#39;rank&#39;: p[&#39;final_placement&#39;],
+            &#39;amount&#39;: 0, &#47;&#47; Unknown from this source
+          });
+        }
+      } catch (e) {
+        debugPrint(&#39;💰 Error building fallback podium: $e&#39;);
+      }
+    }
+
+    &#47;&#47; 8. Process Bettors
+    final Map&lt;String, Map&lt;String, dynamic&gt;&gt; bettorsMap = {};
+
+    &#47;&#47; Sum Bets per user
+    for (var b in bets) {
+      final uid = b[&#39;user_id&#39;] as String;
+      final amount = (b[&#39;amount&#39;] as num).toInt();
+
+      if (!bettorsMap.containsKey(uid)) {
+         final profile = profilesMap[uid] ?? {};
+         bettorsMap[uid] = {
+           &#39;user_id&#39;: uid,
+           &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Apostador&#39;,
+           &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
+           &#39;total_bet&#39;: 0,
+           &#39;total_won&#39;: 0,
+           &#39;bets_count&#39;: 0,
+         };
+      }
+
+      bettorsMap[uid]![&#39;total_bet&#39;] += amount;
+      bettorsMap[uid]![&#39;bets_count&#39;] += 1;
+    }
+
+    &#47;&#47; Add Payouts from wallet_ledger
+    for (var p in payouts) {
+      final uid = p[&#39;user_id&#39;] as String;
+      final amount = (p[&#39;amount&#39;] as num).toInt();
+
+      if (bettorsMap.containsKey(uid)) {
+        bettorsMap[uid]![&#39;total_won&#39;] += amount;
+      } else {
+         final profile = profilesMap[uid] ?? {};
+         bettorsMap[uid] = {
+           &#39;user_id&#39;: uid,
+           &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Ganador&#39;,
+           &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
+           &#39;total_bet&#39;: 0,
+           &#39;total_won&#39;: amount,
+           &#39;bets_count&#39;: 0,
+         };
+      }
+    }
+
+    &#47;&#47; Calculate Net
+    for (var uid in bettorsMap.keys) {
+      final data = bettorsMap[uid]!;
+      data[&#39;net&#39;] = (data[&#39;total_won&#39;] as int) - (data[&#39;total_bet&#39;] as int);
+    }
+
+    final bettorsList = bettorsMap.values.toList();
+    bettorsList.sort((a, b) =&gt; (b[&#39;total_won&#39;] as int).compareTo(a[&#39;total_won&#39;] as int));
+
+    return {
+      &#39;status&#39;: &#39;completed&#39;,
+      &#39;pot&#39;: pot,
+      &#39;podium&#39;: podium,
+      &#39;bettors&#39;: bettorsList,
+    };
+
+  } catch (e) {
+    debugPrint(&#39;💰 AdminService: Critical error getting DETAILED financial results: $e&#39;);
+    return {&#39;pot&#39;: 0, &#39;podium&#39;: [], &#39;bettors&#39;: []};
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_admin_services_admin_service/">admin_service</a></li>
+    <li><a href="../../features_admin_services_admin_service/AdminService-class.html">AdminService</a></li>
+    <li class="self-crumb">getDetailedEventFinancials method</li>
+</ol>
+
+    <h5>AdminService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

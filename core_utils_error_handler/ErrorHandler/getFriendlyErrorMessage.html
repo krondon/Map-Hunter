@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getFriendlyErrorMessage method from the ErrorHandler class, for the Dart programming language.">
+  <title>getFriendlyErrorMessage method - ErrorHandler class - error_handler library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../core_utils_error_handler/">core&#47;utils&#47;error_handler.dart</a></li>
+    <li><a href="../../core_utils_error_handler/ErrorHandler-class.html">ErrorHandler</a></li>
+    <li class="self-crumb">getFriendlyErrorMessage static method</li>
+  </ol>
+  <div class="self-name">getFriendlyErrorMessage</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="core_utils_error_handler&#47;ErrorHandler-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getFriendlyErrorMessage</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+<span class="name ">getFriendlyErrorMessage</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="getFriendlyErrorMessage-param-error"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">error</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static String getFriendlyErrorMessage(Object error) {
+  if (error is SocketException) {
+    return &#39;Revisa tu conexión a internet, la aventura no puede comenzar sin conexión.&#39;;
+  }
+
+  &#47;&#47; FunctionException: extract the friendly message from details[&#39;error&#39;]
+  &#47;&#47; instead of showing the raw exception toString.
+  if (error is FunctionException) {
+    if (error.status == 409 || error.toString().contains(&#39;409&#39;)) {
+      return &#39;Este correo ya está registrado. Intenta iniciar sesión.&#39;;
+    }
+    final details = error.details;
+    if (details is Map &amp;&amp; details[&#39;error&#39;] is String) {
+      final serverMsg = details[&#39;error&#39;] as String;
+      &#47;&#47; The server already sends a user-friendly message, return it directly
+      return serverMsg;
+    }
+  }
+
+  final String message = error.toString().toLowerCase();
+
+  &#47;&#47; Errores de Registro &#47; Código 409
+  if (message.contains(&#39;409&#39;) ||
+      message.contains(&#39;conflict&#39;) ||
+      message.contains(&#39;already exists&#39;)) {
+    return &#39;Este correo ya está registrado. Intenta iniciar sesión.&#39;;
+  }
+
+  &#47;&#47; Errores de conexión &#47; Red
+  if (message.contains(&#39;socketexception&#39;) ||
+      message.contains(&#39;failed host lookup&#39;) ||
+      message.contains(&#39;connection refused&#39;) ||
+      message.contains(&#39;network is unreachable&#39;)) {
+    return &#39;Revisa tu conexión a internet, la aventura no puede comenzar sin conexión.&#39;;
+  }
+
+  &#47;&#47; Errores de Login
+  if (message.contains(&#39;invalid login credentials&#39;) ||
+      message.contains(&#39;invalid_grant&#39;) ||
+      message.contains(&#39;invalid_credentials&#39;) ||
+      message.contains(&#39;wrong password&#39;) ||
+      message.contains(&#39;invalid email or password&#39;)) {
+    return &#39;Credenciales incorrectas. Verifica tu email y contraseña.&#39;;
+  }
+
+  if (message.contains(&#39;user not found&#39;)) {
+    return &#39;No existe una cuenta con este correo electrónico.&#39;;
+  }
+
+  &#47;&#47; Errores de Registro
+  if (message.contains(&#39;user already registered&#39;) ||
+      message.contains(&#39;unique violation&#39;)) {
+    return &#39;Ya existe una cuenta registrada con este correo.&#39;;
+  }
+  if (message.contains(&#39;profiles_id_fkey&#39;) ||
+      message.contains(&#39;foreign key constraint&#39;)) {
+    return &#39;Este correo ya está registrado. Intenta iniciar sesión.&#39;;
+  }
+  if (message.contains(&#39;is invalid&#39;) &amp;&amp; message.contains(&#39;email&#39;)) {
+    return &#39;Este correo ya está registrado. Intenta iniciar sesión.&#39;;
+  }
+
+  if (message.contains(&#39;password should be at least&#39;)) {
+      return &#39;La contraseña es muy corta.&#39;;
+  }
+
+  if (message.contains(&#39;422&#39;) || message.contains(&#39;different from the old password&#39;)) {
+      return &#39;La nueva contraseña debe ser diferente a la anterior.&#39;;
+  }
+
+  &#47;&#47; Errores de Baneo
+  if (message.contains(&#39;suspendida&#39;) ||
+      message.contains(&#39;banned&#39;) ||
+      message.contains(&#39;bloqueada&#39;)) {
+    return &#39;Tu cuenta ha sido suspendida permanentemente.&#39;;
+  }
+
+  &#47;&#47; Mensaje por defecto (limpiamos un poco el mensaje técnico si es posible)
+  if (message.contains(&#39;exception:&#39;)) {
+    return message.split(&#39;exception:&#39;).last.trim();
+  }
+
+  return &#39;Ocurrió un error inesperado ($message).&#39;;
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../core_utils_error_handler/">error_handler</a></li>
+    <li><a href="../../core_utils_error_handler/ErrorHandler-class.html">ErrorHandler</a></li>
+    <li class="self-crumb">getFriendlyErrorMessage static method</li>
+</ol>
+
+    <h5>ErrorHandler class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

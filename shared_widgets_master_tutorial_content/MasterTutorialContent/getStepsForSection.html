@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getStepsForSection method from the MasterTutorialContent class, for the Dart programming language.">
+  <title>getStepsForSection method - MasterTutorialContent class - master_tutorial_content library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../shared_widgets_master_tutorial_content/">shared&#47;widgets&#47;master_tutorial_content.dart</a></li>
+    <li><a href="../../shared_widgets_master_tutorial_content/MasterTutorialContent-class.html">MasterTutorialContent</a></li>
+    <li class="self-crumb">getStepsForSection static method</li>
+  </ol>
+  <div class="self-name">getStepsForSection</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="shared_widgets_master_tutorial_content&#47;MasterTutorialContent-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getStepsForSection</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../shared_widgets_cyber_tutorial_overlay/TutorialStep-class.html">TutorialStep</a></span>&gt;</span></span>
+<span class="name ">getStepsForSection</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="getStepsForSection-param-section"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">section</span>, </span></li>
+<li><span class="parameter" id="getStepsForSection-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static List&lt;TutorialStep&gt; getStepsForSection(String section, BuildContext context) {
+  switch (section) {
+    case &#39;HOME&#39;:
+      return [
+        TutorialStep(
+          title: &quot;¡BIENVENIDO AGENTE!&quot;,
+          description: &quot;Estás dentro del Protocolo Asthoria. Tu objetivo: recolectar los Tréboles Dorados antes que tus rivales.&quot;,
+          icon: Icons.security,
+          visual: _buildWelcomeVisual(context),
+        ),
+        TutorialStep(
+          title: &quot;ESTA ES TU BASE&quot;,
+          description: &quot;Aquí verás tu progreso, vidas y el acceso a todas las secciones del sistema: Pistas, Inventario y Ranking.&quot;,
+          icon: Icons.home,
+          visual: _buildHomeVisual(),
+        ),
+      ];
+    case &#39;CLUES&#39;:
+      return [
+        TutorialStep(
+          title: &quot;RUIDO EN EL MAPA&quot;,
+          description: &quot;Cada punto el mapa es una pista. Algunas son online (hackeo directo) y otras físicas (debes buscar el QR real).&quot;,
+          icon: Icons.map,
+          visual: _buildMapVisual(),
+        ),
+        TutorialStep(
+          title: &quot;LA CARRERA&quot;,
+          description: &quot;Observa la pista superior: muestra en tiempo real tu posición respecto a los demás jugadores. ¡No te dejes alcanzar!&quot;,
+          icon: Icons.speed,
+          visual: _buildRaceVisual(),
+        ),
+      ];
+    case &#39;INVENTORY&#39;:
+      return [
+        TutorialStep(
+          title: &quot;MERCADO DE PODERES&quot;,
+          description: &quot;Usa tus monedas para comprar ventajas tácticas. Los Escudos bloquean ataques y los Sabotajes frenan a otros.&quot;,
+          icon: Icons.shopping_cart,
+          visual: _buildShopVisual(),
+        ),
+        TutorialStep(
+          title: &quot;TU ARSENAL&quot;,
+          description: &quot;Desde aquí puedes activar tus poderes. Toca un ítem para usarlo en el momento justo del juego.&quot;,
+          icon: Icons.inventory_2,
+          visual: _buildArsenalVisual(),
+        ),
+      ];
+    case &#39;PUZZLE&#39;:
+      return [
+        TutorialStep(
+          title: &quot;SISTEMA DE HACKEO&quot;,
+          description: &quot;Cada pista es un minijuego diferente. Resuélvelo rápido para obtener el Trébol Dorado de esta zona.&quot;,
+          icon: Icons.videogame_asset,
+          visual: _buildMinigameVisual(),
+        ),
+        TutorialStep(
+          title: &quot;ZONA DE PELIGRO&quot;,
+          description: &quot;Si fallas o el tiempo se acaba, perderás una vida. Al llegar a 0 vidas, quedarás fuera de la pista temporalmente.&quot;,
+          icon: Icons.warning_amber_rounded,
+          visual: _buildWarningVisual(),
+        ),
+      ];
+    case &#39;RANKING&#39;:
+      return [
+        TutorialStep(
+          title: &quot;TABLA DE LÍDERES&quot;,
+          description: &quot;Aquí verás quién domina la ciudad. El XP acumulado determina tu nivel y prestigio como Agente.&quot;,
+          icon: Icons.leaderboard,
+          visual: _buildRankingVisual(),
+        ),
+      ];
+    case &#39;SCENARIOS&#39;:
+      return [
+        TutorialStep(
+          title: &quot;PANTALLA DE ESCENARIOS&quot;,
+          description: &quot;Aquí aparecen todos los eventos disponibles. Selecciona uno para entrar a la carrera.&quot;,
+          icon: Icons.event,
+          visual: _buildScenariosVisual(),
+        ),
+        TutorialStep(
+          title: &quot;ESTADO DEL EVENTO&quot;,
+          description: &quot;Los eventos pueden estar ACTIVOS (puedes jugar ya), PENDIENTES (aún no comienzan) o COMPLETADOS (ya finalizaron).&quot;,
+          icon: Icons.calendar_today,
+          visual: _buildEventStatusVisual(),
+        ),
+        TutorialStep(
+          title: &quot;GEOLOCALIZACIÓN&quot;,
+          description: &quot;Algunos eventos requieren que estés cerca del lugar físico para poder entrar. Si aparece &#39;Fuera de Rango&#39;, acércate al punto de inicio.&quot;,
+          icon: Icons.location_on,
+          visual: _buildGeoLocationVisual(),
+        ),
+        TutorialStep(
+          title: &quot;CONGELADO&#47;DESCONGELADO&quot;,
+          description: &quot;Si un evento aparece congelado (con icono de candado), significa que aún no cumples los requisitos para entrar (puede ser por distancia, cupo lleno, o que aún no inicia).&quot;,
+          icon: Icons.ac_unit,
+          visual: _buildFrozenVisual(),
+        ),
+      ];
+    case &#39;MODE_SELECTOR&#39;:
+      return [
+        TutorialStep(
+          title: &quot;SELECCIÓN DE MODO&quot;,
+          description: &quot;MapHunter tiene dos modos de juego: PRESENCIAL (debes estar en el lugar físico) y ONLINE (juega desde cualquier parte).&quot;,
+          icon: Icons.grid_view,
+          visual: _buildModeSelectorVisual(),
+        ),
+        TutorialStep(
+          title: &quot;MODO PRESENCIAL&quot;,
+          description: &quot;Este modo requiere que estés físicamente en los lugares de las pistas. Usa tu GPS para navegar y encontrar los códigos QR reales.&quot;,
+          icon: Icons.near_me,
+          visual: _buildPresentialModeVisual(),
+        ),
+        TutorialStep(
+          title: &quot;MODO ONLINE&quot;,
+          description: &quot;Juega desde tu casa. Todos los minijuegos son digitales y no requieren moverte. Perfecto para practicar o competir a distancia.&quot;,
+          icon: Icons.wifi,
+          visual: _buildOnlineModeVisual(),
+        ),
+      ];
+    case &#39;CODE_FINDER&#39;:
+      return [
+        TutorialStep(
+          title: &quot;SISTEMA FRÍO&#47;CALIENTE&quot;,
+          description: &quot;En modo presencial, tu pantalla te dirá qué tan cerca estás del código QR. Sigue las indicaciones de temperatura para encontrarlo.&quot;,
+          icon: Icons.thermostat,
+          visual: _buildHotColdVisual(),
+        ),
+        TutorialStep(
+          title: &quot;NAVEGANDO AL OBJETIVO&quot;,
+          description: &quot;CONGELADO significa muy lejos (500m+), FRÍO (200m+), TIBIO (50m+), CALIENTE (10m+). Cuando veas &#39;¡AQUÍ ESTÁ!&#39; significa que llegaste.&quot;,
+          icon: Icons.navigation,
+          visual: _buildNavigationVisual(),
+        ),
+        TutorialStep(
+          title: &quot;EN LA ZONA&quot;,
+          description: &quot;Cuando estés a menos de 20 metros, aparecerá el botón &#39;ESCANEAR AHORA&#39;. Busca el código QR físico y escanéalo para desbloquear el evento.&quot;,
+          icon: Icons.qr_code_scanner,
+          visual: _buildInZoneVisual(),
+        ),
+      ];
+    case &#39;CLUE_SCANNER&#39;:
+      return [
+        TutorialStep(
+          title: &quot;ESCANEANDO PISTAS&quot;,
+          description: &quot;Ya estás en el juego. Cada punto del mapa es una pista que debes completar. Navega hacia ella usando el sistema frío&#47;caliente.&quot;,
+          icon: Icons.map,
+          visual: _buildClueMapVisual(),
+        ),
+        TutorialStep(
+          title: &quot;LLEGASTE A LA ZONA&quot;,
+          description: &quot;Cuando estés cerca (menos de 35m), aparecerá el botón &#39;ESCANEAR CÓDIGO&#39;. Busca el QR físico y escanéalo para desbloquear el minijuego.&quot;,
+          icon: Icons.qr_code_2,
+          visual: _buildScanButtonVisual(),
+        ),
+        TutorialStep(
+          title: &quot;COMPLETA EL DESAFÍO&quot;,
+          description: &quot;Después de escanear, resolverás un minijuego. Si lo completas, ganas el Trébol Dorado de esa pista. ¡Cuidado con tus vidas!&quot;,
+          icon: Icons.videogame_asset,
+          visual: _buildChallengeVisual(),
+        ),
+      ];
+    case &#39;SPECTATOR&#39;:
+      return [
+        TutorialStep(
+          title: &quot;ESTÁS OBSERVANDO&quot;,
+          description: &quot;En el modo espectador puedes seguir la carrera de otros jugadores en tiempo real. ¡Elige a tu favorito!&quot;,
+          icon: Icons.visibility,
+          visual: _buildSpectatorWelcomeVisual(),
+        ),
+        TutorialStep(
+          title: &quot;POTE DE APUESTAS&quot;,
+          description: &quot;Puedes apostar tréboles a tu jugador favorito. Si él gana, tú también ganas. ¡Mira cómo sube el premio total!&quot;,
+          icon: Icons.monetization_on,
+          visual: _buildSpectatorBettingVisual(),
+        ),
+        TutorialStep(
+          title: &quot;SABOTAJE TÁCTICO&quot;,
+          description: &quot;Desde la tienda de espectador puedes comprar poderes para frenar a los jugadores que no quieres que ganen. ¡Tú controlas el caos!&quot;,
+          icon: Icons.bolt,
+          visual: _buildSpectatorShopVisual(),
+        ),
+        TutorialStep(
+          title: &quot;EL PODIO&quot;,
+          description: &quot;Sigue el ranking en tiempo real. Los tres primeros lugares recibirán los mayores premios del evento.&quot;,
+          icon: Icons.emoji_events,
+          visual: _buildSpectatorRankingVisual(),
+        ),
+      ];
+    default:
+      return [];
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../shared_widgets_master_tutorial_content/">master_tutorial_content</a></li>
+    <li><a href="../../shared_widgets_master_tutorial_content/MasterTutorialContent-class.html">MasterTutorialContent</a></li>
+    <li class="self-crumb">getStepsForSection static method</li>
+</ol>
+
+    <h5>MasterTutorialContent class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

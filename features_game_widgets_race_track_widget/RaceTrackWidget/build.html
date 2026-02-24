@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the build method from the RaceTrackWidget class, for the Dart programming language.">
+  <title>build method - RaceTrackWidget class - race_track_widget library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_widgets_race_track_widget/">features&#47;game&#47;widgets&#47;race_track_widget.dart</a></li>
+    <li><a href="../../features_game_widgets_race_track_widget/RaceTrackWidget-class.html">RaceTrackWidget</a></li>
+    <li class="self-crumb">build method</li>
+  </ol>
+  <div class="self-name">build</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_game_widgets_race_track_widget&#47;RaceTrackWidget-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">build</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+  <div>
+    <ol class="annotation-list">
+        <li>@<a href="https://api.flutter.dev/flutter/dart-core/override-constant.html">override</a></li>
+    </ol>
+  </div>
+<span class="returntype"><a href="https://api.flutter.dev/flutter/widgets/Widget-class.html">Widget</a></span>
+<span class="name ">build</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="build-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span></span></li>
+</ol>)
+
+      <div class="features"><span class="feature">override</span></div>
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Describes the part of the user interface represented by this widget.</p>
+<p>The framework calls this method when this widget is inserted into the tree
+in a given <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a> and when the dependencies of this widget change
+(e.g., an <a href="https://api.flutter.dev/flutter/widgets/InheritedWidget-class.html">InheritedWidget</a> referenced by this widget changes). This
+method can potentially be called in every frame and should not have any side
+effects beyond building a widget.</p>
+<p>The framework replaces the subtree below this widget with the widget
+returned by this method, either by updating the existing subtree or by
+removing the subtree and inflating a new subtree, depending on whether the
+widget returned by this method can update the root of the existing
+subtree, as determined by calling <a href="https://api.flutter.dev/flutter/widgets/Widget/canUpdate.html">Widget.canUpdate</a>.</p>
+<p>Typically implementations return a newly created constellation of widgets
+that are configured with information from this widget's constructor and
+from the given <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a>.</p>
+<p>The given <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a> contains information about the location in the
+tree at which this widget is being built. For example, the context
+provides the set of inherited widgets for this location in the tree. A
+given widget might be built with multiple different <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a>
+arguments over time if the widget is moved around the tree or if the
+widget is inserted into the tree in multiple places at once.</p>
+<p>The implementation of this method must only depend on:</p>
+<ul>
+<li>the fields of the widget, which themselves must not change over time,
+and</li>
+<li>any ambient state obtained from the <code>context</code> using
+<a href="https://api.flutter.dev/flutter/widgets/BuildContext/dependOnInheritedWidgetOfExactType.html">BuildContext.dependOnInheritedWidgetOfExactType</a>.</li>
+</ul>
+<p>If a widget's <a href="../../features_game_widgets_race_track_widget/RaceTrackWidget/build.html">build</a> method is to depend on anything else, use a
+<a href="https://api.flutter.dev/flutter/widgets/StatefulWidget-class.html">StatefulWidget</a> instead.</p>
+<p>See also:</p>
+<ul>
+<li><a href="https://api.flutter.dev/flutter/widgets/StatelessWidget-class.html">StatelessWidget</a>, which contains the discussion on performance considerations.</li>
+</ul>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">@override
+Widget build(BuildContext context) {
+  final playerProvider = Provider.of&lt;PlayerProvider&gt;(context, listen: false);
+  final effectProvider = Provider.of&lt;PowerEffectManager&gt;(context);
+  final gameProvider = Provider.of&lt;GameProvider&gt;(context);
+
+  final isDarkMode = true &#47;* always dark UI *&#47;;
+  final Color currentText =
+      isDarkMode ? Colors.white : const Color(0xFF1A1A1D);
+  final Color currentTextSec =
+      isDarkMode ? Colors.white70 : const Color(0xFF4A4A5A);
+  final Color currentCard =
+      isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1;
+  final String? myGamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
+
+  &#47;&#47; --- LOGIC LAYER (Service Use) ---
+  final raceService = RaceLogicService();
+
+  &#47;&#47; SOLID: Widget consumes View Model via Service. No business logic here.
+  final raceView = raceService.buildRaceView(
+      leaderboard: leaderboard,
+      currentUserId: currentPlayerId,
+      activePowers: gameProvider.activePowerEffects,
+      totalClues: totalClues);
+
+  &#47;&#47;&#47; Handles avatar tap: Opens power selector or player group selector
+  Future&lt;void&gt; handleAvatarTap(RacerViewModel vm) async {
+    if (isReadOnly) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(&#39;⛔ Ya terminaste la carrera. No puedes usar poderes en la sala de espera.&#39;),
+          backgroundColor: Colors.grey,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (gameProvider.isPowerActionLoading) return;
+
+    final me = playerProvider.currentPlayer;
+    if (me == null || myGamePlayerId == null) return;
+
+    &#47;&#47; Check if this avatar is part of a group (overlapping players)
+    final group = raceView.getGroupForPlayer(vm.data.id);
+
+    RacerViewModel selectedRacer = vm;
+
+    &#47;&#47; If group has multiple members, show player selector first
+    if (group != null &amp;&amp; group.hasOverlap) {
+      final selected = await PlayerGroupSelector.show(
+        context: context,
+        group: group,
+      );
+      if (selected == null) return; &#47;&#47; User dismissed
+      selectedRacer = selected;
+    }
+
+    &#47;&#47; Check if target is finished (UI Check before attempting logic)
+    final bool isTargetFinished = totalClues &gt; 0 &amp;&amp;
+        selectedRacer.data.completedCluesCount &gt;= totalClues;
+    if (isTargetFinished) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(&#39;⛔ Este jugador ya terminó la carrera.&#39;),
+          backgroundColor: Colors.grey,
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+
+    &#47;&#47; Determine if target is self
+    final normalizedMyId = myGamePlayerId.trim().toLowerCase();
+    final normalizedTargetId = selectedRacer.data.id.trim().toLowerCase();
+    final isTargetSelf =
+        selectedRacer.isMe || (normalizedMyId == normalizedTargetId);
+
+    &#47;&#47; Show power selector with ISP filtering
+    final selectedPower = await PowerSelectorBottomSheet.show(
+      context: context,
+      targetName: selectedRacer.isMe
+          ? &#39;Ti mismo&#39;
+          : (selectedRacer.data.label ?? &#39;Rival&#39;),
+      isTargetSelf: isTargetSelf,
+      inventory: me.inventory,
+    );
+
+    if (selectedPower == null || !context.mounted) return;
+
+    &#47;&#47; Execute the power
+    await _executePower(
+      context: context,
+      powerSlug: selectedPower.id,
+      targetId: selectedRacer.data.id,
+      targetName: selectedRacer.data.label ?? &#39;Rival&#39;,
+      isTargetSelf: isTargetSelf,
+      playerProvider: playerProvider,
+      effectProvider: effectProvider,
+      gameProvider: gameProvider,
+    );
+  }
+
+  return Container(
+    margin: EdgeInsets.symmetric(vertical: compact ? 10 : 20),
+    padding: const EdgeInsets.all(4), &#47;&#47; Espacio para el efecto de doble borde
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.03),
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: AppTheme.secondaryPink.withOpacity(0.2),
+        width: 1,
+      ),
+    ),
+    child: Container(
+      padding: EdgeInsets.all(compact ? 12 : 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151517), &#47;&#47; Solid Dark
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.secondaryPink.withOpacity(0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              &#47;&#47; Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        &#39;🏁 CARRERA EN VIVO&#39;,
+                        style: TextStyle(
+                          color: AppTheme.accentGold,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: &#39;Orbitron&#39;,
+                          fontSize: compact ? 14 : 12,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const _LiveIndicator(),
+                    ],
+                  ),
+                  if (onSurrender != null)
+                    GestureDetector(
+                      onTap: onSurrender,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.dangerRed.withOpacity(0.1),
+                          border: Border.all(
+                              color: AppTheme.dangerRed.withOpacity(0.5)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          &#39;RENDIRSE&#39;,
+                          style: TextStyle(
+                            color: AppTheme.dangerRed,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
+              &#47;&#47; Tactical hint
+              if (!compact)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  child: Text(
+                    &#39;👆 Toca un avatar para usar poderes&#39;,
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+
+              SizedBox(height: compact ? 8 : 12),
+
+              &#47;&#47; --- RACE TRACK (RENDERING ONLY via RaceViewData) ---
+              SizedBox(
+                height: compact ? 95 : 120,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      alignment: Alignment.centerLeft,
+                      clipBehavior: Clip.none,
+                      children: [
+                        &#47;&#47; 1. Base Line (The Track)
+                        Center(
+                          child: Container(
+                            height: 6,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[800],
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+
+                        &#47;&#47; 2. Goal Flag (Meta)
+                        Positioned(
+                          right: -10,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFFD700),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(color: Color(0x66FFD700), blurRadius: 10, spreadRadius: 2)
+                                  ]
+                                ),
+                                child: const Icon(Icons.flag, color: Colors.black, size: 24),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                &quot;META&quot;,
+                                style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        &#47;&#47; Markers
+                        Positioned(
+                            left: 0,
+                            top: compact ? 45 : 65,
+                            child: Text(&quot;START&quot;,
+                                style: TextStyle(
+                                    fontSize: 8,
+                                    color: currentTextSec.withOpacity(0.5)))),
+
+                        &#47;&#47; 2. Render View Models (Using ITargetable, decoupled from Player)
+                        ...raceView.racers.map((vm) =&gt; _RacerAvatarWidget(
+                              vm: vm,
+                              trackWidth: constraints.maxWidth,
+                              totalClues: totalClues,
+                              isSelected:
+                                  gameProvider.targetPlayerId == vm.data.id,
+                              onTap: () =&gt; handleAvatarTap(vm),
+                              compact: compact,
+                            )),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              &#47;&#47; Dynamic legend (Pre-calculated in Service) - HIDDEN IN COMPACT MODE
+              if (!compact) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    raceView.motivationText,
+                    style: TextStyle(
+                      color: currentTextSec.withOpacity(0.7),
+                      fontSize: 10,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          &#47;&#47; Loading overlay
+          if (gameProvider.isPowerActionLoading)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const LoadingIndicator(fontSize: 14),
+                      SizedBox(height: 8),
+                      Text(
+                        &#39;Ejecutando poder...&#39;,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_widgets_race_track_widget/">race_track_widget</a></li>
+    <li><a href="../../features_game_widgets_race_track_widget/RaceTrackWidget-class.html">RaceTrackWidget</a></li>
+    <li class="self-crumb">build method</li>
+</ol>
+
+    <h5>RaceTrackWidget class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

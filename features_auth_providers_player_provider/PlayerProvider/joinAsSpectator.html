@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the joinAsSpectator method from the PlayerProvider class, for the Dart programming language.">
+  <title>joinAsSpectator method - PlayerProvider class - player_provider library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_auth_providers_player_provider/">features&#47;auth&#47;providers&#47;player_provider.dart</a></li>
+    <li><a href="../../features_auth_providers_player_provider/PlayerProvider-class.html">PlayerProvider</a></li>
+    <li class="self-crumb">joinAsSpectator method</li>
+  </ol>
+  <div class="self-name">joinAsSpectator</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_auth_providers_player_provider&#47;PlayerProvider-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">joinAsSpectator</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="name ">joinAsSpectator</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="joinAsSpectator-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Registra al espectador en el evento como 'ghost player' con status spectator.
+Esto le permite tener un game_player_id para comprar y sabotear.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; joinAsSpectator(String eventId) async {
+  if (_currentPlayer == null) return;
+  try {
+    final userId = _currentPlayer!.userId;
+
+    &#47;&#47; 1. Verificar si ya tiene un record en este evento
+    final existing = await _supabase
+        .from(&#39;game_players&#39;)
+        .select(&#39;id, status&#39;)
+        .eq(&#39;user_id&#39;, userId)
+        .eq(&#39;event_id&#39;, eventId)
+        .maybeSingle();
+
+    if (existing == null) {
+      &#47;&#47; 2. Crear un ghost player
+      await _supabase.from(&#39;game_players&#39;).insert({
+        &#39;user_id&#39;: userId,
+        &#39;event_id&#39;: eventId,
+        &#39;status&#39;: &#39;spectator&#39;,
+        &#39;lives&#39;: 0, &#47;&#47; No juega, no tiene vidas
+      });
+      debugPrint(
+          &#39;PlayerProvider: Ghost player created for spectator $userId&#39;);
+    } else if (existing[&#39;status&#39;] == &#39;pending&#39; ||
+        existing[&#39;status&#39;] == &#39;rejected&#39;) {
+      &#47;&#47; Si el usuario tenía una solicitud pendiente o rechazada, le permitimos ser espectador
+      await _supabase.from(&#39;game_players&#39;).update(
+          {&#39;status&#39;: &#39;spectator&#39;, &#39;lives&#39;: 0}).eq(&#39;id&#39;, existing[&#39;id&#39;]);
+      debugPrint(
+          &#39;PlayerProvider: Updated ${existing[&#39;status&#39;]} to spectator for user $userId&#39;);
+    } else if (existing[&#39;status&#39;] == &#39;banned&#39; ||
+        existing[&#39;status&#39;] == &#39;suspended&#39;) {
+      &#47;&#47; CRITICAL: Banned&#47;suspended users KEEP their status but can VIEW as spectators
+      &#47;&#47; We only clear their power effects so they can see the game without visual interference
+      debugPrint(
+          &#39;PlayerProvider: Clearing power effects for ${existing[&#39;status&#39;]} user (status preserved)&#39;);
+      try {
+        await _supabase
+            .from(&#39;active_power_effects&#39;)
+            .delete()
+            .eq(&#39;target_game_player_id&#39;, existing[&#39;id&#39;]);
+        debugPrint(
+            &#39;PlayerProvider: ✅ Power effects cleared for ${existing[&#39;status&#39;]} user&#39;);
+      } catch (e) {
+        debugPrint(&#39;PlayerProvider: ⚠️ Error clearing power effects: $e&#39;);
+      }
+      &#47;&#47; NOTE: We do NOT update the status. Banned users remain banned.
+      debugPrint(
+          &#39;PlayerProvider: ${existing[&#39;status&#39;]} user can now view as spectator (status unchanged)&#39;);
+    }
+
+    &#47;&#47; Refrescar perfil para cargar el gamePlayerId actualizado
+    &#47;&#47; NOTE: No llamamos clearGameContext() aquí porque causaría un bucle de rebuilds.
+    &#47;&#47; refreshProfile() se encargará de actualizar el estado correctamente.
+    await refreshProfile(eventId: eventId);
+  } catch (e) {
+    debugPrint(&#39;PlayerProvider: Error joining as spectator: $e&#39;);
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_auth_providers_player_provider/">player_provider</a></li>
+    <li><a href="../../features_auth_providers_player_provider/PlayerProvider-class.html">PlayerProvider</a></li>
+    <li class="self-crumb">joinAsSpectator method</li>
+</ol>
+
+    <h5>PlayerProvider class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

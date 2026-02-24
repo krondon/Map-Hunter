@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getShopItems method from the PowerItem class, for the Dart programming language.">
+  <title>getShopItems method - PowerItem class - power_item library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_mall_models_power_item/">features&#47;mall&#47;models&#47;power_item.dart</a></li>
+    <li><a href="../../features_mall_models_power_item/PowerItem-class.html">PowerItem</a></li>
+    <li class="self-crumb">getShopItems static method</li>
+  </ol>
+  <div class="self-name">getShopItems</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_mall_models_power_item&#47;PowerItem-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getShopItems</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../features_mall_models_power_item/PowerItem-class.html">PowerItem</a></span>&gt;</span></span>
+<span class="name ">getShopItems</span>(<wbr>)
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static List&lt;PowerItem&gt; getShopItems() {
+  return [
+    &#47;&#47; Catálogo oficial (6 poderes) alineado con Supabase
+    const PowerItem(
+      id: &#39;black_screen&#39;,
+      name: &#39;Pantalla Negra&#39;,
+      description: &#39;Ciega al rival por 25s&#39;,
+      type: PowerType.blind,
+      cost: 75, &#47;&#47; Tier 2: Blur&#47;Black Screen
+      icon: &#39;🕶️&#39;,
+      color: Colors.black87,
+      durationMinutes: 0,
+    ),
+
+    const PowerItem(
+      id: &#39;blur_screen&#39;,
+      name: &#39;Pantalla Borrosa&#39;,
+      description: &#39;Aplica un efecto borroso sobre la pantalla de todos los rivales.&#39;,
+      type: PowerType.blur,
+      cost: 75, &#47;&#47; Tier 2: Blur&#47;Black Screen
+      icon: &#39;🌫️&#39;,
+      color: Colors.blueGrey,
+      durationMinutes: 0,
+    ),
+
+    const PowerItem(
+      id: &#39;extra_life&#39;,
+      name: &#39;Vida&#39;,
+      description: &#39;Recupera una vida perdida&#39;,
+      type: PowerType.buff,
+      cost: 40, &#47;&#47; Tier 1: Extra Life
+      icon: &#39;❤️&#39;,
+      color: Colors.red,
+      durationMinutes: 0,
+    ),
+
+    const PowerItem(
+      id: &#39;return&#39;,
+      name: &#39;Devolución&#39;,
+      description: &#39;Devuelve el ataque al origen&#39;,
+      type: PowerType.buff, &#47;&#47; CAMBIADO: De utility a buff
+      cost: 90,
+      icon: &#39;↩️&#39;,
+      color: Colors.purple,
+      durationMinutes: 0,
+    ),
+    const PowerItem(
+      id: &#39;freeze&#39;,
+      name: &#39;Congelar&#39;,
+      description: &#39;Congela al rival por 30s&#39;,
+      type: PowerType.freeze,
+      cost: 120, &#47;&#47; Tier 3: Freeze&#47;Life Steal
+      icon: &#39;❄️&#39;,
+      color: Colors.cyan,
+      durationMinutes: 1,
+    ),
+    const PowerItem(
+      id: &#39;shield&#39;,
+      name: &#39;Escudo&#39;,
+      description: &#39;Bloquea sabotajes por 120s&#39;,
+      type: PowerType.shield,
+      cost: 40, &#47;&#47; Tier 1: Shield&#47;Invisibility
+      icon: &#39;🛡️&#39;,
+      color: Colors.indigo,
+      durationMinutes: 2,
+    ),
+    const PowerItem(
+      id: &#39;life_steal&#39;,
+      name: &#39;Robo de Vida&#39;,
+      description: &#39;Roba una vida a un rival&#39;,
+      type: PowerType.lifeSteal,
+      cost: 120, &#47;&#47; Tier 3: Freeze&#47;Life Steal
+      icon: &#39;🧛&#39;,
+      color: Colors.redAccent,
+      durationMinutes: 0,
+    ),
+    const PowerItem(
+      id: &#39;invisibility&#39;,
+      name: &#39;Invisibilidad&#39;,
+      description: &#39;Te vuelve invisible por 45s&#39;,
+      type: PowerType.stealth,
+      cost: 40, &#47;&#47; Tier 1: Shield&#47;Invisibility
+      icon: &#39;👻&#39;,
+      color: Colors.grey,
+      durationMinutes: 0,
+    ),
+  ];
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_mall_models_power_item/">power_item</a></li>
+    <li><a href="../../features_mall_models_power_item/PowerItem-class.html">PowerItem</a></li>
+    <li class="self-crumb">getShopItems static method</li>
+</ol>
+
+    <h5>PowerItem class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

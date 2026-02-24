@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the attemptStartGame method from the PenaltyService class, for the Dart programming language.">
+  <title>attemptStartGame method - PenaltyService class - penalty_service library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_services_penalty_service/">features&#47;game&#47;services&#47;penalty_service.dart</a></li>
+    <li><a href="../../features_game_services_penalty_service/PenaltyService-class.html">PenaltyService</a></li>
+    <li class="self-crumb">attemptStartGame method</li>
+  </ol>
+  <div class="self-name">attemptStartGame</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_game_services_penalty_service&#47;PenaltyService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">attemptStartGame</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a>?</span>&gt;</span></span>
+<span class="name ">attemptStartGame</span>(<wbr>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Retorna la fecha fin del ban si está castigado, o NULL si puede jugar.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;DateTime?&gt; attemptStartGame() async {
+  final userId = _supabase.auth.currentUser?.id;
+  if (userId == null) return null; &#47;&#47; No debería pasar si hay auth guard
+
+  try {
+    final response = await _supabase.rpc(&#39;attempt_start_minigame&#39;, params: {
+      &#39;p_user_id&#39;: userId,
+    });
+
+    &#47;&#47; Supabase devuelve un Map&#47;JSON
+    final data = response as Map&lt;String, dynamic&gt;;
+    final status = data[&#39;status&#39;];
+
+    if (status == &#39;allowed&#39;) {
+      return null; &#47;&#47; Pase libre
+    } else {
+      &#47;&#47; &quot;banned&quot; o &quot;penalized_now&quot;
+      return DateTime.parse(data[&#39;ban_ends_at&#39;]);
+    }
+  } catch (e) {
+    debugPrint(&#39;Error penalty check: $e&#39;);
+    &#47;&#47; En caso de error de red, por seguridad del evento, podrías dejar pasar o bloquear.
+    &#47;&#47; Aquí dejamos pasar para no frustrar por mala conexión, pero idealmente se maneja el error.
+    return null;
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_services_penalty_service/">penalty_service</a></li>
+    <li><a href="../../features_game_services_penalty_service/PenaltyService-class.html">PenaltyService</a></li>
+    <li class="self-crumb">attemptStartGame method</li>
+</ol>
+
+    <h5>PenaltyService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

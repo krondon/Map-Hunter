@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the build method from the TransactionCard class, for the Dart programming language.">
+  <title>build method - TransactionCard class - transaction_card library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_wallet_widgets_transaction_card/">features&#47;wallet&#47;widgets&#47;transaction_card.dart</a></li>
+    <li><a href="../../features_wallet_widgets_transaction_card/TransactionCard-class.html">TransactionCard</a></li>
+    <li class="self-crumb">build method</li>
+  </ol>
+  <div class="self-name">build</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_wallet_widgets_transaction_card&#47;TransactionCard-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">build</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+  <div>
+    <ol class="annotation-list">
+        <li>@<a href="https://api.flutter.dev/flutter/dart-core/override-constant.html">override</a></li>
+    </ol>
+  </div>
+<span class="returntype"><a href="https://api.flutter.dev/flutter/widgets/Widget-class.html">Widget</a></span>
+<span class="name ">build</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="build-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span></span></li>
+</ol>)
+
+      <div class="features"><span class="feature">override</span></div>
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Describes the part of the user interface represented by this widget.</p>
+<p>The framework calls this method when this widget is inserted into the tree
+in a given <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a> and when the dependencies of this widget change
+(e.g., an <a href="https://api.flutter.dev/flutter/widgets/InheritedWidget-class.html">InheritedWidget</a> referenced by this widget changes). This
+method can potentially be called in every frame and should not have any side
+effects beyond building a widget.</p>
+<p>The framework replaces the subtree below this widget with the widget
+returned by this method, either by updating the existing subtree or by
+removing the subtree and inflating a new subtree, depending on whether the
+widget returned by this method can update the root of the existing
+subtree, as determined by calling <a href="https://api.flutter.dev/flutter/widgets/Widget/canUpdate.html">Widget.canUpdate</a>.</p>
+<p>Typically implementations return a newly created constellation of widgets
+that are configured with information from this widget's constructor and
+from the given <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a>.</p>
+<p>The given <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a> contains information about the location in the
+tree at which this widget is being built. For example, the context
+provides the set of inherited widgets for this location in the tree. A
+given widget might be built with multiple different <a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a>
+arguments over time if the widget is moved around the tree or if the
+widget is inserted into the tree in multiple places at once.</p>
+<p>The implementation of this method must only depend on:</p>
+<ul>
+<li>the fields of the widget, which themselves must not change over time,
+and</li>
+<li>any ambient state obtained from the <code>context</code> using
+<a href="https://api.flutter.dev/flutter/widgets/BuildContext/dependOnInheritedWidgetOfExactType.html">BuildContext.dependOnInheritedWidgetOfExactType</a>.</li>
+</ul>
+<p>If a widget's <a href="../../features_wallet_widgets_transaction_card/TransactionCard/build.html">build</a> method is to depend on anything else, use a
+<a href="https://api.flutter.dev/flutter/widgets/StatefulWidget-class.html">StatefulWidget</a> instead.</p>
+<p>See also:</p>
+<ul>
+<li><a href="https://api.flutter.dev/flutter/widgets/StatelessWidget-class.html">StatelessWidget</a>, which contains the discussion on performance considerations.</li>
+</ul>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">@override
+Widget build(BuildContext context) {
+  final dateFormat = DateFormat(&#39;dd&#47;MM&#47;yyyy HH:mm&#39;);
+  final color = item.statusColor;
+
+  &#47;&#47; Status Text Map
+  String statusText;
+  IconData icon;
+
+  switch (item.status.toLowerCase()) {
+     case &#39;completed&#39;:
+     case &#39;success&#39;:
+     case &#39;paid&#39;:
+       statusText = &#39;Exitoso&#39;;
+       icon = Icons.eco_rounded;
+       break;
+     case &#39;pending&#39;:
+       statusText = &#39;Pendiente&#39;;
+       icon = Icons.access_time_rounded;
+       break;
+     case &#39;failed&#39;:
+     case &#39;error&#39;:
+       statusText = &#39;Fallido&#39;;
+       icon = Icons.error_outline_rounded;
+       break;
+     case &#39;expired&#39;:
+       statusText = &#39;Expirado&#39;;
+       icon = Icons.timer_off_rounded;
+       break;
+     default:
+       statusText = item.status;
+       icon = Icons.info_outline;
+  }
+
+  &#47;&#47; Override icon&#47;text for special types if needed, or rely on status
+  if (item.type == &#39;withdrawal&#39; &amp;&amp; (item.status == &#39;completed&#39; || item.status == &#39;success&#39;)) {
+     icon = Icons.arrow_upward_rounded;
+     statusText = &#39;Retiro&#39;;
+  }
+
+  &#47;&#47; Humanize and Clean Description (Removing technical IDs)
+  String displayDescription = item.description;
+
+  &#47;&#47; 1. Map specific DB descriptions to user-friendly labels
+  final lowerDesc = displayDescription.toLowerCase();
+
+  &#47;&#47; --- Specific descriptions from wallet_ledger (highest priority) ---
+  if (lowerDesc.contains(&#39;comisión por ataque&#39;)) {
+    displayDescription = &#39;COMISIÓN POR ATAQUE&#39;;
+  } else if (lowerDesc.contains(&#39;premio&#39;) || lowerDesc.contains(&#39;podio&#39;) || lowerDesc.contains(&#39;prize&#39;)) {
+    displayDescription = &#39;PREMIO OBTENIDO&#39;;
+  } else if (lowerDesc.contains(&#39;apuesta&#39;) || lowerDesc.contains(&#39;bet payout&#39;) || lowerDesc.contains(&#39;ganancia apuesta&#39;)) {
+    displayDescription = &#39;GANANCIA DE APUESTA&#39;;
+  } else if (lowerDesc.contains(&#39;spectator_buy&#39;) || lowerDesc.contains(&#39;compra espectador&#39;)) {
+    displayDescription = &#39;COMPRA DE PODER&#39;;
+  } else if (lowerDesc.contains(&#39;event entry&#39;) || lowerDesc.contains(&#39;entrada&#39;)) {
+    displayDescription = &#39;ENTRADA A EVENTO&#39;;
+  } else if (lowerDesc.contains(&#39;winnings&#39;)) {
+    displayDescription = &#39;PREMIO OBTENIDO&#39;;
+  } else if (lowerDesc.contains(&#39;clover_payment&#39;) &amp;&amp; item.amount &lt; 0) {
+    displayDescription = &#39;PAGO CON TRÉBOLES&#39;;
+  &#47;&#47; --- Generic purchase (clover orders pending&#47;failed) ---
+  } else if (lowerDesc.contains(&#39;compra de tréboles&#39;) || lowerDesc.contains(&#39;purchase&#39;)) {
+    displayDescription = &#39;COMPRA DE TRÉBOLES&#39;;
+  } else if (item.type == &#39;withdrawal&#39;) {
+    displayDescription = &#39;RETIRO DE SALDO&#39;;
+  &#47;&#47; --- Deposit fallback: only for truly generic entries ---
+  } else if (item.type == &#39;deposit&#39; &amp;&amp; (lowerDesc == &#39;recarga&#39; || lowerDesc.isEmpty || lowerDesc == &#39;transacción&#39;)) {
+    displayDescription = &#39;RECARGA DE SALDO&#39;;
+  } else {
+    &#47;&#47; 2. Generic Cleaning: Remove anything that looks like a long ID (#123, UUIDs, etc.)
+    displayDescription = displayDescription
+        .replaceAll(RegExp(r&#39;#[0-9a-zA-Z-]+&#39;), &#39;&#39;) &#47;&#47; Remove #ID
+        .replaceAll(RegExp(r&#39;[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}.*&#39;), &#39;&#39;) &#47;&#47; Remove UUID fragments
+        .trim();
+
+    if (displayDescription.isEmpty) displayDescription = &#39;TRANSACCIÓN&#39;;
+  }
+
+  return Card(
+    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    color: Colors.white.withOpacity(0.05), &#47;&#47; Subtle cyber glass
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayDescription.toUpperCase(),
+                      maxLines: 2,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontFamily: &#39;Orbitron&#39;,
+                        letterSpacing: 0.3,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      dateFormat.format(item.date),
+                      style: const TextStyle(
+                        color: Colors.white30,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  &#47;&#47; Clover Amount (Primary)
+                  Text(
+                    &#39;${item.isCredit ? &#39;+&#39; : &#39;&#39;}${item.amount.toInt()} 🍀&#39;,
+                    style: TextStyle(
+                      fontFamily: &#39;Orbitron&#39;,
+                      color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  &#47;&#47; Fiat Amount (Secondary)
+                  if (item.fiatAmount != null &amp;&amp;
+                      item.fiatAmount! &gt; 0 &amp;&amp;
+                      [&#39;completed&#39;, &#39;success&#39;, &#39;paid&#39;].contains(item.status.toLowerCase()))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        &#39;\$${item.fiatAmount!.toStringAsFixed(2)}&#39;,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 10,
+                          fontFamily: &#39;Orbitron&#39;,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: color.withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      statusText.toUpperCase(),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (item.canResumePayment || item.canCancel) ...[
+            const Divider(height: 24, color: Colors.white10),
+            Row(
+              children: [
+                 if (item.canResumePayment)
+                   Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onResumePayment,
+                      icon: const Icon(Icons.payment, size: 18),
+                      label: const Text(&#39;Completar&#39;),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  if (item.canResumePayment &amp;&amp; item.canCancel)
+                    const SizedBox(width: 8),
+
+                  if (item.canCancel)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onCancelOrder,
+                        icon: const Icon(Icons.cancel_outlined, size: 18),
+                        label: const Text(&#39;Cancelar&#39;),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_wallet_widgets_transaction_card/">transaction_card</a></li>
+    <li><a href="../../features_wallet_widgets_transaction_card/TransactionCard-class.html">TransactionCard</a></li>
+    <li class="self-crumb">build method</li>
+</ol>
+
+    <h5>TransactionCard class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

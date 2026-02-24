@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the navigateToClue method from the ClueNavigatorService class, for the Dart programming language.">
+  <title>navigateToClue method - ClueNavigatorService class - clue_navigator_service library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_services_clue_navigator_service/">features&#47;game&#47;services&#47;clue_navigator_service.dart</a></li>
+    <li><a href="../../features_game_services_clue_navigator_service/ClueNavigatorService-class.html">ClueNavigatorService</a></li>
+    <li class="self-crumb">navigateToClue static method</li>
+  </ol>
+  <div class="self-name">navigateToClue</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_game_services_clue_navigator_service&#47;ClueNavigatorService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">navigateToClue</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype">void</span>
+<span class="name ">navigateToClue</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="navigateToClue-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span>, </span></li>
+<li><span class="parameter" id="navigateToClue-param-clue"><span class="type-annotation"><a href="../../features_game_models_clue/Clue-class.html">Clue</a></span> <span class="parameter-name">clue</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Navigate to the appropriate screen for a clue.</p>
+<p>This method considers BOTH:</p>
+<ol>
+<li>The app mode (online vs presencial from AppModeProvider)</li>
+<li>The clue type (OnlineClue vs PhysicalClue)</li>
+</ol>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static void navigateToClue(BuildContext context, Clue clue) async {
+  &#47;&#47; Get the app mode - this is the USER&#39;s selected mode, not the clue data
+  final appMode = Provider.of&lt;AppModeProvider&gt;(context, listen: false);
+  final isOnlineMode = appMode.isOnlineMode;
+
+  debugPrint(&#39;[ClueNavigator] ====================================&#39;);
+  debugPrint(&#39;[ClueNavigator] Navigating to clue: ${clue.title}&#39;);
+  debugPrint(&#39;[ClueNavigator] App Mode: ${isOnlineMode ? &quot;ONLINE&quot; : &quot;PRESENCIAL&quot;}&#39;);
+  debugPrint(&#39;[ClueNavigator] Clue Type: ${clue.runtimeType} (${clue.type})&#39;);
+  debugPrint(&#39;[ClueNavigator] ====================================&#39;);
+
+  &#47;&#47; === ONLINE MODE ===
+  &#47;&#47; In online mode, ALL clues go directly to the puzzle&#47;minigame.
+  &#47;&#47; No GPS, no QR scanning required.
+  if (isOnlineMode) {
+    _navigateDirectlyToPuzzle(context, clue);
+    return;
+  }
+
+  &#47;&#47; === PRESENCIAL MODE ===
+  &#47;&#47; In presencial mode, ALL clues need QR validation FIRST.
+  &#47;&#47; After successful QR scan, navigate to the puzzle.
+  await _navigateWithQRValidation(context, clue);
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../features_game_services_clue_navigator_service/">clue_navigator_service</a></li>
+    <li><a href="../../features_game_services_clue_navigator_service/ClueNavigatorService-class.html">ClueNavigatorService</a></li>
+    <li class="self-crumb">navigateToClue static method</li>
+</ol>
+
+    <h5>ClueNavigatorService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

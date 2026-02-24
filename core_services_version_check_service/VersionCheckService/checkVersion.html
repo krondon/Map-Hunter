@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the checkVersion method from the VersionCheckService class, for the Dart programming language.">
+  <title>checkVersion method - VersionCheckService class - version_check_service library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../core_services_version_check_service/">core&#47;services&#47;version_check_service.dart</a></li>
+    <li><a href="../../core_services_version_check_service/VersionCheckService-class.html">VersionCheckService</a></li>
+    <li class="self-crumb">checkVersion method</li>
+  </ol>
+  <div class="self-name">checkVersion</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="core_services_version_check_service&#47;VersionCheckService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">checkVersion</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../core_services_version_check_service/VersionStatus-class.html">VersionStatus</a></span>&gt;</span></span>
+<span class="name ">checkVersion</span>(<wbr>)
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;VersionStatus&gt; checkVersion() async {
+  try {
+    &#47;&#47; 1. Get local app version
+    final packageInfo = await PackageInfo.fromPlatform();
+    final String localVersion = packageInfo.version;
+
+    debugPrint(&#39;VersionCheck: Local version is $localVersion&#39;);
+
+    &#47;&#47; 2. Get remote config
+    &#47;&#47; Note: We use .single() assuming there&#39;s only one active config row.
+    &#47;&#47; If you have multiple rows, you might need to order by created_at or use a specific ID.
+    final response = await supabaseClient
+        .from(&#39;app_config&#39;)
+        .select(&#39;value&#39;)
+        .eq(&#39;key&#39;, &#39;version_configuration&#39;)
+        .maybeSingle();
+
+    if (response == null || response[&#39;value&#39;] == null) {
+      debugPrint(&#39;VersionCheck: No version_configuration found in Supabase.&#39;);
+      return VersionStatus(
+        isUpdateRequired: false,
+        localVersion: localVersion,
+        minVersion: &#39;0.0.0&#39;,
+        storeUrl: &#39;&#39;,
+      );
+    }
+
+    final data = response[&#39;value&#39;];
+
+    final String minVersion =
+        data[&#39;min_supported_version&#39;] as String? ?? &#39;0.0.0&#39;;
+    final String? androidUrl = data[&#39;android_store_url&#39;] as String?;
+    final String? iosUrl = data[&#39;ios_store_url&#39;] as String?;
+
+    &#47;&#47; 3. Compare versions
+    final bool updateRequired = _isUpdateRequired(localVersion, minVersion);
+
+    debugPrint(
+        &#39;VersionCheck: Required: $minVersion. Update needed: $updateRequired&#39;);
+
+    return VersionStatus(
+      isUpdateRequired: updateRequired,
+      localVersion: localVersion,
+      minVersion: minVersion,
+      storeUrl:
+          defaultTargetPlatform == TargetPlatform.iOS ? iosUrl : androidUrl,
+    );
+  } catch (e) {
+    debugPrint(&#39;VersionCheck: Error checking version: $e&#39;);
+    &#47;&#47; In case of error (e.g. offline), we usually want to let the user in (fail open)
+    &#47;&#47; unless it&#39;s critical. For now, fail open.
+    return VersionStatus(
+      isUpdateRequired: false,
+      localVersion: &#39;Unknown&#39;,
+      minVersion: &#39;Unknown&#39;,
+      storeUrl: null,
+    );
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../core_services_version_check_service/">version_check_service</a></li>
+    <li><a href="../../core_services_version_check_service/VersionCheckService-class.html">VersionCheckService</a></li>
+    <li class="self-crumb">checkVersion method</li>
+</ol>
+
+    <h5>VersionCheckService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    treasure_hunt_rpg
+      1.0.1+2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
