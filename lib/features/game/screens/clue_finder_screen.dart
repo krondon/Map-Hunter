@@ -710,26 +710,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                               ),
                             ),
 
-                            // Dev Buttons
-                            if (true)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: () => setState(() => _forceProximity = true),
-                                      icon: const Icon(Icons.gps_fixed, color: Colors.orange, size: 16),
-                                      label: const Text("FORZAR", style: TextStyle(color: Colors.orange, fontSize: 10)),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      icon: const Icon(Icons.skip_next, color: Colors.red, size: 16),
-                                      label: const Text("SALTAR", style: TextStyle(color: Colors.red, fontSize: 10)),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                          
                           ],
                         ),
                       ),

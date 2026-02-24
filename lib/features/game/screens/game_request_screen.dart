@@ -1445,35 +1445,6 @@ class _GameRequestScreenState extends State<GameRequestScreen>
                                         ),
                                       ),
                                     ),
-
-                                  // Debug Mode Button
-                                  if (kDebugMode &&
-                                      _gameRequest != null &&
-                                      !_gameRequest!.isApproved)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 12),
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.orange,
-                                          side: const BorderSide(
-                                              color: Colors.orange),
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
-                                        ),
-                                        onPressed: () {
-                                          Navigator.of(context).pushReplacement(
-                                            MaterialPageRoute(
-                                                builder: (_) => HomeScreen(
-                                                    eventId: widget.eventId!)),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.bug_report,
-                                            size: 18),
-                                        label: const Text(
-                                            "DEBUG: Simular Aprobación",
-                                            style: TextStyle(fontSize: 12)),
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),

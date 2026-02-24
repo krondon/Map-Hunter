@@ -968,65 +968,6 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                 )
                               : const SizedBox.shrink(),
                         ),
-                        // PANEL DE DESARROLLO (RESTAURADO)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 15, left: 20, right: 20),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: Colors.orange.withOpacity(0.4)),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.orange,
-                                        foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(vertical: 10),
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _distanceToTarget = 5;
-                                          _forceProximity = true;
-                                        });
-                                      },
-                                      icon: const Icon(Icons.location_on, size: 16),
-                                      label: const Text("Forzar Zona", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 10),
-                                      ),
-                                      onPressed: () {
-                                        _showSuccessDialog();
-                                      },
-                                      icon: const Icon(Icons.skip_next, size: 16),
-                                      label: const Text("Saltar Todo", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: const Text(
-                                  "CERRAR BUSCADOR",
-                                  style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),

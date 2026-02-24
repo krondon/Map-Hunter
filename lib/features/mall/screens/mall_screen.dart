@@ -310,21 +310,7 @@ class _MallScreenState extends State<MallScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // Simulate button (dev)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(dialogContext, true),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppTheme.accentGold.withOpacity(0.4)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            foregroundColor: Colors.white70,
-                          ),
-                          child: const Text('SIMULAR ESCANEO', style: TextStyle(fontSize: 13, letterSpacing: 0.5)),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+
                       // Cancel
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext, false),

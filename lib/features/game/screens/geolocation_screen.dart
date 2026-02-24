@@ -285,12 +285,7 @@ class _GeolocationScreenState extends State<GeolocationScreen>
         title: const Text('Búsqueda por Ubicación'),
         backgroundColor: AppTheme.darkBg,
         actions: [
-          // SIMULATION BUTTON (DEBUG)
-          IconButton(
-            icon: const Icon(Icons.directions_run),
-            tooltip: 'Simular Avance (Debug)',
-            onPressed: _simulateApproach,
-          )
+
         ],
       ),
       body: Container(

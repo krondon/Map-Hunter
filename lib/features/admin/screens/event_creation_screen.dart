@@ -918,7 +918,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                             contentPadding:
                                                 const EdgeInsets.all(10),
                                             isDense: true,
-                                            hintText: 'Max 12'),
+                                            hintText: 'Max 20'),
                                         style: const TextStyle(
                                             color: Colors.white),
                                         onChanged: (v) =>
@@ -943,7 +943,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                             contentPadding:
                                                 const EdgeInsets.all(10),
                                             isDense: true,
-                                            hintText: 'Max 12'),
+                                            hintText: 'Max 20'),
                                         style: const TextStyle(
                                             color: Colors.white),
                                         onChanged: (v) =>
