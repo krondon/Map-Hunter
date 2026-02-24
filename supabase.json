@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "public": "web",
+    "rewrites": [
+      {
+        "source": "/terminos",
+        "function": "get-terms"
+      }
+    ]
+  }
+}

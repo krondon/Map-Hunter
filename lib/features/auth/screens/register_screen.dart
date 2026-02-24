@@ -13,8 +13,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
-
 // RE-FORCE CLEAN VERSION - NO _isDarkMode
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -32,24 +30,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _cedulaController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  
   // Selectores para cédula y teléfono
   String _selectedNationalityType = 'V'; // V o E
   String _selectedPhonePrefix = '0412'; // Prefijo por defecto
-  
+
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptedTerms = false;
   bool _isRegistering = false;
-  
+
   // Opciones de nacionalidad
   final List<String> _nationalityTypes = ['V', 'E'];
-  
+
   // Prefijos de operadoras venezolanas
-  final List<String> _phonePrefixes = ['0412', '0414', '0424', '0416', '0426', '0422'];
-  
+  final List<String> _phonePrefixes = [
+    '0412',
+    '0414',
+    '0424',
+    '0416',
+    '0426',
+    '0422'
+  ];
+
   // Lista básica de palabras prohibidas (se puede expandir)
-  final List<String> _bannedWords = ['admin', 'root', 'moderator', 'tonto', 'estupido', 'idiota', 'groseria', 'puto', 'mierda'];
+  final List<String> _bannedWords = [
+    'admin',
+    'root',
+    'moderator',
+    'tonto',
+    'estupido',
+    'idiota',
+    'groseria',
+    'puto',
+    'mierda'
+  ];
 
   @override
   void initState() {
@@ -61,7 +75,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool hasSeenTutorial = prefs.getBool('seen_register_tutorial') ?? false;
+    final bool hasSeenTutorial =
+        prefs.getBool('seen_register_tutorial') ?? false;
     if (!hasSeenTutorial) {
       if (mounted) _showTutorial(context);
       await prefs.setBool('seen_register_tutorial', true);
@@ -76,17 +91,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           steps: [
             TutorialStep(
               title: "TU IDENTIDAD",
-              description: "Ingresa tu cédula y teléfono correctamente. Estos datos son vitales para validar tu identidad en el gremio.",
+              description:
+                  "Ingresa tu cédula y teléfono correctamente. Estos datos son vitales para validar tu identidad en el gremio.",
               icon: Icons.badge_outlined,
             ),
             TutorialStep(
               title: "DATOS DE ACCESO",
-              description: "Tu correo y contraseña serán tus credenciales únicas para entrar al mundo de MapHunter. ¡No las compartas!",
+              description:
+                  "Tu correo y contraseña serán tus credenciales únicas para entrar al mundo de MapHunter. ¡No las compartas!",
               icon: Icons.vpn_key_outlined,
             ),
             TutorialStep(
               title: "TÉRMINOS DEL GREMIO",
-              description: "Lee con atención y acepta las reglas del juego para poder registrarte y comenzar tu aventura.",
+              description:
+                  "Lee con atención y acepta las reglas del juego para poder registrarte y comenzar tu aventura.",
               icon: Icons.gavel_outlined,
             ),
           ],
@@ -110,7 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Precargar ambas imágenes de fondo para transiciones suaves
     precacheImage(const AssetImage('assets/images/hero.png'), context);
     precacheImage(const AssetImage('assets/images/loginclaro.png'), context);
@@ -119,11 +137,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleRegister() async {
     if (_isRegistering) return; // Prevent double-tap
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Debes aceptar los términos y condiciones para continuar.'),
+          content:
+              Text('Debes aceptar los términos y condiciones para continuar.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -133,15 +152,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isRegistering = true);
 
     try {
-      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
 
       // Sanitización estricta de datos
-      final cedulaToSend = '$_selectedNationalityType${_cedulaController.text.trim()}'.toUpperCase();
-      final phoneToSend = _phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
+      final cedulaToSend =
+          '$_selectedNationalityType${_cedulaController.text.trim()}'
+              .toUpperCase();
+      final phoneToSend =
+          _phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
       final emailToSend = _emailController.text.trim().toLowerCase();
       final nameToSend = _nameController.text.trim();
 
-      debugPrint('REGISTER PAYLOAD: Cedula: $cedulaToSend, Phone: $phoneToSend, Email: $emailToSend');
+      debugPrint(
+          'REGISTER PAYLOAD: Cedula: $cedulaToSend, Phone: $phoneToSend, Email: $emailToSend');
 
       await playerProvider.register(
         nameToSend,
@@ -167,7 +191,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text(
                       '¡Registro exitoso!',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     Text(
                       'Por favor, revisa tu correo para activar tu cuenta antes de iniciar sesión.',
@@ -180,7 +205,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           backgroundColor: AppTheme.successGreen,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(20),
           duration: const Duration(seconds: 5),
         ),
@@ -212,7 +238,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           backgroundColor: AppTheme.dangerRed,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(20),
           duration: const Duration(seconds: 4),
         ),
@@ -223,27 +250,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _showTermsDialog(bool isDarkMode) async {
+    // Construcción dinámica de la URL del proxy
+    // Enrutador seguro en Vercel
+    const String termsUrl = 'https://map-hunter.vercel.app/terms';
 
-   // 1. Cambiamos const por final
-  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    final Uri url =
+        Uri.parse('https://docs.google.com/gview?embedded=true&url=$termsUrl');
 
-  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
-  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
-
-    
-    
-    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
-    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
-
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo abrir los Términos y Condiciones.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir los Términos y Condiciones.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
+    } catch (e) {
+      debugPrint('Error al abrir términos: $e');
     }
   }
 
@@ -286,10 +312,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF2A2A2E).withOpacity(0.8), // Force dark background
-          labelStyle: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+          fillColor:
+              const Color(0xFF2A2A2E).withOpacity(0.8), // Force dark background
+          labelStyle: const TextStyle(
+              color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
           hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-          prefixIconColor: isDarkMode ? dGoldMain : dGoldMain, // Always gold for consistency
+          prefixIconColor:
+              isDarkMode ? dGoldMain : dGoldMain, // Always gold for consistency
           suffixIconColor: Colors.white70,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -341,17 +370,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 8.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white),
                             onPressed: () => Navigator.pop(context),
                           ),
                           IconButton(
                             icon: Icon(
-                              isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round_outlined,
+                              isDarkMode
+                                  ? Icons.wb_sunny_outlined
+                                  : Icons.nightlight_round_outlined,
                               color: Colors.white,
                             ),
                             onPressed: () {
@@ -359,7 +392,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.help_outline, color: Colors.white),
+                            icon: const Icon(Icons.help_outline,
+                                color: Colors.white),
                             onPressed: () => _showTutorial(context),
                           ),
                         ],
@@ -368,7 +402,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       child: Center(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24.0, vertical: 10.0),
                           child: Form(
                             key: _formKey,
                             child: Column(
@@ -376,12 +411,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               children: [
                                 Text(
                                   'CREAR CUENTA',
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 3,
-                                    fontSize: 24,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 3,
+                                        fontSize: 24,
+                                      ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -408,43 +446,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             value: type,
                                             child: Text(
                                               type,
-                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold),
                                             ),
                                           );
                                         }).toList(),
                                         onChanged: (value) {
                                           if (value != null) {
-                                            setState(() => _selectedNationalityType = value);
+                                            setState(() =>
+                                                _selectedNationalityType =
+                                                    value);
                                           }
                                         },
-                                          decoration: InputDecoration(
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                            filled: true,
-                                            fillColor: const Color(0xFF2A2A2E).withOpacity(0.8),
-                                          ),
-                                          dropdownColor: const Color(0xFF1A1A1D),
-                                          style: const TextStyle(color: Colors.white),
+                                        decoration: InputDecoration(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 12, vertical: 16),
+                                          filled: true,
+                                          fillColor: const Color(0xFF2A2A2E)
+                                              .withOpacity(0.8),
+                                        ),
+                                        dropdownColor: const Color(0xFF1A1A1D),
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    
                                     Expanded(
                                       child: TextFormField(
                                         controller: _cedulaController,
-                                        style: const TextStyle(color: Colors.white),
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                         keyboardType: TextInputType.number,
                                         inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
                                           LengthLimitingTextInputFormatter(9),
                                         ],
                                         decoration: const InputDecoration(
                                           labelText: 'CÉDULA/PASAPORTE',
-                                          prefixIcon: Icon(Icons.badge_outlined),
+                                          prefixIcon:
+                                              Icon(Icons.badge_outlined),
                                           hintText: '12345678',
                                         ),
                                         validator: (value) {
-                                          if (value == null || value.isEmpty) return 'Ingresa tu cédula';
-                                          if (value.length < 6) return 'Mínimo 6 dígitos';
+                                          if (value == null || value.isEmpty)
+                                            return 'Ingresa tu cédula';
+                                          if (value.length < 6)
+                                            return 'Mínimo 6 dígitos';
                                           return null;
                                         },
                                       ),
@@ -457,21 +507,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 TextFormField(
                                   controller: _phoneController,
                                   style: const TextStyle(color: Colors.white),
-                                  keyboardType: TextInputType.number, 
+                                  keyboardType: TextInputType.number,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
                                     LengthLimitingTextInputFormatter(11),
                                   ],
                                   decoration: const InputDecoration(
                                     labelText: 'TELÉFONO',
-                                    prefixIcon: Icon(Icons.phone_android_outlined),
+                                    prefixIcon:
+                                        Icon(Icons.phone_android_outlined),
                                     hintText: '04121234567',
                                   ),
                                   validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Ingresa tu teléfono';
-                                    if (value.length < 11) return 'Ingresa el número completo (11 dígitos)';
-                                    final prefixRegex = RegExp(r'^04(12|14|24|16|26|22)');
-                                    if (!prefixRegex.hasMatch(value)) return 'Prefijo inválido (ej: 0412...)';
+                                    if (value == null || value.isEmpty)
+                                      return 'Ingresa tu teléfono';
+                                    if (value.length < 11)
+                                      return 'Ingresa el número completo (11 dígitos)';
+                                    final prefixRegex =
+                                        RegExp(r'^04(12|14|24|16|26|22)');
+                                    if (!prefixRegex.hasMatch(value))
+                                      return 'Prefijo inválido (ej: 0412...)';
                                     return null;
                                   },
                                 ),
@@ -483,18 +538,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   style: const TextStyle(color: Colors.white),
                                   inputFormatters: [
                                     LengthLimitingTextInputFormatter(50),
-                                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]')),
+                                    FilteringTextInputFormatter.allow(
+                                        RegExp(r'[a-zA-ZñÑáéíóúÁÉÍÓÚ\s]')),
                                   ],
                                   decoration: const InputDecoration(
                                     labelText: 'NOMBRE COMPLETO',
                                     prefixIcon: Icon(Icons.person_outline),
                                   ),
                                   validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Ingresa tu nombre';
-                                    if (!value.trim().contains(' ')) return 'Ingresa Nombre y Apellido';
+                                    if (value == null || value.isEmpty)
+                                      return 'Ingresa tu nombre';
+                                    if (!value.trim().contains(' '))
+                                      return 'Ingresa Nombre y Apellido';
                                     final lowerName = value.toLowerCase();
                                     for (final word in _bannedWords) {
-                                      if (lowerName.contains(word)) return 'El nombre contiene palabras no permitidas';
+                                      if (lowerName.contains(word))
+                                        return 'El nombre contiene palabras no permitidas';
                                     }
                                     return null;
                                   },
@@ -508,16 +567,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     TextFormField(
                                       controller: _emailController,
                                       keyboardType: TextInputType.emailAddress,
-                                      style: const TextStyle(color: Colors.white),
+                                      style:
+                                          const TextStyle(color: Colors.white),
                                       decoration: const InputDecoration(
                                         labelText: 'EMAIL',
                                         prefixIcon: Icon(Icons.email_outlined),
                                       ),
                                       onChanged: (value) => setState(() {}),
                                       validator: (value) {
-                                        if (value == null || value.isEmpty) return 'Ingresa tu email';
-                                        final emailRegex = RegExp(r'^[\w\.\-]+@[\w\.\-]+\.[a-zA-Z]{2,}$');
-                                        if (!emailRegex.hasMatch(value.trim())) return 'Formato de email inv\u00e1lido';
+                                        if (value == null || value.isEmpty)
+                                          return 'Ingresa tu email';
+                                        final emailRegex = RegExp(
+                                            r'^[\w\.\-]+@[\w\.\-]+\.[a-zA-Z]{2,}$');
+                                        if (!emailRegex.hasMatch(value.trim()))
+                                          return 'Formato de email inv\u00e1lido';
                                         return null;
                                       },
                                     ),
@@ -525,45 +588,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       builder: (context) {
                                         final text = _emailController.text;
                                         final hasAt = text.contains('@');
-                                        final afterAt = hasAt ? text.split('@').last : '';
-                                        final domainData = <String, Map<String, dynamic>>{
-                                          'gmail.com': {'color': const Color(0xFFEA4335), 'icon': Icons.mail},
-                                          'hotmail.com': {'color': const Color(0xFF0078D4), 'icon': Icons.cloud},
-                                          'outlook.com': {'color': const Color(0xFF00BCF2), 'icon': Icons.business},
+                                        final afterAt =
+                                            hasAt ? text.split('@').last : '';
+                                        final domainData =
+                                            <String, Map<String, dynamic>>{
+                                          'gmail.com': {
+                                            'color': const Color(0xFFEA4335),
+                                            'icon': Icons.mail
+                                          },
+                                          'hotmail.com': {
+                                            'color': const Color(0xFF0078D4),
+                                            'icon': Icons.cloud
+                                          },
+                                          'outlook.com': {
+                                            'color': const Color(0xFF00BCF2),
+                                            'icon': Icons.business
+                                          },
                                         };
-                                        final domains = domainData.keys.toList();
-                                        final showSuggestions = hasAt && !domains.any((d) => afterAt == d);
-                                        if (!showSuggestions) return const SizedBox.shrink();
+                                        final domains =
+                                            domainData.keys.toList();
+                                        final showSuggestions = hasAt &&
+                                            !domains.any((d) => afterAt == d);
+                                        if (!showSuggestions)
+                                          return const SizedBox.shrink();
                                         final prefix = text.split('@').first;
-                                        final filtered = domains.where((d) => afterAt.isEmpty || d.startsWith(afterAt)).toList();
-                                        if (filtered.isEmpty) return const SizedBox.shrink();
+                                        final filtered = domains
+                                            .where((d) =>
+                                                afterAt.isEmpty ||
+                                                d.startsWith(afterAt))
+                                            .toList();
+                                        if (filtered.isEmpty)
+                                          return const SizedBox.shrink();
                                         return Padding(
-                                          padding: const EdgeInsets.only(top: 10),
+                                          padding:
+                                              const EdgeInsets.only(top: 10),
                                           child: Wrap(
                                             spacing: 8,
                                             runSpacing: 8,
                                             children: filtered.map((domain) {
                                               return GestureDetector(
                                                 onTap: () {
-                                                  _emailController.text = '$prefix@$domain';
-                                                  _emailController.selection = TextSelection.fromPosition(
-                                                    TextPosition(offset: _emailController.text.length),
+                                                  _emailController.text =
+                                                      '$prefix@$domain';
+                                                  _emailController.selection =
+                                                      TextSelection
+                                                          .fromPosition(
+                                                    TextPosition(
+                                                        offset: _emailController
+                                                            .text.length),
                                                   );
                                                   setState(() {});
                                                 },
                                                 child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 10),
                                                   decoration: BoxDecoration(
                                                     color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(6),
-                                                    border: Border.all(color: Colors.grey.shade300),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
+                                                    border: Border.all(
+                                                        color: Colors
+                                                            .grey.shade300),
                                                   ),
                                                   child: Text(
                                                     '@$domain',
                                                     style: TextStyle(
-                                                      color: Colors.grey.shade800,
+                                                      color:
+                                                          Colors.grey.shade800,
                                                       fontSize: 13,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
                                                 ),
@@ -586,13 +683,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     labelText: 'CONTRASEÑA',
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     suffixIcon: IconButton(
-                                      icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                                      icon: Icon(_isPasswordVisible
+                                          ? Icons.visibility
+                                          : Icons.visibility_off),
+                                      onPressed: () => setState(() =>
+                                          _isPasswordVisible =
+                                              !_isPasswordVisible),
                                     ),
                                   ),
                                   validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
-                                    if (value.length < 6) return 'Mínimo 6 caracteres';
+                                    if (value == null || value.isEmpty)
+                                      return 'Ingresa tu contraseña';
+                                    if (value.length < 6)
+                                      return 'Mínimo 6 caracteres';
                                     return null;
                                   },
                                 ),
@@ -607,13 +710,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     labelText: 'CONFIRMAR CONTRASEÑA',
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     suffixIcon: IconButton(
-                                      icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                                      onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                                      icon: Icon(_isConfirmPasswordVisible
+                                          ? Icons.visibility
+                                          : Icons.visibility_off),
+                                      onPressed: () => setState(() =>
+                                          _isConfirmPasswordVisible =
+                                              !_isConfirmPasswordVisible),
                                     ),
                                   ),
                                   validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Confirma tu contraseña';
-                                    if (value != _passwordController.text) return 'Las contraseñas no coinciden';
+                                    if (value == null || value.isEmpty)
+                                      return 'Confirma tu contraseña';
+                                    if (value != _passwordController.text)
+                                      return 'Las contraseñas no coinciden';
                                     return null;
                                   },
                                 ),
@@ -631,28 +740,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         children: [
                                           const TextSpan(
                                             text: "Acepto los ",
-                                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                                            style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 13),
                                           ),
                                           TextSpan(
-                                            text: "términos y condiciones de uso.",
+                                            text:
+                                                "términos y condiciones de uso.",
                                             style: TextStyle(
-                                              color: isDarkMode ? dGoldMain : dGoldLight, 
+                                              color: isDarkMode
+                                                  ? dGoldMain
+                                                  : dGoldLight,
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
                                             ),
-                                            recognizer: TapGestureRecognizer()..onTap = () => _showTermsDialog(isDarkMode),
+                                            recognizer: TapGestureRecognizer()
+                                              ..onTap = () =>
+                                                  _showTermsDialog(isDarkMode),
                                           ),
                                         ],
                                       ),
                                     ),
                                     value: _acceptedTerms,
-                                    activeColor: isDarkMode ? dGoldMain : lMysticPurple,
-                                    checkColor: isDarkMode ? Colors.black : Colors.white,
-                                    onChanged: (newValue) => setState(() => _acceptedTerms = newValue ?? false),
-                                    controlAffinity: ListTileControlAffinity.leading,
+                                    activeColor:
+                                        isDarkMode ? dGoldMain : lMysticPurple,
+                                    checkColor: isDarkMode
+                                        ? Colors.black
+                                        : Colors.white,
+                                    onChanged: (newValue) => setState(() =>
+                                        _acceptedTerms = newValue ?? false),
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
                                   ),
                                 ),
-                                
+
                                 const SizedBox(height: 20),
 
                                 // Register button
@@ -676,34 +797,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ],
                                     ),
                                     child: ElevatedButton(
-                                      onPressed: _isRegistering ? null : _handleRegister,
+                                      onPressed: _isRegistering
+                                          ? null
+                                          : _handleRegister,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.transparent,
                                         shadowColor: Colors.transparent,
                                         foregroundColor: Colors.black,
-                                        disabledBackgroundColor: Colors.transparent,
+                                        disabledBackgroundColor:
+                                            Colors.transparent,
                                         disabledForegroundColor: Colors.black45,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                       ),
                                       child: _isRegistering
-                                        ? const SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                                          ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(Colors.black54),
+                                              ),
+                                            )
+                                          : const Text(
+                                              'CREAR CUENTA',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 1.5,
+                                              ),
                                             ),
-                                          )
-                                        : const Text(
-                                        'CREAR CUENTA',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 1.5,
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ),

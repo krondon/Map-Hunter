@@ -46,7 +46,6 @@ import 'package:shared_preferences/shared_preferences.dart'; // For prize persis
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/utils/global_keys.dart'; // To access routeObserver
 
-
 class ScenariosScreen extends StatefulWidget {
   final bool isOnline;
 
@@ -61,7 +60,6 @@ class ScenariosScreen extends StatefulWidget {
 
 class _ScenariosScreenState extends State<ScenariosScreen>
     with TickerProviderStateMixin, RouteAware {
-
   late PageController _pageController;
   late AnimationController _hoverController;
   late Animation<Offset> _hoverAnimation;
@@ -148,8 +146,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               // Navigate to profile screen to edit email
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (_) => const ProfileScreen()),
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
               );
             },
           ),
@@ -225,7 +222,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     const isDarkMode = true;
     _showPremiumExitDialog(
       title: '¡ADVERTENCIA!',
-      subtitle: 'Si ingresas como espectador, no podrás inscribirte como participante después en este evento.',
+      subtitle:
+          'Si ingresas como espectador, no podrás inscribirte como participante después en este evento.',
       isDarkMode: isDarkMode,
       options: [
         _DialogOption(
@@ -241,7 +239,6 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       ],
     );
   }
-
 
   /// Reusable premium dialog with glassmorphism and game-style buttons.
   void _showPremiumExitDialog({
@@ -481,30 +478,29 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   Future<void> _showTermsDialog() async {
+    // Usamos el enrutador seguro en Vercel para ocultar la infraestructura de Supabase.
+    // Esta URL es pública y segura, actuando como un túnel hacia el PDF real.
+    const String termsUrl = 'https://map-hunter.vercel.app/terms';
 
-   // 1. Cambiamos const por final
-  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    // El visor de Google Docs permite visualizar el PDF sin descargarlo forzosamente.
+    final Uri url =
+        Uri.parse('https://docs.google.com/gview?embedded=true&url=$termsUrl');
 
-  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
-  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
-
-    
-    
-    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
-    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
-
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo abrir los Términos y Condiciones.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir los Términos y Condiciones.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
+    } catch (e) {
+      debugPrint('Error al abrir términos: $e');
     }
   }
-
 
   void _showSupportDialog() {
     const Color currentOrange = Color(0xFFFF9800);
@@ -629,7 +625,6 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     precacheImage(
         const AssetImage('assets/images/fotogrupalnoche.png'), context);
   }
-
 
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
@@ -810,7 +805,6 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     debugPrint("🔄 ScenariosScreen: didPopNext - Refreshing data...");
     _loadEvents();
   }
-
 
   Future<void> _onScenarioSelected(Scenario scenario) async {
     final isDarkMode = true /* always dark UI */;
@@ -1672,7 +1666,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                     border: Border.all(color: purpleAccent, width: 2),
                     color: purpleAccent.withOpacity(0.1),
                   ),
-                  child: const Icon(Icons.construction, color: purpleAccent, size: 32),
+                  child: const Icon(Icons.construction,
+                      color: purpleAccent, size: 32),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -1774,7 +1769,6 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           }
           setState(() => _navIndex = index);
         },
-
         child: Container(
           width: 85,
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1837,7 +1831,6 @@ class _ScenariosScreenState extends State<ScenariosScreen>
           }
           setState(() => _navIndex = index);
         },
-
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           color: Colors.transparent,
@@ -1946,24 +1939,26 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     // Filtrar eventos según el modo seleccionado
     List<GameEvent> visibleEvents = eventProvider.events;
     if (appMode.isOnlineMode) {
-      visibleEvents = visibleEvents.where((e) => e.type.toLowerCase() == 'online').toList();
+      visibleEvents =
+          visibleEvents.where((e) => e.type.toLowerCase() == 'online').toList();
     } else if (appMode.isPresencialMode) {
       // Presencial: Todo lo que NO sea online (o explícitamente presencial si hubiera ese tipo)
-      visibleEvents = visibleEvents.where((e) => e.type.toLowerCase() != 'online').toList();
+      visibleEvents =
+          visibleEvents.where((e) => e.type.toLowerCase() != 'online').toList();
     }
 
     // APLICAR FILTRO DE ESTADO (Active vs Pending vs Completed)
     visibleEvents = visibleEvents.where((e) {
-    if (_selectedFilter == 'completed') return e.status == 'completed';
-    if (e.status == 'completed') return false;
-    if (_selectedFilter == 'active') return e.status == 'active';
-    if (_selectedFilter == 'pending') return e.status == 'pending';
-    return false;
-  }).toList();
+      if (_selectedFilter == 'completed') return e.status == 'completed';
+      if (e.status == 'completed') return false;
+      if (_selectedFilter == 'active') return e.status == 'active';
+      if (_selectedFilter == 'pending') return e.status == 'pending';
+      return false;
+    }).toList();
 
-  if (_selectedFilter == 'completed') {
-    visibleEvents = visibleEvents.take(5).toList();
-  }
+    if (_selectedFilter == 'completed') {
+      visibleEvents = visibleEvents.take(5).toList();
+    }
 
     // Convertir Eventos a Escenarios usando Mapper
     final List<Scenario> scenarios = ScenarioMapper.fromEvents(visibleEvents);
@@ -2063,7 +2058,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.mark_email_unread_outlined, color: AppTheme.accentGold, size: 80),
+          const Icon(Icons.mark_email_unread_outlined,
+              color: AppTheme.accentGold, size: 80),
           const SizedBox(height: 24),
           const Text(
             "VERIFICACIÓN REQUERIDA",
@@ -2096,14 +2092,16 @@ class _ScenariosScreenState extends State<ScenariosScreen>
               backgroundColor: currentAction,
               foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: () async {
-              final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-              
+              final playerProvider =
+                  Provider.of<PlayerProvider>(context, listen: false);
+
               // Just consult the provider which re-fetches from DB
               await playerProvider.reloadProfile();
               if (mounted) {
@@ -2111,7 +2109,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                 if (updatedPlayer != null && updatedPlayer.emailVerified) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("Email verificado correctamente. ¡Bienvenido!"),
+                      content:
+                          Text("Email verificado correctamente. ¡Bienvenido!"),
                       backgroundColor: AppTheme.successGreen,
                     ),
                   );
@@ -2163,18 +2162,15 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             icon: Icons.location_on_outlined,
             color: AppTheme.dGoldMain,
             onTap: () {
-            // ACTUALIZAR PROVIDER GLOBAL
-            context
-                .read<AppModeProvider>()
-                .setMode(GameMode.presencial);
+              // ACTUALIZAR PROVIDER GLOBAL
+              context.read<AppModeProvider>().setMode(GameMode.presencial);
 
-            // Navegar a escenarios (flujo normal)
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        const ScenariosScreen(isOnline: false)));
-          },
+              // Navegar a escenarios (flujo normal)
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ScenariosScreen(isOnline: false)));
+            },
           ),
           const SizedBox(height: 16),
           _buildModeCard(
@@ -2183,18 +2179,15 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             icon: Icons.wifi,
             color: const Color(0xFF00F0FF),
             onTap: () {
-            // ACTUALIZAR PROVIDER GLOBAL
-            context
-                .read<AppModeProvider>()
-                .setMode(GameMode.online);
+              // ACTUALIZAR PROVIDER GLOBAL
+              context.read<AppModeProvider>().setMode(GameMode.online);
 
-            // Navegar a escenarios o input de PIN
-            Navigator.push(
-                context,
-                MaterialPageRoute(  
-                    builder: (_) =>
-                        const ScenariosScreen(isOnline: true)));
-          },
+              // Navegar a escenarios o input de PIN
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ScenariosScreen(isOnline: true)));
+            },
           ),
           const SizedBox(height: 16),
           _buildModeCard(
@@ -2259,7 +2252,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: color.withOpacity(0.1),
-                      border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+                      border:
+                          Border.all(color: color.withOpacity(0.3), width: 1.5),
                     ),
                     child: Icon(icon, color: color, size: 26),
                   ),
@@ -2290,7 +2284,8 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded, color: color.withOpacity(0.6), size: 24),
+                  Icon(Icons.chevron_right_rounded,
+                      color: color.withOpacity(0.6), size: 24),
                 ],
               ),
             ),
@@ -2317,8 +2312,7 @@ class _ScenariosScreenState extends State<ScenariosScreen>
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-              "PRÓXIMAMENTE",
+          const Text("PRÓXIMAMENTE",
               style: TextStyle(
                 color: Colors.white70,
                 letterSpacing: 2,
@@ -2681,17 +2675,22 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                             child: GestureDetector(
                                               onTap: () {
                                                 // Don't intercept tap if user is banned - let the banned button handle it
-                                                if (_banStatusMap[scenario.id] != 'banned' &&
-                                                    _banStatusMap[scenario.id] != 'suspended') {
+                                                if (_banStatusMap[
+                                                            scenario.id] !=
+                                                        'banned' &&
+                                                    _banStatusMap[
+                                                            scenario.id] !=
+                                                        'suspended') {
                                                   // Show choice dialog between Player and Spectator
                                                   if (scenario.isCompleted) {
-                                                    _onScenarioSelected(scenario);
+                                                    _onScenarioSelected(
+                                                        scenario);
                                                   } else {
-                                                    _showJoinOptionDialog(scenario);
+                                                    _showJoinOptionDialog(
+                                                        scenario);
                                                   }
                                                 }
                                               },
-
                                               child: Container(
                                                 margin:
                                                     const EdgeInsets.symmetric(
@@ -2991,29 +2990,38 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                               const SizedBox(
                                                                   height: 10),
                                                               // CONDITIONAL BUTTON RENDERING based on event status and user role
-                                                              if (scenario.isCompleted)
+                                                              if (scenario
+                                                                  .isCompleted)
                                                                 // 0. COMPLETED -> ALL users see "VER PODIO" (no matter their role)
                                                                 Center(
-                                                                  child: SizedBox(
+                                                                  child:
+                                                                      SizedBox(
                                                                     width: 250,
-                                                                    child: ElevatedButton(
-                                                                      onPressed: () =>
-                                                                          _onScenarioSelected(scenario),
+                                                                    child:
+                                                                        ElevatedButton(
+                                                                      onPressed:
+                                                                          () =>
+                                                                              _onScenarioSelected(scenario),
                                                                       style: ElevatedButton.styleFrom(
-                                                                        backgroundColor: AppTheme.accentGold,
-                                                                        foregroundColor: Colors.black,
-                                                                        shape: RoundedRectangleBorder(
-                                                                            borderRadius:
-                                                                                BorderRadius.circular(20))),
-                                                                      child: const Row(
+                                                                          backgroundColor: AppTheme
+                                                                              .accentGold,
+                                                                          foregroundColor: Colors
+                                                                              .black,
+                                                                          shape:
+                                                                              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                                                                      child:
+                                                                          const Row(
                                                                         mainAxisAlignment:
                                                                             MainAxisAlignment.center,
                                                                         children: [
-                                                                          Icon(Icons.emoji_events, size: 18),
-                                                                          SizedBox(width: 8),
-                                                                          Text('VER PODIO',
-                                                                              style: TextStyle(
-                                                                                  fontWeight: FontWeight.bold)),
+                                                                          Icon(
+                                                                              Icons.emoji_events,
+                                                                              size: 18),
+                                                                          SizedBox(
+                                                                              width: 8),
+                                                                          Text(
+                                                                              'VER PODIO',
+                                                                              style: TextStyle(fontWeight: FontWeight.bold)),
                                                                         ],
                                                                       ),
                                                                     ),

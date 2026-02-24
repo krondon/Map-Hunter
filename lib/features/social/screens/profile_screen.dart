@@ -234,7 +234,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildGradientButton(
                             icon: Icons.swap_horiz_rounded,
                             label: 'CAMBIAR MODO',
-                            gradientColors: [AppTheme.dGoldMain, const Color(0xFFE5A700)],
+                            gradientColors: [
+                              AppTheme.dGoldMain,
+                              const Color(0xFFE5A700)
+                            ],
                             textColor: Colors.black,
                             onTap: () {
                               Navigator.pop(context);
@@ -616,14 +619,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: player.name);
     final emailController = TextEditingController(text: player.email);
-    final phoneController = TextEditingController(
-        text: player.phone ?? '');
+    final phoneController = TextEditingController(text: player.phone ?? '');
     bool isSaving = false;
 
     // Registration-matching banned words
     final bannedWords = [
-      'admin', 'root', 'moderator', 'tonto', 'estupido',
-      'idiota', 'groseria', 'puto', 'mierda',
+      'admin',
+      'root',
+      'moderator',
+      'tonto',
+      'estupido',
+      'idiota',
+      'groseria',
+      'puto',
+      'mierda',
     ];
 
     InputDecoration _fieldDecoration(String label, IconData icon) {
@@ -756,8 +765,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (value.length < 11) {
                         return 'Ingresa el número completo (11 dígitos)';
                       }
-                      final prefixRegex =
-                          RegExp(r'^04(12|14|24|16|26|22)');
+                      final prefixRegex = RegExp(r'^04(12|14|24|16|26|22)');
                       if (!prefixRegex.hasMatch(value)) {
                         return 'Prefijo inválido (ej: 0412...)';
                       }
@@ -783,7 +791,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 newEmail != (player.email ?? '').toLowerCase();
 
                             // Force sending the email if it hasn't been verified yet
-                            final sendEmail = emailIsChanging || !player.emailVerified;
+                            final sendEmail =
+                                emailIsChanging || !player.emailVerified;
 
                             // Show confirmation dialog if email changes
                             if (emailIsChanging) {
@@ -794,8 +803,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     side: BorderSide(
-                                      color: AppTheme.accentGold
-                                          .withOpacity(0.5),
+                                      color:
+                                          AppTheme.accentGold.withOpacity(0.5),
                                       width: 1,
                                     ),
                                   ),
@@ -822,8 +831,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       onPressed: () =>
                                           Navigator.pop(dialogCtx, false),
                                       child: const Text("CANCELAR",
-                                          style: TextStyle(
-                                              color: Colors.white54)),
+                                          style:
+                                              TextStyle(color: Colors.white54)),
                                     ),
                                     ElevatedButton(
                                       onPressed: () =>
@@ -848,9 +857,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       listen: false);
                               final emailChanged =
                                   await playerProvider.updateProfile(
-                                name: newName != player.name
-                                    ? newName
-                                    : null,
+                                name: newName != player.name ? newName : null,
                                 email: sendEmail ? newEmail : null,
                                 phone: newPhone != (player.phone ?? '')
                                     ? newPhone
@@ -866,9 +873,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     SnackBar(
                                       content: const Row(
                                         children: [
-                                          Icon(
-                                              Icons
-                                                  .mark_email_read_outlined,
+                                          Icon(Icons.mark_email_read_outlined,
                                               color: Colors.white),
                                           SizedBox(width: 12),
                                           Expanded(
@@ -881,8 +886,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ],
                                       ),
                                       backgroundColor: Colors.orange,
-                                      duration:
-                                          const Duration(seconds: 6),
+                                      duration: const Duration(seconds: 6),
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
@@ -896,8 +900,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SnackBar(
                                       content: Text(
                                           "Perfil actualizado correctamente"),
-                                      backgroundColor:
-                                          AppTheme.successGreen,
+                                      backgroundColor: AppTheme.successGreen,
                                     ),
                                   );
                                 }
@@ -905,8 +908,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             } catch (e) {
                               if (mounted) {
                                 setModalState(() => isSaving = false);
-                                ScaffoldMessenger.of(this.context)
-                                    .showSnackBar(
+                                ScaffoldMessenger.of(this.context).showSnackBar(
                                   SnackBar(
                                       content: Text("Error: $e"),
                                       backgroundColor: AppTheme.dangerRed),
@@ -1358,31 +1360,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-   Future<void> _showTermsDialog() async {
+  Future<void> _showTermsDialog() async {
+    // Construcción dinámica de la URL del proxy
+    // Enrutador seguro en Vercel
+    const String termsUrl = 'https://map-hunter.vercel.app/terms';
 
-   // 1. Cambiamos const por final
-  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    final Uri url =
+        Uri.parse('https://docs.google.com/gview?embedded=true&url=$termsUrl');
 
-  // 2. Corregimos la interpolación a $supabaseUrl y agregamos el / antes de storage
-  final String supabasePdfUrl = '$supabaseUrl/storage/v1/object/public/documents/Terminos_y_Condiciones_Maphunter.pdf';
-
-    
-    
-    // 2. Envolvemos la URL en el visor de Google Docs para evitar descargas en Android
-    final Uri url = Uri.parse('https://docs.google.com/gview?embedded=true&url=$supabasePdfUrl');
-
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo abrir los Términos y Condiciones.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir los Términos y Condiciones.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
+    } catch (e) {
+      debugPrint('Error al abrir términos: $e');
     }
   }
-
 
   void _showComingSoonDialog(String featureName) {
     showDialog(

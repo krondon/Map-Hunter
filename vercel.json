@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/terms",
+            "destination": "https://hyjelngckvqoanckqwep.supabase.co/functions/v1/get-terms"
+        }
+    ]
+}
