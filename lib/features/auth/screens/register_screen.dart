@@ -12,6 +12,8 @@ import '../../../shared/widgets/loading_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
+import '../../../core/services/terms_service.dart';
 
 // RE-FORCE CLEAN VERSION - NO _isDarkMode
 class RegisterScreen extends StatefulWidget {
@@ -250,24 +252,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _showTermsDialog(bool isDarkMode) async {
-    // Construcción dinámica de la URL del proxy
-    // Enrutador seguro en Vercel
-    const String termsUrl = 'https://map-hunter.vercel.app/terms';
-
-    final Uri url =
-        Uri.parse('https://docs.google.com/gview?embedded=true&url=$termsUrl');
-
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudo abrir los Términos y Condiciones.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
+      final baseUrl =
+          dotenv.env['SUPABASE_URL']?.replaceAll(RegExp(r'/$'), '') ?? '';
+
+      // Usamos el servicio centralizado que maneja el enmascaramiento (Blob URLs)
+      final termsService = getTermsService();
+      await termsService.launchTerms(baseUrl);
     } catch (e) {
       debugPrint('Error al abrir términos: $e');
     }

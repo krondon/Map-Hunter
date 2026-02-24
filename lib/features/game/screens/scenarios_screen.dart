@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../core/services/terms_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -478,25 +479,13 @@ class _ScenariosScreenState extends State<ScenariosScreen>
   }
 
   Future<void> _showTermsDialog() async {
-    // Usamos el enrutador seguro en Vercel para ocultar la infraestructura de Supabase.
-    // Esta URL es pública y segura, actuando como un túnel hacia el PDF real.
-    const String termsUrl = 'https://map-hunter.vercel.app/terms';
-
-    // El visor de Google Docs permite visualizar el PDF sin descargarlo forzosamente.
-    final Uri url =
-        Uri.parse('https://docs.google.com/gview?embedded=true&url=$termsUrl');
-
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudo abrir los Términos y Condiciones.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
+      final baseUrl =
+          dotenv.env['SUPABASE_URL']?.replaceAll(RegExp(r'/$'), '') ?? '';
+
+      // Usamos el servicio centralizado que maneja el enmascaramiento (Blob URLs)
+      final termsService = getTermsService();
+      await termsService.launchTerms(baseUrl);
     } catch (e) {
       debugPrint('Error al abrir términos: $e');
     }
