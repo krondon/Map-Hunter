@@ -4,6 +4,7 @@ import '../../mall/models/mall_store.dart';
 import '../../mall/models/power_item.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 class StoreEditDialog extends StatefulWidget {
   final MallStore? store;
@@ -87,7 +88,7 @@ class _StoreEditDialogState extends State<StoreEditDialog> {
       name: _name,
       description: _description,
       imageUrl: widget.store?.imageUrl ?? '', // Provider will update if file exists
-      qrCodeData: widget.store?.qrCodeData ?? 'store:${DateTime.now().millisecondsSinceEpoch}', // Placeholder if new
+      qrCodeData: widget.store?.qrCodeData ?? 'STORE:${widget.eventId}:${const Uuid().v4()}', // Same QR format as clues: STORE:{eventId}:{storeId}
       products: selectedProducts,
     );
 
