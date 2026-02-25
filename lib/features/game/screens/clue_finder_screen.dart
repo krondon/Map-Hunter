@@ -28,6 +28,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     with TickerProviderStateMixin {
   // --- STATE ---
   double _distanceToTarget = 800.0;
+  bool _hasReceivedFirstFix = false; // Guard: prevent premature distance display
   StreamSubscription<Position>? _positionStreamSubscription;
   final List<Position> _positionHistory = []; // Cola para suavizado
 
@@ -82,10 +83,13 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
   Future<void> _startLocationUpdates() async {
     if (widget.clue.latitude == null || widget.clue.longitude == null) {
-      // Fallback if no location (shouldn't happen for geolocation clues, but safety first)
-      setState(() => _distanceToTarget = 0);
+      // No coordinates on this clue — keep default 800m (CONGELADO) 
+      // instead of 0 which would falsely show "¡AQUÍ ESTÁ!"
+      debugPrint('[ClueFinder] ⚠️ Clue has no coordinates! Keeping default distance.');
       return;
     }
+
+    debugPrint('[ClueFinder] 📍 Target: lat=${widget.clue.latitude}, lng=${widget.clue.longitude}');
 
     const LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -100,10 +104,24 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
         return;
       }
 
+      // --- FILTRO DE PRECISIÓN ---
+      // Ignore very inaccurate initial readings (GPS cold start)
+      if (position.accuracy > 100) {
+        debugPrint('[ClueFinder] 🔴 Ignoring low-accuracy reading: ${position.accuracy.toStringAsFixed(1)}m');
+        return;
+      }
+
       // --- SUAVIZADO DE GPS ---
       _positionHistory.add(position);
       if (_positionHistory.length > 5) {
         _positionHistory.removeAt(0); // Mantener solo los últimos 5 puntos
+      }
+
+      // Require at least 2 readings before updating distance
+      // to prevent wild jumps from a single initial GPS fix
+      if (_positionHistory.length < 2 && !_hasReceivedFirstFix) {
+        debugPrint('[ClueFinder] ⏳ Waiting for more GPS readings (${_positionHistory.length}/2)...');
+        return;
       }
 
       double avgLat = 0;
@@ -123,9 +141,12 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
         widget.clue.longitude!,
       );
 
+      debugPrint('[ClueFinder] 📏 Distance: ${distanceInMeters.toStringAsFixed(1)}m (accuracy: ${position.accuracy.toStringAsFixed(1)}m, samples: ${_positionHistory.length})');
+
       if (mounted) {
         setState(() {
           _distanceToTarget = distanceInMeters;
+          _hasReceivedFirstFix = true;
         });
       }
     });
@@ -230,24 +251,22 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     if (dist > 500) return "CONGELADO";
     if (dist > 200) return "FRÍO";
     if (dist > 50) return "TIBIO";
-    if (dist > 20) return "CALIENTE";
+    if (dist > 10) return "CALIENTE";
     return "¡AQUÍ ESTÁ!";
   }
 
   Color get _temperatureColor {
-    final isDarkMode = true /* always dark UI */;
     double dist = _forceProximity ? 5.0 : _distanceToTarget;
     if (dist > 500) return Colors.cyanAccent;
     if (dist > 200) return Colors.blue;
     if (dist > 50) return Colors.orange;
-    if (dist > 20) return Colors.deepOrange;
+    if (dist > 10) return Colors.red;
     return AppTheme.successGreen;
   }
 
   IconData get _temperatureIcon {
     double dist = _forceProximity ? 5.0 : _distanceToTarget;
     if (dist > 200) return Icons.ac_unit;
-    // Use fire icon for both Tibio and Caliente as requested
     return Icons.local_fire_department;
   }
 
@@ -406,7 +425,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
   @override
   Widget build(BuildContext context) {
     final double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
-    final bool showInput = true; // Clues always show scan zone directly
+    final bool showInput = currentDistance <= 25;
     final bool isDarkMode = true /* always dark UI */;
 
     final bool shouldForceDark = isDarkMode ||
@@ -415,15 +434,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
         _temperatureStatus == "¡AQUÍ ESTÁ!";
     final bool useDarkStyle = shouldForceDark;
     
-    // La imagen de fondo ahora es visible SIEMPRE (opacidad 1.0 constante o alta)
-    const double bgImageOpacity = 0.85; 
-    // Overlay m�s suave para que la foto sea la protagonista
-    final double overlayOpacity = isDarkMode ? 0.4 : 0.1;
-
     final Color effectiveTextColor =
         useDarkStyle ? Colors.white : const Color(0xFF1A1A1D);
-    final Color effectiveHintTextColor =
-        useDarkStyle ? Colors.white : const Color(0xFF2D3436);
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -496,7 +508,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
               ),
             ),
 
-            // Capa Foto (Sin animaciones para asegurar visibilidad)
+            // Capa Foto
             Positioned.fill(
               child: Opacity(
                 opacity: 0.8,
@@ -509,7 +521,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
               ),
             ),
 
-            // Capa Filtro oscuridad (muy suave)
+            // Capa Filtro oscuridad
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(isDarkMode ? 0.35 : 0.05),
@@ -520,7 +532,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
             Positioned.fill(
               child: Stack(
                 children: [
-                  // Ambient glow overlay (always green for scan mode)
+                  // Ambient glow overlay
                   AnimatedContainer(
                     duration: const Duration(seconds: 1),
                     decoration: BoxDecoration(
@@ -529,14 +541,12 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          AppTheme.successGreen.withOpacity(0.20),
+                          _temperatureColor.withOpacity(showInput ? 0.45 : 0.20),
                         ],
                       ),
                     ),
                   ),
-
-
-
+                  ..._buildBackgroundElements(),
 
                   SafeArea(
                     child: SingleChildScrollView(
@@ -548,7 +558,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Hint Card (Doble borde gold)
+                            // Hint Card
                             Padding(
                               padding: const EdgeInsets.all(20),
                               child: Container(
@@ -595,76 +605,121 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                               ),
                             ),
 
-                            // QR Scan prompt
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    "¡ESTÁS EN LA ZONA!",
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.successGreen,
+                            // Termómetro / Estatus
+                            Column(
+                              children: [
+                                AnimatedBuilder(
+                                  animation: _pulseController,
+                                  builder: (context, child) => Transform.scale(
+                                    scale: 1.0 + (_pulseController.value * 0.15),
+                                    child: Icon(
+                                      _temperatureIcon, 
+                                      size: 110, 
+                                      color: _temperatureColor,
                                       shadows: [
-                                        Shadow(color: AppTheme.successGreen, blurRadius: 15),
+                                        Shadow(color: _temperatureColor.withOpacity(0.9), blurRadius: 40),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 15),
-                                  // Green double-border QR card
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.successGreen.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(
-                                        color: AppTheme.successGreen.withOpacity(0.2),
-                                        width: 1,
+                                ),
+                                const SizedBox(height: 15),
+                                Text(
+                                  _temperatureStatus,
+                                  style: TextStyle(
+                                    fontSize: 44,
+                                    fontWeight: FontWeight.bold,
+                                    color: _temperatureColor,
+                                    shadows: [
+                                      Shadow(color: _temperatureColor.withOpacity(0.9), blurRadius: 25),
+                                      Shadow(color: Colors.black, blurRadius: 10),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "${currentDistance.toInt()}m del objetivo",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 18,
+                                    shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // QR Scan prompt (Conditional)
+                            if (showInput)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      "¡ESTÁS EN LA ZONA!",
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.successGreen,
+                                        shadows: [
+                                          Shadow(color: AppTheme.successGreen, blurRadius: 15),
+                                        ],
                                       ),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: BackdropFilter(
-                                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF150826).withOpacity(0.4),
-                                            borderRadius: BorderRadius.circular(18),
-                                            border: Border.all(color: AppTheme.successGreen.withOpacity(0.6), width: 2),
-                                          ),
-                                          child: Column(
-                                            children: [
-                                              AnimatedBuilder(
-                                                animation: _pulseController,
-                                                builder: (context, child) => Transform.scale(
-                                                  scale: 1.0 + (_pulseController.value * 0.1),
-                                                  child: Icon(
-                                                    Icons.qr_code_scanner,
-                                                    color: AppTheme.successGreen,
-                                                    size: 60,
-                                                    shadows: [
-                                                      Shadow(color: AppTheme.successGreen.withOpacity(0.8), blurRadius: 30),
-                                                    ],
+                                    const SizedBox(height: 15),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.successGreen.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(22),
+                                        border: Border.all(
+                                          color: AppTheme.successGreen.withOpacity(0.2),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF150826).withOpacity(0.4),
+                                              borderRadius: BorderRadius.circular(18),
+                                              border: Border.all(color: AppTheme.successGreen.withOpacity(0.6), width: 2),
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                AnimatedBuilder(
+                                                  animation: _pulseController,
+                                                  builder: (context, child) => Transform.scale(
+                                                    scale: 1.0 + (_pulseController.value * 0.1),
+                                                    child: Icon(
+                                                      Icons.qr_code_scanner,
+                                                      color: AppTheme.successGreen,
+                                                      size: 60,
+                                                      shadows: [
+                                                        Shadow(color: AppTheme.successGreen.withOpacity(0.8), blurRadius: 30),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 10),
-                                              const Text(
-                                                "Escanea el QR de la pista",
-                                                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
+                                                const SizedBox(height: 10),
+                                                const Text(
+                                                  "Escanea el QR de la pista",
+                                                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                  ],
+                                ),
+                              )
+                            else
+                              const SizedBox(height: 100), // Filler
 
                             // Buttons
                             Padding(
@@ -672,51 +727,51 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.successGreen,
-                                        foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(vertical: 18),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        elevation: 10,
+                                  if (showInput) ...[
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.successGreen,
+                                          foregroundColor: Colors.black,
+                                          padding: const EdgeInsets.symmetric(vertical: 18),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          elevation: 10,
+                                        ),
+                                        onPressed: () async {
+                                          final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
+                                          if (scanned != null) _handleScannedCode(scanned);
+                                        },
+                                        icon: const Icon(Icons.qr_code, size: 20),
+                                        label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                       ),
-                                      onPressed: () async {
-                                        final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
-                                        if (scanned != null) _handleScannedCode(scanned);
-                                      },
-                                      icon: const Icon(Icons.qr_code, size: 20),
-                                      label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.accentGold,
-                                        foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(vertical: 18),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    const SizedBox(height: 10),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.accentGold,
+                                          foregroundColor: Colors.black,
+                                          padding: const EdgeInsets.symmetric(vertical: 18),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        onPressed: () async {
+                                          final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
+                                          if (scanned != null) _handleScannedCode(scanned);
+                                        },
+                                        child: const Text("VERIFICAR CÓDIGO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                       ),
-                                      onPressed: () async {
-                                        final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
-                                        if (scanned != null) _handleScannedCode(scanned);
-                                      },
-                                      child: const Text("VERIFICAR CÓDIGO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
 
-                            // DEV BYPASS: Only visible for admin role
+                            // DEV BYPASS
                             DevelopmentBypassButton(
                               onBypass: () => _handleScannedCode("DEV_SKIP_CODE"),
                             ),
-
-                          
                           ],
                         ),
                       ),
