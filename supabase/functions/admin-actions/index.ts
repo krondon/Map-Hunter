@@ -87,6 +87,7 @@ serve(async (req) => {
           user_id: request.user_id,
           event_id: request.event_id,
           lives: 3, // Vidas iniciales
+          coins: 400, // CORRECCIÓN: 400 monedas iniciales para todos los jugadores
         });
 
       if (insertError) {
