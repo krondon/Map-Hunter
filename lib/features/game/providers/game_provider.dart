@@ -176,7 +176,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
   /// Implementación de IResettable
   @override
   void resetState() {
-    print('GameProvider: Executing resetState()...');
+
     _clues = [];
     _leaderboard = [];
     _currentClueIndex = 0;
@@ -727,30 +727,8 @@ class GameProvider extends ChangeNotifier implements IResettable {
     }
   }
 
-  Future<bool> skipCurrentClue() async {
-    if (_currentClueIndex >= _clues.length) return false;
 
-    final clue = _clues[_currentClueIndex];
-    _isLoading = true;
-    notifyListeners();
 
-    try {
-      final success = await _gameService.skipClue(clue.id);
-
-      if (success) {
-        await fetchClues();
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Error skipping clue: $e');
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 
   void switchToClue(String clueId) {
     final index = _clues.indexWhere((c) => c.id == clueId);

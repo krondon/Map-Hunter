@@ -260,9 +260,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                           try {
                             // Using listen: false to just check state once
                             isOnline = Provider.of<AppModeProvider>(context, listen: false).isOnlineMode;
-                            print("DEBUG: StoreDetailScreen isOnline=$isOnline");
+
                           } catch (e) {
-                            print("DEBUG: StoreDetailScreen AppModeProvider Error: $e");
+
                           }
                           
                           // FORCE CATALOG IN ONLINE MODE: Siempre mostrar todo el catálogo disponible
@@ -272,7 +272,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                               ? widget.store.products 
                               : PowerItem.getShopItems();
                             
-                          print("DEBUG: displayProducts length=${displayProducts.length}");
+
 
                           if (displayProducts.isEmpty) {
                             return const Padding(

@@ -252,7 +252,7 @@ class _GameRequestScreenState extends State<GameRequestScreen>
     final now = DateTime.now();
 
     // Debug info
-    print("Countdown Debug: Event Date: ${event.date} vs Now: $now");
+
 
     if (event.date.isAfter(now)) {
       if (mounted) {
