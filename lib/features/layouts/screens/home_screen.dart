@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
-import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
-import 'package:treasure_hunt_rpg/features/game/screens/clues_screen.dart';
-import 'package:treasure_hunt_rpg/features/game/screens/event_waiting_screen.dart';
-import 'package:treasure_hunt_rpg/features/game/providers/event_provider.dart';
-import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
+import 'package:map_hunter/features/auth/providers/player_provider.dart';
+import 'package:map_hunter/core/theme/app_theme.dart';
+import 'package:map_hunter/features/game/screens/clues_screen.dart';
+import 'package:map_hunter/features/game/screens/event_waiting_screen.dart';
+import 'package:map_hunter/features/game/providers/event_provider.dart';
+import 'package:map_hunter/features/game/providers/game_provider.dart';
 import '../../game/providers/spectator_feed_provider.dart'; // NEW
 import '../../game/screens/live_feed_screen.dart'; // NEW
 import '../../social/screens/inventory_screen.dart';

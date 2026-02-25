@@ -2,8 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/models/player.dart';
-import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
-import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
+import 'package:map_hunter/features/game/providers/game_provider.dart';
+import 'package:map_hunter/features/auth/providers/player_provider.dart';
 import '../../mall/models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO

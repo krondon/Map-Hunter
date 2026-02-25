@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
+import 'package:map_hunter/core/theme/app_theme.dart';
 
 class AnimatedCyberBackground extends StatefulWidget {
   final Widget? child;

@@ -185,17 +185,17 @@ Future<void> main() async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
-  runApp(const TreasureHuntApp());
+  runApp(const MapHunterApp());
 }
 
-class TreasureHuntApp extends StatefulWidget {
-  const TreasureHuntApp({super.key});
+class MapHunterApp extends StatefulWidget {
+  const MapHunterApp({super.key});
 
   @override
-  State<TreasureHuntApp> createState() => _TreasureHuntAppState();
+  State<MapHunterApp> createState() => _MapHunterAppState();
 }
 
-class _TreasureHuntAppState extends State<TreasureHuntApp>
+class _MapHunterAppState extends State<MapHunterApp>
     with WidgetsBindingObserver {
   @override
   void initState() {

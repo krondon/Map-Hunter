@@ -127,7 +127,7 @@ serve(async (req) => {
       expires_at: expiresAt,
       alias: `PLAN-${plan.name.toUpperCase()}-${user.id.substring(0, 8)}-${Date.now()}`,
       convert_from_usd: false,
-      url_redirect: "io.supabase.treasurehunt://payment-return",
+      url_redirect: "io.supabase.maphunter://payment-return",
       extra_data: {
         user_id: user.id,
         plan_id: plan.id,

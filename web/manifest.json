@@ -1,6 +1,6 @@
 {
-    "name": "treasure_hunt_rpg",
-    "short_name": "treasure_hunt_rpg",
+    "name": "MapHunter",
+    "short_name": "MapHunter",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

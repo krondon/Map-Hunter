@@ -95,7 +95,7 @@ class PaymentService {
       // This ensures the user comes back to the app after payment
       final Uri originalUri = Uri.parse(rawPaymentUrl);
       final Map<String, String> updatedParams = Map.from(originalUri.queryParameters);
-      updatedParams['urlReturn'] = 'io.supabase.treasurehunt://payment-return';
+      updatedParams['urlReturn'] = 'io.supabase.maphunter://payment-return';
       
       final String finalPaymentUrl = originalUri.replace(queryParameters: updatedParams).toString();
 

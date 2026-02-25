@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../shared/models/player.dart';
-import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
+import 'package:map_hunter/core/theme/app_theme.dart';
 
 class LeaderboardCard extends StatelessWidget {
   final Player player;

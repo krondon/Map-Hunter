@@ -73,11 +73,11 @@ Future<void> main() async {
     ]);
   }
 
-  runApp(const TreasureHuntAdminApp());
+  runApp(const MapHunterAdminApp());
 }
 
-class TreasureHuntAdminApp extends StatelessWidget {
-  const TreasureHuntAdminApp({super.key});
+class MapHunterAdminApp extends StatelessWidget {
+  const MapHunterAdminApp({super.key});
 
   @override
   Widget build(BuildContext context) {

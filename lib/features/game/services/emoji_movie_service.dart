@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:treasure_hunt_rpg/features/game/models/emoji_movie_problem.dart';
+import 'package:map_hunter/features/game/models/emoji_movie_problem.dart';
 
 class EmojiMovieService {
   final SupabaseClient _supabase;

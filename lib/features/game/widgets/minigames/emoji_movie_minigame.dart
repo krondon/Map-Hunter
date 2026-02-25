@@ -11,8 +11,8 @@ import 'game_over_overlay.dart';
 import '../../utils/minigame_logic_helper.dart';
 import '../../../auth/providers/player_provider.dart';
 import '../../../mall/screens/mall_screen.dart';
-import 'package:treasure_hunt_rpg/features/game/services/emoji_movie_service.dart';
-import 'package:treasure_hunt_rpg/features/game/models/emoji_movie_problem.dart';
+import 'package:map_hunter/features/game/services/emoji_movie_service.dart';
+import 'package:map_hunter/features/game/models/emoji_movie_problem.dart';
 
 class EmojiMovieMinigame extends StatefulWidget {
   final Clue clue;

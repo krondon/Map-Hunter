@@ -191,7 +191,7 @@ class AuthService {
     try {
       await _supabase.auth.resetPasswordForEmail(
         email.trim(),
-        redirectTo: kIsWeb ? null : 'io.supabase.treasurehunt://reset-password',
+        redirectTo: kIsWeb ? null : 'io.supabase.maphunter://reset-password',
       );
     } catch (e) {
       debugPrint('AuthService: Error resetting password: $e');

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:treasure_hunt_rpg/features/game/providers/game_provider.dart';
-import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
-import 'package:treasure_hunt_rpg/core/theme/app_theme.dart';
+import 'package:map_hunter/features/game/providers/game_provider.dart';
+import 'package:map_hunter/features/auth/providers/player_provider.dart';
+import 'package:map_hunter/core/theme/app_theme.dart';
 import '../widgets/leaderboard_card.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../shared/models/player.dart';

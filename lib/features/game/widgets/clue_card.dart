@@ -4,7 +4,7 @@ import '../models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 
 import 'package:provider/provider.dart';
-import 'package:treasure_hunt_rpg/features/auth/providers/player_provider.dart';
+import 'package:map_hunter/features/auth/providers/player_provider.dart';
 import '../../../core/providers/app_mode_provider.dart';
 
 class ClueCard extends StatelessWidget {

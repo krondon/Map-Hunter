@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:treasure_hunt_rpg/features/admin/services/admin_service.dart';
+import 'package:map_hunter/features/admin/services/admin_service.dart';
 import '../../game/models/event.dart';
 import '../../game/models/clue.dart';
 import '../../game/providers/event_provider.dart';

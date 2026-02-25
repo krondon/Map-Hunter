@@ -34,8 +34,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="io.supabase.treasurehunt" android:host="reset-password" />
-                <data android:scheme="io.supabase.treasurehunt" android:host="payment-return" />
+                <data android:scheme="io.supabase.maphunter" android:host="reset-password" />
+                <data android:scheme="io.supabase.maphunter" android:host="payment-return" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
