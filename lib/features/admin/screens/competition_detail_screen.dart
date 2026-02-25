@@ -117,7 +117,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
       // 1. Fetch ranking from game_players (ordered by clues DESC, then arrival ASC)
       final playersData = await Supabase.instance.client
           .from('game_players')
-          .select('user_id, completed_clues:completed_clues_count, last_active')
+          .select('user_id, completed_clues:completed_clues_count, last_active, coins, lives')
           .eq('event_id', widget.event.id)
           .neq('status', 'spectator')
           .order('completed_clues_count', ascending: false)
@@ -1619,6 +1619,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                     ? _leaderboardData[rawIndex]['completed_clues'] as int
                     : 0;
 
+                // Get coins and lives from leaderboard data
+                final playerCoins = rawIndex != -1
+                    ? (_leaderboardData[rawIndex]['coins'] as num?)?.toInt()
+                    : null;
+                final playerLives = rawIndex != -1
+                    ? (_leaderboardData[rawIndex]['lives'] as num?)?.toInt()
+                    : null;
+
                 return RequestTile(
                   request: req,
                   isReadOnly: true,
@@ -1629,6 +1637,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                   currentStatus: _playerStatuses[req.playerId], // Local status
                   onBanToggled: () =>
                       _fetchPlayerStatuses(), // Refresh on ban/unban
+                  coins: playerCoins,
+                  lives: playerLives,
+                  eventId: widget.event.id,
+                  onStatsUpdated: () => _fetchLeaderboard(),
                 );
               }).toList(),
           ],

@@ -524,4 +524,70 @@ class AdminService {
   Future<Map<String, dynamic>> getEventFinancialResults(String eventId) async {
       return getDetailedEventFinancials(eventId);
   }
+
+  /// Ajusta las monedas o vidas de un jugador en un evento específico.
+  ///
+  /// [userId] - ID del jugador.
+  /// [eventId] - ID del evento.
+  /// [field] - Campo a modificar ('coins' o 'lives').
+  /// [delta] - Cambio a aplicar (positivo para agregar, negativo para quitar).
+  Future<void> adjustPlayerStats({
+    required String userId,
+    required String eventId,
+    required String field,
+    required int delta,
+  }) async {
+    assert(field == 'coins' || field == 'lives', 'Field must be coins or lives');
+    try {
+      // 1. Read current value
+      final row = await _supabase
+          .from('game_players')
+          .select(field)
+          .eq('event_id', eventId)
+          .eq('user_id', userId)
+          .single();
+
+      final int current = (row[field] as num?)?.toInt() ?? 0;
+      int newValue = current + delta;
+      if (newValue < 0) newValue = 0;
+      // lives has a CHECK constraint <= 3 in the DB
+      if (field == 'lives' && newValue > 3) newValue = 3;
+
+      // 2. Update
+      await _supabase
+          .from('game_players')
+          .update({field: newValue})
+          .eq('event_id', eventId)
+          .eq('user_id', userId);
+
+      debugPrint('AdminService: adjustPlayerStats $field $delta → $newValue for user $userId in event $eventId');
+    } catch (e) {
+      debugPrint('AdminService: Error adjusting player stats: $e');
+      rethrow;
+    }
+  }
+
+  /// Establece un valor absoluto de monedas o vidas para un jugador en un evento.
+  Future<void> setPlayerStat({
+    required String userId,
+    required String eventId,
+    required String field,
+    required int value,
+  }) async {
+    assert(field == 'coins' || field == 'lives', 'Field must be coins or lives');
+    int safeValue = value < 0 ? 0 : value;
+    if (field == 'lives' && safeValue > 3) safeValue = 3;
+    try {
+      await _supabase
+          .from('game_players')
+          .update({field: safeValue})
+          .eq('event_id', eventId)
+          .eq('user_id', userId);
+
+      debugPrint('AdminService: setPlayerStat $field = $safeValue for user $userId in event $eventId');
+    } catch (e) {
+      debugPrint('AdminService: Error setting player stat: $e');
+      rethrow;
+    }
+  }
 }
