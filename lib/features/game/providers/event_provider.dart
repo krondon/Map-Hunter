@@ -102,6 +102,44 @@ class EventProvider with ChangeNotifier {
     }
   }
 
+  /// Secure admin-only event start via RPC.
+  /// The ONLY way to transition an event from 'pending' to 'active'.
+  Future<void> startEvent(String eventId) async {
+    try {
+      await _eventService.startEvent(eventId);
+      
+      // Optimistic local update
+      final index = _events.indexWhere((e) => e.id == eventId);
+      if (index != -1) {
+        final old = _events[index];
+        _events[index] = GameEvent(
+          id: old.id,
+          title: old.title,
+          description: old.description,
+          locationName: old.locationName,
+          latitude: old.latitude,
+          longitude: old.longitude,
+          date: old.date,
+          createdByAdminId: old.createdByAdminId,
+          clue: old.clue,
+          imageUrl: old.imageUrl,
+          maxParticipants: old.maxParticipants,
+          pin: old.pin,
+          status: 'active', // RPC guarantees this
+          completedAt: old.completedAt,
+          winnerId: old.winnerId,
+          type: old.type,
+          entryFee: old.entryFee,
+          currentParticipants: old.currentParticipants,
+        );
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error starting event via RPC: $e');
+      rethrow;
+    }
+  }
+
   // Eliminar evento
   Future<void> deleteEvent(String eventId) async {
     try {

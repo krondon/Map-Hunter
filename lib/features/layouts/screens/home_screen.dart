@@ -266,19 +266,16 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final event =
           eventProvider.events.firstWhere((e) => e.id == widget.eventId);
-      final now = DateTime.now();
 
-      if (event.date.toLocal().isAfter(now) && !_forceGameStart) {
+      // Only show waiting screen if event is pending (NOT yet activated by admin)
+      // The event transitions to 'active' ONLY when an admin calls start_event RPC
+      if (event.status == 'pending' && !_forceGameStart) {
         return EventWaitingScreen(
           event: event,
           onTimerFinished: () {
-            // 1. Update DB status to 'active' if it's currently 'pending'
-            if (event.status == 'pending') {
-               debugPrint("⏳ Timer finished! Updating event ${event.id} status to active.");
-               eventProvider.updateEventStatus(event.id, 'active');
-            }
-            
-            // 2. Local state update to force re-render
+            // Admin activated the event via Realtime subscription
+            // (No auto-activation by timer — admin is the sole source of truth)
+            debugPrint("✅ Event ${event.id} activated by admin. Navigating to game.");
             setState(() {
               _forceGameStart = true;
             });

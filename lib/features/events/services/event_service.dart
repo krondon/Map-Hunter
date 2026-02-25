@@ -210,7 +210,7 @@ class EventService {
     }
   }
 
-  // Actualizar status del evento
+  // Actualizar status del evento (for non-activation state changes like 'completed')
   Future<void> updateEventStatus(String eventId, String status) async {
     try {
       await _supabase
@@ -218,6 +218,23 @@ class EventService {
           .update({'status': status}).eq('id', eventId);
     } catch (e) {
       debugPrint('Error updating event status: $e');
+      rethrow;
+    }
+  }
+
+  /// Secure admin-only event activation via RPC.
+  /// Only admins can call this. Changes status from 'pending' to 'active'.
+  /// This is the ONLY way to activate an event — no auto-activation by timer.
+  Future<Map<String, dynamic>> startEvent(String eventId) async {
+    try {
+      final response = await _supabase.rpc(
+        'start_event',
+        params: {'p_event_id': eventId},
+      );
+      debugPrint('✅ Event $eventId started successfully via RPC: $response');
+      return Map<String, dynamic>.from(response as Map);
+    } catch (e) {
+      debugPrint('❌ Error starting event via RPC: $e');
       rethrow;
     }
   }

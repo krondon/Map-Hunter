@@ -25,6 +25,7 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
     with SingleTickerProviderStateMixin {
   Timer? _timer;
   Duration? _timeLeft;
+  bool _waitingForAdmin = false; // True when countdown finished but admin hasn't started event
   late AnimationController _controller;
   late Animation<double> _pulseAnimation;
 
@@ -109,30 +110,29 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
       return;
     }
 
-    final now = DateTime.now(); // Local time
-    // event.date should be in local time (Provider converts it correctly usually)
-    // But since we fixed the Provider to send UTC, we receive UTC ISO string.
-    // Provider.fromMap parses it.
-    // If it's UTC, we should compare with UTC or ensure both are aligned.
-    // simpler: DateTime.now() is local. event.date is likely Local if parsed without 'isUtc' logic or handled by framework.
-    // Let's assume standard comparison handles it if both are DateTime.
-
-    // IMPORTANT: In Flutter DateTime.parse("...Z") returns UTC.
-    // If event.date is UTC, we must use DateTime.now().toUtc() or event.date.toLocal().
     final target = widget.event.date.toLocal();
     final current = DateTime.now();
 
     if (target.isAfter(current)) {
+      // Still counting down
       if (mounted) {
         setState(() {
           _timeLeft = target.difference(current);
+          _waitingForAdmin = false;
         });
       }
     } else {
+      // Countdown reached zero — BUT we do NOT auto-activate.
+      // The admin must manually start the event via the start_event RPC.
+      // We enter "waiting for admin" mode and keep listening via Realtime.
       _timer?.cancel();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onTimerFinished();
-      });
+      if (mounted) {
+        setState(() {
+          _timeLeft = Duration.zero;
+          _waitingForAdmin = true;
+        });
+      }
+      debugPrint("⏳ Countdown finished for event ${widget.event.id}. Waiting for admin to start.");
     }
   }
 
@@ -148,6 +148,24 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
   Widget build(BuildContext context) {
     if (_timeLeft == null) return const Scaffold(backgroundColor: Colors.black);
     const bool isDarkMode = true;
+
+    // Determine dynamic content based on admin-wait state
+    final String headerText = _waitingForAdmin ? "CUENTA REGRESIVA FINALIZADA" : "PREPÁRATE";
+    final String titleText = _waitingForAdmin
+        ? "ESPERANDO AL ADMINISTRADOR"
+        : "LA AVENTURA COMIENZA PRONTO";
+    final String subtitleText = _waitingForAdmin
+        ? "El contador ha terminado.\nEsperando señal del administrador para iniciar el evento..."
+        : "El tesoro aguarda por el más valiente.\nMantente alerta.";
+    final IconData iconData = _waitingForAdmin ? Icons.admin_panel_settings : Icons.hourglass_empty;
+    final Color iconColor = _waitingForAdmin ? Colors.orangeAccent : AppTheme.accentGold;
+    final Color headerColor = _waitingForAdmin ? Colors.orangeAccent : AppTheme.accentGold;
+    final Color glowColor = _waitingForAdmin
+        ? Colors.orangeAccent.withOpacity(0.2)
+        : AppTheme.secondaryPink.withOpacity(0.2);
+    final Color borderColor = _waitingForAdmin
+        ? Colors.orangeAccent.withOpacity(0.5)
+        : AppTheme.accentGold.withOpacity(0.5);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -171,27 +189,26 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
                               shape: BoxShape.circle,
                               color: AppTheme.secondaryPink.withOpacity(0.1),
                               border: Border.all(
-                                  color: AppTheme.accentGold.withOpacity(0.5),
+                                  color: borderColor,
                                   width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                      AppTheme.secondaryPink.withOpacity(0.2),
+                                  color: glowColor,
                                   blurRadius: 30,
                                   spreadRadius: 10,
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.hourglass_empty,
-                                size: 60, color: AppTheme.accentGold),
+                            child: Icon(iconData,
+                                size: 60, color: iconColor),
                           ),
                         ),
                         const SizedBox(height: 50),
 
-                        const Text(
-                          "PREPÁRATE",
+                        Text(
+                          headerText,
                           style: TextStyle(
-                            color: AppTheme.accentGold,
+                            color: headerColor,
                             fontWeight: FontWeight.w900,
                             fontFamily: 'Orbitron',
                             letterSpacing: 3,
@@ -199,10 +216,10 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
                           ),
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          "LA AVENTURA COMIENZA PRONTO",
+                        Text(
+                          titleText,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
                             fontFamily: 'Orbitron',
@@ -210,10 +227,10 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
                           ),
                         ),
                         const SizedBox(height: 20),
-                        const Text(
-                          "El tesoro aguarda por el más valiente.\nMantente alerta.",
+                        Text(
+                          subtitleText,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
                             height: 1.5,
@@ -222,43 +239,82 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
 
                         const SizedBox(height: 60),
 
-                        // Countdown
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 25),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                                color: AppTheme.secondaryPink.withOpacity(0.3),
-                                width: 1.5),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "TIEMPO RESTANTE",
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'Orbitron',
-                                  letterSpacing: 1.5,
+                        // Countdown or Admin Wait indicator
+                        if (_waitingForAdmin)
+                          // Admin-wait state: show pulsing indicator instead of countdown
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 25),
+                            decoration: BoxDecoration(
+                              color: Colors.orangeAccent.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                  color: Colors.orangeAccent.withOpacity(0.4),
+                                  width: 1.5),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.sync, color: Colors.orangeAccent, size: 32),
+                                SizedBox(height: 12),
+                                Text(
+                                  "ESPERANDO INICIO MANUAL",
+                                  style: TextStyle(
+                                    color: Colors.orangeAccent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'Orbitron',
+                                    letterSpacing: 1.5,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                "${_timeLeft!.inDays}d ${_timeLeft!.inHours % 24}h ${_timeLeft!.inMinutes % 60}m ${_timeLeft!.inSeconds % 60}s",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'Orbitron',
-                                  fontFeatures: [FontFeature.tabularFigures()],
+                                SizedBox(height: 8),
+                                Text(
+                                  "El administrador debe presionar PLAY",
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          )
+                        else
+                          // Normal countdown state
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 25),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                  color: AppTheme.secondaryPink.withOpacity(0.3),
+                                  width: 1.5),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  "TIEMPO RESTANTE",
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'Orbitron',
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "${_timeLeft!.inDays}d ${_timeLeft!.inHours % 24}h ${_timeLeft!.inMinutes % 60}m ${_timeLeft!.inSeconds % 60}s",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'Orbitron',
+                                    fontFeatures: [FontFeature.tabularFigures()],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                         
                         // Sponsor Banner (Part of flow now)
                         if (_eventSponsor != null)

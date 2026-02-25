@@ -827,7 +827,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
             IconButton(
               icon: const Icon(Icons.play_arrow_rounded,
                   color: Colors.greenAccent, size: 30),
-              tooltip: "Forzar Inicio (Ya!)",
+              tooltip: "Iniciar Evento (Admin)",
               onPressed: () async {
                 final confirm = await showDialog<bool>(
                   context: context,
@@ -836,7 +836,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                     title: const Text("¿Iniciar Evento Ahora?",
                         style: TextStyle(color: Colors.white)),
                     content: const Text(
-                      "El evento pasará a estado 'active' inmediatamente, permitiendo que los jugadores entren y vean las pistas, sin importar la fecha programada.",
+                      "El evento pasará a estado 'active' inmediatamente. Esta acción es exclusiva del administrador y no puede revertirse automáticamente.",
                       style: TextStyle(color: Colors.white70),
                     ),
                     actions: [
@@ -859,8 +859,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
 
                 setState(() => _isLoading = true);
                 try {
+                  // Use secure RPC instead of direct status update
                   await Provider.of<EventProvider>(context, listen: false)
-                      .updateEventStatus(widget.event.id, 'active');
+                      .startEvent(widget.event.id);
 
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

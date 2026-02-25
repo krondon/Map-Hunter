@@ -2860,7 +2860,9 @@ class _ScenariosScreenState extends State<ScenariosScreen>
                                                                               .isCompleted)
                                                                         ScenarioCountdown(
                                                                             targetDate:
-                                                                                scenario.date!),
+                                                                                scenario.date!,
+                                                                            eventStatus:
+                                                                                scenario.status),
 
                                                                       if (scenario.date !=
                                                                               null &&

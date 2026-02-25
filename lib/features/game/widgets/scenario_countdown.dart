@@ -6,8 +6,13 @@ import '../../../../core/theme/app_theme.dart';
 
 class ScenarioCountdown extends StatefulWidget {
   final DateTime targetDate;
+  final String eventStatus; // 'pending', 'active', 'completed'
 
-  const ScenarioCountdown({super.key, required this.targetDate});
+  const ScenarioCountdown({
+    super.key,
+    required this.targetDate,
+    this.eventStatus = 'pending',
+  });
 
   @override
   State<ScenarioCountdown> createState() => _ScenarioCountdownState();
@@ -54,6 +59,11 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
   @override
   Widget build(BuildContext context) {
     if (_isStarted) {
+      // Time is up: Show different badge based on event status
+      final bool isActive = widget.eventStatus == 'active';
+      final Color badgeColor = isActive ? Colors.greenAccent : Colors.orangeAccent;
+      final String badgeText = isActive ? "EN CURSO" : "ESPERANDO ADMIN";
+
       return ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
@@ -61,12 +71,12 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.greenAccent.withOpacity(0.1),
+              color: badgeColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.greenAccent.withOpacity(0.5), width: 1.5),
+              border: Border.all(color: badgeColor.withOpacity(0.5), width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.greenAccent.withOpacity(0.1),
+                  color: badgeColor.withOpacity(0.1),
                   blurRadius: 10,
                   spreadRadius: 2,
                 )
@@ -78,12 +88,12 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.greenAccent,
+                  decoration: BoxDecoration(
+                    color: badgeColor,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.greenAccent,
+                        color: badgeColor,
                         blurRadius: 4,
                         spreadRadius: 1,
                       )
@@ -91,9 +101,9 @@ class _ScenarioCountdownState extends State<ScenarioCountdown> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  "EN CURSO",
-                  style: TextStyle(
+                Text(
+                  badgeText,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
                     fontSize: 11,
