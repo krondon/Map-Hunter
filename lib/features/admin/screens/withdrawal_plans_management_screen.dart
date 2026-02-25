@@ -7,23 +7,25 @@ import '../../wallet/models/withdrawal_plan.dart';
 import '../../wallet/services/withdrawal_plan_service.dart';
 
 /// Admin screen for managing withdrawal plans.
-/// 
+///
 /// Allows editing clovers_cost, amount_usd, and is_active status.
 /// Also displays and allows updating the BCV exchange rate.
 class WithdrawalPlansManagementScreen extends StatefulWidget {
   const WithdrawalPlansManagementScreen({super.key});
 
   @override
-  State<WithdrawalPlansManagementScreen> createState() => _WithdrawalPlansManagementScreenState();
+  State<WithdrawalPlansManagementScreen> createState() =>
+      _WithdrawalPlansManagementScreenState();
 }
 
-class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagementScreen> {
+class _WithdrawalPlansManagementScreenState
+    extends State<WithdrawalPlansManagementScreen> {
   late WithdrawalPlanService _planService;
   late AppConfigService _configService;
   List<WithdrawalPlan> _plans = [];
   bool _isLoading = true;
   String? _error;
-  
+
   // Exchange rate state
   double _exchangeRate = 0.0;
   bool _isLoadingRate = true;
@@ -34,11 +36,12 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
   @override
   void initState() {
     super.initState();
-    _planService = WithdrawalPlanService(supabaseClient: Supabase.instance.client);
+    _planService =
+        WithdrawalPlanService(supabaseClient: Supabase.instance.client);
     _configService = AppConfigService(supabaseClient: Supabase.instance.client);
     _loadData();
   }
-  
+
   @override
   void dispose() {
     _rateController.dispose();
@@ -85,7 +88,7 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
     setState(() => _isUpdatingRate = true);
     final success = await _configService.updateExchangeRate(newRate);
     setState(() => _isUpdatingRate = false);
-    
+
     if (mounted) {
       if (success) {
         setState(() => _exchangeRate = newRate);
@@ -126,7 +129,8 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
     }
   }
 
-  Future<void> _updatePlan(WithdrawalPlan plan, {int? cloversCost, double? amountUsd, bool? isActive}) async {
+  Future<void> _updatePlan(WithdrawalPlan plan,
+      {int? cloversCost, double? amountUsd, bool? isActive}) async {
     try {
       await _planService.updatePlan(
         plan.id,
@@ -134,7 +138,7 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
         amountUsd: amountUsd,
         isActive: isActive,
       );
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,8 +161,10 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
   }
 
   void _showEditDialog(WithdrawalPlan plan) {
-    final cloversController = TextEditingController(text: plan.cloversCost.toString());
-    final amountController = TextEditingController(text: plan.amountUsd.toStringAsFixed(2));
+    final cloversController =
+        TextEditingController(text: plan.cloversCost.toString());
+    final amountController =
+        TextEditingController(text: plan.amountUsd.toStringAsFixed(2));
     bool isActive = plan.isActive;
 
     showDialog(
@@ -177,7 +183,8 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                 const SizedBox(width: 12),
                 Text(
                   'Editar ${plan.name}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -187,7 +194,8 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Clovers Cost
-                  const Text('Costo en Tréboles', style: TextStyle(color: Colors.white70)),
+                  const Text('Costo en Tréboles',
+                      style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: cloversController,
@@ -197,39 +205,45 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                     decoration: InputDecoration(
                       suffixText: '🍀',
                       enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.3)),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                        borderSide:
+                            const BorderSide(color: AppTheme.accentGold),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Amount USD
-                  const Text('Monto a Recibir (USD)', style: TextStyle(color: Colors.white70)),
+                  const Text('Monto a Recibir (USD)',
+                      style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       prefixText: '\$ ',
                       prefixStyle: const TextStyle(color: AppTheme.accentGold),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.3)),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                        borderSide:
+                            const BorderSide(color: AppTheme.accentGold),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // VES Preview
                   if (_exchangeRate > 0)
                     Container(
@@ -240,25 +254,31 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline, color: Colors.white54, size: 18),
+                          const Icon(Icons.info_outline,
+                              color: Colors.white54, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Al usuario se le enviará: \$${(double.tryParse(amountController.text) ?? 0) * _exchangeRate} VES',
-                              style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 12),
                             ),
                           ),
                         ],
                       ),
                     ),
                   const SizedBox(height: 16),
-                  
+
                   // Active Toggle
                   SwitchListTile(
-                    title: const Text('Plan Activo', style: TextStyle(color: Colors.white)),
+                    title: const Text('Plan Activo',
+                        style: TextStyle(color: Colors.white)),
                     subtitle: Text(
-                      isActive ? 'Visible para usuarios' : 'Oculto para usuarios',
-                      style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      isActive
+                          ? 'Visible para usuarios'
+                          : 'Oculto para usuarios',
+                      style:
+                          const TextStyle(color: Colors.white60, fontSize: 12),
                     ),
                     value: isActive,
                     activeColor: AppTheme.accentGold,
@@ -271,27 +291,29 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+                child: const Text('Cancelar',
+                    style: TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
                 onPressed: () {
                   final newClovers = int.tryParse(cloversController.text);
                   final newAmount = double.tryParse(amountController.text);
-                  
+
                   if (newClovers == null || newClovers <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Costo en tréboles inválido')),
+                      const SnackBar(
+                          content: Text('Costo en tréboles inválido')),
                     );
                     return;
                   }
-                  
+
                   if (newAmount == null || newAmount <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Monto USD inválido')),
                     );
                     return;
                   }
-                  
+
                   Navigator.pop(ctx);
                   _updatePlan(
                     plan,
@@ -337,13 +359,15 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.accentGold))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.accentGold))
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                      Text(_error!,
+                          style: const TextStyle(color: Colors.redAccent)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadData,
@@ -401,15 +425,21 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                   color: AppTheme.accentGold.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.currency_exchange, color: AppTheme.accentGold, size: 24),
+                child: const Icon(Icons.currency_exchange,
+                    color: AppTheme.accentGold, size: 24),
               ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tasa de Cambio BCV', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text('USD → VES para retiros', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                    Text('Tasa de Cambio BCV',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
+                    Text('USD → VES para retiros',
+                        style: TextStyle(color: Colors.white60, fontSize: 12)),
                   ],
                 ),
               ),
@@ -417,40 +447,48 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
           ),
           const SizedBox(height: 16),
           if (_isLoadingRate)
-            const Center(child: CircularProgressIndicator(color: AppTheme.accentGold))
-          else ...
-            [
-              // ── FAIL-SAFE: Stale Rate Warning ──
-              if (!_isBcvRateValid)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '⚠️ TASA DESACTUALIZADA — Los retiros están bloqueados. Actualiza la tasa para reactivar.',
-                          style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
+            const Center(
+                child: CircularProgressIndicator(color: AppTheme.accentGold))
+          else ...[
+            // ── FAIL-SAFE: Stale Rate Warning ──
+            if (!_isBcvRateValid)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.redAccent, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '⚠️ TASA DESACTUALIZADA — Los retiros están bloqueados. Actualiza la tasa para reactivar.',
+                        style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${_exchangeRate.toStringAsFixed(2)} Bs/USD',
+                    style: const TextStyle(
+                        color: AppTheme.accentGold,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${_exchangeRate.toStringAsFixed(2)} Bs/USD',
-                      style: const TextStyle(color: AppTheme.accentGold, fontSize: 28, fontWeight: FontWeight.bold),
-                    ),
-                  ),
               ],
             ),
           ],
@@ -460,7 +498,8 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
               Expanded(
                 child: TextField(
                   controller: _rateController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Nueva Tasa',
@@ -468,7 +507,8 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                     prefixText: 'Bs ',
                     prefixStyle: const TextStyle(color: AppTheme.accentGold),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.3)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -485,8 +525,11 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
                   backgroundColor: AppTheme.accentGold,
                   foregroundColor: Colors.black,
                 ),
-                child: _isUpdatingRate 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                child: _isUpdatingRate
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text('Actualizar'),
               ),
             ],
@@ -499,7 +542,7 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
   Widget _buildPlanCard(WithdrawalPlan plan) {
     // Calculate VES preview
     final vesAmount = plan.amountUsd * _exchangeRate;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -507,8 +550,8 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
         color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: plan.isActive 
-              ? AppTheme.accentGold.withOpacity(0.3) 
+          color: plan.isActive
+              ? AppTheme.accentGold.withOpacity(0.3)
               : Colors.grey.withOpacity(0.3),
         ),
       ),
@@ -516,88 +559,103 @@ class _WithdrawalPlansManagementScreenState extends State<WithdrawalPlansManagem
         children: [
           // Icon
           Container(
-            width: 60,
-            height: 60,
+            width: 48, // Reduced from 60
+            height: 48, // Reduced from 60
             decoration: BoxDecoration(
-              color: plan.isActive 
+              color: plan.isActive
                   ? AppTheme.accentGold.withOpacity(0.2)
                   : Colors.grey.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Text(plan.icon ?? '💸', style: const TextStyle(fontSize: 28)),
+              child:
+                  Text(plan.icon ?? '💸', style: const TextStyle(fontSize: 20)),
             ),
           ),
-          const SizedBox(width: 16),
-          
+          const SizedBox(width: 12),
+
           // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
-                    Text(
-                      plan.name,
-                      style: TextStyle(
-                        color: plan.isActive ? Colors.white : Colors.grey,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        plan.name,
+                        style: TextStyle(
+                          color: plan.isActive ? Colors.white : Colors.grey,
+                          fontSize: 15, // Slightly smaller
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (!plan.isActive) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.grey.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text('INACTIVO', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                        child: const Text('OFF',
+                            style: TextStyle(color: Colors.grey, fontSize: 8)),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  'Costo: ${plan.cloversCost} 🍀',
+                  '${plan.cloversCost} 🍀',
                   style: TextStyle(
                     color: plan.isActive ? Colors.white70 : Colors.grey,
-                    fontSize: 14,
+                    fontSize: 11, // Slightly smaller
                   ),
                 ),
                 Text(
-                  'Recibe: ${vesAmount.toStringAsFixed(2)} VES',
+                  '${vesAmount.toStringAsFixed(2)} VES',
                   style: TextStyle(
                     color: plan.isActive ? Colors.white54 : Colors.grey,
-                    fontSize: 12,
+                    fontSize: 10,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          
+          const SizedBox(width: 4), // Reduced from 8
+
           // Amount USD
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                plan.formattedAmountUsd,
-                style: TextStyle(
-                  color: plan.isActive ? AppTheme.accentGold : Colors.grey,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  plan.formattedAmountUsd,
+                  style: TextStyle(
+                    color: plan.isActive ? AppTheme.accentGold : Colors.grey,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const Text('USD', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const Text('USD',
+                  style: TextStyle(color: Colors.white54, fontSize: 10)),
             ],
           ),
-          const SizedBox(width: 8),
-          
+
           // Edit Button
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white54),
+            icon: const Icon(Icons.edit, color: Colors.white54, size: 18),
             onPressed: () => _showEditDialog(plan),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
             tooltip: 'Editar',
           ),
         ],

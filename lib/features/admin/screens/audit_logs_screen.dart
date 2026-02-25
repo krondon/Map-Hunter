@@ -24,9 +24,13 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   // Filters
   String? _selectedActionType;
   final List<String> _actionTypes = [
-    'INSERT', 'UPDATE', 'DELETE', 'PLAYER_ACCEPTED', 'UPDATE_SENSITIVE'
+    'INSERT',
+    'UPDATE',
+    'DELETE',
+    'PLAYER_ACCEPTED',
+    'UPDATE_SENSITIVE'
   ];
-  
+
   String? _selectedAdminId;
   List<Player> _admins = [];
   DateTimeRange? _selectedDateRange;
@@ -46,7 +50,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
         !_isLoading &&
         _hasMore) {
       _loadLogs();
@@ -69,7 +74,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
   Future<void> _loadLogs({bool refresh = false}) async {
     if (_isLoading) return;
-    
+
     setState(() {
       _isLoading = true;
       if (refresh) {
@@ -139,10 +144,59 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
   Color _getActionColor(String action) {
     if (action.contains('DELETE')) return Colors.red.shade200;
-    if (action.contains('INSERT') || action.contains('CREATE')) return Colors.green.shade200;
+    if (action.contains('INSERT') || action.contains('CREATE'))
+      return Colors.green.shade200;
     if (action.contains('UPDATE')) return Colors.orange.shade200;
     if (action.contains('ACCEPTED')) return Colors.blue.shade200;
     return Colors.grey.shade200;
+  }
+
+  Widget _buildActionDropDown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedActionType,
+      decoration: const InputDecoration(
+        labelText: 'Acción',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('Todas')),
+        ..._actionTypes.map((type) => DropdownMenuItem(
+              value: type,
+              child: Text(type),
+            )),
+      ],
+      onChanged: (value) {
+        setState(() {
+          _selectedActionType = value;
+        });
+        _loadLogs(refresh: true);
+      },
+    );
+  }
+
+  Widget _buildAdminDropDown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedAdminId,
+      decoration: const InputDecoration(
+        labelText: 'Admin',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('Todos')),
+        ..._admins.map((p) => DropdownMenuItem(
+              value: p.userId,
+              child: Text(p.name.isNotEmpty ? p.name : p.email),
+            )),
+      ],
+      onChanged: (value) {
+        setState(() {
+          _selectedAdminId = value;
+        });
+        _loadLogs(refresh: true);
+      },
+    );
   }
 
   @override
@@ -165,58 +219,25 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
             color: Colors.black12,
             child: Column(
               children: [
-                Row(
-                  children: [
-                    // Action Type Filter
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedActionType,
-                        decoration: const InputDecoration(
-                          labelText: 'Acción',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('Todas')),
-                          ..._actionTypes.map((type) => DropdownMenuItem(
-                            value: type,
-                            child: Text(type),
-                          )),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 550) {
+                      return Column(
+                        children: [
+                          _buildActionDropDown(),
+                          const SizedBox(height: 10),
+                          _buildAdminDropDown(),
                         ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedActionType = value;
-                          });
-                          _loadLogs(refresh: true);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Admin Filter
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedAdminId,
-                        decoration: const InputDecoration(
-                          labelText: 'Admin',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('Todos')),
-                          ..._admins.map((p) => DropdownMenuItem(
-                            value: p.userId,
-                            child: Text(p.name.isNotEmpty ? p.name : p.email),
-                          )),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedAdminId = value;
-                          });
-                          _loadLogs(refresh: true);
-                        },
-                      ),
-                    ),
-                  ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: _buildActionDropDown()),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildAdminDropDown()),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
                 // Date Range Filter
@@ -224,20 +245,25 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.date_range),
-                        label: Text(_selectedDateRange == null
-                            ? 'Seleccionar Fechas'
-                            : '${DateFormat('dd/MM').format(_selectedDateRange!.start)} - ${DateFormat('dd/MM').format(_selectedDateRange!.end)}'),
+                        icon: const Icon(Icons.date_range, size: 18),
+                        label: Text(
+                          _selectedDateRange == null
+                              ? 'Seleccionar Fechas'
+                              : '${DateFormat('dd/MM').format(_selectedDateRange!.start)} - ${DateFormat('dd/MM').format(_selectedDateRange!.end)}',
+                          style: const TextStyle(fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         onPressed: _selectDateRange,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white70,
                           side: const BorderSide(color: Colors.white24),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
                     ),
                     if (_selectedDateRange != null)
                       IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear, size: 20),
                         onPressed: () {
                           setState(() {
                             _selectedDateRange = null;
@@ -250,7 +276,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
               ],
             ),
           ),
-          
+
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -262,7 +288,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
                 final log = _logs[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: ExpansionTile(
                     leading: CircleAvatar(
                       backgroundColor: _getActionColor(log.actionType),
@@ -272,7 +299,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                         size: 20,
                       ),
                     ),
-                    title: Text(log.actionType, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(log.actionType,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
                       'Admin: ${log.adminEmail ?? log.adminId ?? 'Sistema'} \nTarget: ${log.targetTable}',
                       style: const TextStyle(fontSize: 12),
@@ -288,7 +316,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                           alignment: Alignment.topLeft,
                           child: SelectableText(
                             _prettyPrintJson(log.details),
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                            style: const TextStyle(
+                                fontFamily: 'monospace', fontSize: 12),
                           ),
                         ),
                       ),
@@ -305,7 +334,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
   IconData _getIconForAction(String action) {
     if (action.contains('DELETE')) return Icons.delete;
-    if (action.contains('INSERT') || action.contains('CREATE')) return Icons.add_circle;
+    if (action.contains('INSERT') || action.contains('CREATE'))
+      return Icons.add_circle;
     if (action.contains('UPDATE')) return Icons.edit;
     if (action.contains('ACCEPTED')) return Icons.check_circle;
     return Icons.info;

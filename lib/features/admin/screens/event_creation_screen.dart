@@ -696,14 +696,23 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  const Icon(Icons.emoji_events,
-                                      color: AppTheme.accentGold),
-                                  const SizedBox(width: 10),
-                                  const Text("Cantidad de Ganadores:",
-                                      style: TextStyle(color: Colors.white)),
-                                  const Spacer(),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.emoji_events,
+                                          color: AppTheme.accentGold),
+                                      const SizedBox(width: 10),
+                                      const Text("Cantidad de Ganadores:",
+                                          style:
+                                              TextStyle(color: Colors.white)),
+                                    ],
+                                  ),
                                   SegmentedButton<int>(
                                     segments: const [
                                       ButtonSegment<int>(
@@ -1415,8 +1424,8 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
                                 childAspectRatio: constraints.maxWidth < 600
-                                    ? 4
-                                    : 3, // Taller items on mobile
+                                    ? 2.5 // More height per item (Reduced from 4)
+                                    : 3,
                               ),
                               itemCount: PowerItem.getShopItems().length,
                               itemBuilder: (context, index) {

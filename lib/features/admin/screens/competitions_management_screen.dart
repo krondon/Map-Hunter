@@ -153,37 +153,41 @@ class _CompetitionsManagementScreenState
               ],
             ),
           ),
-          
+
           // CONTROLES DE FILTRO (ESTADO)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-            child: Row(
-              children: [
-                _buildFilterChip(
-                  label: 'En Curso',
-                  isActive: _selectedFilter == 'active',
-                  onTap: () => setState(() => _selectedFilter = 'active'),
-                  activeColor: AppTheme.accentGold,
-                  textColor: Colors.black,
-                ),
-                const SizedBox(width: 12),
-                const SizedBox(width: 12),
-                _buildFilterChip(
-                  label: 'Por Comenzar',
-                  isActive: _selectedFilter == 'pending',
-                  onTap: () => setState(() => _selectedFilter = 'pending'),
-                  activeColor: Colors.blueAccent,
-                  textColor: Colors.white,
-                ),
-                const SizedBox(width: 12),
-                _buildFilterChip(
-                  label: 'Finalizados',
-                  isActive: _selectedFilter == 'completed',
-                  onTap: () => setState(() => _selectedFilter = 'completed'),
-                  activeColor: Colors.grey,
-                  textColor: Colors.white,
-                ),
-              ],
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildFilterChip(
+                    label: 'En Curso',
+                    isActive: _selectedFilter == 'active',
+                    onTap: () => setState(() => _selectedFilter = 'active'),
+                    activeColor: AppTheme.accentGold,
+                    textColor: Colors.black,
+                  ),
+                  const SizedBox(width: 12),
+                  _buildFilterChip(
+                    label: 'Por Comenzar',
+                    isActive: _selectedFilter == 'pending',
+                    onTap: () => setState(() => _selectedFilter = 'pending'),
+                    activeColor: Colors.blueAccent,
+                    textColor: Colors.white,
+                  ),
+                  const SizedBox(width: 12),
+                  _buildFilterChip(
+                    label: 'Finalizados',
+                    isActive: _selectedFilter == 'completed',
+                    onTap: () => setState(() => _selectedFilter = 'completed'),
+                    activeColor: Colors.grey,
+                    textColor: Colors.white,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -207,10 +211,11 @@ class _CompetitionsManagementScreenState
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                        borderSide:
+                            const BorderSide(color: AppTheme.accentGold),
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -242,22 +247,25 @@ class _CompetitionsManagementScreenState
                     decoration: InputDecoration(
                       hintText: 'Buscar por título...',
                       hintStyle: const TextStyle(color: Colors.white54),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                      prefixIcon:
+                          const Icon(Icons.search, color: Colors.white54),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: Colors.white24),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppTheme.accentGold),
+                        borderSide:
+                            const BorderSide(color: AppTheme.accentGold),
                       ),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.03),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white54),
+                              icon: const Icon(Icons.close,
+                                  color: Colors.white54),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _searchQuery = '');
@@ -427,7 +435,8 @@ class _CompetitionsManagementScreenState
                                               CompetitionDetailScreen(
                                                   event: event),
                                         ),
-                                      ).then((_) => _loadEvents()); // Refresh on return
+                                      ).then((_) =>
+                                          _loadEvents()); // Refresh on return
                                     },
                                     icon:
                                         const Icon(Icons.visibility, size: 18),
@@ -453,6 +462,7 @@ class _CompetitionsManagementScreenState
       ),
     );
   }
+
   Widget _buildFilterChip({
     required String label,
     required bool isActive,
@@ -460,7 +470,8 @@ class _CompetitionsManagementScreenState
     required Color activeColor,
     required Color textColor,
   }) {
-    final backgroundColor = isActive ? activeColor : Colors.white.withOpacity(0.05);
+    final backgroundColor =
+        isActive ? activeColor : Colors.white.withOpacity(0.05);
     final borderColor = isActive ? activeColor : Colors.white24;
     final labelColor = isActive ? textColor : Colors.white60;
     final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;

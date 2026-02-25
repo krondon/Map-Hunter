@@ -119,20 +119,28 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Automatización Online',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: const Text(
+                'Automatización Online',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold),
+              ),
             ),
-            Text(
+            const Text(
               'Configura la creación automática de competencias.',
               style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
@@ -174,14 +182,17 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  isEnabled
-                      ? 'Automatización ACTIVA'
-                      : 'Automatización DESACTIVADA',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    isEnabled
+                        ? 'Automatización ACTIVA'
+                        : 'Automatización DESACTIVADA',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const Text(
                   'Si está activa, el sistema generará eventos según el intervalo definido.',
@@ -215,13 +226,14 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Parámetros de Generación',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+              const Expanded(
+                child: Text('Parámetros de Generación',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+              ),
               IconButton(
                   onPressed: _saveConfig,
                   icon: const Icon(Icons.save, color: AppTheme.primaryPurple)),
