@@ -608,11 +608,15 @@ class _ScenariosScreenState extends State<ScenariosScreen>
     // Subscribe to route observer to detect when returning to this screen
     routeObserver.subscribe(this, ModalRoute.of(context) as ModalRoute<void>);
 
-    // Precargar imágenes de fondo para transiciones suaves
+    // Precargar imágenes de fondo para transiciones suaves (con límites de memoria)
     precacheImage(
-        const AssetImage('assets/images/personajesgrupal.png'), context);
+        const ResizeImage(AssetImage('assets/images/personajesgrupal.png'),
+            width: 1024),
+        context);
     precacheImage(
-        const AssetImage('assets/images/fotogrupalnoche.png'), context);
+        const ResizeImage(AssetImage('assets/images/fotogrupalnoche.png'),
+            width: 1024),
+        context);
   }
 
   Future<void> _checkFirstTime() async {

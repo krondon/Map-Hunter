@@ -14,8 +14,14 @@ class AvatarSelectionScreen extends StatefulWidget {
   final String? eventId;
 
   static const List<String> validAvatarIds = [
-    'explorer_m', 'hacker_m', 'warrior_m', 'spec_m',
-    'explorer_f', 'hacker_f', 'warrior_f', 'spec_f',
+    'explorer_m',
+    'hacker_m',
+    'warrior_m',
+    'spec_m',
+    'explorer_f',
+    'hacker_f',
+    'warrior_f',
+    'spec_f',
   ];
 
   const AvatarSelectionScreen({super.key, this.eventId});
@@ -24,31 +30,64 @@ class AvatarSelectionScreen extends StatefulWidget {
   State<AvatarSelectionScreen> createState() => _AvatarSelectionScreenState();
 }
 
-class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with TickerProviderStateMixin {
+class _AvatarSelectionScreenState extends State<AvatarSelectionScreen>
+    with TickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _hoverController;
   late AnimationController _particleController;
-  
+
   // Video Controllers for seamless transition (Double Buffering)
   VideoPlayerController? _activeController;
   VideoPlayerController? _previousController;
-  
+
   String? _activeAvatarId;
   int _currentIndex = 0;
   bool _isSaving = false;
-  
+
   // Infinite scroll offset
   static const int _initialPageOffset = 1000;
 
   final List<Map<String, String>> _avatars = [
-    {'id': 'explorer_m', 'name': 'EXPLORADOR', 'desc': 'Experto en mapas y brújulas legendarias.'},
-    {'id': 'hacker_m', 'name': 'HACKER', 'desc': 'Capaz de descifrar cualquier código de red.'},
-    {'id': 'warrior_m', 'name': 'CYBER GUERRERO', 'desc': 'Fuerza bruta y reflejos aumentados.'},
-    {'id': 'spec_m', 'name': 'ESPECIALISTA', 'desc': 'Usa visión VR para ver lo invisible.'},
-    {'id': 'explorer_f', 'name': 'EXPLORADORA', 'desc': 'Busca reliquias en lo desconocido.'},
-    {'id': 'hacker_f', 'name': 'CIBER-HACKER', 'desc': 'Domina la red con elegancia letal.'},
-    {'id': 'warrior_f', 'name': 'ASESINA NEON', 'desc': 'Silenciosa como una sombra eléctrica.'},
-    {'id': 'spec_f', 'name': 'ESPECIALISTA', 'desc': 'Tecnología de punta a su servicio.'},
+    {
+      'id': 'explorer_m',
+      'name': 'EXPLORADOR',
+      'desc': 'Experto en mapas y brújulas legendarias.'
+    },
+    {
+      'id': 'hacker_m',
+      'name': 'HACKER',
+      'desc': 'Capaz de descifrar cualquier código de red.'
+    },
+    {
+      'id': 'warrior_m',
+      'name': 'CYBER GUERRERO',
+      'desc': 'Fuerza bruta y reflejos aumentados.'
+    },
+    {
+      'id': 'spec_m',
+      'name': 'ESPECIALISTA',
+      'desc': 'Usa visión VR para ver lo invisible.'
+    },
+    {
+      'id': 'explorer_f',
+      'name': 'EXPLORADORA',
+      'desc': 'Busca reliquias en lo desconocido.'
+    },
+    {
+      'id': 'hacker_f',
+      'name': 'CIBER-HACKER',
+      'desc': 'Domina la red con elegancia letal.'
+    },
+    {
+      'id': 'warrior_f',
+      'name': 'ASESINA NEON',
+      'desc': 'Silenciosa como una sombra eléctrica.'
+    },
+    {
+      'id': 'spec_f',
+      'name': 'ESPECIALISTA',
+      'desc': 'Tecnología de punta a su servicio.'
+    },
   ];
 
   final Map<String, String> _avatarVideos = {
@@ -68,13 +107,13 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
     // Iniciar en un índice alto para permitir scroll infinito hacia atrás
     _currentIndex = 0;
     _pageController = PageController(
-      viewportFraction: 0.8, 
+      viewportFraction: 0.8,
       initialPage: _initialPageOffset,
     );
-    
+
     _hoverController = AnimationController(
-       vsync: this,
-       duration: const Duration(seconds: 2),
+      vsync: this,
+      duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
     _particleController = AnimationController(
@@ -88,7 +127,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
 
   void _loadVideoForAvatar(String avatarId) {
     if (_activeAvatarId == avatarId) return;
-    
+
     final videoPath = _avatarVideos[avatarId];
     if (videoPath == null) return;
 
@@ -96,51 +135,44 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
 
     // 1. Move current active to previous (Background layer)
     final oldActive = _activeController;
-    
+
     // Si ya teníamos un "previous" pendiente de limpieza, lo limpiamos ahora
     if (_previousController != null && _previousController != oldActive) {
       _previousController?.dispose();
     }
-    
+
     _previousController = oldActive;
     _activeController = null; // Clear active while loading new one
 
     // 2. Load new video
     final newController = VideoPlayerController.asset(videoPath);
-    
+
     newController.initialize().then((_) {
       if (mounted) {
         debugPrint('🎬 AvatarSelection: Video initialized for $avatarId');
         setState(() {
           _activeController = newController;
           _activeAvatarId = avatarId;
-          
+
           _activeController?.setLooping(true);
           _activeController?.setVolume(0.0);
           _activeController?.play();
         });
 
-        // 3. Clean up previous after transition (DELAYED)
-        // Wait for the fade-in animation (e.g. 1 second) plus a buffer
-        Future.delayed(const Duration(milliseconds: 1200), () {
-          if (mounted && _previousController != null) {
-            // Solo disponer si no se ha convertido en el activo de nuevo (race condition check)
-            if (_previousController != _activeController) {
-               _previousController?.dispose();
-               _previousController = null;
-               // Trigger rebuild to remove the background layer
-               if (mounted) setState(() {}); 
-            }
-          }
-        });
+        // 3. Clean up previous after transition (IMMEDIATE for memory safety)
+        if (_previousController != null) {
+          _previousController?.dispose();
+          _previousController = null;
+          if (mounted) setState(() {});
+        }
       }
     }).catchError((e) {
       debugPrint("🛑 AvatarSelection: Error loading video: $e");
       // En caso de error, intentar restaurar el anterior como activo si existe
       if (mounted) {
         setState(() {
-           _activeController = _previousController; 
-           _previousController = null;
+          _activeController = _previousController;
+          _previousController = null;
         });
       }
     });
@@ -150,7 +182,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
     // Calcular índice real basado en módulo
     final realIndex = index % _avatars.length;
     setState(() => _currentIndex = realIndex);
-    
+
     final avatarId = _avatars[realIndex]['id'];
     if (avatarId != null) {
       _loadVideoForAvatar(avatarId);
@@ -170,42 +202,48 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
   Future<void> _handleConfirm() async {
     final selectedId = _avatars[_currentIndex]['id'];
     if (selectedId == null) return;
-    
+
     setState(() => _isSaving = true);
     try {
       final playerProvider = context.read<PlayerProvider>();
       final gameProvider = context.read<GameProvider>();
-      
+
       await playerProvider.updateAvatar(selectedId);
-      
+
       if (!mounted) return;
 
       if (widget.eventId != null) {
-        await gameProvider.initializeGameForApprovedUser(playerProvider.currentPlayer!.userId, widget.eventId!);
+        await gameProvider.initializeGameForApprovedUser(
+            playerProvider.currentPlayer!.userId, widget.eventId!);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => StoryScreen(eventId: widget.eventId!)),
+          MaterialPageRoute(
+              builder: (_) => StoryScreen(eventId: widget.eventId!)),
         );
       } else {
         Navigator.of(context).pushReplacement(
-           MaterialPageRoute(builder: (_) => const GameModeSelectorScreen()),
+          MaterialPageRoute(builder: (_) => const GameModeSelectorScreen()),
         );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e'), backgroundColor: AppTheme.dangerRed),
+        SnackBar(
+            content: Text('Error al guardar: $e'),
+            backgroundColor: AppTheme.dangerRed),
       );
     }
   }
 
   void _nextPage() {
-    _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    _pageController.nextPage(
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   void _previousPage() {
-    _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    _pageController.previousPage(
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   @override
@@ -224,16 +262,17 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
               fit: BoxFit.cover,
             ),
           ),
-          
+
           // 2. CAPA DE FONDO (PREVIOUS VIDEO) - Mantiene el último frame visible
-          if (_previousController != null && _previousController!.value.isInitialized)
+          if (_previousController != null &&
+              _previousController!.value.isInitialized)
             Positioned.fill(
               child: FittedBox(
                 fit: BoxFit.cover,
                 child: SizedBox(
-                   width: _previousController!.value.size.width,
-                   height: _previousController!.value.size.height,
-                   child: VideoPlayer(_previousController!),
+                  width: _previousController!.value.size.width,
+                  height: _previousController!.value.size.height,
+                  child: VideoPlayer(_previousController!),
                 ),
               ),
             ),
@@ -242,29 +281,33 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
           // Usamos AnimatedOpacity para la transición suave
           Positioned.fill(
             child: AnimatedOpacity(
-              opacity: (_activeController != null && _activeController!.value.isInitialized) ? 1.0 : 0.0,
+              opacity: (_activeController != null &&
+                      _activeController!.value.isInitialized)
+                  ? 1.0
+                  : 0.0,
               duration: const Duration(milliseconds: 800), // Duración del Fade
               curve: Curves.easeInOut,
-              child: (_activeController != null && _activeController!.value.isInitialized) 
-                ? FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: _activeController!.value.size.width,
-                      height: _activeController!.value.size.height,
-                      child: VideoPlayer(_activeController!),
-                    ),
-                  )
-                : const SizedBox(),
+              child: (_activeController != null &&
+                      _activeController!.value.isInitialized)
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _activeController!.value.size.width,
+                        height: _activeController!.value.size.height,
+                        child: VideoPlayer(_activeController!),
+                      ),
+                    )
+                  : const SizedBox(),
             ),
           ),
-          
+
           // 4. Overlay oscuro constante
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.4),
             ),
           ),
-          
+
           // Partículas flotantes animadas
           AnimatedBuilder(
             animation: _particleController,
@@ -293,17 +336,18 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                 //     ],
                 //   ),
                 // ),
-                
+
                 // const SizedBox(height: 10),
-                
+
                 // Header Cyberpunk
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   child: Column(
                     children: [
                       const Icon(
-                        Icons.person_search_rounded, 
-                        size: 50, 
+                        Icons.person_search_rounded,
+                        size: 50,
                         color: dGoldMain,
                       ),
                       const SizedBox(height: 12),
@@ -329,7 +373,11 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                         width: 100,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.transparent, dGoldMain, Colors.transparent],
+                            colors: [
+                              Colors.transparent,
+                              dGoldMain,
+                              Colors.transparent
+                            ],
                           ),
                         ),
                       ),
@@ -337,7 +385,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                   ),
                 ),
                 const SizedBox(height: 30),
-                
+
                 // Carousel Infinito
                 Expanded(
                   child: Stack(
@@ -351,9 +399,9 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                           // Módulo para ciclo infinito
                           final realIndex = index % _avatars.length;
                           final avatar = _avatars[realIndex];
-                          
+
                           final isSelected = realIndex == _currentIndex;
-                          
+
                           return AnimatedScale(
                             scale: isSelected ? 1.0 : 0.7,
                             duration: const Duration(milliseconds: 300),
@@ -366,24 +414,29 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                                   AnimatedBuilder(
                                     animation: _hoverController,
                                     builder: (context, child) {
-                                      final double offset = isSelected 
-                                        ? Curves.easeInOut.transform(_hoverController.value) * 15 
-                                        : 0;
+                                      final double offset = isSelected
+                                          ? Curves.easeInOut.transform(
+                                                  _hoverController.value) *
+                                              15
+                                          : 0;
                                       return Transform.translate(
                                         offset: Offset(0, -offset),
                                         child: child,
                                       );
                                     },
-                                      child: Container(
-                                        height: 200,
-                                        width: 200,
-                                        decoration: null,
-                                        child: Image.asset(
+                                    child: Container(
+                                      height: 200,
+                                      width: 200,
+                                      decoration: null,
+                                      child: Image.asset(
                                         'assets/images/avatars/${avatar['id']}.png',
                                         fit: BoxFit.contain,
-                                        errorBuilder: (_, __, ___) => const Icon(
-                                          Icons.person, 
-                                          color: Colors.white70, 
+                                        cacheWidth:
+                                            400, // Constraint memory usage
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(
+                                          Icons.person,
+                                          color: Colors.white70,
                                           size: 100,
                                         ),
                                       ),
@@ -394,7 +447,9 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                                     avatar['name']!,
                                     style: TextStyle(
                                       fontFamily: 'Orbitron',
-                                      color: isSelected ? dGoldMain : Colors.white70,
+                                      color: isSelected
+                                          ? dGoldMain
+                                          : Colors.white70,
                                       fontWeight: FontWeight.bold,
                                       fontSize: isSelected ? 26 : 22,
                                       letterSpacing: 2,
@@ -403,12 +458,15 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                                   ),
                                   const SizedBox(height: 12),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 50),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 50),
                                     child: Text(
                                       avatar['desc']!,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: isSelected ? Colors.white : Colors.white54,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.white54,
                                         fontSize: 14,
                                         height: 1.5,
                                       ),
@@ -420,7 +478,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                           );
                         },
                       ),
-                      
+
                       // Flechas de Navegación (Estilo Congelado)
                       Positioned(
                         left: 15,
@@ -441,7 +499,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                     ],
                   ),
                 ),
-                
+
                 // Confirm Button (Doble Borde Estilo Premium)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
@@ -449,7 +507,8 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: dGoldMain.withOpacity(0.4), width: 1),
+                      border: Border.all(
+                          color: dGoldMain.withOpacity(0.4), width: 1),
                     ),
                     child: Container(
                       width: double.infinity,
@@ -480,23 +539,24 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> with Tick
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: _isSaving 
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.black),
+                                ),
+                              )
+                            : const Text(
+                                'CONFIRMAR IDENTIDAD',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                  fontSize: 16,
+                                ),
                               ),
-                            )
-                          : const Text(
-                              'CONFIRMAR IDENTIDAD',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900, 
-                                letterSpacing: 1.5, 
-                                fontSize: 16,
-                              ),
-                            ),
                       ),
                     ),
                   ),
@@ -571,13 +631,13 @@ class CyberRingButton extends StatelessWidget {
 
 class ParticlePainter extends CustomPainter {
   final double animationValue;
-  
+
   ParticlePainter(this.animationValue);
-  
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..style = PaintingStyle.fill;
-    
+
     // Generar partículas deterministas
     final random = math.Random(42);
     for (int i = 0; i < 50; i++) {
@@ -586,7 +646,7 @@ class ParticlePainter extends CustomPainter {
       final speed = 0.5 + random.nextDouble() * 0.5;
       final y = (baseY + animationValue * size.height * speed) % size.height;
       final radius = 1.0 + random.nextDouble() * 2.5;
-      
+
       // Colores usando la paleta del login
       final colors = [
         AppTheme.primaryPurple,
@@ -594,15 +654,15 @@ class ParticlePainter extends CustomPainter {
         Colors.white,
       ];
       paint.color = colors[i % colors.length].withOpacity(0.5);
-      
+
       canvas.drawCircle(Offset(x, y), radius, paint);
-      
+
       // Efecto de brillo
       paint.color = colors[i % colors.length].withOpacity(0.15);
       canvas.drawCircle(Offset(x, y), radius * 2, paint);
     }
   }
-  
+
   @override
   bool shouldRepaint(ParticlePainter oldDelegate) => true;
 }

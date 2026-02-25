@@ -56,9 +56,94 @@ import 'features/game/repositories/game_request_repository.dart';
 import 'features/mall/providers/shop_provider.dart';
 
 import 'core/storage/secure_local_storage.dart';
+import 'package:flutter/foundation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 0. Configurar captura de errores globales
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('[CRITICAL_ERROR] Flutter Error: ${details.exception}');
+    debugPrint('[CRITICAL_ERROR] Stack: ${details.stack}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('[CRITICAL_ERROR] Platform Error: $error');
+    debugPrint('[CRITICAL_ERROR] Stack: $stack');
+    return true; // Mark as handled
+  };
+
+  // 1. Pantalla de error amigable para el usuario
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF0D0D0F),
+        body: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF151517),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFFECB00), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFECB00).withOpacity(0.15),
+                  blurRadius: 30,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt_rounded,
+                    color: Color(0xFFFECB00), size: 60),
+                const SizedBox(height: 24),
+                const Text(
+                  '¡UPS! ALGO FALLÓ',
+                  style: TextStyle(
+                    fontFamily: 'Orbitron',
+                    fontSize: 22,
+                    color: Color(0xFFFECB00),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Hemos detectado una anomalía en el sistema. Estamos trabajando para restaurar la conexión.',
+                  style: TextStyle(
+                      color: Colors.white70, fontSize: 14, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () {
+                    // Reiniciar app o volver a inicio
+                    // Nota: En Flutter no hay una forma nativa trivial de "reiniciar"
+                    // pero podemos redirigir al punto de entrada.
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFECB00),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('REINTENTAR',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  };
 
   // Cargar variables de entorno
   await dotenv.load(fileName: ".env");

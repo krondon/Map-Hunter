@@ -26,7 +26,7 @@ class ConnectivityMonitor extends StatefulWidget {
 
 class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
   Timer? _countdownTimer;
-  int _secondsRemaining = 25;
+  int _secondsRemaining = 30;
   bool _showOverlay = false;
   bool _hasTriggeredDisconnect = false;
   ConnectivityProvider? _connectivityProvider;
@@ -77,7 +77,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
 
     setState(() {
       _showOverlay = true;
-      _secondsRemaining = 25;
+      _secondsRemaining = 30;
     });
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -103,7 +103,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
       if (mounted) {
         setState(() {
           _showOverlay = false;
-          _secondsRemaining = 25;
+          _secondsRemaining = 30;
         });
       }
     }
@@ -152,13 +152,19 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     // 1. Mostrar mensaje y redirigir INMEDIATAMENTE
     _showDisconnectMessage(message);
 
-    // 2. Ejecutar limpieza de sesión en segundo plano
-    unawaited(
-      playerProvider.logout().timeout(
-            const Duration(seconds: 2),
-            onTimeout: () => debugPrint('ConnectivityMonitor: Logout timeout'),
-          ),
-    );
+    // 2. Ejecutar limpieza de sesión SOLO SI está en minijuego
+    if (connectivity.isInMinigame) {
+      unawaited(
+        playerProvider.logout().timeout(
+              const Duration(seconds: 2),
+              onTimeout: () =>
+                  debugPrint('ConnectivityMonitor: Logout timeout'),
+            ),
+      );
+    } else {
+      debugPrint(
+          'ConnectivityMonitor: Disconnect detected outside minigame. Staying logged in.');
+    }
 
     // 3. Detener monitoreo local
     connectivity.stopMonitoring();
@@ -167,7 +173,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     if (mounted) {
       setState(() {
         _showOverlay = false;
-        _secondsRemaining = 25;
+        _secondsRemaining = 30;
         _hasTriggeredDisconnect = false;
       });
     }
@@ -176,10 +182,15 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
   void _showDisconnectMessage(String message) {
     if (rootNavigatorKey.currentState == null) return;
 
+    final playerProvider = context.read<PlayerProvider>();
+
     // Navegar a login
     rootNavigatorKey.currentState!.pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => kIsWeb ? const AdminLoginScreen() : const LoginScreen(),
+        builder: (_) =>
+            (kIsWeb && playerProvider.currentPlayer?.role == 'admin')
+                ? const AdminLoginScreen()
+                : const LoginScreen(),
       ),
       (route) => false,
     );

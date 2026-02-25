@@ -325,33 +325,33 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
   }
 
   Future<bool> updateProfile(
-    {String? name, String? email, String? phone, String? cedula}) async {
-  if (_currentPlayer == null) return false;
-  try {
-    final emailChanged = await _authService.updateProfile(
-      _currentPlayer!.userId,
-      name: name,
-      email: email,
-      phone: phone,
-      cedula: cedula,
-    );
+      {String? name, String? email, String? phone, String? cedula}) async {
+    if (_currentPlayer == null) return false;
+    try {
+      final emailChanged = await _authService.updateProfile(
+        _currentPlayer!.userId,
+        name: name,
+        email: email,
+        phone: phone,
+        cedula: cedula,
+      );
 
-    // Actualizar localmente
-    _currentPlayer = _currentPlayer!.copyWith(
-      name: name,
-      email: email,
-      phone: phone,
-      cedula: cedula,
-      emailVerified: emailChanged ? false : null,
-    );
+      // Actualizar localmente
+      _currentPlayer = _currentPlayer!.copyWith(
+        name: name,
+        email: email,
+        phone: phone,
+        cedula: cedula,
+        emailVerified: emailChanged ? false : null,
+      );
 
-    notifyListeners();
-    return emailChanged;
-  } catch (e) {
-    debugPrint('Error updating profile in provider: $e');
-    rethrow;
+      notifyListeners();
+      return emailChanged;
+    } catch (e) {
+      debugPrint('Error updating profile in provider: $e');
+      rethrow;
+    }
   }
-}
 
   Future<void> addPaymentMethod({required String bankCode}) async {
     try {
@@ -1225,8 +1225,17 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             _fetchProfile(userId);
           }
         }, onError: (e) {
-          debugPrint('Profile stream error: $e');
+          final errorStr = e.toString();
+          if (!errorStr.contains('SocketException') &&
+              !errorStr.contains('Failed host lookup')) {
+            debugPrint('Profile stream error: $e');
+          }
           _profileSubscription = null;
+          // Re-intentar después de un delay si seguimos logueados
+          if (_currentPlayer != null) {
+            Timer(
+                const Duration(seconds: 5), () => _subscribeToProfile(userId));
+          }
         });
   }
 
@@ -1280,8 +1289,18 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             }
           }
         }, onError: (error) {
-          debugPrint('❌ PlayerProvider: Error in game_players STREAM: $error');
+          final errorStr = error.toString();
+          if (!errorStr.contains('SocketException') &&
+              !errorStr.contains('Failed host lookup')) {
+            debugPrint(
+                '❌ PlayerProvider: Error in game_players STREAM: $error');
+          }
           _gamePlayersSubscription = null;
+          // Re-intentar después de un delay si seguimos logueados
+          if (_currentPlayer != null) {
+            Timer(const Duration(seconds: 5),
+                () => _subscribeToGamePlayers(userId));
+          }
         });
   }
 

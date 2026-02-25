@@ -131,14 +131,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
       // MOVED: _checkGlobalLivesGameOver monitoring is now started inside _checkLives
       // to avoid race conditions during initialization.
-      
+
       // MOVED: Tutorial trigger
       _showMinigameTutorial();
     });
   }
 
   void _showMinigameTutorial() async {
-    final player = Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
+    final player =
+        Provider.of<PlayerProvider>(context, listen: false).currentPlayer;
     if (player?.role == 'spectator') return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -726,30 +727,46 @@ void showSkipDialog(BuildContext context, VoidCallback? onLegalExit) {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        if (onLegalExit != null) {
-                          onLegalExit();
-                        }
-                        Navigator.pop(dialogContext);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
+                        // 1. CAPTURAR TODO LO NECESARIO ANTES DE NAVEGAR
                         final playerProvider =
                             Provider.of<PlayerProvider>(context, listen: false);
                         final gameProvider =
                             Provider.of<GameProvider>(context, listen: false);
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(context);
+
+                        if (onLegalExit != null) {
+                          onLegalExit();
+                        }
+
+                        // 2. Cerrar diálogo
+                        Navigator.pop(dialogContext);
+
+                        // 3. Cerrar pantalla actual (PuzzleScreen)
+                        if (context.mounted) {
+                          navigator.pop();
+                        }
+
+                        // 4. Lógica de pérdida de vida (Usando los providers capturados)
                         if (playerProvider.currentPlayer != null) {
+                          // Usamos el helper. Nota: El helper ahora captura sus propios providers si el context está vivo,
+                          // pero aquí le pasamos el context que ya capturamos nosotros arriba de forma segura.
+                          // En realidad, el helper internamente hace context.read de nuevo.
+                          // Es mejor si el helper acepta los providers opcionalmente, o simplemente confiar en que
+                          // context sigue siendo "suficiente" para lectura si no se ha destruído el árbol.
+                          // Pero para máxima seguridad, el helper ya fue actualizado para usar mounted.
                           await MinigameLogicHelper.executeLoseLife(context);
                         }
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.'),
-                              backgroundColor: AppTheme.warningOrange,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                        }
+
+                        // 5. Feedback
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.'),
+                            backgroundColor: AppTheme.warningOrange,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.dangerRed,
@@ -1443,7 +1460,9 @@ Widget _buildMinigameScaffold(
           // Background image
           Positioned.fill(
             child: Image.asset(
-              isDarkMode ? 'assets/images/hero.png' : 'assets/images/loginclaro.png',
+              isDarkMode
+                  ? 'assets/images/hero.png'
+                  : 'assets/images/loginclaro.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -1455,149 +1474,153 @@ Widget _buildMinigameScaffold(
           ),
           // Content
           SafeArea(
-          child: Consumer<GameProvider>(
-            builder: (context, game, _) {
-              return Stack(
-                children: [
-                  Column(
-                    children: [
-                      // AppBar Personalizado
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Row(
-                          children: [
-                            if (player?.role == 'spectator')
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back,
-                                    color: Colors.white),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            const Spacer(),
-                            if (player?.role != 'spectator') ...[
-                              // INDICADOR DE VIDAS CON ANIMACIÓN
-                              const ShieldBadge(), // NEW SHIELD WIDGET
-                              AnimatedLivesWidget(),
-                              const SizedBox(width: 10),
+            child: Consumer<GameProvider>(
+              builder: (context, game, _) {
+                return Stack(
+                  children: [
+                    Column(
+                      children: [
+                        // AppBar Personalizado
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              if (player?.role == 'spectator')
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_back,
+                                      color: Colors.white),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              const Spacer(),
+                              if (player?.role != 'spectator') ...[
+                                // INDICADOR DE VIDAS CON ANIMACIÓN
+                                const ShieldBadge(), // NEW SHIELD WIDGET
+                                AnimatedLivesWidget(),
+                                const SizedBox(width: 10),
 
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accentGold.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(15),
-                                  border:
-                                      Border.all(color: AppTheme.accentGold),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.accentGold.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(15),
+                                    border:
+                                        Border.all(color: AppTheme.accentGold),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.star,
+                                          color: AppTheme.accentGold, size: 12),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '+${clue.xpReward} XP',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 10),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.star,
-                                        color: AppTheme.accentGold, size: 12),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '+${clue.xpReward} XP',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 10),
-                                    ),
-                                  ],
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.flag,
+                                      color: AppTheme.dangerRed, size: 28),
+                                  tooltip: 'Rendirse',
+                                  onPressed: () =>
+                                      showSkipDialog(context, onFinish),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.flag,
-                                    color: AppTheme.dangerRed, size: 28),
-                                tooltip: 'Rendirse',
-                                onPressed: () =>
-                                    showSkipDialog(context, onFinish),
-                              ),
-                            ] else
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.blueAccent),
+                              ] else
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border:
+                                        Border.all(color: Colors.blueAccent),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.visibility,
+                                          color: Colors.blueAccent, size: 14),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'MODO ESPECTADOR',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.visibility,
-                                        color: Colors.blueAccent, size: 14),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'MODO ESPECTADOR',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      // Mapa de Progreso
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        child: RaceTrackWidget(
-                          leaderboard: game.leaderboard,
-                          currentPlayerId: player?.userId ?? '',
-                          totalClues: game.clues.length,
-                          onSurrender: () => showSkipDialog(context, onFinish),
-                          compact: clue.puzzleType == PuzzleType.tetris ||
-                              clue.puzzleType == PuzzleType.hangman ||
-                              clue.puzzleType == PuzzleType.fastNumber,
+                        // Mapa de Progreso
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          child: RaceTrackWidget(
+                            leaderboard: game.leaderboard,
+                            currentPlayerId: player?.userId ?? '',
+                            totalClues: game.clues.length,
+                            onSurrender: () =>
+                                showSkipDialog(context, onFinish),
+                            compact: clue.puzzleType == PuzzleType.tetris ||
+                                clue.puzzleType == PuzzleType.hangman ||
+                                clue.puzzleType == PuzzleType.fastNumber,
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(height: 10),
+                        const SizedBox(height: 10),
 
-                      Expanded(
-                        child: IgnorePointer(
-                          ignoring: player != null && player.isFrozen,
-                          child: isScrollable
-                              ? LayoutBuilder(builder: (context, constraints) {
-                                  return SingleChildScrollView(
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                          minHeight: constraints.maxHeight),
-                                      child: Center(child: wrappedChild),
-                                    ),
-                                  );
-                                })
-                              : wrappedChild, // Usamos el hijo con countdown
+                        Expanded(
+                          child: IgnorePointer(
+                            ignoring: player != null && player.isFrozen,
+                            child: isScrollable
+                                ? LayoutBuilder(
+                                    builder: (context, constraints) {
+                                    return SingleChildScrollView(
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                            minHeight: constraints.maxHeight),
+                                        child: Center(child: wrappedChild),
+                                      ),
+                                    );
+                                  })
+                                : wrappedChild, // Usamos el hijo con countdown
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  // EFECTO BLUR (Inyectado aquí)
-                  // EFECTO BLUR (Inyectado aquí)
-                  if (context
-                      .watch<PowerEffectReader>()
-                      .isPowerActive(PowerType.blur))
-                    Builder(builder: (context) {
-                      final expiry = context
-                          .read<PowerEffectReader>()
-                          .getPowerExpirationByType(PowerType.blur);
-                      if (expiry != null) {
-                        return Positioned.fill(
-                          child: BlurScreenEffect(expiresAt: expiry),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    }),
+                    // EFECTO BLUR (Inyectado aquí)
+                    // EFECTO BLUR (Inyectado aquí)
+                    if (context
+                        .watch<PowerEffectReader>()
+                        .isPowerActive(PowerType.blur))
+                      Builder(builder: (context) {
+                        final expiry = context
+                            .read<PowerEffectReader>()
+                            .getPowerExpirationByType(PowerType.blur);
+                        if (expiry != null) {
+                          return Positioned.fill(
+                            child: BlurScreenEffect(expiresAt: expiry),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
 
-                  // Efecto Visual de Daño (Flash Rojo) al perder vida
-                  LossFlashOverlay(lives: game.lives),
-                ],
-              );
-            },
-          ),
+                    // Efecto Visual de Daño (Flash Rojo) al perder vida
+                    LossFlashOverlay(lives: game.lives),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),

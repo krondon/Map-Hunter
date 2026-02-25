@@ -60,8 +60,10 @@ class _AuthMonitorState extends State<AuthMonitor> {
         });
       } else if (event == AuthChangeEvent.signedOut) {
         debugPrint(
-            'AuthMonitor: SignedOut event detected via Stream! Forcing cleanup...');
+            'AuthMonitor: [CRITICAL] SignedOut event detected via Supabase Stream! Forcing cleanup...');
         _navigateToLogin();
+      } else if (event == AuthChangeEvent.tokenRefreshed) {
+        debugPrint('AuthMonitor: Token refreshed successfully.');
       }
     });
   }
