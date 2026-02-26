@@ -1,21 +1,25 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-serve(async (req) => {
+// @ts-ignore: Deno is global in Supabase Edge Functions
+serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+        return new Response('ok', { headers: corsHeaders });
     }
 
     try {
         const supabaseClient = createClient(
+            // @ts-ignore
             Deno.env.get('SUPABASE_URL') ?? '',
+            // @ts-ignore
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
+        );
 
         // 0. Parse optional body for manual trigger
         let isManualAction = false;
@@ -25,7 +29,7 @@ serve(async (req) => {
                 isManualAction = true;
                 console.log('Manual trigger detected. Bypassing "enabled" check.');
             }
-        } catch (e) {
+        } catch (_e) {
             // Ignore if no body
         }
 
@@ -67,7 +71,6 @@ serve(async (req) => {
         console.log(`Generated: ${playerCount} players, ${gameCount} games, ${entryFee} entry fee`);
 
         // 3. Selection Strategy (Balanced Difficulty)
-        // We define pools based on the logic in clue.dart (dbValue matches camelCase in TypeScript as per enum)
         const easyPool = ['slidingPuzzle', 'ticTacToe', 'imageTrivia', 'trueFalse', 'virusTap', 'flags', 'matchThree', 'fastNumber'];
         const mediumPool = ['hangman', 'wordScramble', 'memorySequence', 'emojiMovie', 'bagShuffle', 'droneDodge', 'missingOperator', 'capitalCities'];
         const hardPool = ['tetris', 'minesweeper', 'snake', 'blockFill', 'codeBreaker', 'holographicPanels', 'primeNetwork', 'percentageCalculation', 'chronologicalOrder', 'drinkMixer', 'librarySort', 'findDifference'];
@@ -85,7 +88,6 @@ serve(async (req) => {
         selectedPuzzles.push(...shuffle(mediumPool).slice(0, targetMedium));
         selectedPuzzles.push(...shuffle(hardPool).slice(0, targetHard));
 
-        // Fill remaining if pools were too small (unlikely but safe)
         while (selectedPuzzles.length < gameCount) {
             selectedPuzzles.push(mediumPool[Math.floor(Math.random() * mediumPool.length)]);
         }
@@ -93,18 +95,19 @@ serve(async (req) => {
         console.log('Selected Puzzles:', selectedPuzzles);
 
         // 4. Create Event
+        // @ts-ignore
         const eventId = crypto.randomUUID();
         const pin = (Math.floor(Math.random() * 900000) + 100000).toString();
 
         console.log(`Creating event: ${eventId} with PIN: ${pin}`);
 
-        const { data: eventData, error: eventError } = await supabaseClient
+        const { data: _eventData, error: eventError } = await supabaseClient
             .from('events')
             .insert({
                 id: eventId,
                 title: `⚡ Competencia Online #${new Date().getTime().toString().slice(-4)}`,
                 description: '¡Demuestra tu habilidad!',
-                image_url: 'https://m-competitions.supabase.co/storage/v1/object/public/logos/default_event_logo.png', // Placeholder for the new logo
+                image_url: 'https://m-competitions.supabase.co/storage/v1/object/public/logos/default_event_logo.png',
                 location_name: 'Online',
                 latitude: 0,
                 longitude: 0,
@@ -205,6 +208,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,
-        })
+        });
     }
-})
+});

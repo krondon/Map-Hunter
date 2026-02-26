@@ -4,6 +4,7 @@ import 'package:webview_windows/webview_windows.dart' as webview_windows;
 import 'package:flutter/foundation.dart'; // For defaultTargetPlatform
 import 'package:flutter/gestures.dart'; // For EagerGestureRecognizer
 import 'package:url_launcher/url_launcher.dart';
+import 'url_helper.dart'; // Web: direct window.open() bypass for iOS Safari
 
 class PaymentWebViewModal extends StatefulWidget {
   final String paymentUrl;
@@ -216,7 +217,12 @@ class _PaymentWebViewModalState extends State<PaymentWebViewModal> {
                       const SizedBox(height: 12),
                     ],
                     ElevatedButton(
-                      onPressed: _launchPaymentInBrowser,
+                      // Calls window.open() synchronously within the tap gesture.
+                      // This is the ONLY approach that works on iOS Safari:
+                      // url_launcher calls canLaunchUrl() (async) before window.open(),
+                      // which breaks the gesture context and causes Safari to silently
+                      // block the popup. openUrlInNewTab() has no awaits before the call.
+                      onPressed: () => openUrlInNewTab(widget.paymentUrl),
                       child: const Text('Abrir pasarela de pago'),
                     ),
                     const SizedBox(height: 12),

@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/app_config_service.dart';
 import '../../wallet/models/withdrawal_plan.dart';
 import '../../wallet/services/withdrawal_plan_service.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 /// Admin screen for managing withdrawal plans.
 ///
@@ -203,7 +204,7 @@ class _WithdrawalPlansManagementScreenState
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      suffixText: '🍀',
+                      suffix: const CoinImage(size: 16),
                       enabledBorder: OutlineInputBorder(
                         borderSide:
                             BorderSide(color: Colors.white.withOpacity(0.3)),
@@ -609,12 +610,17 @@ class _WithdrawalPlansManagementScreenState
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  '${plan.cloversCost} 🍀',
-                  style: TextStyle(
-                    color: plan.isActive ? Colors.white70 : Colors.grey,
-                    fontSize: 11, // Slightly smaller
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '${plan.cloversCost} ',
+                      style: TextStyle(
+                        color: plan.isActive ? Colors.white70 : Colors.grey,
+                        fontSize: 11, // Slightly smaller
+                      ),
+                    ),
+                    const CoinImage(size: 11),
+                  ],
                 ),
                 Text(
                   '${vesAmount.toStringAsFixed(2)} VES',

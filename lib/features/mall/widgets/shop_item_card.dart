@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/power_item.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class ShopItemCard extends StatefulWidget {
   final PowerItem item;
@@ -309,7 +310,7 @@ class _ShopItemCardState extends State<ShopItemCard> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 6),
-                const Icon(Icons.monetization_on, size: 14, color: AppTheme.accentGold),
+                const Icon(Icons.monetization_on, size: 14, color: Colors.amber),
                 const SizedBox(width: 2),
                 Text(
                   '${widget.item.cost * _quantity}',

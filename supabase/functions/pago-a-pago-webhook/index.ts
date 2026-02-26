@@ -1,10 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
     // Manejo de solicitudes OPTIONS para CORS
@@ -16,7 +17,7 @@ serve(async (req) => {
         // 1. Validación de Seguridad Adaptativa
         const webhookSource = req.headers.get('x-webhook-source')
         const userAgent = req.headers.get('user-agent')
-        
+
         console.log("Headers received:", JSON.stringify(Object.fromEntries(req.headers.entries())))
 
         const isValidSource = (webhookSource === 'pagoapago-payment-processor')
@@ -76,7 +77,7 @@ serve(async (req) => {
                 break
             default:
                 console.warn(`Unknown event type: ${event}`)
-                newStatus = 'unknown' 
+                newStatus = 'unknown'
         }
 
         // 3. Persistencia en clover_orders
@@ -100,7 +101,7 @@ serve(async (req) => {
                 // Paso B: Preparar updateData
                 // Preservamos el existingOrder.extra_data y hacemos merge con lo nuevo
                 let finalExtraData = existingOrder.extra_data || {}
-                
+
                 // Si el payload trae new extra_data, lo mezclamos (prioridad al payload o al existente? 
                 // Usualmente el payload trae menos datos en error. Mejor mergeamos con cuidado).
                 if (data.extra_data) {
@@ -116,7 +117,7 @@ serve(async (req) => {
                 finalExtraData.last_webhook_event = {
                     event: event,
                     received_at: new Date().toISOString(),
-                    payload_subset: { ...data, extra_data: 'omitted_recursion' } 
+                    payload_subset: { ...data, extra_data: 'omitted_recursion' }
                 }
 
                 const updateData: any = {

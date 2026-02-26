@@ -21,6 +21,8 @@ import '../repositories/power_repository_impl.dart';
 import '../strategies/power_strategy_factory.dart';
 import '../../events/services/event_service.dart';
 import '../widgets/betting_modal.dart';
+import '../widgets/my_bets_modal.dart';
+import '../../../shared/widgets/coin_image.dart';
 import '../../auth/screens/avatar_selection_screen.dart';
 import '../widgets/spectator_participants_list.dart';
 import '../../../shared/models/player.dart';
@@ -848,7 +850,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   const SizedBox(height: 16),
 
                   _buildTutorialSection(
-                    '🍀 Tréboles',
+                    '💰 Moneda del Juego',
                     'Los tréboles son la moneda del juego. '
                     'Puedes recargarlos desde la Wallet. '
                     'Úsalos para comprar poderes y apostar.',
@@ -1546,8 +1548,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Text('🍀',
-                                          style: TextStyle(fontSize: 12)),
+                                      const CoinImage(size: 14),
                                       const SizedBox(width: 4),
                                       Text(
                                         '$clovers',
@@ -1704,13 +1705,27 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               ),
               const SizedBox(height: 8),
               if (won)
-                Text(
-                  "Has ganado $amount 🍀",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Has ganado ",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "$amount ",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const CoinImage(size: 24),
+                  ],
                 )
               else
                 const Text(
@@ -1769,7 +1784,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Text('🍀', style: TextStyle(fontSize: 14)),
+                        const CoinImage(size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '$clovers',
@@ -1791,8 +1806,10 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
             child: Consumer<PlayerProvider>(
               builder: (context, playerProvider, child) {
                 // Filtrar extra_life y blur_screen (AoE no permitido para espectadores)
-                final powers = playerProvider.shopItems.where((p) => p.id != 'extra_life' && p.id != 'blur_screen').toList();
-                
+                final powers = playerProvider.shopItems
+                    .where((p) => p.id != 'extra_life' && p.id != 'blur_screen')
+                    .toList();
+
                 if (powers.isEmpty) {
                   return Center(
                     child: Text(
@@ -1802,18 +1819,34 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   );
                 }
 
-                return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
+                // Contar cuántos de cada poder tiene el espectador en inventario
+                final inventory = playerProvider.currentPlayer?.inventory ?? [];
+                final inventoryCount = <String, int>{};
+                for (final slug in inventory) {
+                  inventoryCount[slug] = (inventoryCount[slug] ?? 0) + 1;
+                }
+
+                // SingleChildScrollView para que toda la vista (header + grid)
+                // sea desplazable como una sola unidad
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: GridView.builder(
+                    // shrinkWrap + NeverScrollable delega el scroll al padre
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.85,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: powers.length,
+                    itemBuilder: (context, index) {
+                      final power = powers[index];
+                      final owned = inventoryCount[power.id] ?? 0;
+                      return _buildPowerCard(power, owned);
+                    },
                   ),
-                  itemCount: powers.length,
-                  itemBuilder: (context, index) {
-                    final power = powers[index];
-                    return _buildPowerCard(power);
-                  },
                 );
               },
             ),
@@ -1823,38 +1856,70 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     );
   }
 
-  Widget _buildPowerCard(PowerItem power) {
+  static const int _maxPowerQuantity = 3;
+
+  Widget _buildPowerCard(PowerItem power, int owned) {
+    final bool isMaxed = owned >= _maxPowerQuantity;
+    final Color borderColor = isMaxed
+        ? Colors.grey.shade700
+        : AppTheme.secondaryPink.withOpacity(0.4);
+    final List<Color> gradientColors = isMaxed
+        ? [Colors.grey.shade900.withOpacity(0.4), const Color(0xFF0D0D14).withOpacity(0.8)]
+        : [AppTheme.secondaryPink.withOpacity(0.2), const Color(0xFF0D0D14).withOpacity(0.6)];
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppTheme.secondaryPink.withOpacity(0.2),
-            const Color(0xFF0D0D14).withOpacity(0.6),
-          ],
+          colors: gradientColors,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.secondaryPink.withOpacity(0.4)),
+        border: Border.all(color: borderColor),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _showPurchaseDialog(power),
+          // onTap es null cuando está al máximo: deshabilita el botón
+          onTap: isMaxed ? null : () => _showPurchaseDialog(power, owned),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Contador X/3 alineado a la derecha, DENTRO de la tarjeta
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isMaxed
+                          ? Colors.grey.shade700
+                          : AppTheme.primaryPurple.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$owned/$_maxPowerQuantity',
+                      style: TextStyle(
+                        color: isMaxed ? Colors.white38 : Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
                 Text(
                   power.icon,
-                  style: const TextStyle(fontSize: 40),
+                  style: TextStyle(
+                    fontSize: 36,
+                    color: isMaxed ? Colors.white38 : Colors.white,
+                  ),
                 ),
                 Text(
                   power.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isMaxed ? Colors.white38 : Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
@@ -1864,38 +1929,58 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                 ),
                 Text(
                   power.description,
-                  style: const TextStyle(
-                    color: Colors.white60,
+                  style: TextStyle(
+                    color: isMaxed ? Colors.white24 : Colors.white60,
                     fontSize: 10,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGold.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.accentGold),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🍀', style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${power.cost}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                // Badge de precio / MÁXIMO
+                isMaxed
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade800,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade600),
+                        ),
+                        child: const Text(
+                          'MÁXIMO',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentGold.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.accentGold),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🍀', style: TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${power.cost}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -1904,10 +1989,13 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     );
   }
 
-  void _showPurchaseDialog(PowerItem power) {
+  void _showPurchaseDialog(PowerItem power, int owned) {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final currentClovers = playerProvider.currentPlayer?.clovers ?? 0;
     final canAfford = currentClovers >= power.cost;
+    // Doble verificación: no debería llegar aquí si ya está al máximo,
+    // pero por seguridad bloqueamos también en el diálogo.
+    if (owned >= _maxPowerQuantity) return;
 
     showDialog(
       context: context,
@@ -1946,7 +2034,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('🍀', style: TextStyle(fontSize: 18)),
+                  const CoinImage(size: 18),
                   const SizedBox(width: 6),
                   Text(
                     '${power.cost} tréboles',
@@ -1960,12 +2048,18 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               ),
               const SizedBox(height: 8),
               // Saldo actual del usuario
-              Text(
-                'Tu saldo: $currentClovers 🍀',
-                style: TextStyle(
-                  color: canAfford ? Colors.white54 : Colors.redAccent,
-                  fontSize: 13,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Tu saldo: $currentClovers ',
+                    style: TextStyle(
+                      color: canAfford ? Colors.white54 : Colors.redAccent,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const CoinImage(size: 14),
+                ],
               ),
               const SizedBox(height: 6),
               // Advertencia de moneda paga
@@ -2051,6 +2145,22 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final currentClovers = playerProvider.currentPlayer?.clovers ?? 0;
 
+    // Guard: límite de $_maxPowerQuantity por poder
+    final inventory = playerProvider.currentPlayer?.inventory ?? [];
+    final currentOwned = inventory.where((s) => s == powerId).length;
+    if (currentOwned >= _maxPowerQuantity) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Límite alcanzado: máximo $_maxPowerQuantity $powerName por evento.'),
+            backgroundColor: Colors.orange.shade800,
+          ),
+        );
+      }
+      return;
+    }
+
     if (currentClovers < price) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2075,7 +2185,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Text('🍀 ', style: TextStyle(fontSize: 16)),
+                const CoinImage(size: 16),
+                const SizedBox(width: 8),
                 Text('¡$powerName comprado con $price tréboles!'),
               ],
             ),

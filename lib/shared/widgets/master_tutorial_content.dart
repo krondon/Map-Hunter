@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/auth/providers/player_provider.dart' as import_player;
 import 'cyber_tutorial_overlay.dart';
+import 'coin_image.dart';
 
 class MasterTutorialContent {
   static List<TutorialStep> getStepsForSection(String section, BuildContext context) {
@@ -177,7 +178,7 @@ class MasterTutorialContent {
           TutorialStep(
             title: "POTE DE APUESTAS",
             description: "Puedes apostar tréboles a tu jugador favorito. Si él gana, tú también ganas. ¡Mira cómo sube el premio total!",
-            icon: Icons.monetization_on,
+            icon: Icons.savings_rounded,
             visual: _buildSpectatorBettingVisual(),
           ),
           TutorialStep(
@@ -351,7 +352,7 @@ class MasterTutorialContent {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("TIENDA", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
-              const Icon(Icons.monetization_on, color: AppTheme.accentGold, size: 14),
+              const CoinImage(size: 14),
             ],
           ),
           const Spacer(),
@@ -940,7 +941,13 @@ class MasterTutorialContent {
           children: [
             const Text("POTE TOTAL", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 10),
-            const Text("15,000 🍀", style: TextStyle(color: AppTheme.accentGold, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Orbitron')),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("15,000 ", style: TextStyle(color: AppTheme.accentGold, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Orbitron')),
+                const CoinImage(size: 32),
+              ],
+            ),
             const SizedBox(height: 15),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

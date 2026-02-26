@@ -73,6 +73,8 @@ flutter_*.png
 **/ios/**/Flutter/flutter_*.app.dSYM.zip
 
 .env
+.env.dev
+.env.prod
 
 .github/copilot-instructions.md
 docs/reports/

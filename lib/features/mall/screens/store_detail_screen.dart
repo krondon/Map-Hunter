@@ -8,7 +8,8 @@ import '../../game/providers/game_provider.dart';
 import '../../game/providers/power_interfaces.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/shop_item_card.dart';
-import '../../../core/providers/app_mode_provider.dart'; // IMPORT AGREGADO
+import '../../../core/providers/app_mode_provider.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class StoreDetailScreen extends StatefulWidget {
   final MallStore store;
@@ -233,7 +234,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.monetization_on, size: 14, color: AppTheme.accentGold),
+                                    const Icon(Icons.monetization_on, size: 14, color: Colors.amber),
                                     const SizedBox(width: 4),
                                     Text(
                                       _formatCoins(player?.coins ?? 0),
