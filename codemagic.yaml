@@ -12,19 +12,6 @@ workflows:
       provisioning_profile_type: app_store
       entitlements: ios/Runner/Runner.entitlements
     scripts:
-      - name: Create .env file
-        script: |
-          touch .env
-          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
-          echo "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> .env
-          echo "PAGO_PAGO_API_URL=$PAGO_PAGO_API_URL" >> .env
-          echo "PAGO_PAGO_CANCEL_URL=$PAGO_PAGO_CANCEL_URL" >> .env
-          echo "PAGO_PAGO_WITHDRAW_URL=$PAGO_PAGO_WITHDRAW_URL" >> .env
-          echo "PAGO_PAGO_WEBHOOK_URL=$PAGO_PAGO_WEBHOOK_URL" >> .env
-          echo "PAGO_PAGO_API_KEY=$PAGO_PAGO_API_KEY" >> .env
-          echo "Created .env file with content:"
-          cat .env
-          ls -la .env
 
 
       - name: Clean Flutter dependencies
@@ -42,5 +29,4 @@ workflows:
 
       - name: Build iOS
         script: |
-          ls -la .env
           flutter build ios --release --no-codesign
