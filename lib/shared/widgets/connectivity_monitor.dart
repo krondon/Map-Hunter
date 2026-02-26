@@ -26,7 +26,7 @@ class ConnectivityMonitor extends StatefulWidget {
 
 class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
   Timer? _countdownTimer;
-  int _secondsRemaining = 30;
+  int _secondsRemaining = 60;
   bool _showOverlay = false;
   bool _hasTriggeredDisconnect = false;
   ConnectivityProvider? _connectivityProvider;
@@ -77,7 +77,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
 
     setState(() {
       _showOverlay = true;
-      _secondsRemaining = 30;
+      _secondsRemaining = 60;
     });
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -103,7 +103,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
       if (mounted) {
         setState(() {
           _showOverlay = false;
-          _secondsRemaining = 30;
+          _secondsRemaining = 60;
         });
       }
     }
@@ -173,7 +173,7 @@ class _ConnectivityMonitorState extends State<ConnectivityMonitor> {
     if (mounted) {
       setState(() {
         _showOverlay = false;
-        _secondsRemaining = 30;
+        _secondsRemaining = 60;
         _hasTriggeredDisconnect = false;
       });
     }
