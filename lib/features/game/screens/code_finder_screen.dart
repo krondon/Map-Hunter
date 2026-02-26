@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:provider/provider.dart';
 import '../providers/game_request_provider.dart';
+import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../../../core/theme/app_theme.dart';
 import 'game_request_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'event_waiting_screen.dart';
+import 'winner_celebration_screen.dart';
 import '../models/event.dart';
 import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
@@ -38,9 +40,13 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   final TextEditingController _codeController = TextEditingController();
   late AnimationController _pulseController;
   late AnimationController _shakeController;
-  
+
   // Debug State
   bool _forceProximity = false;
+
+  // Race-end listener
+  GameProvider? _gameProviderRef;
+  bool _isNavigatingToWinner = false;
 
   @override
   void initState() {
@@ -63,6 +69,15 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
         _distanceToTarget = 0;
       });
     }
+
+    // Listen for race completion so we navigate even from this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _gameProviderRef = Provider.of<GameProvider>(context, listen: false);
+      _gameProviderRef!.addListener(_onGameProviderChange);
+      // Immediate check in case the race already ended
+      _onGameProviderChange();
+    });
   }
 
   void _showCodeFinderTutorial() async {
@@ -70,7 +85,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     final hasSeen = prefs.getBool('has_seen_tutorial_CODE_FINDER') ?? false;
     if (hasSeen) return;
 
-    final steps = MasterTutorialContent.getStepsForSection('CODE_FINDER', context);
+    final steps =
+        MasterTutorialContent.getStepsForSection('CODE_FINDER', context);
     if (steps.isEmpty) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -90,7 +106,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   Future<void> _startLocationUpdates() async {
-    if (widget.scenario.latitude == null || widget.scenario.longitude == null) return;
+    if (widget.scenario.latitude == null || widget.scenario.longitude == null)
+      return;
 
     const LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -98,13 +115,13 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     );
 
     _positionStreamSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-            (Position position) {
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
       if (position.isMocked) {
-         _handleFakeGPS();
-         return;
+        _handleFakeGPS();
+        return;
       }
-      
+
       double distanceInMeters = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -123,19 +140,21 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   void _handleFakeGPS() {
     if (!mounted) return;
     final isDarkMode = true /* always dark UI */;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => WillPopScope(
-        onWillPop: () async => false, 
+        onWillPop: () async => false,
         child: AlertDialog(
           backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
               SizedBox(width: 10),
-              Expanded(child: Text("Ubicación Falsa Detectada", style: TextStyle(fontSize: 18))),
+              Expanded(
+                  child: Text("Ubicación Falsa Detectada",
+                      style: TextStyle(fontSize: 18))),
             ],
           ),
           content: const Text(
@@ -147,7 +166,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                 Navigator.of(context).pop();
                 Navigator.of(context).pop();
               },
-              child: const Text("SALIR DEL JUEGO", style: TextStyle(color: Colors.red)),
+              child: const Text("SALIR DEL JUEGO",
+                  style: TextStyle(color: Colors.red)),
             ),
           ],
         ),
@@ -157,11 +177,51 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
 
   @override
   void dispose() {
+    _gameProviderRef?.removeListener(_onGameProviderChange);
     _positionStreamSubscription?.cancel();
     _codeController.dispose();
     _pulseController.dispose();
     _shakeController.dispose();
     super.dispose();
+  }
+
+  void _onGameProviderChange() {
+    if (!mounted || _isNavigatingToWinner) return;
+    final gp = _gameProviderRef;
+    if (gp == null) return;
+
+    if (gp.isRaceCompleted) {
+      debugPrint(
+          '🏆 [CodeFinderScreen] Race completed detected! Navigating to winner screen...');
+      _isNavigatingToWinner = true;
+      gp.removeListener(_onGameProviderChange);
+      _navigateToWinnerOnRaceEnd();
+    }
+  }
+
+  Future<void> _navigateToWinnerOnRaceEnd() async {
+    if (!mounted) return;
+    final gameProvider = _gameProviderRef!;
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+
+    final position = () {
+      final lb = gameProvider.leaderboard;
+      if (lb.isEmpty) return 0;
+      final uid = playerProvider.currentPlayer?.userId ?? '';
+      final idx = lb.indexWhere((p) => p.userId == uid);
+      return idx >= 0 ? idx + 1 : 0;
+    }();
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => WinnerCelebrationScreen(
+          eventId: gameProvider.currentEventId ?? widget.scenario.id,
+          playerPosition: position,
+          totalCluesCompleted: gameProvider.completedClues,
+        ),
+      ),
+      (route) => false,
+    );
   }
 
   void _handleScannedCode(String scannedCode) {
@@ -221,10 +281,9 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   }
 
   void _showPinDialog() {
-    final List<TextEditingController> pinControllers = 
+    final List<TextEditingController> pinControllers =
         List.generate(6, (_) => TextEditingController());
-    final List<FocusNode> focusNodes = 
-        List.generate(6, (_) => FocusNode());
+    final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
     String? errorText;
 
     showDialog(
@@ -262,7 +321,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
 
             return Dialog(
               backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
@@ -274,7 +334,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                   ),
                 ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A1D),
                     borderRadius: BorderRadius.circular(21),
@@ -379,27 +440,36 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            backgroundColor: isDarkMode ? AppTheme.dSurface1 : AppTheme.lSurface1,
+                            backgroundColor: isDarkMode
+                                ? AppTheme.dSurface1
+                                : AppTheme.lSurface1,
                             title: const Text('Confirmar Solicitud'),
-                            content: Text('Este evento tiene un costo de ${widget.scenario.entryFee} 🍀.'),
+                            content: Text(
+                                'Este evento tiene un costo de ${widget.scenario.entryFee} 🍀.'),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
-                              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("SOLICITAR")),
+                              TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('CANCELAR')),
+                              ElevatedButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text("SOLICITAR")),
                             ],
                           ),
                         );
                         if (confirm != true) return;
                       }
 
-                      final requestProvider = Provider.of<GameRequestProvider>(context, listen: false);
-                      final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-                      
+                      final requestProvider = Provider.of<GameRequestProvider>(
+                          context,
+                          listen: false);
+                      final playerProvider =
+                          Provider.of<PlayerProvider>(context, listen: false);
+
                       if (playerProvider.currentPlayer != null) {
-                          await requestProvider.submitRequest(
-                            playerProvider.currentPlayer!, 
-                            widget.scenario.id, 
-                            widget.scenario.maxPlayers
-                          );
+                        await requestProvider.submitRequest(
+                            playerProvider.currentPlayer!,
+                            widget.scenario.id,
+                            widget.scenario.maxPlayers);
                       }
 
                       if (context.mounted) {
@@ -438,7 +508,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
               decoration: BoxDecoration(
                 color: goldAccent.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: goldAccent.withOpacity(0.5), width: 1),
+                border:
+                    Border.all(color: goldAccent.withOpacity(0.5), width: 1),
               ),
               child: Container(
                 padding: const EdgeInsets.all(24),
@@ -493,7 +564,9 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                             onPressed: () => Navigator.of(context).pop(false),
                             child: const Text(
                               'CANCELAR',
-                              style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Colors.white54,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
@@ -530,20 +603,25 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
     final status = _temperatureStatus;
     IconData icon;
     Color color = _temperatureColor.withOpacity(0.12);
-    if (status == "CONGELADO" || status == "FRÍO") icon = Icons.ac_unit;
-    else if (status == "CALIENTE" || status == "TIBIO") icon = Icons.local_fire_department;
-    else return [];
+    if (status == "CONGELADO" || status == "FRÍO")
+      icon = Icons.ac_unit;
+    else if (status == "CALIENTE" || status == "TIBIO")
+      icon = Icons.local_fire_department;
+    else
+      return [];
 
     return [
       Positioned(
         right: -50,
         top: 100,
-        child: Opacity(opacity: 0.5, child: Icon(icon, size: 200, color: color)),
+        child:
+            Opacity(opacity: 0.5, child: Icon(icon, size: 200, color: color)),
       ),
       Positioned(
         left: -50,
         bottom: 100,
-        child: Opacity(opacity: 0.5, child: Icon(icon, size: 200, color: color)),
+        child:
+            Opacity(opacity: 0.5, child: Icon(icon, size: 200, color: color)),
       ),
     ];
   }
@@ -551,7 +629,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
   @override
   Widget build(BuildContext context) {
     final double currentDistance = _forceProximity ? 5.0 : _distanceToTarget;
-    final bool showInput = currentDistance <= 25 || widget.scenario.type == 'online';
+    final bool showInput =
+        currentDistance <= 25 || widget.scenario.type == 'online';
     final bool isDarkMode = true /* always dark UI */;
 
     final bool shouldForceDark = isDarkMode ||
@@ -559,7 +638,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
         _temperatureStatus == "FRÍO" ||
         _temperatureStatus == "¡AQUÍ ESTÁ!";
 
-    final Color effectiveTextColor = shouldForceDark ? Colors.white : const Color(0xFF1A1A1D);
+    final Color effectiveTextColor =
+        shouldForceDark ? Colors.white : const Color(0xFF1A1A1D);
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -589,9 +669,12 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: const Color(0xFF150826).withOpacity(0.4),
-                      border: Border.all(color: AppTheme.accentGold.withOpacity(0.6), width: 2),
+                      border: Border.all(
+                          color: AppTheme.accentGold.withOpacity(0.6),
+                          width: 2),
                     ),
-                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 16),
+                    child: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 16),
                   ),
                 ),
               ),
@@ -629,7 +712,9 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
               child: Opacity(
                 opacity: 0.85,
                 child: Image.asset(
-                  Provider.of<PlayerProvider>(context).isDarkMode ? 'assets/images/hero.png' : 'assets/images/loginclaro.png',
+                  Provider.of<PlayerProvider>(context).isDarkMode
+                      ? 'assets/images/hero.png'
+                      : 'assets/images/loginclaro.png',
                   fit: BoxFit.cover,
                 ),
               ),
@@ -652,7 +737,8 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          _temperatureColor.withOpacity(showInput ? 0.45 : 0.30),
+                          _temperatureColor
+                              .withOpacity(showInput ? 0.45 : 0.30),
                         ],
                       ),
                     ),
@@ -663,211 +749,270 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                       physics: const BouncingScrollPhysics(),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                          minHeight: MediaQuery.of(context).size.height -
+                              MediaQuery.of(context).padding.top -
+                              MediaQuery.of(context).padding.bottom,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-
-                        // Hint Card (Doble borde gold)
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentGold.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: AppTheme.accentGold.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF150826).withOpacity(0.4),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(color: AppTheme.accentGold.withOpacity(0.6), width: 2),
+                            // Hint Card (Doble borde gold)
+                            Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentGold.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: AppTheme.accentGold.withOpacity(0.2),
+                                    width: 1,
                                   ),
-                                  child: Column(
-                                    children: [
-                                      Row(
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                        sigmaX: 15, sigmaY: 15),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF150826)
+                                            .withOpacity(0.4),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                            color: AppTheme.accentGold
+                                                .withOpacity(0.6),
+                                            width: 2),
+                                      ),
+                                      child: Column(
                                         children: [
-                                          const Icon(Icons.lightbulb, color: AppTheme.accentGold, size: 20),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            "PISTA INICIAL",
-                                            style: TextStyle(
-                                              color: AppTheme.accentGold,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 1.2,
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.lightbulb,
+                                                  color: AppTheme.accentGold,
+                                                  size: 20),
+                                              const SizedBox(width: 8),
+                                              const Text(
+                                                "PISTA INICIAL",
+                                                style: TextStyle(
+                                                  color: AppTheme.accentGold,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 1.2,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            widget.scenario.starterClue,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.white,
+                                              height: 1.4,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        widget.scenario.starterClue,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        // Termómetro / Estatus (COLORES MÁS FUERTES)
-                        Column(
-                          children: [
-                            AnimatedBuilder(
-                              animation: _pulseController,
-                              builder: (context, child) => Transform.scale(
-                                scale: 1.0 + (_pulseController.value * 0.15),
-                                child: Icon(
-                                  _temperatureIcon, 
-                                  size: 110, 
-                                  color: _temperatureColor,
-                                  shadows: [
-                                    Shadow(color: _temperatureColor.withOpacity(0.9), blurRadius: 40),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                            Text(
-                              _temperatureStatus,
-                              style: TextStyle(
-                                fontSize: 44,
-                                fontWeight: FontWeight.bold,
-                                color: _temperatureColor,
-                                shadows: [
-                                  Shadow(color: _temperatureColor.withOpacity(0.9), blurRadius: 25),
-                                  Shadow(color: Colors.black, blurRadius: 10),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (widget.scenario.type != 'online')
-                              Text(
-                                "${currentDistance.toInt()}m del objetivo",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 18,
-                                  shadows: [Shadow(color: Colors.black, blurRadius: 8)],
-                                ),
-                              ),
-                          ],
-                        ),
-                        // Footer
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: showInput
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      "¡ESTÁS EN LA ZONA!",
-                                      style: TextStyle(
-                                        color: AppTheme.successGreen,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 22,
-                                        shadows: [Shadow(color: AppTheme.successGreen, blurRadius: 15)],
-                                      ),
+                            // Termómetro / Estatus (COLORES MÁS FUERTES)
+                            Column(
+                              children: [
+                                AnimatedBuilder(
+                                  animation: _pulseController,
+                                  builder: (context, child) => Transform.scale(
+                                    scale:
+                                        1.0 + (_pulseController.value * 0.15),
+                                    child: Icon(
+                                      _temperatureIcon,
+                                      size: 110,
+                                      color: _temperatureColor,
+                                      shadows: [
+                                        Shadow(
+                                            color: _temperatureColor
+                                                .withOpacity(0.9),
+                                            blurRadius: 40),
+                                      ],
                                     ),
-                                    const SizedBox(height: 15),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.successGreen.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(22),
-                                        border: Border.all(
-                                          color: AppTheme.successGreen.withOpacity(0.2),
-                                          width: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 15),
+                                Text(
+                                  _temperatureStatus,
+                                  style: TextStyle(
+                                    fontSize: 44,
+                                    fontWeight: FontWeight.bold,
+                                    color: _temperatureColor,
+                                    shadows: [
+                                      Shadow(
+                                          color: _temperatureColor
+                                              .withOpacity(0.9),
+                                          blurRadius: 25),
+                                      Shadow(
+                                          color: Colors.black, blurRadius: 10),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (widget.scenario.type != 'online')
+                                  Text(
+                                    "${currentDistance.toInt()}m del objetivo",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 18,
+                                      shadows: [
+                                        Shadow(
+                                            color: Colors.black, blurRadius: 8)
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            // Footer
+                            Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: showInput
+                                  ? Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          "¡ESTÁS EN LA ZONA!",
+                                          style: TextStyle(
+                                            color: AppTheme.successGreen,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 22,
+                                            shadows: [
+                                              Shadow(
+                                                  color: AppTheme.successGreen,
+                                                  blurRadius: 15)
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(18),
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF150826).withOpacity(0.4),
-                                              borderRadius: BorderRadius.circular(18),
-                                              border: Border.all(color: AppTheme.successGreen.withOpacity(0.6), width: 2),
+                                        const SizedBox(height: 15),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.successGreen
+                                                .withOpacity(0.05),
+                                            borderRadius:
+                                                BorderRadius.circular(22),
+                                            border: Border.all(
+                                              color: AppTheme.successGreen
+                                                  .withOpacity(0.2),
+                                              width: 1,
                                             ),
-                                            child: const Column(
-                                              children: [
-                                                Icon(Icons.qr_code_scanner, color: AppTheme.successGreen, size: 60),
-                                                SizedBox(height: 10),
-                                                Text(
-                                                  "Escanea el QR del evento",
-                                                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(
+                                                  sigmaX: 15, sigmaY: 15),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 24,
+                                                        horizontal: 20),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF150826)
+                                                      .withOpacity(0.4),
+                                                  borderRadius:
+                                                      BorderRadius.circular(18),
+                                                  border: Border.all(
+                                                      color: AppTheme
+                                                          .successGreen
+                                                          .withOpacity(0.6),
+                                                      width: 2),
                                                 ),
-                                              ],
+                                                child: const Column(
+                                                  children: [
+                                                    Icon(Icons.qr_code_scanner,
+                                                        color: AppTheme
+                                                            .successGreen,
+                                                        size: 60),
+                                                    SizedBox(height: 10),
+                                                    Text(
+                                                      "Escanea el QR del evento",
+                                                      style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppTheme.successGreen,
-                                          foregroundColor: Colors.black,
-                                          padding: const EdgeInsets.symmetric(vertical: 18),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          elevation: 10,
+                                        const SizedBox(height: 16),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  AppTheme.successGreen,
+                                              foregroundColor: Colors.black,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 18),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          12)),
+                                              elevation: 10,
+                                            ),
+                                            onPressed: () async {
+                                              final scanned =
+                                                  await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const QRScannerScreen()),
+                                              );
+                                              if (scanned != null)
+                                                _handleScannedCode(scanned);
+                                            },
+                                            icon: const Icon(Icons.qr_code),
+                                            label: const Text("ESCANEAR AHORA",
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
+                                          ),
                                         ),
-                                        onPressed: () async {
-                                          final scanned = await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (_) => const QRScannerScreen()),
-                                          );
-                                          if (scanned != null) _handleScannedCode(scanned);
-                                        },
-                                        icon: const Icon(Icons.qr_code),
-                                        label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                      ),
+                                        const SizedBox(height: 12),
+                                        // DEV BYPASS: Only visible for admin role
+                                        DevelopmentBypassButton(
+                                          onBypass: () => _handleScannedCode(
+                                              "DEV_SKIP_CODE"),
+                                          label: 'DEV: Saltar Código',
+                                        ),
+                                      ],
+                                    )
+                                  : Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // DEV BYPASS: Also available when not in zone (admin only)
+                                        DevelopmentBypassButton(
+                                          onBypass: () => _handleScannedCode(
+                                              "DEV_SKIP_CODE"),
+                                          label: 'DEV: Saltar Código',
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 12),
-                                    // DEV BYPASS: Only visible for admin role
-                                    DevelopmentBypassButton(
-                                      onBypass: () => _handleScannedCode("DEV_SKIP_CODE"),
-                                      label: 'DEV: Saltar Código',
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // DEV BYPASS: Also available when not in zone (admin only)
-                                    DevelopmentBypassButton(
-                                      onBypass: () => _handleScannedCode("DEV_SKIP_CODE"),
-                                      label: 'DEV: Saltar Código',
-                                    ),
-                                  ],
-                                ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
                 ],
               ),
             ),
