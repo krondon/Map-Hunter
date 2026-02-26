@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../wallet/models/clover_plan.dart';
 import '../../wallet/services/clover_plan_service.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 /// Admin screen for managing clover purchase plans.
 /// 
@@ -97,10 +98,7 @@ class _CloverPlansManagementScreenState extends State<CloverPlansManagementScree
             ),
             title: Row(
               children: [
-                Text(
-                  plan.iconUrl ?? '🍀',
-                  style: const TextStyle(fontSize: 24),
-                ),
+                const CoinImage(size: 24),
                 const SizedBox(width: 12),
                 Text(
                   'Editar ${plan.name}',
@@ -144,7 +142,7 @@ class _CloverPlansManagementScreenState extends State<CloverPlansManagementScree
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      suffixText: '🍀',
+                      suffix: const CoinImage(size: 16),
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
                         borderRadius: BorderRadius.circular(8),
@@ -302,10 +300,7 @@ class _CloverPlansManagementScreenState extends State<CloverPlansManagementScree
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Text(
-                plan.iconUrl ?? '🍀',
-                style: const TextStyle(fontSize: 28),
-              ),
+              child: const CoinImage(size: 28),
             ),
           ),
           const SizedBox(width: 16),

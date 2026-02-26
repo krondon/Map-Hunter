@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../services/betting_service.dart';
 import 'package:intl/intl.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class SpectatorBettingPotWidget extends StatefulWidget {
   final String eventId;
@@ -125,20 +126,25 @@ class _SpectatorBettingPotWidgetState extends State<SpectatorBettingPotWidget> {
                                 backgroundColor: Colors.white10,
                               ),
                             )
-                          : Text(
-                              "$formattedPot 🍀",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Orbitron',
-                                shadows: [
-                                  Shadow(
-                                    color: AppTheme.dGoldMain.withOpacity(0.8),
-                                    blurRadius: 12,
-                                  )
-                                ],
-                              ),
+                          : Row(
+                              children: [
+                                Text(
+                                  "$formattedPot ",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Orbitron',
+                                    shadows: [
+                                      Shadow(
+                                        color: AppTheme.dGoldMain.withOpacity(0.8),
+                                        blurRadius: 12,
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                const CoinImage(size: 22),
+                              ],
                             ),
                     ],
                   ),

@@ -6,6 +6,7 @@ import '../../game/providers/game_request_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../shared/models/player.dart';
 import '../services/admin_service.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 /// Widget tile para mostrar solicitudes de acceso a eventos
 /// y participantes inscritos con su estado y progreso.
@@ -125,9 +126,14 @@ class _RequestTileState extends State<RequestTile> {
         final amount = result['amount'] ?? 0;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(paid
-                ? '✅ Aprobado y cobrado: $amount 🍀'
-                : '✅ Aprobado (evento gratuito)'),
+            content: Row(
+              children: [
+                Text(paid
+                    ? '✅ Aprobado y cobrado: $amount '
+                    : '✅ Aprobado (evento gratuito)'),
+                if (paid) const CoinImage(size: 16),
+              ],
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -168,7 +174,8 @@ class _RequestTileState extends State<RequestTile> {
   /// Muestra un diálogo para ajustar monedas o vidas del jugador.
   void _showAdjustDialog(BuildContext context, String field, int currentValue) {
     final label = field == 'coins' ? 'Monedas' : 'Vidas';
-    final icon = field == 'coins' ? Icons.monetization_on : Icons.favorite;
+    final customIcon = field == 'coins' ? const Icon(Icons.monetization_on, size: 22, color: Colors.amber) : null;
+    final icon = field == 'coins' ? null : Icons.favorite;
     final color = field == 'coins' ? AppTheme.accentGold : Colors.redAccent;
     final controller = TextEditingController(text: currentValue.toString());
     final maxValue = field == 'lives' ? 3 : 99999;
@@ -183,7 +190,7 @@ class _RequestTileState extends State<RequestTile> {
               backgroundColor: AppTheme.cardBg,
               title: Row(
                 children: [
-                  Icon(icon, color: color, size: 22),
+                  if (customIcon != null) customIcon else Icon(icon, color: color, size: 22),
                   const SizedBox(width: 8),
                   Text('Ajustar $label', style: const TextStyle(color: Colors.white)),
                 ],
@@ -424,7 +431,7 @@ class _RequestTileState extends State<RequestTile> {
                         // Coins chip
                         if (widget.coins != null)
                           _StatChip(
-                            icon: Icons.monetization_on,
+                            customIcon: const Icon(Icons.monetization_on, size: 14, color: Colors.amber),
                             value: widget.coins!,
                             color: AppTheme.accentGold,
                             label: 'Monedas',
@@ -474,14 +481,16 @@ class _RequestTileState extends State<RequestTile> {
 
 /// Chip compacto para mostrar una estadística (monedas/vidas) con opción de editar.
 class _StatChip extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget? customIcon;
   final int value;
   final Color color;
   final String label;
   final VoidCallback? onTap;
 
   const _StatChip({
-    required this.icon,
+    this.icon,
+    this.customIcon,
     required this.value,
     required this.color,
     required this.label,
@@ -503,7 +512,7 @@ class _StatChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: color),
+            if (customIcon != null) customIcon! else Icon(icon, size: 14, color: color),
             const SizedBox(width: 4),
             Text(
               '$value',

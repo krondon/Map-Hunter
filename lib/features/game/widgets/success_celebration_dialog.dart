@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../models/clue.dart';
+import '../../../../shared/widgets/coin_image.dart';
 
 class SuccessCelebrationDialog extends StatefulWidget {
   final Clue clue;
@@ -145,14 +146,19 @@ class _SuccessCelebrationDialogState extends State<SuccessCelebrationDialog> {
                               ],
                             ),
                           ),
+                          const SizedBox(height: 10),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildRewardBadge(Icons.star, "+${widget.clue.xpReward} XP", AppTheme.accentGold),
-                              const SizedBox(width: 15),
-                              _buildRewardBadge(Icons.monetization_on, "+${widget.coinsEarned}", Colors.amber),
-                            ],
-                          ),
+                                _buildRewardBadge(icon: Icons.star, text: "+${widget.clue.xpReward}", color: AppTheme.accentGold),
+                                const SizedBox(width: 15),
+                                _buildRewardBadge(
+                                  icon: Icons.monetization_on,
+                                  text: "+${widget.coinsEarned}",
+                                  color: Colors.amber,
+                                ),
+                              ],
+                            ),
                           if (widget.showNextStep) ...[
                             const SizedBox(height: 20),
                             Text(
@@ -241,7 +247,12 @@ class _SuccessCelebrationDialogState extends State<SuccessCelebrationDialog> {
     return [const Color(0xFFFFD700), const Color(0xfff5c71a)];
   }
 
-  Widget _buildRewardBadge(IconData icon, String text, Color color) {
+  Widget _buildRewardBadge({
+    IconData? icon,
+    Widget? customIcon,
+    required String text,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -251,9 +262,11 @@ class _SuccessCelebrationDialogState extends State<SuccessCelebrationDialog> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: color),
+          if (customIcon != null) customIcon else Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
-          Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
+          Text(text,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.bold, fontSize: 13)),
         ],
       ),
     );

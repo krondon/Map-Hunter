@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../features/game/providers/game_provider.dart';
 import '../../features/auth/providers/player_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class ProgressHeader extends StatelessWidget {
   final VoidCallback? onExit;

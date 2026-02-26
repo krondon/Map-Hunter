@@ -32,6 +32,7 @@ import '../../wallet/repositories/transaction_repository.dart';
 import '../../wallet/widgets/transaction_card.dart';
 import '../../wallet/providers/payment_method_provider.dart';
 import '../../wallet/widgets/edit_payment_method_dialog.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class WalletScreen extends StatefulWidget {
   final bool hideScaffold;
@@ -201,9 +202,8 @@ class _WalletScreenState extends State<WalletScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text(
-                                                "🍀",
-                                                style: TextStyle(fontSize: 28),
+                                              const CoinImage(
+                                                size: 28,
                                               ),
                                             ],
                                           ),
@@ -1210,12 +1210,17 @@ class _WalletScreenState extends State<WalletScreen> {
                                             fontSize: 16,
                                           ),
                                         ),
-                                        Text(
-                                          'Costo: ${plan.cloversCost} 🍀',
-                                          style: const TextStyle(
-                                            color: Colors.white60,
-                                            fontSize: 14,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Costo: ${plan.cloversCost} ',
+                                              style: const TextStyle(
+                                                color: Colors.white60,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const CoinImage(size: 14),
+                                          ],
                                         ),
                                       ],
                                     ),

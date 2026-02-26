@@ -23,6 +23,7 @@ import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../admin/screens/dashboard-screen.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool hideScaffold;
@@ -505,7 +506,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             "${player.totalXP}",
                             "XP Total"),
                         _buildStatWidget(
-                            const Text("🍀", style: TextStyle(fontSize: 24)),
+                            const CoinImage(size: 24),
                             "${player.clovers}",
                             "Tréboles"),
                         _buildStatWidget(

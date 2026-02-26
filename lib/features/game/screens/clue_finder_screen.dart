@@ -6,10 +6,12 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import '../providers/game_provider.dart';
+import '../../auth/providers/player_provider.dart';
 import '../widgets/sponsor_banner.dart';
 import '../models/clue.dart';
 import '../../../core/theme/app_theme.dart';
 import 'qr_scanner_screen.dart';
+import 'winner_celebration_screen.dart';
 import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,9 +30,14 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
     with TickerProviderStateMixin {
   // --- STATE ---
   double _distanceToTarget = 800.0;
-  bool _hasReceivedFirstFix = false; // Guard: prevent premature distance display
+  bool _hasReceivedFirstFix =
+      false; // Guard: prevent premature distance display
   StreamSubscription<Position>? _positionStreamSubscription;
   final List<Position> _positionHistory = []; // Cola para suavizado
+
+  // Race-end listener
+  GameProvider? _gameProviderRef;
+  bool _isNavigatingToWinner = false;
 
   // Animations
   late AnimationController _pulseController;
@@ -54,6 +61,15 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
     _startLocationUpdates();
     _showClueScannerTutorial();
+
+    // Listen for race completion so we navigate even from hot/cold screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _gameProviderRef = Provider.of<GameProvider>(context, listen: false);
+      _gameProviderRef!.addListener(_onGameProviderChange);
+      // Immediate check in case the race already ended
+      _onGameProviderChange();
+    });
   }
 
   void _showClueScannerTutorial() async {
@@ -83,13 +99,15 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
   Future<void> _startLocationUpdates() async {
     if (widget.clue.latitude == null || widget.clue.longitude == null) {
-      // No coordinates on this clue — keep default 800m (CONGELADO) 
+      // No coordinates on this clue — keep default 800m (CONGELADO)
       // instead of 0 which would falsely show "¡AQUÍ ESTÁ!"
-      debugPrint('[ClueFinder] ⚠️ Clue has no coordinates! Keeping default distance.');
+      debugPrint(
+          '[ClueFinder] ⚠️ Clue has no coordinates! Keeping default distance.');
       return;
     }
 
-    debugPrint('[ClueFinder] 📍 Target: lat=${widget.clue.latitude}, lng=${widget.clue.longitude}');
+    debugPrint(
+        '[ClueFinder] 📍 Target: lat=${widget.clue.latitude}, lng=${widget.clue.longitude}');
 
     const LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -107,7 +125,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
       // --- FILTRO DE PRECISIÓN ---
       // Ignore very inaccurate initial readings (GPS cold start)
       if (position.accuracy > 100) {
-        debugPrint('[ClueFinder] 🔴 Ignoring low-accuracy reading: ${position.accuracy.toStringAsFixed(1)}m');
+        debugPrint(
+            '[ClueFinder] 🔴 Ignoring low-accuracy reading: ${position.accuracy.toStringAsFixed(1)}m');
         return;
       }
 
@@ -120,7 +139,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
       // Require at least 2 readings before updating distance
       // to prevent wild jumps from a single initial GPS fix
       if (_positionHistory.length < 2 && !_hasReceivedFirstFix) {
-        debugPrint('[ClueFinder] ⏳ Waiting for more GPS readings (${_positionHistory.length}/2)...');
+        debugPrint(
+            '[ClueFinder] ⏳ Waiting for more GPS readings (${_positionHistory.length}/2)...');
         return;
       }
 
@@ -141,7 +161,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
         widget.clue.longitude!,
       );
 
-      debugPrint('[ClueFinder] 📏 Distance: ${distanceInMeters.toStringAsFixed(1)}m (accuracy: ${position.accuracy.toStringAsFixed(1)}m, samples: ${_positionHistory.length})');
+      debugPrint(
+          '[ClueFinder] 📏 Distance: ${distanceInMeters.toStringAsFixed(1)}m (accuracy: ${position.accuracy.toStringAsFixed(1)}m, samples: ${_positionHistory.length})');
 
       if (mounted) {
         setState(() {
@@ -199,10 +220,50 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
   @override
   void dispose() {
+    _gameProviderRef?.removeListener(_onGameProviderChange);
     _positionStreamSubscription?.cancel();
     _pulseController.dispose();
     _shakeController.dispose();
     super.dispose();
+  }
+
+  void _onGameProviderChange() {
+    if (!mounted || _isNavigatingToWinner) return;
+    final gp = _gameProviderRef;
+    if (gp == null) return;
+
+    if (gp.isRaceCompleted) {
+      debugPrint(
+          '🏆 [ClueFinderScreen] Race completed detected! Navigating to winner screen...');
+      _isNavigatingToWinner = true;
+      gp.removeListener(_onGameProviderChange);
+      _navigateToWinnerOnRaceEnd();
+    }
+  }
+
+  Future<void> _navigateToWinnerOnRaceEnd() async {
+    if (!mounted) return;
+    final gameProvider = _gameProviderRef!;
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+
+    final position = () {
+      final lb = gameProvider.leaderboard;
+      if (lb.isEmpty) return 0;
+      final uid = playerProvider.currentPlayer?.userId ?? '';
+      final idx = lb.indexWhere((p) => p.userId == uid);
+      return idx >= 0 ? idx + 1 : 0;
+    }();
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => WinnerCelebrationScreen(
+          eventId: gameProvider.currentEventId ?? '',
+          playerPosition: position,
+          totalCluesCompleted: gameProvider.completedClues,
+        ),
+      ),
+      (route) => false,
+    );
   }
 
   // --- LOGIC ---
@@ -433,7 +494,7 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
         _temperatureStatus == "FRÍO" ||
         _temperatureStatus == "¡AQUÍ ESTÁ!";
     final bool useDarkStyle = shouldForceDark;
-    
+
     final Color effectiveTextColor =
         useDarkStyle ? Colors.white : const Color(0xFF1A1A1D);
 
@@ -541,7 +602,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          _temperatureColor.withOpacity(showInput ? 0.45 : 0.20),
+                          _temperatureColor
+                              .withOpacity(showInput ? 0.45 : 0.20),
                         ],
                       ),
                     ),
@@ -553,7 +615,9 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                       physics: const BouncingScrollPhysics(),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                          minHeight: MediaQuery.of(context).size.height -
+                              MediaQuery.of(context).padding.top -
+                              MediaQuery.of(context).padding.bottom,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -574,28 +638,46 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
                                   child: BackdropFilter(
-                                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                    filter: ImageFilter.blur(
+                                        sigmaX: 15, sigmaY: 15),
                                     child: Container(
                                       padding: const EdgeInsets.all(20),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF150826).withOpacity(0.4),
+                                        color: const Color(0xFF150826)
+                                            .withOpacity(0.4),
                                         borderRadius: BorderRadius.circular(18),
-                                        border: Border.all(color: AppTheme.accentGold.withOpacity(0.6), width: 2),
+                                        border: Border.all(
+                                            color: AppTheme.accentGold
+                                                .withOpacity(0.6),
+                                            width: 2),
                                       ),
                                       child: Column(
                                         children: [
                                           const Row(
                                             children: [
-                                              Icon(Icons.search, color: AppTheme.accentGold, size: 20),
+                                              Icon(Icons.search,
+                                                  color: AppTheme.accentGold,
+                                                  size: 20),
                                               SizedBox(width: 8),
-                                              Text("OBJETIVO", style: TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                                              Text("OBJETIVO",
+                                                  style: TextStyle(
+                                                      color:
+                                                          AppTheme.accentGold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      letterSpacing: 1.2)),
                                             ],
                                           ),
                                           const SizedBox(height: 10),
                                           Text(
-                                            widget.clue.hint.isNotEmpty ? widget.clue.hint : "Encuentra la ubicación...",
+                                            widget.clue.hint.isNotEmpty
+                                                ? widget.clue.hint
+                                                : "Encuentra la ubicación...",
                                             textAlign: TextAlign.center,
-                                            style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.4),
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                                height: 1.4),
                                           ),
                                         ],
                                       ),
@@ -611,13 +693,17 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                 AnimatedBuilder(
                                   animation: _pulseController,
                                   builder: (context, child) => Transform.scale(
-                                    scale: 1.0 + (_pulseController.value * 0.15),
+                                    scale:
+                                        1.0 + (_pulseController.value * 0.15),
                                     child: Icon(
-                                      _temperatureIcon, 
-                                      size: 110, 
+                                      _temperatureIcon,
+                                      size: 110,
                                       color: _temperatureColor,
                                       shadows: [
-                                        Shadow(color: _temperatureColor.withOpacity(0.9), blurRadius: 40),
+                                        Shadow(
+                                            color: _temperatureColor
+                                                .withOpacity(0.9),
+                                            blurRadius: 40),
                                       ],
                                     ),
                                   ),
@@ -630,8 +716,12 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                     fontWeight: FontWeight.bold,
                                     color: _temperatureColor,
                                     shadows: [
-                                      Shadow(color: _temperatureColor.withOpacity(0.9), blurRadius: 25),
-                                      Shadow(color: Colors.black, blurRadius: 10),
+                                      Shadow(
+                                          color: _temperatureColor
+                                              .withOpacity(0.9),
+                                          blurRadius: 25),
+                                      Shadow(
+                                          color: Colors.black, blurRadius: 10),
                                     ],
                                   ),
                                 ),
@@ -642,7 +732,9 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 18,
-                                    shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                                    shadows: [
+                                      Shadow(color: Colors.black, blurRadius: 8)
+                                    ],
                                   ),
                                 ),
                               ],
@@ -651,7 +743,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                             // QR Scan prompt (Conditional)
                             if (showInput)
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
                                 child: Column(
                                   children: [
                                     const Text(
@@ -661,7 +754,9 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                         fontWeight: FontWeight.bold,
                                         color: AppTheme.successGreen,
                                         shadows: [
-                                          Shadow(color: AppTheme.successGreen, blurRadius: 15),
+                                          Shadow(
+                                              color: AppTheme.successGreen,
+                                              blurRadius: 15),
                                         ],
                                       ),
                                     ),
@@ -670,36 +765,55 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                       width: double.infinity,
                                       padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.successGreen.withOpacity(0.05),
+                                        color: AppTheme.successGreen
+                                            .withOpacity(0.05),
                                         borderRadius: BorderRadius.circular(22),
                                         border: Border.all(
-                                          color: AppTheme.successGreen.withOpacity(0.2),
+                                          color: AppTheme.successGreen
+                                              .withOpacity(0.2),
                                           width: 1,
                                         ),
                                       ),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(18),
                                         child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                          filter: ImageFilter.blur(
+                                              sigmaX: 15, sigmaY: 15),
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 24, horizontal: 20),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF150826).withOpacity(0.4),
-                                              borderRadius: BorderRadius.circular(18),
-                                              border: Border.all(color: AppTheme.successGreen.withOpacity(0.6), width: 2),
+                                              color: const Color(0xFF150826)
+                                                  .withOpacity(0.4),
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              border: Border.all(
+                                                  color: AppTheme.successGreen
+                                                      .withOpacity(0.6),
+                                                  width: 2),
                                             ),
                                             child: Column(
                                               children: [
                                                 AnimatedBuilder(
                                                   animation: _pulseController,
-                                                  builder: (context, child) => Transform.scale(
-                                                    scale: 1.0 + (_pulseController.value * 0.1),
+                                                  builder: (context, child) =>
+                                                      Transform.scale(
+                                                    scale: 1.0 +
+                                                        (_pulseController
+                                                                .value *
+                                                            0.1),
                                                     child: Icon(
                                                       Icons.qr_code_scanner,
-                                                      color: AppTheme.successGreen,
+                                                      color:
+                                                          AppTheme.successGreen,
                                                       size: 60,
                                                       shadows: [
-                                                        Shadow(color: AppTheme.successGreen.withOpacity(0.8), blurRadius: 30),
+                                                        Shadow(
+                                                            color: AppTheme
+                                                                .successGreen
+                                                                .withOpacity(
+                                                                    0.8),
+                                                            blurRadius: 30),
                                                       ],
                                                     ),
                                                   ),
@@ -707,7 +821,11 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                                 const SizedBox(height: 10),
                                                 const Text(
                                                   "Escanea el QR de la pista",
-                                                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold),
                                                 ),
                                               ],
                                             ),
@@ -723,7 +841,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
                             // Buttons
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 16, 20, 10),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -732,18 +851,31 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                       width: double.infinity,
                                       child: ElevatedButton.icon(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppTheme.successGreen,
+                                          backgroundColor:
+                                              AppTheme.successGreen,
                                           foregroundColor: Colors.black,
-                                          padding: const EdgeInsets.symmetric(vertical: 18),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 18),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12)),
                                           elevation: 10,
                                         ),
                                         onPressed: () async {
-                                          final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
-                                          if (scanned != null) _handleScannedCode(scanned);
+                                          final scanned = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const QRScannerScreen()));
+                                          if (scanned != null)
+                                            _handleScannedCode(scanned);
                                         },
-                                        icon: const Icon(Icons.qr_code, size: 20),
-                                        label: const Text("ESCANEAR AHORA", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        icon:
+                                            const Icon(Icons.qr_code, size: 20),
+                                        label: const Text("ESCANEAR AHORA",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16)),
                                       ),
                                     ),
                                     const SizedBox(height: 10),
@@ -753,14 +885,25 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppTheme.accentGold,
                                           foregroundColor: Colors.black,
-                                          padding: const EdgeInsets.symmetric(vertical: 18),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 18),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12)),
                                         ),
                                         onPressed: () async {
-                                          final scanned = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QRScannerScreen()));
-                                          if (scanned != null) _handleScannedCode(scanned);
+                                          final scanned = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const QRScannerScreen()));
+                                          if (scanned != null)
+                                            _handleScannedCode(scanned);
                                         },
-                                        child: const Text("VERIFICAR CÓDIGO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                        child: const Text("VERIFICAR CÓDIGO",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15)),
                                       ),
                                     ),
                                   ],
@@ -770,7 +913,8 @@ class _ClueFinderScreenState extends State<ClueFinderScreen>
 
                             // DEV BYPASS
                             DevelopmentBypassButton(
-                              onBypass: () => _handleScannedCode("DEV_SKIP_CODE"),
+                              onBypass: () =>
+                                  _handleScannedCode("DEV_SKIP_CODE"),
                             ),
                           ],
                         ),

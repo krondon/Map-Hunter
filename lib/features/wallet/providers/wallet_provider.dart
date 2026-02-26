@@ -37,7 +37,7 @@ class WalletProvider extends ChangeNotifier {
   bool get hasError => _errorMessage != null;
 
   /// Formatted balance for display.
-  String get formattedBalance => '${_balance.toStringAsFixed(2)} 🍀';
+  String get formattedBalance => '${_balance.toStringAsFixed(2)} tréboles';
 
   /// Check if user can afford an amount.
   bool canAfford(double amount) => _balance >= amount;

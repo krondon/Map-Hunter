@@ -21,6 +21,8 @@ import '../repositories/power_repository_impl.dart';
 import '../strategies/power_strategy_factory.dart';
 import '../../events/services/event_service.dart';
 import '../widgets/betting_modal.dart';
+import '../widgets/my_bets_modal.dart';
+import '../../../shared/widgets/coin_image.dart';
 import '../../auth/screens/avatar_selection_screen.dart';
 import '../widgets/spectator_participants_list.dart';
 import '../../../shared/models/player.dart';
@@ -848,7 +850,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                   const SizedBox(height: 16),
 
                   _buildTutorialSection(
-                    '🍀 Tréboles',
+                    '💰 Moneda del Juego',
                     'Los tréboles son la moneda del juego. '
                     'Puedes recargarlos desde la Wallet. '
                     'Úsalos para comprar poderes y apostar.',
@@ -1546,8 +1548,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Text('🍀',
-                                          style: TextStyle(fontSize: 12)),
+                                      const CoinImage(size: 14),
                                       const SizedBox(width: 4),
                                       Text(
                                         '$clovers',
@@ -1704,13 +1705,27 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               ),
               const SizedBox(height: 8),
               if (won)
-                Text(
-                  "Has ganado $amount 🍀",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Has ganado ",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "$amount ",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const CoinImage(size: 24),
+                  ],
                 )
               else
                 const Text(
@@ -1769,7 +1784,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Text('🍀', style: TextStyle(fontSize: 14)),
+                        const CoinImage(size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '$clovers',
@@ -2019,7 +2034,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('🍀', style: TextStyle(fontSize: 18)),
+                  const CoinImage(size: 18),
                   const SizedBox(width: 6),
                   Text(
                     '${power.cost} tréboles',
@@ -2033,12 +2048,18 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
               ),
               const SizedBox(height: 8),
               // Saldo actual del usuario
-              Text(
-                'Tu saldo: $currentClovers 🍀',
-                style: TextStyle(
-                  color: canAfford ? Colors.white54 : Colors.redAccent,
-                  fontSize: 13,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Tu saldo: $currentClovers ',
+                    style: TextStyle(
+                      color: canAfford ? Colors.white54 : Colors.redAccent,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const CoinImage(size: 14),
+                ],
               ),
               const SizedBox(height: 6),
               // Advertencia de moneda paga
@@ -2164,7 +2185,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Text('🍀 ', style: TextStyle(fontSize: 16)),
+                const CoinImage(size: 16),
+                const SizedBox(width: 8),
                 Text('¡$powerName comprado con $price tréboles!'),
               ],
             ),
