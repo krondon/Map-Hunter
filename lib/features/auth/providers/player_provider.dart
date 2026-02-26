@@ -522,6 +522,18 @@ class PlayerProvider extends ChangeNotifier implements IResettable {
             'PlayerProvider: ${existing['status']} user can now view as spectator (status unchanged)');
       }
 
+      // 3. Eliminar cualquier solicitud pendiente en game_requests
+      try {
+        await _supabase
+            .from('game_requests')
+            .delete()
+            .eq('user_id', userId)
+            .eq('event_id', eventId);
+        debugPrint('PlayerProvider: Removed pending game_requests for spectator $userId');
+      } catch (e) {
+        debugPrint('PlayerProvider: ⚠️ Error removing game_requests: $e');
+      }
+
       // Refrescar perfil para cargar el gamePlayerId actualizado
       // NOTE: No llamamos clearGameContext() aquí porque causaría un bucle de rebuilds.
       // refreshProfile() se encargará de actualizar el estado correctamente.
