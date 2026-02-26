@@ -1656,13 +1656,30 @@ BEGIN
     RETURN EXISTS (
         SELECT 1 
         FROM public.profiles 
-        WHERE id = p_user_id AND role = 'admin'
+        WHERE id = p_user_id AND role IN ('admin', 'user_staff')
     );
 END;
 $$;
 
 
 ALTER FUNCTION "public"."is_admin"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_admin_or_staff"("p_user_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 
+        FROM public.profiles 
+        WHERE id = p_user_id AND role IN ('admin', 'user_staff')
+    );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."is_admin_or_staff"("p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."is_bcv_rate_valid"() RETURNS boolean
@@ -1707,6 +1724,23 @@ $$;
 
 
 ALTER FUNCTION "public"."is_event_completed"("p_event_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_staff"("p_user_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 
+        FROM public.profiles 
+        WHERE id = p_user_id AND role = 'user_staff'
+    );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."is_staff"("p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."join_game"("p_game_id" "uuid", "p_user_id" "uuid") RETURNS "void"
@@ -2689,6 +2723,184 @@ $$;
 ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."safe_reset_event"("target_event_id" "uuid", "admin_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_event_exists  boolean;
+  v_event_status  text;
+  v_clue_count_before integer;
+  v_clue_count_after  integer;
+  v_gp_ids        uuid[];
+  v_clue_ids      bigint[];
+  v_deleted_progress  integer := 0;
+  v_deleted_powers    integer := 0;
+  v_deleted_active    integer := 0;
+  v_deleted_transactions integer := 0;
+  v_deleted_combat    integer := 0;
+  v_deleted_bets      integer := 0;
+  v_deleted_prizes    integer := 0;
+  v_deleted_players   integer := 0;
+  v_deleted_requests  integer := 0;
+BEGIN
+  -- =====================================================================
+  -- STEP 0: VALIDATE EVENT EXISTS
+  -- =====================================================================
+  SELECT EXISTS(SELECT 1 FROM events WHERE id = target_event_id)
+    INTO v_event_exists;
+
+  IF NOT v_event_exists THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'EVENT_NOT_FOUND',
+      'message', format('No existe un evento con id %s', target_event_id)
+    );
+  END IF;
+
+  -- Get current status
+  SELECT status INTO v_event_status
+    FROM events WHERE id = target_event_id;
+
+  -- =====================================================================
+  -- STEP 1: SNAPSHOT — Count structural data BEFORE reset
+  -- This is our integrity anchor. Clues must survive untouched.
+  -- =====================================================================
+  SELECT count(*) INTO v_clue_count_before
+    FROM clues WHERE event_id = target_event_id;
+
+  -- =====================================================================
+  -- STEP 2: COLLECT IDs — Gather game_player and clue IDs
+  -- =====================================================================
+  SELECT array_agg(id) INTO v_gp_ids
+    FROM game_players WHERE event_id = target_event_id;
+
+  SELECT array_agg(id) INTO v_clue_ids
+    FROM clues WHERE event_id = target_event_id;
+
+  -- =====================================================================
+  -- STEP 3: DELETE TRANSACTIONAL DATA (child tables first)
+  -- ORDER MATTERS: Delete children before parents to respect FK constraints.
+  -- =====================================================================
+
+  -- 3a. User clue progress (depends on clues)
+  IF v_clue_ids IS NOT NULL AND array_length(v_clue_ids, 1) > 0 THEN
+    DELETE FROM user_clue_progress WHERE clue_id = ANY(v_clue_ids);
+    GET DIAGNOSTICS v_deleted_progress = ROW_COUNT;
+  END IF;
+
+  -- 3b. Player-level data (depends on game_players)
+  IF v_gp_ids IS NOT NULL AND array_length(v_gp_ids, 1) > 0 THEN
+    -- Player powers inventory
+    DELETE FROM player_powers WHERE game_player_id = ANY(v_gp_ids);
+    GET DIAGNOSTICS v_deleted_powers = ROW_COUNT;
+
+    -- Transactions log
+    DELETE FROM transactions WHERE game_player_id = ANY(v_gp_ids);
+    GET DIAGNOSTICS v_deleted_transactions = ROW_COUNT;
+
+    -- Combat events (also handled by CASCADE, but explicit is safer)
+    DELETE FROM combat_events
+      WHERE attacker_id = ANY(v_gp_ids) OR target_id = ANY(v_gp_ids);
+    GET DIAGNOSTICS v_deleted_combat = ROW_COUNT;
+  END IF;
+
+  -- 3c. Event-level transactional data
+  DELETE FROM active_powers WHERE event_id = target_event_id;
+  GET DIAGNOSTICS v_deleted_active = ROW_COUNT;
+
+  DELETE FROM bets WHERE event_id = target_event_id;
+  GET DIAGNOSTICS v_deleted_bets = ROW_COUNT;
+
+  DELETE FROM prize_distributions WHERE event_id = target_event_id;
+  GET DIAGNOSTICS v_deleted_prizes = ROW_COUNT;
+
+  -- 3d. Player registrations (parent of player_powers, transactions, etc.)
+  DELETE FROM game_players WHERE event_id = target_event_id;
+  GET DIAGNOSTICS v_deleted_players = ROW_COUNT;
+
+  -- 3e. Join requests
+  DELETE FROM game_requests WHERE event_id = target_event_id;
+  GET DIAGNOSTICS v_deleted_requests = ROW_COUNT;
+
+  -- =====================================================================
+  -- STEP 4: RESET EVENT STATUS (soft reset, no DELETE)
+  -- =====================================================================
+  UPDATE events
+    SET status       = 'pending',
+        winner_id    = NULL,
+        completed_at = NULL,
+        is_completed = false,
+        pot          = 0
+    WHERE id = target_event_id;
+
+  -- =====================================================================
+  -- STEP 5: INTEGRITY VERIFICATION — Clues must be intact
+  -- =====================================================================
+  SELECT count(*) INTO v_clue_count_after
+    FROM clues WHERE event_id = target_event_id;
+
+  IF v_clue_count_before <> v_clue_count_after THEN
+    -- THIS SHOULD NEVER HAPPEN. If it does, abort everything.
+    RAISE EXCEPTION 'INTEGRITY VIOLATION: Clue count changed from % to % during reset. Transaction rolled back.',
+      v_clue_count_before, v_clue_count_after;
+  END IF;
+
+  -- =====================================================================
+  -- STEP 6: AUDIT LOG — Record who did what
+  -- =====================================================================
+  INSERT INTO admin_audit_logs (admin_id, action_type, target_table, target_id, details)
+  VALUES (
+    admin_id,
+    'event_reset',
+    'events',
+    target_event_id,
+    jsonb_build_object(
+      'previous_status', v_event_status,
+      'clues_preserved', v_clue_count_after,
+      'deleted_progress', v_deleted_progress,
+      'deleted_player_powers', v_deleted_powers,
+      'deleted_active_powers', v_deleted_active,
+      'deleted_transactions', v_deleted_transactions,
+      'deleted_combat_events', v_deleted_combat,
+      'deleted_bets', v_deleted_bets,
+      'deleted_prizes', v_deleted_prizes,
+      'deleted_players', v_deleted_players,
+      'deleted_requests', v_deleted_requests
+    )
+  );
+
+  -- =====================================================================
+  -- STEP 7: RETURN SUMMARY
+  -- =====================================================================
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Evento reiniciado de forma segura',
+    'event_id', target_event_id,
+    'previous_status', v_event_status,
+    'clues_preserved', v_clue_count_after,
+    'summary', jsonb_build_object(
+      'progress_cleared', v_deleted_progress,
+      'players_removed', v_deleted_players,
+      'requests_removed', v_deleted_requests,
+      'powers_cleared', v_deleted_powers + v_deleted_active,
+      'transactions_cleared', v_deleted_transactions,
+      'combat_logs_cleared', v_deleted_combat,
+      'bets_cleared', v_deleted_bets,
+      'prizes_cleared', v_deleted_prizes
+    )
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."safe_reset_event"("target_event_id" "uuid", "admin_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."safe_reset_event"("target_event_id" "uuid", "admin_id" "uuid") IS 'Safely resets an event by clearing ONLY transactional data (players, progress, bets, etc). Structural data (clues, event config) is NEVER deleted. Runs as an atomic transaction — all or nothing. Verifies clue count integrity before committing.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."secure_clover_payment"("p_user_id" "uuid", "p_amount" bigint, "p_reason" "text" DEFAULT 'clover_payment'::"text") RETURNS json
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -2757,6 +2969,65 @@ $$;
 
 
 ALTER FUNCTION "public"."secure_clover_payment"("p_user_id" "uuid", "p_amount" bigint, "p_reason" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."start_event"("p_event_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_event RECORD;
+  v_caller_role TEXT;
+BEGIN
+  -- 1. Validate caller is admin/staff or service_role
+  IF (auth.jwt() ->> 'role') = 'service_role' THEN
+    v_caller_role := 'service_role';
+  ELSE
+    SELECT role INTO v_caller_role
+    FROM public.profiles
+    WHERE id = auth.uid();
+
+    IF v_caller_role IS NULL OR v_caller_role NOT IN ('admin', 'user_staff') THEN
+      RAISE EXCEPTION 'PERMISSION_DENIED: Solo administradores pueden iniciar eventos.';
+    END IF;
+  END IF;
+
+  -- 2. Fetch the event and validate it exists
+  SELECT id, status, title
+  INTO v_event
+  FROM public.events
+  WHERE id = p_event_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'EVENT_NOT_FOUND: El evento % no existe.', p_event_id;
+  END IF;
+
+  -- 3. Validate the event is in 'pending' state
+  IF v_event.status != 'pending' THEN
+    RAISE EXCEPTION 'INVALID_STATE: El evento ya está en estado "%". Solo se pueden iniciar eventos en estado "pending".', v_event.status;
+  END IF;
+
+  -- 4. Atomically update the event status to 'active'
+  UPDATE public.events
+  SET status = 'active'
+  WHERE id = p_event_id
+  AND status = 'pending'; -- Double-check for race condition
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'event_id', p_event_id,
+    'event_title', v_event.title,
+    'activated_by', v_caller_role
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."start_event"("p_event_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."start_event"("p_event_id" "uuid") IS 'Secure RPC to change event status from pending to active. Only callable by admin users. Prevents any automatic or client-side activation.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."sync_c_order_plan_to_ledger"() RETURNS "trigger"
@@ -2913,10 +3184,10 @@ CREATE OR REPLACE FUNCTION "public"."update_auto_event_settings"("p_settings" "j
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-  -- Validar admin
+  -- Validate admin or staff
   IF NOT (
     (auth.jwt() ->> 'role' = 'service_role') OR 
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'user_staff'))
   ) THEN
     RAISE EXCEPTION 'Solo administradores pueden cambiar la configuración';
   END IF;
@@ -2952,10 +3223,10 @@ ALTER FUNCTION "public"."update_game_progress"("p_game_id" "uuid", "p_user_id" "
 CREATE OR REPLACE FUNCTION "public"."update_updated_at_column"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
-BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
-END;
+begin
+    new.updated_at = now();
+    return new;
+end;
 $$;
 
 
@@ -3058,6 +3329,9 @@ DECLARE
     v_spectator_config jsonb;
     v_commission int;
     v_target_user_id uuid;
+    -- Gift max quantity check
+    v_target_current_qty int;
+    v_max_power_quantity int := 3;
 BEGIN
     -- 0. SECURITY: Validate caller owns the caster
     IF NOT EXISTS (
@@ -3077,6 +3351,13 @@ BEGIN
     
     IF v_power_id IS NULL THEN
         RETURN json_build_object('success', false, 'error', 'power_not_found');
+    END IF;
+
+    -- 1.5 BLOQUEO: Espectadores NO pueden usar blur_screen (AoE)
+    -- blur_screen afecta a todos los jugadores simultáneamente, lo cual
+    -- genera un desbalance económico con el sistema de comisiones.
+    IF v_caster_role = 'spectator' AND p_power_slug = 'blur_screen' THEN
+        RETURN json_build_object('success', false, 'error', 'spectator_blur_blocked');
     END IF;
 
     -- 2. CONSUMO DE MUNICIÓN
@@ -3142,6 +3423,27 @@ BEGIN
         -- A. GIFTING LOGIC (If caster != target)
         -- Spectators (or players) targeting someone else GIFT the item.
         IF p_caster_id != p_target_id THEN
+             -- *** MAX QUANTITY CHECK ***
+             -- Check if target already has max quantity of this power
+             SELECT COALESCE(quantity, 0) INTO v_target_current_qty
+             FROM public.player_powers
+             WHERE game_player_id = p_target_id AND power_id = v_power_id;
+
+             IF v_target_current_qty >= v_max_power_quantity THEN
+                 -- Refund ammo to caster (we consumed it in step 2)
+                 UPDATE public.player_powers 
+                 SET quantity = quantity + 1 
+                 WHERE game_player_id = p_caster_id AND power_id = v_power_id;
+
+                 RETURN json_build_object(
+                     'success', false, 
+                     'error', 'target_inventory_full',
+                     'power_slug', p_power_slug,
+                     'current_qty', v_target_current_qty,
+                     'max_qty', v_max_power_quantity
+                 );
+             END IF;
+
              -- Add to target's inventory
              INSERT INTO public.player_powers (game_player_id, power_id, quantity)
              VALUES (p_target_id, v_power_id, 1)
@@ -3191,7 +3493,7 @@ BEGIN
         );
     END IF;
 
-    -- 4. ATAQUE DE ÁREA (Blur Screen)
+    -- 4. ATAQUE DE ÁREA (Blur Screen) - Solo jugadores, NO espectadores
     IF p_power_slug = 'blur_screen' THEN
         DECLARE
             v_aoe_target_id uuid;
@@ -3558,7 +3860,7 @@ CREATE TABLE IF NOT EXISTS "public"."clues" (
     "event_id" "uuid" NOT NULL,
     "sequence_index" integer NOT NULL,
     "title" "text" DEFAULT 'Nueva Pista'::"text",
-    "description" "text" DEFAULT 'Descripción pendiente'::"text",
+    "description" "text" DEFAULT ''::"text",
     "hint" "text",
     "type" "text" DEFAULT 'qrScan'::"text",
     "puzzle_type" "text",
@@ -3744,6 +4046,23 @@ CREATE TABLE IF NOT EXISTS "public"."minigame_true_false" (
 ALTER TABLE "public"."minigame_true_false" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."payment_transactions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "order_id" "text" NOT NULL,
+    "amount" numeric NOT NULL,
+    "currency" "text" NOT NULL,
+    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "provider_data" "jsonb",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "type" "text" DEFAULT 'DEPOSIT'::"text"
+);
+
+
+ALTER TABLE "public"."payment_transactions" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."player_powers" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "game_player_id" "uuid" NOT NULL,
@@ -3834,7 +4153,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "dni" "text",
     "phone" "text",
     "email_verified" boolean DEFAULT true,
-    CONSTRAINT "profiles_dni_format_check" CHECK (("dni" ~* '^[VEJPG][0-9]+$'::"text"))
+    CONSTRAINT "profiles_dni_format_check" CHECK (("dni" ~* '^[VEJPG][0-9]+$'::"text")),
+    CONSTRAINT "profiles_role_check" CHECK (("role" = ANY (ARRAY['user'::"text", 'admin'::"text", 'user_staff'::"text"])))
 );
 
 
@@ -4130,6 +4450,16 @@ ALTER TABLE ONLY "public"."minigame_true_false"
 
 
 
+ALTER TABLE ONLY "public"."payment_transactions"
+    ADD CONSTRAINT "payment_transactions_order_id_key" UNIQUE ("order_id");
+
+
+
+ALTER TABLE ONLY "public"."payment_transactions"
+    ADD CONSTRAINT "payment_transactions_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."player_powers"
     ADD CONSTRAINT "player_powers_game_player_id_power_id_key" UNIQUE ("game_player_id", "power_id");
 
@@ -4372,6 +4702,10 @@ CREATE OR REPLACE TRIGGER "update_clover_orders_updated_at" BEFORE UPDATE ON "pu
 
 
 
+CREATE OR REPLACE TRIGGER "update_payment_transactions_updated_at" BEFORE UPDATE ON "public"."payment_transactions" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
 ALTER TABLE ONLY "public"."active_powers"
     ADD CONSTRAINT "active_powers_caster_id_fkey" FOREIGN KEY ("caster_id") REFERENCES "public"."game_players"("id") ON DELETE CASCADE;
 
@@ -4477,6 +4811,11 @@ ALTER TABLE ONLY "public"."mall_stores"
 
 
 
+ALTER TABLE ONLY "public"."payment_transactions"
+    ADD CONSTRAINT "payment_transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id");
+
+
+
 ALTER TABLE ONLY "public"."player_powers"
     ADD CONSTRAINT "player_powers_game_player_id_fkey" FOREIGN KEY ("game_player_id") REFERENCES "public"."game_players"("id") ON DELETE CASCADE;
 
@@ -4547,6 +4886,26 @@ CREATE POLICY "Admin full access" ON "public"."transaction_plans" USING (((("aut
 
 
 
+CREATE POLICY "Admins and staff can create events" ON "public"."events" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"text", 'user_staff'::"text"]))))));
+
+
+
+CREATE POLICY "Admins and staff can delete events" ON "public"."events" FOR DELETE TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"text", 'user_staff'::"text"]))))));
+
+
+
+CREATE POLICY "Admins and staff can update events" ON "public"."events" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"text", 'user_staff'::"text"])))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."profiles"
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"text", 'user_staff'::"text"]))))));
+
+
+
 CREATE POLICY "Admins can manage powers" ON "public"."powers" USING ((EXISTS ( SELECT 1
    FROM "public"."profiles"
   WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = 'admin'::"text")))));
@@ -4563,7 +4922,7 @@ CREATE POLICY "Admins can view all bets" ON "public"."bets" FOR SELECT USING ("p
 
 CREATE POLICY "Admins can view audit logs" ON "public"."admin_audit_logs" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."profiles"
-  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = 'admin'::"text")))));
+  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"text", 'user_staff'::"text"]))))));
 
 
 
@@ -4584,6 +4943,10 @@ CREATE POLICY "Allow public read for minigame_true_false" ON "public"."minigame_
 
 
 CREATE POLICY "Anyone can read active sponsors" ON "public"."sponsors" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Anyone can view events" ON "public"."events" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -4769,6 +5132,10 @@ CREATE POLICY "Users can view their own bets" ON "public"."bets" FOR SELECT USIN
 
 
 
+CREATE POLICY "Users can view their own transactions" ON "public"."payment_transactions" FOR SELECT USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users read own profile or public info" ON "public"."profiles" FOR SELECT TO "authenticated" USING ((("auth"."uid"() = "id") OR "public"."is_admin"("auth"."uid"()) OR true));
 
 
@@ -4788,6 +5155,16 @@ ALTER TABLE "public"."admin_audit_logs" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."app_config" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "app_config_admin_write" ON "public"."app_config" USING (((("auth"."jwt"() ->> 'role'::"text") = 'service_role'::"text") OR (( SELECT "profiles"."role"
+   FROM "public"."profiles"
+  WHERE ("profiles"."id" = "auth"."uid"())) = 'admin'::"text")));
+
+
+
+CREATE POLICY "app_config_select_all" ON "public"."app_config" FOR SELECT USING (true);
+
 
 
 ALTER TABLE "public"."app_settings" ENABLE ROW LEVEL SECURITY;
@@ -4843,6 +5220,9 @@ ALTER TABLE "public"."minigame_emoji_movies" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."minigame_true_false" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."payment_transactions" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."player_powers" ENABLE ROW LEVEL SECURITY;
 
 
@@ -4856,6 +5236,54 @@ ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."sponsors" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "staff_deny_delete_clover_orders" ON "public"."clover_orders" AS RESTRICTIVE FOR DELETE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_delete_payment_methods" ON "public"."user_payment_methods" AS RESTRICTIVE FOR DELETE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_delete_transaction_plans" ON "public"."transaction_plans" AS RESTRICTIVE FOR DELETE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_delete_wallet_ledger" ON "public"."wallet_ledger" AS RESTRICTIVE FOR DELETE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_insert_clover_orders" ON "public"."clover_orders" AS RESTRICTIVE FOR INSERT TO "authenticated" WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_insert_payment_methods" ON "public"."user_payment_methods" AS RESTRICTIVE FOR INSERT TO "authenticated" WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_insert_transaction_plans" ON "public"."transaction_plans" AS RESTRICTIVE FOR INSERT TO "authenticated" WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_insert_wallet_ledger" ON "public"."wallet_ledger" AS RESTRICTIVE FOR INSERT TO "authenticated" WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_update_clover_orders" ON "public"."clover_orders" AS RESTRICTIVE FOR UPDATE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"()))) WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_update_payment_methods" ON "public"."user_payment_methods" AS RESTRICTIVE FOR UPDATE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"()))) WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_update_transaction_plans" ON "public"."transaction_plans" AS RESTRICTIVE FOR UPDATE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"()))) WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
+
+
+CREATE POLICY "staff_deny_update_wallet_ledger" ON "public"."wallet_ledger" AS RESTRICTIVE FOR UPDATE TO "authenticated" USING ((NOT "public"."is_staff"("auth"."uid"()))) WITH CHECK ((NOT "public"."is_staff"("auth"."uid"())));
+
 
 
 ALTER TABLE "public"."transaction_plans" ENABLE ROW LEVEL SECURITY;
@@ -5339,6 +5767,12 @@ GRANT ALL ON FUNCTION "public"."is_admin"("p_user_id" "uuid") TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."is_admin_or_staff"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."is_admin_or_staff"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_admin_or_staff"("p_user_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."is_bcv_rate_valid"() TO "anon";
 GRANT ALL ON FUNCTION "public"."is_bcv_rate_valid"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_bcv_rate_valid"() TO "service_role";
@@ -5348,6 +5782,12 @@ GRANT ALL ON FUNCTION "public"."is_bcv_rate_valid"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."is_event_completed"("p_event_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."is_event_completed"("p_event_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_event_completed"("p_event_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_staff"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."is_staff"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_staff"("p_user_id" "uuid") TO "service_role";
 
 
 
@@ -5445,9 +5885,21 @@ GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."safe_reset_event"("target_event_id" "uuid", "admin_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."safe_reset_event"("target_event_id" "uuid", "admin_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."safe_reset_event"("target_event_id" "uuid", "admin_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."secure_clover_payment"("p_user_id" "uuid", "p_amount" bigint, "p_reason" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."secure_clover_payment"("p_user_id" "uuid", "p_amount" bigint, "p_reason" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."secure_clover_payment"("p_user_id" "uuid", "p_amount" bigint, "p_reason" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."start_event"("p_event_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."start_event"("p_event_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."start_event"("p_event_id" "uuid") TO "service_role";
 
 
 
@@ -5652,6 +6104,12 @@ GRANT ALL ON TABLE "public"."minigame_true_false" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."payment_transactions" TO "anon";
+GRANT ALL ON TABLE "public"."payment_transactions" TO "authenticated";
+GRANT ALL ON TABLE "public"."payment_transactions" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."player_powers" TO "anon";
 GRANT ALL ON TABLE "public"."player_powers" TO "authenticated";
 GRANT ALL ON TABLE "public"."player_powers" TO "service_role";
@@ -5772,5 +6230,38 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
