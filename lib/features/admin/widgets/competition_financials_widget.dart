@@ -6,6 +6,7 @@ import '../services/admin_service.dart';
 import '../../game/services/betting_service.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class CompetitionFinancialsWidget extends StatefulWidget {
   final GameEvent event;
@@ -180,12 +181,18 @@ class _CompetitionFinancialsWidgetState
                       style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.5),
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      '$totalPot 🍀',
-                      style: const TextStyle(
-                          color: AppTheme.accentGold,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$totalPot ',
+                          style: const TextStyle(
+                              color: AppTheme.accentGold,
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const CoinImage(size: 28),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -285,9 +292,14 @@ class _CompetitionFinancialsWidgetState
             hasEnrichedData ? bettor.name : 'Apostador #${index + 1}',
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
           ),
-          subtitle: Text(
-            '${bettor.bets.length} apuesta(s) · Total: ${bettor.totalBet} 🍀',
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          subtitle: Row(
+            children: [
+              Text(
+                '${bettor.bets.length} apuesta(s) · Total: ${bettor.totalBet} ',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const CoinImage(size: 12),
+            ],
           ),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -295,9 +307,15 @@ class _CompetitionFinancialsWidgetState
               color: Colors.amber.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
-              '${bettor.totalBet} 🍀',
-              style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${bettor.totalBet} ',
+                  style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const CoinImage(size: 14),
+              ],
             ),
           ),
           iconColor: Colors.white54,
@@ -347,9 +365,14 @@ class _CompetitionFinancialsWidgetState
                           ],
                         ),
                       ),
-                      Text(
-                        '$amount 🍀',
-                        style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w600, fontSize: 13),
+                      Row(
+                        children: [
+                          Text(
+                            '$amount ',
+                            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                          const CoinImage(size: 13),
+                        ],
                       ),
                     ],
                   ),
@@ -414,9 +437,10 @@ class _CompetitionFinancialsWidgetState
              children: [
                _buildFinanceCard(
                  title: 'POTE FINAL REPARTIDO',
-                 amount: '$pot 🍀',
+                 amount: '$pot ',
                  icon: Icons.flag,
                  color: AppTheme.primaryPurple,
+                 showCoin: true,
                ),
                const SizedBox(height: 20),
                
@@ -468,7 +492,13 @@ class _CompetitionFinancialsWidgetState
                        crossAxisAlignment: CrossAxisAlignment.end,
                        children: [
                          const Text('Premio', style: TextStyle(color: Colors.white30, fontSize: 10)),
-                         Text('+${r['amount']} 🍀', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('+${r['amount']} ', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                              const CoinImage(size: 16),
+                            ],
+                          ),
                        ],
                      ),
                    ),
@@ -517,7 +547,13 @@ class _CompetitionFinancialsWidgetState
                                mainAxisAlignment: MainAxisAlignment.center,
                                children: [
                                   const Text('Apostado', style: TextStyle(color: Colors.white38, fontSize: 10)),
-                                  Text('${b['total_bet']} 🍀', style: const TextStyle(color: Colors.white70)),
+                                   Row(
+                                     mainAxisSize: MainAxisSize.min,
+                                     children: [
+                                       Text('${b['total_bet']} ', style: const TextStyle(color: Colors.white70)),
+                                       const CoinImage(size: 12),
+                                     ],
+                                   ),
                                ],
                              ),
                              const SizedBox(width: 16),
@@ -526,14 +562,20 @@ class _CompetitionFinancialsWidgetState
                                mainAxisAlignment: MainAxisAlignment.center,
                                children: [
                                   const Text('Ganancia', style: TextStyle(color: Colors.white38, fontSize: 10)),
-                                  Text(
-                                    totalWon > 0 ? '+$totalWon 🍀' : '0 🍀', 
-                                    style: TextStyle(
-                                      color: totalWon > 0 ? Colors.greenAccent : Colors.white30, 
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16
-                                    )
-                                  ),
+                                   Row(
+                                     mainAxisSize: MainAxisSize.min,
+                                     children: [
+                                       Text(
+                                         totalWon > 0 ? '+$totalWon ' : '0 ', 
+                                         style: TextStyle(
+                                           color: totalWon > 0 ? Colors.greenAccent : Colors.white30, 
+                                           fontWeight: FontWeight.bold,
+                                           fontSize: 16
+                                         )
+                                       ),
+                                       const CoinImage(size: 16),
+                                     ],
+                                   ),
                                ],
                              ),
                            ],
@@ -550,7 +592,7 @@ class _CompetitionFinancialsWidgetState
     );
   }
   
-  Widget _buildFinanceCard({required String title, required String amount, required IconData icon, required Color color}) {
+  Widget _buildFinanceCard({required String title, required String amount, required IconData icon, required Color color, bool showCoin = false}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -574,7 +616,15 @@ class _CompetitionFinancialsWidgetState
             children: [
               Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
-              Text(amount, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Text(amount, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  if (showCoin) ...[
+                    const SizedBox(width: 4),
+                    const CoinImage(size: 20),
+                  ],
+                ],
+              ),
             ],
           )
         ],

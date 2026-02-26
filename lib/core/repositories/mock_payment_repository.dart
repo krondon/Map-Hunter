@@ -109,7 +109,7 @@ class MockPaymentRepository implements IPaymentRepository {
     
     if (currentBalance < amount) {
       return PaymentResult.failure(
-        'Saldo insuficiente. Tienes ${currentBalance.toStringAsFixed(2)} 🍀, necesitas ${amount.toStringAsFixed(2)} 🍀',
+        'Saldo insuficiente. Tienes ${currentBalance.toStringAsFixed(2)} tréboles, necesitas ${amount.toStringAsFixed(2)} tréboles',
       );
     }
 

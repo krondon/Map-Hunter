@@ -21,6 +21,7 @@ import '../../mall/providers/store_provider.dart';
 import '../../mall/models/mall_store.dart';
 import '../../mall/models/power_item.dart'; // NEW
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class EventCreationScreen extends StatefulWidget {
   final VoidCallback? onEventCreated;
@@ -576,7 +577,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               initialValue: provider.betTicketPrice.toString(),
                               decoration: inputDecoration.copyWith(
                                 labelText: 'Precio Apuesta',
-                                suffixText: '🍀',
+                                suffix: const CoinImage(size: 16),
                                 helperText: 'Default: 100',
                               ),
                               style: const TextStyle(color: Colors.white),
@@ -599,7 +600,7 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                               initialValue: provider.entryFee?.toString() ?? '',
                               decoration: inputDecoration.copyWith(
                                 labelText: 'Precio Entrada',
-                                suffixText: '🍀',
+                                suffix: const CoinImage(size: 16),
                                 helperText: '0 para GRATIS',
                               ),
                               style: const TextStyle(color: Colors.white),

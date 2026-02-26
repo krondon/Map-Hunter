@@ -101,11 +101,11 @@ class EventDomainService {
     if (entryType == EntryType.free) return null;
 
     if (amount == null || amount <= 0) {
-      return 'Los eventos de pago requieren una cuota mayor a 0 🍀';
+      return 'Los eventos de pago requieren una cuota mayor a 0 tréboles';
     }
 
     if (amount > 1000) {
-      return 'La cuota máxima es 1000 🍀';
+      return 'La cuota máxima es 1000 tréboles';
     }
 
     return null;

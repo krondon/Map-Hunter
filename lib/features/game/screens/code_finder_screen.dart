@@ -20,6 +20,7 @@ import '../../../shared/widgets/cyber_tutorial_overlay.dart';
 import '../../../shared/widgets/master_tutorial_content.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/development_bypass_button.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class CodeFinderScreen extends StatefulWidget {
   final Scenario scenario;
@@ -444,8 +445,18 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                 ? AppTheme.dSurface1
                                 : AppTheme.lSurface1,
                             title: const Text('Confirmar Solicitud'),
-                            content: Text(
-                                'Este evento tiene un costo de ${widget.scenario.entryFee} 🍀.'),
+                            content: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                    'Este evento tiene un costo de ${widget.scenario.entryFee} ',
+                                    style:
+                                        const TextStyle(color: Colors.white70)),
+                                const CoinImage(size: 16),
+                                const Text('.',
+                                    style: TextStyle(color: Colors.white70)),
+                              ],
+                            ),
                             actions: [
                               TextButton(
                                   onPressed: () => Navigator.pop(ctx, false),

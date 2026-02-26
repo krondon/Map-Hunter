@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -68,15 +69,15 @@ serve(async (req) => {
     if (req.method === 'POST' && path === 'start-game') {
       // We need eventId to start game now
       const { eventId } = await req.json()
-      
+
       if (!eventId) {
-         return new Response(
+        return new Response(
           JSON.stringify({ error: 'eventId is required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      const { error } = await supabaseClient.rpc('initialize_game_for_user', { 
+      const { error } = await supabaseClient.rpc('initialize_game_for_user', {
         target_user_id: user.id,
         target_event_id: eventId
       })
@@ -103,7 +104,7 @@ serve(async (req) => {
 
       // Simple answer check (case insensitive)
       if (clue.riddle_answer && answer && clue.riddle_answer.toLowerCase() !== answer.toLowerCase()) {
-         return new Response(
+        return new Response(
           JSON.stringify({ error: 'Incorrect answer' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
@@ -144,7 +145,7 @@ serve(async (req) => {
       // Actually, for rewards, it's safer to use an RPC or Service Role to prevent cheating.
       // But here we are using the user's client. 
       // Let's use the Service Role client for awarding rewards to be safe.
-      
+
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -155,7 +156,7 @@ serve(async (req) => {
         .select('experience, coins, level')
         .eq('id', user.id)
         .single()
-      
+
       if (profile) {
         const newXp = (profile.experience || 0) + (clue.xp_reward || 0)
         const newCoins = (profile.coins || 0) + (clue.coin_reward || 0)
@@ -164,9 +165,9 @@ serve(async (req) => {
 
         await supabaseAdmin
           .from('profiles')
-          .update({ 
-            experience: newXp, 
-            coins: newCoins, 
+          .update({
+            experience: newXp,
+            coins: newCoins,
             level: newLevel,
             total_xp: newXp // Assuming total_xp is same as experience for now
           })
@@ -182,7 +183,7 @@ serve(async (req) => {
     // --- SKIP CLUE ---
     if (req.method === 'POST' && path === 'skip-clue') {
       const { clueId } = await req.json()
-      
+
       // 1. Get clue to find next one
       const { data: clue, error: clueError } = await supabaseClient
         .from('clues')
@@ -232,12 +233,12 @@ serve(async (req) => {
       // but since we are using Service Role for the transaction, we should check here.
       // Let's assume a simple check: email contains 'admin' or specific ID.
       // In production, check a 'role' column in profiles.
-      
+
       const { data: profile } = await supabaseClient
-  .from("profiles")
-  .select("role")
-  .eq("id", user.id)
-  .single();
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
       if (profile?.role !== "admin") {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
@@ -246,7 +247,7 @@ serve(async (req) => {
       }
 
       const { requestId } = await req.json()
-      
+
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -284,7 +285,7 @@ serve(async (req) => {
     // --- SABOTAGE RIVAL ---
     if (req.method === 'POST' && path === 'sabotage-rival') {
       const { rivalId } = await req.json()
-      
+
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -314,7 +315,7 @@ serve(async (req) => {
       const freezeUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString()
       await supabaseAdmin
         .from('profiles')
-        .update({ 
+        .update({
           status: 'frozen',
           frozen_until: freezeUntil
         })

@@ -25,6 +25,7 @@ import '../widgets/store_edit_dialog.dart';
 import '../widgets/clue_form_dialog.dart';
 import '../../mall/models/mall_store.dart';
 import '../widgets/competition_financials_widget.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class CompetitionDetailScreen extends StatefulWidget {
   final GameEvent event;
@@ -782,12 +783,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Pote Acumulado: $_currentPot 🍀',
-              style: const TextStyle(
-                  color: AppTheme.accentGold,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Text(
+                  'Pote Acumulado: $_currentPot ',
+                  style: const TextStyle(
+                      color: AppTheme.accentGold,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                ),
+                const CoinImage(size: 18),
+              ],
             ),
             const SizedBox(height: 10),
             const Text(
@@ -838,10 +844,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Pote Total: ${result['pot']} 🍀',
-                        style: const TextStyle(
-                            color: AppTheme.accentGold,
-                            fontWeight: FontWeight.bold)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Pote Total: ${result['pot']} ',
+                            style: const TextStyle(
+                                color: AppTheme.accentGold,
+                                fontWeight: FontWeight.bold)),
+                        const CoinImage(size: 16),
+                      ],
+                    ),
                     const SizedBox(height: 10),
                     if (result['results'] != null)
                       ...(result['results'] as List).map((r) => ListTile(
@@ -855,9 +867,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                             ),
                             title: Text('${r['user']}',
                                 style: const TextStyle(color: Colors.white)),
-                            trailing: Text('+${r['amount']} 🍀',
-                                style:
-                                    const TextStyle(color: Colors.greenAccent)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('+${r['amount']} ',
+                                    style:
+                                        const TextStyle(color: Colors.greenAccent)),
+                                const CoinImage(size: 14),
+                              ],
+                            ),
                           )),
                   ],
                 ),
@@ -1171,11 +1189,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                             letterSpacing: 2,
                             fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
-                    Text('${_currentPot.toStringAsFixed(0)} 🍀',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('${_currentPot.toStringAsFixed(0)} ',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900)),
+                        const CoinImage(size: 28),
+                      ],
+                    ),
                     Text('Total Acumulado en Base de Datos',
                         style: const TextStyle(
                             color: Colors.white38, fontSize: 12)),
@@ -1276,7 +1300,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                   color: _isEventActive ? Colors.white70 : Colors.white),
               decoration: inputDecoration.copyWith(
                 labelText: 'Precio Entrada (Tréboles)',
-                suffixText: '🍀',
+                suffix: const CoinImage(size: 16),
                 helperText: 'Deja vacío o 0 para GRATIS',
               ),
               keyboardType: TextInputType.number,

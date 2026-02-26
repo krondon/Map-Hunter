@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/app_config_service.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class OnlineAutomationScreen extends StatefulWidget {
   const OnlineAutomationScreen({super.key});
@@ -245,8 +246,8 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
           _buildSlider('Copa Máx. Jugadores', 'max_players', 20, 50, 1),
           _buildSlider('Cant. Mín. Minijuegos', 'min_games', 2, 6, 1),
           _buildSlider('Cant. Máx. Minijuegos', 'max_games', 6, 15, 1),
-          _buildSlider('Entry Fee Mín (🍀)', 'min_fee', 0, 50, 5),
-          _buildSlider('Entry Fee Máx (🍀)', 'max_fee', 50, 200, 5),
+          _buildSlider('Entry Fee Mín [COIN]', 'min_fee', 0, 50, 5),
+          _buildSlider('Entry Fee Máx [COIN]', 'max_fee', 50, 200, 5),
         ],
       ),
     );
@@ -261,8 +262,16 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style: const TextStyle(color: Colors.white70, fontSize: 14)),
+            Row(
+              children: [
+                Text(label.replaceAll('[COIN]', '').trim(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                if (label.contains('[COIN]')) ...[
+                  const SizedBox(width: 4),
+                  const CoinImage(size: 14),
+                ],
+              ],
+            ),
             Text(value.toInt().toString(),
                 style: const TextStyle(
                     color: AppTheme.primaryPurple,

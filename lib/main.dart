@@ -422,11 +422,16 @@ class _MapHunterAppState extends State<MapHunterApp>
             builder: (context, child) {
               _forceImmersiveMode();
 
-              return VersionMonitor(
-                child: AuthMonitor(
-                  child: ConnectivityMonitor(
-                    child: GameSessionMonitor(
-                      child: SabotageOverlay(child: child ?? const SizedBox()),
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.noScaling,
+                ),
+                child: VersionMonitor(
+                  child: AuthMonitor(
+                    child: ConnectivityMonitor(
+                      child: GameSessionMonitor(
+                        child: SabotageOverlay(child: child ?? const SizedBox()),
+                      ),
                     ),
                   ),
                 ),

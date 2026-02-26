@@ -128,7 +128,7 @@ class Transaction {
   /// Display-friendly amount with sign.
   String get displayAmount {
     final sign = isCredit ? '+' : '-';
-    return '$sign${amount.toStringAsFixed(2)} 🍀';
+    return '$sign${amount.toStringAsFixed(2)} tréboles';
   }
 
   @override
