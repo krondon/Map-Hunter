@@ -1,0 +1,24 @@
+workflows:
+  build-and-deploy:
+    name: Despliegue Total Morna (Android + iOS)
+    instance_type: mac_mini_m1 # Necesario para compilar iOS
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      groups:
+        - android_credentials # El nombre del grupo que creaste en Codemagic
+    scripts:
+      - name: Instalando dependencias
+        script: flutter packages pub get
+      - name: Compilando Android (AAB)
+        script: flutter build appbundle --release --build-number=$BUILD_NUMBER
+      - name: Compilando iOS (IPA)
+        script: | 
+          # Esto genera el archivo para la App Store
+          flutter build ipa --release --build-number=$BUILD_NUMBER --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration # Usa la API Key que conectamos
