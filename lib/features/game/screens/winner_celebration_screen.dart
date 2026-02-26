@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'scenarios_screen.dart';
 import 'game_mode_selector_screen.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class WinnerCelebrationScreen extends StatefulWidget {
   final String eventId;
@@ -781,11 +782,10 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Text("💰",
-                                              style: TextStyle(fontSize: 20)),
+                                          const CoinImage(size: 20),
                                           const SizedBox(width: 8),
                                           Text(
-                                            "+${_prizes[currentPlayerId]} 🍀",
+                                            "+${_prizes[currentPlayerId]} ",
                                             style: const TextStyle(
                                               color: Color(0xFFFFD700),
                                               fontSize: 20,
@@ -815,11 +815,10 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Text("💰",
-                                              style: TextStyle(fontSize: 20)),
+                                          const CoinImage(size: 20),
                                           const SizedBox(width: 8),
                                           Text(
-                                            "+${widget.prizeWon} 🍀",
+                                            "+${widget.prizeWon} ",
                                             style: const TextStyle(
                                               color: Color(0xFFFFD700),
                                               fontSize: 20,

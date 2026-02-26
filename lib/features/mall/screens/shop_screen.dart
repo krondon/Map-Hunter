@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../widgets/shop_item_card.dart';
 import '../../game/providers/game_provider.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -192,7 +193,7 @@ class _ShopScreenState extends State<ShopScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.monetization_on, size: 16),
+                  const Icon(Icons.monetization_on, size: 16, color: Colors.amber),
                   const SizedBox(width: 4),
                   Text(
                     '${player?.coins ?? 0}',

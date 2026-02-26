@@ -3,12 +3,14 @@ import 'dart:math' as math;
 import 'package:map_hunter/core/theme/app_theme.dart';
 
 class AnimatedCyberBackground extends StatefulWidget {
+  final bool showBackgroundBase;
   final Widget? child;
   final Color? gridColor;
   final Color? vignetteColor;
-
+  
   const AnimatedCyberBackground({
     super.key,
+    this.showBackgroundBase = true,
     this.child,
     this.gridColor,
     this.vignetteColor,
@@ -64,21 +66,22 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
 
     return Stack(
       children: [
-        // 0. Background Base
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const RadialGradient(
-                center: Alignment(-0.8, -0.6),
-                radius: 1.5,
-                colors: [
-                  AppTheme.dSurface1,
-                  AppTheme.dSurface0,
-                ],
+        // 0. Background Base (Optional)
+        if (widget.showBackgroundBase)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const RadialGradient(
+                  center: Alignment(-0.8, -0.6),
+                  radius: 1.5,
+                  colors: [
+                    AppTheme.dSurface1,
+                    AppTheme.dSurface0,
+                  ],
+                ),
               ),
             ),
           ),
-        ),
 
         // 1. Grid
         Positioned.fill(

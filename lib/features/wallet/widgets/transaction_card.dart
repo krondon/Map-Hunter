@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../models/transaction_item.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class TransactionCard extends StatelessWidget {
   final TransactionItem item;
@@ -147,14 +148,20 @@ class TransactionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     // Clover Amount (Primary)
-                    Text(
-                      '${item.isCredit ? '+' : ''}${item.amount.toInt()} 🍀',
-                      style: TextStyle(
-                        fontFamily: 'Orbitron',
-                        color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed, 
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${item.isCredit ? '+' : ''}${item.amount.toInt()} ',
+                          style: TextStyle(
+                            fontFamily: 'Orbitron',
+                            color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed, 
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const CoinImage(size: 14),
+                      ],
                     ),
                     // Fiat Amount (Secondary)
                     if (item.fiatAmount != null && 

@@ -47,5 +47,5 @@ class WithdrawalPlan {
   }
 
   String get formattedAmountUsd => '\$${amountUsd.toStringAsFixed(2)}';
-  String get formattedCloversCost => '$cloversCost 🍀';
+  String get formattedCloversCost => '$cloversCost tréboles';
 }

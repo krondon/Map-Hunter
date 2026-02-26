@@ -203,7 +203,7 @@ class GameAccessService {
     if (entryFee != null && entryFee > 0) {
       return GameAccessResult(
         AccessResultType.needsPayment,
-        message: 'Este evento requiere una inscripción de ${entryFee.toStringAsFixed(2)} 🍀',
+        message: 'Este evento requiere una inscripción de ${entryFee.toStringAsFixed(2)} tréboles',
         data: {'entryFee': entryFee},
       );
     }

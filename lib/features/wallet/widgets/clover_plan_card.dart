@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/clover_plan.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 /// A selectable card widget for displaying a clover purchase plan.
 /// 
@@ -50,26 +51,20 @@ class CloverPlanCard extends StatelessWidget {
                 ]
               : null,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Clover Icons at top
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(cloverIconCount, (index) => 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 1),
-                    child: const Text(
-                      '🍀',
-                      style: TextStyle(
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                ),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Coin Icons at top
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(cloverIconCount, (index) => 
+               Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 1),
+                child: CoinImage(size: 20 + (index * 2)),
               ),
+            ),
+          ),
               
               const SizedBox(height: 12),
               
@@ -114,7 +109,6 @@ class CloverPlanCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

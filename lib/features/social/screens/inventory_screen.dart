@@ -15,6 +15,7 @@ import '../../../shared/utils/game_ui_utils.dart';
 import '../../game/providers/power_interfaces.dart';
 import '../../../shared/widgets/animated_cyber_background.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../shared/widgets/coin_image.dart';
 // PowerSwipeAction se mantiene disponible pero no se usa en este flujo simplificado
 
 class InventoryScreen extends StatefulWidget {
@@ -141,11 +142,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
-                                          Icons.monetization_on,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
+                                        const Icon(Icons.monetization_on, size: 16, color: Colors.amber),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${player.coins}',

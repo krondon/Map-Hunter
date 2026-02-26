@@ -926,7 +926,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         const SizedBox(width: 12),
-        // Logo Morna (más grande)
+        // Logo Morna
         Image.asset(
           'assets/images/morna_logo.png',
           height: 38,
@@ -936,6 +936,12 @@ class _LoginScreenState extends State<LoginScreen>
         Image.asset(
           'assets/images/jd.PNG',
           height: 30,
+        ),
+        const SizedBox(width: 12),
+        // Logo Naza (NEW)
+        Image.asset(
+          'assets/images/naza_logo.png',
+          height: 45,
         ),
       ],
     );

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/player_provider.dart';
 import '../services/betting_service.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class MyBetsModal extends StatefulWidget {
   final String eventId;
@@ -107,9 +108,14 @@ class _MyBetsModalState extends State<MyBetsModal> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              subtitle: Text(
-                                'Apuesta: $amount 🍀',
-                                style: TextStyle(color: Colors.white70),
+                              subtitle: Row(
+                                children: [
+                                  Text(
+                                    'Apuesta: $amount ',
+                                    style: const TextStyle(color: Colors.white70),
+                                  ),
+                                  const CoinImage(size: 14),
+                                ],
                               ),
                               trailing: const Icon(Icons.check_circle, color: Colors.green),
                             ),

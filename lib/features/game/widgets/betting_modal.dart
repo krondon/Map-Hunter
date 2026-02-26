@@ -6,6 +6,7 @@ import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../services/betting_service.dart';
 import '../../../shared/models/player.dart';
+import '../../../shared/widgets/coin_image.dart';
 
 class BettingModal extends StatefulWidget {
   final String eventId;
@@ -177,13 +178,8 @@ class _BettingModalState extends State<BettingModal> {
                   child: Row(
                     children: [
                       Text('🎫 ', style: TextStyle(fontSize: 16)),
-                      Text(
-                        '$_ticketPrice 🍀',
-                        style: TextStyle(
-                          color: AppTheme.accentGreen,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('$_ticketPrice ', style: const TextStyle(color: AppTheme.accentGreen, fontWeight: FontWeight.bold)),
+                      const CoinImage(size: 16),
                     ],
                   ),
                 ),
@@ -348,14 +344,19 @@ class _BettingModalState extends State<BettingModal> {
                          'Total a pagar:',
                          style: TextStyle(color: Colors.white54, fontSize: 12),
                        ),
-                       Text(
-                         '${_selectedRacerIds.length * _ticketPrice} 🍀',
-                         style: TextStyle(
-                           color: Colors.white,
-                           fontWeight: FontWeight.bold,
-                           fontSize: 20,
-                         ),
-                       ),
+                        Row(
+                          children: [
+                            Text(
+                              '${_selectedRacerIds.length * _ticketPrice} ',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                            const CoinImage(size: 20),
+                          ],
+                        ),
                      ],
                    ),
                    SizedBox(width: 20),

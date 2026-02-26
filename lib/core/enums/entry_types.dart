@@ -33,7 +33,7 @@ enum EntryType {
       case EntryType.free:
         return '🆓';
       case EntryType.paid:
-        return '🍀';
+        return 'Tréboles';
       case EntryType.invitation:
         return '✉️';
     }
@@ -52,7 +52,7 @@ enum CurrencyType {
   String get symbol {
     switch (this) {
       case CurrencyType.treboles:
-        return '🍀';
+        return 'Tréboles';
       case CurrencyType.realMoney:
         return '\$';
     }

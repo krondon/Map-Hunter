@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -144,7 +145,7 @@ serve(async (req) => {
         riddle_question: clue.riddle_question,
         riddle_answer: clue.riddle_answer,
         xp_reward: clue.xp_reward || 50,
-        
+
       }));
 
       const { error } = await supabaseClient
@@ -214,26 +215,26 @@ serve(async (req) => {
           .from("player_inventory")
           .delete()
           .in("game_player_id", gpIds);
-          
+
         // Borrar transacciones (NUEVO)
         await supabaseAdmin
           .from("transactions")
           .delete()
           .in("game_player_id", gpIds);
       }
-      
+
       // Borrar poderes activos globales (NUEVO)
       await supabaseAdmin
         .from("active_powers")
         .delete()
         .eq("event_id", eventId);
-        
+
       // Borrar distribuciones de premios (NUEVO)
       await supabaseAdmin
         .from("prize_distributions")
         .delete()
         .eq("event_id", eventId);
-        
+
       // Borrar apuestas (NUEVO)
       await supabaseAdmin
         .from("bets")
