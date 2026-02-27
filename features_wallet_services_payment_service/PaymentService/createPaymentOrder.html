@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_wallet_services_payment_service/">features&#47;wallet&#47;services&#47;payment_service.dart</a></li>
     <li><a href="../../features_wallet_services_payment_service/PaymentService-class.html">PaymentService</a></li>
     <li class="self-crumb">createPaymentOrder method</li>
@@ -157,7 +157,7 @@
     &#47;&#47; This ensures the user comes back to the app after payment
     final Uri originalUri = Uri.parse(rawPaymentUrl);
     final Map&lt;String, String&gt; updatedParams = Map.from(originalUri.queryParameters);
-    updatedParams[&#39;urlReturn&#39;] = &#39;io.supabase.treasurehunt:&#47;&#47;payment-return&#39;;
+    updatedParams[&#39;urlReturn&#39;] = &#39;io.supabase.maphunter:&#47;&#47;payment-return&#39;;
 
     final String finalPaymentUrl = originalUri.replace(queryParameters: updatedParams).toString();
 
@@ -234,7 +234,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_wallet_services_payment_service/">payment_service</a></li>
     <li><a href="../../features_wallet_services_payment_service/PaymentService-class.html">PaymentService</a></li>
     <li class="self-crumb">createPaymentOrder method</li>
@@ -248,7 +248,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

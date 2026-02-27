@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_auth_providers_player_provider/">features&#47;auth&#47;providers&#47;player_provider.dart</a></li>
     <li><a href="../../features_auth_providers_player_provider/PlayerProvider-class.html">PlayerProvider</a></li>
     <li class="self-crumb">updateProfile method</li>
@@ -71,32 +71,32 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;bool&gt; updateProfile(
-  {String? name, String? email, String? phone, String? cedula}) async {
-if (_currentPlayer == null) return false;
-try {
-  final emailChanged = await _authService.updateProfile(
-    _currentPlayer!.userId,
-    name: name,
-    email: email,
-    phone: phone,
-    cedula: cedula,
-  );
+    {String? name, String? email, String? phone, String? cedula}) async {
+  if (_currentPlayer == null) return false;
+  try {
+    final emailChanged = await _authService.updateProfile(
+      _currentPlayer!.userId,
+      name: name,
+      email: email,
+      phone: phone,
+      cedula: cedula,
+    );
 
-  &#47;&#47; Actualizar localmente
-  _currentPlayer = _currentPlayer!.copyWith(
-    name: name,
-    email: email,
-    phone: phone,
-    cedula: cedula,
-    emailVerified: emailChanged ? false : null,
-  );
+    &#47;&#47; Actualizar localmente
+    _currentPlayer = _currentPlayer!.copyWith(
+      name: name,
+      email: email,
+      phone: phone,
+      cedula: cedula,
+      emailVerified: emailChanged ? false : null,
+    );
 
-  notifyListeners();
-  return emailChanged;
-} catch (e) {
-  debugPrint(&#39;Error updating profile in provider: $e&#39;);
-  rethrow;
-}
+    notifyListeners();
+    return emailChanged;
+  } catch (e) {
+    debugPrint(&#39;Error updating profile in provider: $e&#39;);
+    rethrow;
+  }
 }</code></pre>
 </section>
 
@@ -110,7 +110,7 @@ try {
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_auth_providers_player_provider/">player_provider</a></li>
     <li><a href="../../features_auth_providers_player_provider/PlayerProvider-class.html">PlayerProvider</a></li>
     <li class="self-crumb">updateProfile method</li>
@@ -124,7 +124,7 @@ try {
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

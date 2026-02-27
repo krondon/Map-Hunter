@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../index.html">map_hunter</a></li>
     <li><a href="../features_game_screens_puzzle_screen/">features&#47;game&#47;screens&#47;puzzle_screen.dart</a></li>
     <li class="self-crumb">showSkipDialog function</li>
   </ol>
@@ -156,30 +156,46 @@
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        if (onLegalExit != null) {
-                          onLegalExit();
-                        }
-                        Navigator.pop(dialogContext);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
+                        &#47;&#47; 1. CAPTURAR TODO LO NECESARIO ANTES DE NAVEGAR
                         final playerProvider =
                             Provider.of&lt;PlayerProvider&gt;(context, listen: false);
                         final gameProvider =
                             Provider.of&lt;GameProvider&gt;(context, listen: false);
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(context);
+
+                        if (onLegalExit != null) {
+                          onLegalExit();
+                        }
+
+                        &#47;&#47; 2. Cerrar diálogo
+                        Navigator.pop(dialogContext);
+
+                        &#47;&#47; 3. Cerrar pantalla actual (PuzzleScreen)
+                        if (context.mounted) {
+                          navigator.pop();
+                        }
+
+                        &#47;&#47; 4. Lógica de pérdida de vida (Usando los providers capturados)
                         if (playerProvider.currentPlayer != null) {
+                          &#47;&#47; Usamos el helper. Nota: El helper ahora captura sus propios providers si el context está vivo,
+                          &#47;&#47; pero aquí le pasamos el context que ya capturamos nosotros arriba de forma segura.
+                          &#47;&#47; En realidad, el helper internamente hace context.read de nuevo.
+                          &#47;&#47; Es mejor si el helper acepta los providers opcionalmente, o simplemente confiar en que
+                          &#47;&#47; context sigue siendo &quot;suficiente&quot; para lectura si no se ha destruído el árbol.
+                          &#47;&#47; Pero para máxima seguridad, el helper ya fue actualizado para usar mounted.
                           await MinigameLogicHelper.executeLoseLife(context);
                         }
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  &#39;Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.&#39;),
-                              backgroundColor: AppTheme.warningOrange,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                        }
+
+                        &#47;&#47; 5. Feedback
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                &#39;Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.&#39;),
+                            backgroundColor: AppTheme.warningOrange,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.dangerRed,
@@ -219,7 +235,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../index.html">map_hunter</a></li>
     <li><a href="../features_game_screens_puzzle_screen/">puzzle_screen</a></li>
     <li class="self-crumb">showSkipDialog function</li>
 </ol>
@@ -232,7 +248,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

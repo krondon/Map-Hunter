@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/">features&#47;game&#47;providers&#47;power_effect_provider.dart</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/PowerEffectProvider-class.html">PowerEffectProvider</a></li>
     <li class="self-crumb">applyEffect method</li>
@@ -87,8 +87,9 @@
   &#47;&#47; 🛡️ RACE CONDITION FIX:
   &#47;&#47; If we stopped listening (user left game), do NOT apply new effects.
   if (_listeningForId == null) {
-     debugPrint(&#39;[DEBUG] 🛑 applyEffect BLOCKED: Not listening for any player.&#39;);
-     return;
+    debugPrint(
+        &#39;[DEBUG] 🛑 applyEffect BLOCKED: Not listening for any player.&#39;);
+    return;
   }
 
   &#47;&#47; Delegate to EffectTimerService
@@ -115,7 +116,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/">power_effect_provider</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/PowerEffectProvider-class.html">PowerEffectProvider</a></li>
     <li class="self-crumb">applyEffect method</li>
@@ -129,7 +130,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

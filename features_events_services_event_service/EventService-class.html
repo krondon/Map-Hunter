@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../index.html">map_hunter</a></li>
     <li><a href="../features_events_services_event_service/">features&#47;events&#47;services&#47;event_service.dart</a></li>
     <li class="self-crumb">EventService class</li>
   </ol>
@@ -232,7 +232,37 @@
 
 </dt>
 <dd>
+  @deprecated Use <a href="../features_events_services_event_service/EventService/safeResetEvent.html">safeResetEvent</a> instead. Kept for reference only.
   
+
+</dd>
+
+        <dt id="safeResetEvent" class="callable">
+  <span class="name"><a href="../features_events_services_event_service/EventService/safeResetEvent.html">safeResetEvent</a></span><span class="signature">(<wbr><span class="parameter" id="safeResetEvent-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Safely resets an event using the atomic RPC function.
+Returns a detailed summary of what was cleaned.
+Clues and event configuration are NEVER deleted.
+  
+
+</dd>
+
+        <dt id="startEvent" class="callable">
+  <span class="name"><a href="../features_events_services_event_service/EventService/startEvent.html">startEvent</a></span><span class="signature">(<wbr><span class="parameter" id="startEvent-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Secure admin-only event activation via RPC.
+Only admins can call this. Changes status from 'pending' to 'active'.
+This is the ONLY way to activate an event — no auto-activation by timer.
   
 
 </dd>
@@ -325,7 +355,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../index.html">map_hunter</a></li>
     <li><a href="../features_events_services_event_service/">event_service</a></li>
     <li class="self-crumb">EventService class</li>
 </ol>
@@ -338,7 +368,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

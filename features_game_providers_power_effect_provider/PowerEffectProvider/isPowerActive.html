@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/">features&#47;game&#47;providers&#47;power_effect_provider.dart</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/PowerEffectProvider-class.html">PowerEffectProvider</a></li>
     <li class="self-crumb">isPowerActive method</li>
@@ -69,13 +69,20 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">bool isPowerActive(PowerType type) {
   switch (type) {
-    case PowerType.blind: return isEffectActive(&#39;black_screen&#39;);
-    case PowerType.freeze: return isEffectActive(&#39;freeze&#39;);
-    case PowerType.blur: return isEffectActive(&#39;blur_screen&#39;);
-    case PowerType.lifeSteal: return isEffectActive(&#39;life_steal&#39;);
-    case PowerType.stealth: return isEffectActive(&#39;invisibility&#39;);
-    case PowerType.shield: return isEffectActive(&#39;shield&#39;);
-    default: return false;
+    case PowerType.blind:
+      return isEffectActive(&#39;black_screen&#39;);
+    case PowerType.freeze:
+      return isEffectActive(&#39;freeze&#39;);
+    case PowerType.blur:
+      return isEffectActive(&#39;blur_screen&#39;);
+    case PowerType.lifeSteal:
+      return isEffectActive(&#39;life_steal&#39;);
+    case PowerType.stealth:
+      return isEffectActive(&#39;invisibility&#39;);
+    case PowerType.shield:
+      return isEffectActive(&#39;shield&#39;);
+    default:
+      return false;
   }
 }</code></pre>
 </section>
@@ -90,7 +97,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/">power_effect_provider</a></li>
     <li><a href="../../features_game_providers_power_effect_provider/PowerEffectProvider-class.html">PowerEffectProvider</a></li>
     <li class="self-crumb">isPowerActive method</li>
@@ -104,7 +111,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

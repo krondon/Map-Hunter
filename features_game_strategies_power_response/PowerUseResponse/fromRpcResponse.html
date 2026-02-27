@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_strategies_power_response/">features&#47;game&#47;strategies&#47;power_response.dart</a></li>
     <li><a href="../../features_game_strategies_power_response/PowerUseResponse-class.html">PowerUseResponse</a></li>
     <li class="self-crumb">fromRpcResponse static method</li>
@@ -77,6 +77,12 @@
        if (error == &#39;target_invisible&#39;) return PowerUseResponse.error(&#39;¡El objetivo es invisible!&#39;);
        if (error == &#39;shield_already_active&#39;) return PowerUseResponse.error(&#39;¡El escudo ya está activo!&#39;);
        if (error == &#39;target_already_protected&#39;) return PowerUseResponse.error(&#39;¡El objetivo ya está protegido!&#39;);
+       if (error == &#39;target_inventory_full&#39;) {
+         final slug = response[&#39;power_slug&#39;]?.toString() ?? &#39;&#39;;
+         final maxQty = response[&#39;max_qty&#39;]?.toString() ?? &#39;3&#39;;
+         final powerName = _powerSlugToName(slug);
+         return PowerUseResponse.error(&#39;¡El jugador ya tiene el máximo ($maxQty) de $powerName en su inventario!&#39;);
+       }
        return PowerUseResponse.error(error?.toString() ?? &#39;Error desconocido&#39;);
     }
 
@@ -125,7 +131,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_strategies_power_response/">power_response</a></li>
     <li><a href="../../features_game_strategies_power_response/PowerUseResponse-class.html">PowerUseResponse</a></li>
     <li class="self-crumb">fromRpcResponse static method</li>
@@ -139,7 +145,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

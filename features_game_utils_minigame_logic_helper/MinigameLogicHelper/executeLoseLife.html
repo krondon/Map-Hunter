@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_utils_minigame_logic_helper/">features&#47;game&#47;utils&#47;minigame_logic_helper.dart</a></li>
     <li><a href="../../features_game_utils_minigame_logic_helper/MinigameLogicHelper-class.html">MinigameLogicHelper</a></li>
     <li class="self-crumb">executeLoseLife static method</li>
@@ -77,21 +77,27 @@ Retorna la cantidad definitiva de vidas restantes.</li>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;int&gt; executeLoseLife(BuildContext context) async {
-  &#47;&#47; Usamos read porque esto se llama dentro de funciones, no en build
-  final gameProvider = context.read&lt;GameProvider&gt;();
-  final playerProvider = context.read&lt;PlayerProvider&gt;();
+  &#47;&#47; 1. Capturar providers INMEDIATAMENTE antes de cualquier async
+  final gameProvider = Provider.of&lt;GameProvider&gt;(context, listen: false);
+  final playerProvider = Provider.of&lt;PlayerProvider&gt;(context, listen: false);
+  final messenger = ScaffoldMessenger.maybeOf(context);
 
   if (playerProvider.currentPlayer == null) return 0;
+  final userId = playerProvider.currentPlayer!.userId;
 
-  &#47;&#47; 1. Backend + Source of Truth
-  final newLives = await gameProvider.loseLife(playerProvider.currentPlayer!.userId);
+  &#47;&#47; 2. Backend + Source of Truth
+  &#47;&#47; Ejecutamos la llamada al servidor
+  final newLives = await gameProvider.loseLife(userId);
 
-  &#47;&#47; 2. Actualización Local Inmediata (Critical Path)
+  &#47;&#47; 3. Actualización Local (Critical Path)
   playerProvider.updateLocalLives(newLives);
 
-  &#47;&#47; 3. Sync Background (Eventual Consistency)
+  &#47;&#47; 4. Sincronización (Solo si el contexto sigue vivo)
   if (context.mounted) {
     playerProvider.refreshProfile(eventId: gameProvider.currentEventId);
+  } else {
+    debugPrint(
+        &#39;MinigameLogicHelper: Context unmounted during lifecycle. Skipping refresh.&#39;);
   }
 
   return newLives;
@@ -108,7 +114,7 @@ Retorna la cantidad definitiva de vidas restantes.</li>
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_game_utils_minigame_logic_helper/">minigame_logic_helper</a></li>
     <li><a href="../../features_game_utils_minigame_logic_helper/MinigameLogicHelper-class.html">MinigameLogicHelper</a></li>
     <li class="self-crumb">executeLoseLife static method</li>
@@ -122,7 +128,7 @@ Retorna la cantidad definitiva de vidas restantes.</li>
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   

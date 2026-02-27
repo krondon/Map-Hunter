@@ -24,7 +24,7 @@
 <header id="title">
   <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
   <ol class="breadcrumbs gt-separated dark hidden-xs">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_events_services_event_service/">features&#47;events&#47;services&#47;event_service.dart</a></li>
     <li><a href="../../features_events_services_event_service/EventService-class.html">EventService</a></li>
     <li class="self-crumb">updateClue method</li>
@@ -76,7 +76,6 @@
         .from(&#39;clues&#39;)
         .update({
           &#39;title&#39;: clue.title,
-          &#39;description&#39;: clue.description,
           &#39;puzzle_type&#39;: (clue is OnlineClue)
               ? (clue as OnlineClue).puzzleType.toString().split(&#39;.&#39;).last
               : null,
@@ -86,11 +85,8 @@
           &#39;riddle_answer&#39;:
               (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
           &#39;xp_reward&#39;: clue.xpReward,
-          &#39;latitude&#39;:
-              (clue is PhysicalClue) ? (clue as PhysicalClue).latitude : null,
-          &#39;longitude&#39;: (clue is PhysicalClue)
-              ? (clue as PhysicalClue).longitude
-              : null,
+          &#39;latitude&#39;: clue.latitude,
+          &#39;longitude&#39;: clue.longitude,
           &#39;hint&#39;: clue.hint,
           &#39;sequence_index&#39;: clue.sequenceIndex,
         })
@@ -115,7 +111,7 @@
   </form>
 </header>
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
-    <li><a href="../../index.html">treasure_hunt_rpg</a></li>
+    <li><a href="../../index.html">map_hunter</a></li>
     <li><a href="../../features_events_services_event_service/">event_service</a></li>
     <li><a href="../../features_events_services_event_service/EventService-class.html">EventService</a></li>
     <li class="self-crumb">updateClue method</li>
@@ -129,7 +125,7 @@
 </main>
 <footer>
   <span class="no-break">
-    treasure_hunt_rpg
+    map_hunter
       1.0.1+2
   </span>
   
