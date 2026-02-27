@@ -6,19 +6,14 @@ workflows:
       flutter: stable
       xcode: latest
       java: 17
-    integrations:
-      app_store_connect: "Codemagic_MH"
     signing:
+    
       xcode_project: "ios/Runner.xcodeproj"
-      # Cámbialo a false para forzar el uso de tu perfil específico
-      automatic_signing: false 
+      automatic_signing: true
       provisioning_profile_type: app_store
-      # Aquí es donde vinculas el nombre que pusiste en la web
-      provisioning_profiles:
-        - MapHunter_AppStore
       entitlements: ios/Runner/Runner.entitlements
-    scripts:
 
+    scripts:
 
       - name: Clean Flutter dependencies
         script: |

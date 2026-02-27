@@ -883,6 +883,37 @@ class _CodeFinderScreenState extends State<CodeFinderScreen>
                                       ],
                                     ),
                                   ),
+                                // NEW: Proximity Help Button for users with GPS issues
+                                if (!showInput &&
+                                    widget.scenario.type != 'online')
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 20),
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          _forceProximity = !_forceProximity;
+                                        });
+                                      },
+                                      icon: Icon(
+                                        _forceProximity
+                                            ? Icons.location_off
+                                            : Icons.location_on,
+                                        color: Colors.white54,
+                                        size: 16,
+                                      ),
+                                      label: Text(
+                                        _forceProximity
+                                            ? "RESTAURAR GPS REAL"
+                                            : "¿PROBLEMAS CON EL GPS? ESTOY AQUÍ",
+                                        style: const TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                          letterSpacing: 1.1,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                             // Footer

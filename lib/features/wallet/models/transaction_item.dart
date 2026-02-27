@@ -22,10 +22,16 @@ class TransactionItem {
     this.fiatAmount,
   });
 
+  static DateTime _toVenezuelaTime(DateTime dateTime) {
+    // Venezuela is UTC-4 year-round.
+    final utc = dateTime.isUtc ? dateTime : dateTime.toUtc();
+    return utc.subtract(const Duration(hours: 4));
+  }
+
   factory TransactionItem.fromMap(Map<String, dynamic> map) {
     return TransactionItem(
       id: map['id']?.toString() ?? '',
-      date: DateTime.parse(map['created_at']),
+      date: _toVenezuelaTime(DateTime.parse(map['created_at'])),
       // Map 'clover_quantity' from V2 view to 'amount' (primary display unit)
       amount: ((map['clover_quantity'] ?? map['amount']) as num).toDouble(),
       description: map['description'] ?? 'Transacción',

@@ -3,9 +3,9 @@
     "short_name": "MapHunter",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0D0D0F",
+    "theme_color": "#FECB00",
+    "description": "Real Life RPG - MapHunter",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
