@@ -20,6 +20,13 @@ workflows:
           rm -rf ~/.cocoapods/repos
           pod repo update
 
+    - name: iOS setup
+      script: |
+        cd ios
+        pod repo update
+        pod install --repo-update
+    
+
       - name: Clean Flutter dependencies
         script: |
           flutter clean
