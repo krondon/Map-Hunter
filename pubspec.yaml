@@ -68,7 +68,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    # - .env
+    - .env
     - assets/audio/
     - assets/images/
     - assets/images/personajesgrupal.png
