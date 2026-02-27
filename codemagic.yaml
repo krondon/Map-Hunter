@@ -1,4 +1,4 @@
-```workflows:
+workflows:
   flutter-build-ios:
     environment:
       groups:
@@ -15,14 +15,15 @@
       - name: Clean Flutter and get dependencies
         script: |
           flutter clean
-          flutter pub upgrade onesignal_flutter
           flutter pub get
       - name: Clean and install CocoaPods
         script: |
           cd ios
-          rm -rf Pods Podfile.lock ~/Library/Caches/CocoaPods ~/.cocoapods/repos
-          pod repo update
-          pod install --repo-update
+          rm -rf Pods Podfile.lock
+          rm -rf ~/Library/Caches/CocoaPods
+          rm -rf ~/.cocoapods/repos
+          pod setup
+          pod install --repo-update --verbose
       - name: Build iOS
         script: |
-          flutter build ios --release --no-codesign```
+          flutter build ios --release --no-codesign
