@@ -22,7 +22,6 @@ workflows:
           rm -rf Pods Podfile.lock
           rm -rf ~/Library/Caches/CocoaPods
           rm -rf ~/.cocoapods/repos
-          pod setup
           pod install --repo-update --verbose
       - name: Build iOS
         script: |
