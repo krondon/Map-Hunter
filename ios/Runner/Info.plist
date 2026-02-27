@@ -67,5 +67,13 @@
 		<string>https</string>
 		<string>http</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceso a tu galería para que puedas subir fotos de los lugares encontrados.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para mostrarte los tesoros cercanos en el mapa.</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para mostrarte los tesoros cercanos en el mapa.</string>
 </dict>
 </plist>

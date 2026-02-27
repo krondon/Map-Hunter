@@ -7,27 +7,22 @@ workflows:
       xcode: latest
       java: 17
     signing:
-    
       xcode_project: "ios/Runner.xcodeproj"
       automatic_signing: true
       provisioning_profile_type: app_store
       entitlements: ios/Runner/Runner.entitlements
-
     scripts:
-
-      - name: Clean Flutter dependencies
+      - name: Clean Flutter and get dependencies
         script: |
           flutter clean
           flutter pub get
-
       - name: Clean and install CocoaPods
         script: |
           cd ios
-          rm -rf Pods Podfile.lock ~/Library/Caches/CocoaPods
-          pod repo update
-          pod install
-          cd ..
-
+          rm -rf Pods Podfile.lock
+          rm -rf ~/Library/Caches/CocoaPods
+          rm -rf ~/.cocoapods/repos
+          pod install --repo-update --verbose
       - name: Build iOS
         script: |
           flutter build ios --release --no-codesign
