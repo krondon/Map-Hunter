@@ -166,7 +166,7 @@ class AppConfigService {
         'value': value,
         'updated_at': DateTime.now().toIso8601String(),
         'updated_by': userId,
-      });
+      }, onConflict: 'key');
       return true;
     } catch (e) {
       debugPrint('[AppConfigService] Error updating config $key: $e');
@@ -206,6 +206,47 @@ class AppConfigService {
     } catch (e) {
       debugPrint(
           '[AppConfigService] Error calling update_auto_event_settings: $e');
+      return false;
+    }
+  }
+
+  /// Returns true if the recharge (top-up) flow is currently enabled.
+  /// Defaults to true (enabled) on any error so users are never hard-blocked
+  /// by a network issue — only an explicit false from the DB disables it.
+  Future<bool> isRechargeEnabled() async {
+    try {
+      final response = await _supabase
+          .from('app_config')
+          .select('value')
+          .eq('key', 'recharge_enabled')
+          .maybeSingle();
+
+      if (response == null || response['value'] == null) return true;
+      final value = response['value'];
+      if (value is bool) return value;
+      if (value is String) return value.toLowerCase() != 'false';
+      return true;
+    } catch (e) {
+      debugPrint('[AppConfigService] Error fetching recharge_enabled: $e');
+      return true;
+    }
+  }
+
+  /// Enables or disables the recharge flow for all users.
+  /// Only admins can call this (enforced by RLS).
+  Future<bool> setRechargeEnabled(bool enabled) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      await _supabase.from('app_config').upsert({
+        'key': 'recharge_enabled',
+        'value': enabled,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': userId,
+      }, onConflict: 'key');
+      debugPrint('[AppConfigService] recharge_enabled set to $enabled');
+      return true;
+    } catch (e) {
+      debugPrint('[AppConfigService] Error updating recharge_enabled: $e');
       return false;
     }
   }

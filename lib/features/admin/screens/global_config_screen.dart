@@ -22,6 +22,8 @@ class _GlobalConfigScreenState extends State<GlobalConfigScreen> {
   
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _rechargeEnabled = true;
+  bool _isTogglingRecharge = false;
 
   late final AppConfigService _configService;
 
@@ -43,15 +45,37 @@ class _GlobalConfigScreenState extends State<GlobalConfigScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final exchangeRate = await _configService.getExchangeRate();
-      final gatewayFee = await _configService.getGatewayFeePercentage();
-      
-      _exchangeRateController.text = exchangeRate.toStringAsFixed(2);
-      _gatewayFeeController.text = gatewayFee.toStringAsFixed(2);
+      final results = await Future.wait([
+        _configService.getExchangeRate(),
+        _configService.getGatewayFeePercentage(),
+        _configService.isRechargeEnabled(),
+      ]);
+      _exchangeRateController.text = (results[0] as double).toStringAsFixed(2);
+      _gatewayFeeController.text = (results[1] as double).toStringAsFixed(2);
+      _rechargeEnabled = results[2] as bool;
     } catch (e) {
       debugPrint('[GlobalConfigScreen] Error loading config: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleRecharge(bool value) async {
+    setState(() => _isTogglingRecharge = true);
+    final success = await _configService.setRechargeEnabled(value);
+    if (mounted) {
+      setState(() {
+        if (success) _rechargeEnabled = value;
+        _isTogglingRecharge = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? (value ? 'Recarga habilitada' : 'Recarga en mantenimiento')
+              : 'Error al cambiar estado de recarga'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
     }
   }
 
@@ -198,6 +222,88 @@ class _GlobalConfigScreenState extends State<GlobalConfigScreen> {
                   if (parsed > 100) return 'El porcentaje no puede ser mayor a 100';
                   return null;
                 },
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Recharge Maintenance Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _rechargeEnabled
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.orange.withOpacity(0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: (_rechargeEnabled
+                              ? Colors.green
+                              : Colors.orange)
+                          .withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _rechargeEnabled
+                          ? Icons.add_card
+                          : Icons.construction,
+                      color: _rechargeEnabled ? Colors.green : Colors.orange,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Botón de Recarga',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _rechargeEnabled
+                              ? 'Disponible — los usuarios pueden recargar'
+                              : 'En mantenimiento — botón deshabilitado',
+                          style: TextStyle(
+                            color: _rechargeEnabled
+                                ? Colors.green.shade300
+                                : Colors.orange.shade300,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _isTogglingRecharge
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.primaryPurple,
+                          ),
+                        )
+                      : Switch(
+                          value: _rechargeEnabled,
+                          onChanged: _toggleRecharge,
+                          activeColor: Colors.green,
+                          inactiveThumbColor: Colors.orange,
+                          inactiveTrackColor: Colors.orange.withOpacity(0.3),
+                        ),
+                ],
               ),
             ),
 
