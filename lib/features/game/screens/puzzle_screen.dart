@@ -1482,8 +1482,8 @@ Widget _buildMinigameScaffold(
                       children: [
                         // AppBar Personalizado
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: MediaQuery.of(context).size.height < 700 ? 4 : 8),
                           child: Row(
                             children: [
                               if (player?.role == 'spectator')
@@ -1561,22 +1561,30 @@ Widget _buildMinigameScaffold(
                         ),
 
                         // Mapa de Progreso
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
-                          child: RaceTrackWidget(
-                            leaderboard: game.leaderboard,
-                            currentPlayerId: player?.userId ?? '',
-                            totalClues: game.clues.length,
-                            onSurrender: () =>
-                                showSkipDialog(context, onFinish),
-                            compact: clue.puzzleType == PuzzleType.tetris ||
+                        Builder(
+                          builder: (context) {
+                            final screenHeight = MediaQuery.of(context).size.height;
+                            final isSmallScreen = screenHeight < 700;
+                            final forceCompact = isSmallScreen ||
+                                clue.puzzleType == PuzzleType.tetris ||
                                 clue.puzzleType == PuzzleType.hangman ||
-                                clue.puzzleType == PuzzleType.fastNumber,
-                          ),
+                                clue.puzzleType == PuzzleType.fastNumber;
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: isSmallScreen ? 2 : 4),
+                              child: RaceTrackWidget(
+                                leaderboard: game.leaderboard,
+                                currentPlayerId: player?.userId ?? '',
+                                totalClues: game.clues.length,
+                                onSurrender: () =>
+                                    showSkipDialog(context, onFinish),
+                                compact: forceCompact,
+                              ),
+                            );
+                          },
                         ),
 
-                        const SizedBox(height: 10),
+                        SizedBox(height: MediaQuery.of(context).size.height < 700 ? 4 : 10),
 
                         Expanded(
                           child: IgnorePointer(
