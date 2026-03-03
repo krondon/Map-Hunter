@@ -147,6 +147,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
   // Timer y Realtime para el ranking
   Timer? _leaderboardTimer;
   RealtimeChannel? _raceStatusChannel;
+  String? _subscribedRaceEventId; // Fix: evita re-subscribe en cada fetchClues silent
   RealtimeChannel? _livesSubscription; // Suscripción a vidas globales
 
   /// Debouncer para el leaderboard: evita reconstrucciones excesivas cuando
@@ -205,6 +206,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
     _isMinigameDataLoading = false;
     _currentSponsor = null;
     _currentUserId = null;
+    _subscribedRaceEventId = null; // Fix: resetear tracking
 
     stopLeaderboardUpdates();
     stopLivesSubscription();
@@ -324,6 +326,7 @@ class GameProvider extends ChangeNotifier implements IResettable {
     _leaderboardTimer = null;
     _raceStatusChannel?.unsubscribe();
     _raceStatusChannel = null;
+    _subscribedRaceEventId = null; // Fix: resetear tracking para siguiente suscripción
     _leaderboardDebouncer.flush(); // Ejecutar cualquier update pendiente antes de parar
   }
 
@@ -338,7 +341,16 @@ class GameProvider extends ChangeNotifier implements IResettable {
   void subscribeToRaceStatus() {
     if (_currentEventId == null) return;
 
+    // Fix: evitar unsubscribe/resubscribe en cada fetchClues(silent:true) para el mismo evento.
+    // La race condition anterior: cada pista completada llamaba fetchClues(silent:true) → aquí →
+    // desuscribía el canal brevemente → si el evento se completaba en esa ventana, se perdía.
+    if (_raceStatusChannel != null && _subscribedRaceEventId == _currentEventId) {
+      debugPrint('[Race] ✅ Canal ya activo para $_currentEventId — omitiendo re-suscripción');
+      return;
+    }
+
     _raceStatusChannel?.unsubscribe();
+    _subscribedRaceEventId = _currentEventId;
 
     _raceStatusChannel = _gameService.subscribeToRaceStatus(
         _currentEventId!, totalClues, (completed, source) {

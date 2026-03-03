@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event.dart';
 import '../models/clue.dart';
 import '../../events/services/event_service.dart';
@@ -7,6 +8,7 @@ import '../../events/services/event_service.dart';
 class EventProvider with ChangeNotifier {
   final EventService _eventService;
   List<GameEvent> _events = [];
+  RealtimeChannel? _eventsChannel; // P2: Suscripción Realtime a cambios del evento
 
   EventProvider({required EventService eventService}) : _eventService = eventService;
 
@@ -224,5 +226,77 @@ class EventProvider with ChangeNotifier {
       debugPrint('Error deleting clue: $e');
       rethrow;
     }
+  }
+
+  // ── P2: Realtime suscripción a la tabla events ──────────────────────────────
+
+  /// Suscribe al canal Realtime de Supabase para recibir cambios del evento.
+  /// Cuando el admin activa el evento, el caché local se actualiza y
+  /// HomeScreen.build() hace rebuild automático mostrando el juego.
+  void subscribeToEventUpdates(String eventId) {
+    _eventsChannel?.unsubscribe();
+    _eventsChannel = Supabase.instance.client
+        .channel('event_status_changes:$eventId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: eventId,
+          ),
+          callback: (payload) {
+            debugPrint('[EventProvider] 🔔 Realtime: event update received');
+            final newStatus = payload.newRecord['status'] as String?;
+            if (newStatus == null) return;
+            final index = _events.indexWhere((e) => e.id == eventId);
+            if (index != -1) {
+              final old = _events[index];
+              _events[index] = GameEvent(
+                id: old.id,
+                title: old.title,
+                description: old.description,
+                locationName: old.locationName,
+                latitude: old.latitude,
+                longitude: old.longitude,
+                date: old.date,
+                createdByAdminId: old.createdByAdminId,
+                clue: old.clue,
+                imageUrl: old.imageUrl,
+                maxParticipants: old.maxParticipants,
+                pin: old.pin,
+                status: newStatus,
+                completedAt: old.completedAt,
+                winnerId: old.winnerId,
+                type: old.type,
+                entryFee: old.entryFee,
+                currentParticipants: old.currentParticipants,
+                configuredWinners: old.configuredWinners,
+                pot: old.pot,
+                spectatorConfig: old.spectatorConfig,
+                betTicketPrice: old.betTicketPrice,
+                sponsorId: old.sponsorId,
+              );
+              debugPrint('[EventProvider] ✅ Local event status updated → $newStatus');
+              notifyListeners(); // HomeScreen rebuild automático
+            }
+          },
+        )
+        .subscribe();
+    debugPrint('[EventProvider] 🔧 Subscribed to Realtime updates for event $eventId');
+  }
+
+  /// Cancela la suscripción Realtime activa.
+  void unsubscribeFromEventUpdates() {
+    _eventsChannel?.unsubscribe();
+    _eventsChannel = null;
+    debugPrint('[EventProvider] 🛑 Unsubscribed from event Realtime updates');
+  }
+
+  @override
+  void dispose() {
+    unsubscribeFromEventUpdates();
+    super.dispose();
   }
 }

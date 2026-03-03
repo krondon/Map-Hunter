@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +34,7 @@ class CluesScreen extends StatefulWidget {
 class _CluesScreenState extends State<CluesScreen> {
   // Store reference to avoid unsafe lookup in dispose
   GameProvider? _gameProviderRef;
+  Timer? _raceStatusPollingTimer; // Fallback: polling de recuperación si Realtime falla
   
   @override
   void initState() {
@@ -83,6 +85,13 @@ class _CluesScreenState extends State<CluesScreen> {
         // 4. FINALMENTE iniciar el polling de ranking
         gameProvider.startLeaderboardUpdates();
 
+        // Polling de recuperación para fin de carrera: fallback si Realtime no llega
+        _raceStatusPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+          if (!mounted) return;
+          gameProvider.checkRaceStatus();
+          // _onGameProviderChange se dispara automáticamente si isRaceCompleted cambia
+        });
+
         // 5. SHIELD CONSISTENCY FIX: Iniciar escucha de eventos de poderes
         final powerEffectProvider = Provider.of<PowerEffectProvider>(context, listen: false);
         final gamePlayerId = playerProvider.currentPlayer?.gamePlayerId;
@@ -103,6 +112,7 @@ class _CluesScreenState extends State<CluesScreen> {
   void dispose() {
     // Importante: Eliminar listener y detener actualizaciones al salir
     // Use stored reference to avoid unsafe Provider.of during dispose
+    _raceStatusPollingTimer?.cancel();
     _gameProviderRef?.removeListener(_onGameProviderChange);
     _gameProviderRef?.stopLeaderboardUpdates();
     super.dispose();
