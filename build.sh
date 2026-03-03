@@ -1,4 +1,3 @@
-
 #!/bin/bash
 # 1. Descargar Flutter
 git clone https://github.com/flutter/flutter.git -b stable /tmp/flutter
@@ -22,3 +21,7 @@ EOF
 
 # 5. Compilar para web
 flutter build web --release
+
+# 6. Forzar la inclusión de .well-known en el build final (Seguridad extra)
+mkdir -p build/web/.well-known
+cp web/.well-known/assetlinks.json build/web/.well-known/assetlinks.json

@@ -1,8 +1,21 @@
 {
-    "rewrites": [
-        {
-            "source": "/terms",
-            "destination": "https://shxbfwdapwbizxspicai.supabase.co/functions/v1/get-terms"
-        }
-    ]
+  "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/terms",
+      "destination": "https://shxbfwdapwbizxspicai.supabase.co/functions/v1/get-terms"
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "destination": "/.well-known/assetlinks.json"
+    }
+  ]
 }
