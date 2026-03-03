@@ -101,30 +101,32 @@ class GameService {
           .order('last_active', ascending: true)
           .limit(50);
 
-      // --- INVISIBILITY FILTER --- 
+      // --- INVISIBILITY FILTER ---
       // Fetch currently invisible players to exclude them from the list
       try {
         final invisiblePlayers = await _supabase
-           .from('active_powers')
-           .select('target_id')
-           .eq('event_id', eventId)
-           .eq('power_slug', 'invisibility')
-           .gt('expires_at', DateTime.now().toUtc().toIso8601String());
-        
-        final Set<String> invisibleIds = invisiblePlayers.map((e) => e['target_id']?.toString() ?? '').toSet();
-        
+            .from('active_powers')
+            .select('target_id')
+            .eq('event_id', eventId)
+            .eq('power_slug', 'invisibility')
+            .gt('expires_at', DateTime.now().toUtc().toIso8601String());
+
+        final Set<String> invisibleIds = invisiblePlayers
+            .map((e) => e['target_id']?.toString() ?? '')
+            .toSet();
+
         if (invisibleIds.isNotEmpty) {
-           // Remove invisible players from the main list (unless it's ME checking my own rank?)
-           // Requirement: "demás usuarios pueden verlo... debería de no aparecer"
-           // Usually I should still see MYSELF even if invisible.
-           leaderboardData.removeWhere((p) {
-              final pid = p['game_player_id']?.toString() ?? p['id']?.toString();
-              // Keep myself visible to me
-              final uid = p['user_id']?.toString();
-              if (currentUserId != null && uid == currentUserId) return false;
-              
-              return invisibleIds.contains(pid);
-           });
+          // Remove invisible players from the main list (unless it's ME checking my own rank?)
+          // Requirement: "demás usuarios pueden verlo... debería de no aparecer"
+          // Usually I should still see MYSELF even if invisible.
+          leaderboardData.removeWhere((p) {
+            final pid = p['game_player_id']?.toString() ?? p['id']?.toString();
+            // Keep myself visible to me
+            final uid = p['user_id']?.toString();
+            if (currentUserId != null && uid == currentUserId) return false;
+
+            return invisibleIds.contains(pid);
+          });
         }
       } catch (e) {
         debugPrint('Error filtering invisible players: $e');
@@ -158,7 +160,8 @@ class GameService {
                 leaderboardData.add(myData);
                 debugPrint("👻 Current user added to leaderboard list.");
               } else {
-                 debugPrint("👻 Current user found but is SPECTATOR. Not adding to race view.");
+                debugPrint(
+                    "👻 Current user found but is SPECTATOR. Not adding to race view.");
               }
             } else {
               debugPrint(
@@ -172,7 +175,8 @@ class GameService {
 
       if (leaderboardData.isNotEmpty) {
         debugPrint("📊 Sample Entry: ${leaderboardData.first}");
-        debugPrint("📊 Sample completed_clues_count: ${leaderboardData.first['completed_clues_count']}");
+        debugPrint(
+            "📊 Sample completed_clues_count: ${leaderboardData.first['completed_clues_count']}");
       } else {
         debugPrint("⚠️ getLeaderboard: NO DATA FOUND for event $eventId");
       }
@@ -204,7 +208,8 @@ class GameService {
         // Normalización de IDs obligatoria
         if (json['id'] == null) json['id'] = uid;
         // Map completed_clues_count to all expected keys
-        final int clueCount = json['completed_clues_count'] ?? json['completed_clues'] ?? 0;
+        final int clueCount =
+            json['completed_clues_count'] ?? json['completed_clues'] ?? 0;
         json['total_xp'] = clueCount;
         json['completed_clues'] = clueCount;
         json['completed_clues_count'] = clueCount;
@@ -299,21 +304,22 @@ class GameService {
   }
 
   /// Obtiene las pistas de un evento.
+  /// [PERFORMANCE] Migrado de Edge Function a RPC atómico.
   Future<List<Clue>> getClues(String eventId) async {
     try {
-      final response = await _supabase.functions.invoke(
-        'game-play/get-clues',
-        body: {'eventId': eventId},
-        method: HttpMethod.post,
-      );
+      final response = await _supabase.rpc('get_clues_with_progress', params: {
+        'p_event_id': eventId,
+      });
 
-      if (response.status == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => Clue.fromJson(json)).toList();
+      if (response != null) {
+        final List<dynamic> data = response is List ? response : [];
+        return data
+            .map((json) => Clue.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
-      throw Exception('Failed to fetch clues: ${response.status}');
+      return [];
     } catch (e) {
-      debugPrint('Error fetching clues: $e');
+      debugPrint('Error fetching clues (RPC): $e');
       rethrow;
     }
   }
@@ -338,19 +344,24 @@ class GameService {
   Future<Map<String, dynamic>?> completeClue(String clueId, String answer,
       {String? eventId}) async {
     try {
-      final response =
-          await _supabase.functions.invoke('game-play/complete-clue',
-              body: {
-                'clueId': clueId,
-                'answer': answer,
-              },
-              method: HttpMethod.post);
+      // [PERFORMANCE OPTIMIZATION] Option 1: Atomic RPC
+      // Consolidates 15+ DB operations (validation, progress, ranking, rewards)
+      // into a single database roundtrip for high-concurrency (50+ users).
+      final response = await _supabase.rpc('submit_clue_answer', params: {
+        'p_clue_id': int.tryParse(clueId) ?? clueId,
+        'p_answer': answer,
+      });
 
-      if (response.status == 200) {
-        final data = response.data as Map<String, dynamic>?;
+      if (response != null && response is Map<String, dynamic>) {
+        final data = response;
+
+        if (data['success'] == false) {
+          debugPrint('❌ Error completing clue (RPC): ${data['error']}');
+          return null;
+        }
 
         // AUTO-DISTRIBUTE PRIZES IF RACE COMPLETED (ATOMIC RPC)
-        if (data != null && data['raceCompleted'] == true) {
+        if (data['raceCompleted'] == true) {
           debugPrint("🏁 Race Completed (Last Clue). Calling RegisterRPC...");
 
           // Use provided eventId, fallback to response, then null
@@ -359,13 +370,13 @@ class GameService {
           if (eventIdToUse != null) {
             final rpcRes = await _registerFinisher(eventIdToUse);
             if (rpcRes != null && rpcRes['success'] == true) {
-               // Inject prize/position into response so UI knows
-               final newData = Map<String, dynamic>.from(data);
-               newData['prizeAmount'] = rpcRes['prize'];
-               newData['position'] = rpcRes['position'];
-               // CRITICAL: Ensure this flag is passed up
-               newData['raceCompletedGlobal'] = rpcRes['race_completed'];
-               return newData;
+              // Inject prize/position into response so UI knows
+              final newData = Map<String, dynamic>.from(data);
+              newData['prizeAmount'] = rpcRes['prize'];
+              newData['position'] = rpcRes['position'];
+              // CRITICAL: Ensure this flag is passed up
+              newData['raceCompletedGlobal'] = rpcRes['race_completed'];
+              return newData;
             }
           }
         }
@@ -401,17 +412,19 @@ class GameService {
   }
 
   /// Salta una pista.
+  /// [PERFORMANCE] Migrado de Edge Function a RPC atómico.
   Future<bool> skipClue(String clueId) async {
     try {
-      final response = await _supabase.functions.invoke('game-play/skip-clue',
-          body: {
-            'clueId': clueId,
-          },
-          method: HttpMethod.post);
+      final response = await _supabase.rpc('skip_clue_rpc', params: {
+        'p_clue_id': int.tryParse(clueId) ?? clueId,
+      });
 
-      return response.status == 200;
+      if (response != null && response is Map<String, dynamic>) {
+        return response['success'] == true;
+      }
+      return false;
     } catch (e) {
-      debugPrint('Error skipping clue: $e');
+      debugPrint('Error skipping clue (RPC): $e');
       return false;
     }
   }
@@ -590,6 +603,7 @@ class GameService {
       return [];
     }
   }
+
   /// Obtiene el estado de un game_player específico por su ID.
   /// Retorna el string del estado ('active', 'spectator', etc) o null si no existe.
   Future<String?> getGamePlayerStatus(String gamePlayerId) async {
@@ -619,18 +633,18 @@ class GameService {
           .select('user_id')
           .eq('id', gamePlayerId)
           .maybeSingle();
-      
+
       if (gp == null) return null;
-      
+
       final userId = gp['user_id'];
-      
+
       // 2. Get name from profiles
       final profile = await _supabase
           .from('profiles')
           .select('name')
           .eq('id', userId)
           .maybeSingle();
-          
+
       return profile?['name'] as String?;
     } catch (e) {
       debugPrint('GameService: Error getting player name: $e');
