@@ -327,7 +327,8 @@ class GameProvider extends ChangeNotifier implements IResettable {
     _raceStatusChannel?.unsubscribe();
     _raceStatusChannel = null;
     _subscribedRaceEventId = null; // Fix: resetear tracking para siguiente suscripción
-    _leaderboardDebouncer.flush(); // Ejecutar cualquier update pendiente antes de parar
+    _leaderboardDebouncer
+        .flush(); // Ejecutar cualquier update pendiente antes de parar
   }
 
   /// Detiene la suscripción Realtime de vidas.
@@ -361,7 +362,8 @@ class GameProvider extends ChangeNotifier implements IResettable {
       // OPTIMIZACIÓN: Debounce de 2s para evitar 50+ fetches/segundo en ráfagas.
       // Si hay actividad continua, maxWait=5s garantiza que no parezca congelado.
       _leaderboardDebouncer.schedule(() {
-        debugPrint('📊 LeaderboardDebouncer: flush → _fetchLeaderboardInternal');
+        debugPrint(
+            '📊 LeaderboardDebouncer: flush → _fetchLeaderboardInternal');
         _fetchLeaderboardInternal(silent: true);
       });
     });
@@ -425,14 +427,16 @@ class GameProvider extends ChangeNotifier implements IResettable {
 
             if (eventMatches) {
               final int newLives = incomingLivesRaw as int;
-              debugPrint('[LIVES_SYNC] ✅ Match - Updating lives: $_lives → $newLives');
+              debugPrint(
+                  '[LIVES_SYNC] ✅ Match - Updating lives: $_lives → $newLives');
 
               if (_lives != newLives) {
                 _lives = newLives;
                 notifyListeners();
                 debugPrint('[LIVES_SYNC] 🔔 notifyListeners() called');
               } else {
-                debugPrint('[LIVES_SYNC] ⚠️ Value unchanged ($newLives), skipping');
+                debugPrint(
+                    '[LIVES_SYNC] ⚠️ Value unchanged ($newLives), skipping');
               }
             } else {
               debugPrint('[LIVES_SYNC] ⚠️ Event ID mismatch - filtered out');
@@ -681,8 +685,11 @@ class GameProvider extends ChangeNotifier implements IResettable {
           // The user should go to Waiting Room.
         }
 
-        await fetchClues(silent: true);
-        fetchLeaderboard();
+        // [PERFORMANCE] Fire-and-forget: El RPC ya hizo todo atómicamente y
+        // la actualización optimista ya refrescó el UI. Este fetch es solo
+        // para confirmar estado desde el servidor, no debe bloquear.
+        unawaited(fetchClues(silent: true));
+        unawaited(fetchLeaderboard());
         return data;
       } else {
         return null;

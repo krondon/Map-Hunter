@@ -54,6 +54,8 @@ class PowerEffectProvider extends ChangeNotifier
   StreamSubscription<EffectEvent>?
       _timerEventSubscription; // NEW: Listen for timer expirations
   Timer? _defenseFeedbackTimer;
+  Timer?
+      _effectsDebounceTimer; // [PERFORMANCE] Debounce for active_powers bursts
 
   /// Canal de Broadcast de Supabase para recibir combat_events con baja latencia (~50ms).
   /// Complementa _combatEventsSubscription (Postgres Changes, ~300ms) como fast-path.
@@ -373,10 +375,22 @@ class PowerEffectProvider extends ChangeNotifier
     });
 
     // 1. Listen for Active Powers
+    // [PERFORMANCE] Debounce: Con 50+ jugadores atacando, el stream puede
+    // disparar muchos eventos en ráfaga. Agrupamos en ventana de 150ms
+    // y procesamos solo el estado más reciente.
+    List<Map<String, dynamic>>? _pendingEffectsData;
     _subscription = _repository
         .getActivePowersStream(targetId: myGamePlayerId)
         .listen((List<Map<String, dynamic>> data) async {
-      await _processEffects(data);
+      _pendingEffectsData = data;
+      _effectsDebounceTimer?.cancel();
+      _effectsDebounceTimer =
+          Timer(const Duration(milliseconds: 150), () async {
+        if (_pendingEffectsData != null) {
+          await _processEffects(_pendingEffectsData!);
+          _pendingEffectsData = null;
+        }
+      });
     }, onError: (e) {
       debugPrint('PowerEffectProvider active_powers stream error: $e');
     });
@@ -427,7 +441,8 @@ class PowerEffectProvider extends ChangeNotifier
               }
             }
 
-            debugPrint('⚡ [BROADCAST] combat_event recibido (fast-path): ${data['result_type']}');
+            debugPrint(
+                '⚡ [BROADCAST] combat_event recibido (fast-path): ${data['result_type']}');
             await _handleCombatEvents([data]);
           },
         );
@@ -892,7 +907,8 @@ class PowerEffectProvider extends ChangeNotifier
         PowerFeedbackType.shieldBroken,
         message: 'Shield broken',
       ));
-      debugPrint('[SHIELD] 🛡️💥 Shield broken feedback event queued (guaranteed delivery)');
+      debugPrint(
+          '[SHIELD] 🛡️💥 Shield broken feedback event queued (guaranteed delivery)');
     }
 
     // Duración diferenciada: Returned y ShieldBroken son eventos importantes => 4s
@@ -950,7 +966,8 @@ class PowerEffectProvider extends ChangeNotifier
     _returnedByPlayerName = null;
     _returnedAgainstCasterId = null;
     _listeningForEventId = null;
-    _feedbackQueue.clear(); // Descartar eventos pendientes de la sesión anterior
+    _feedbackQueue
+        .clear(); // Descartar eventos pendientes de la sesión anterior
     _broadcastProcessedIds.clear();
     notifyListeners();
   }
