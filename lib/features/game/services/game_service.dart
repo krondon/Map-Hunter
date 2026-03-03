@@ -9,6 +9,22 @@ class GameService {
 
   GameService(this._supabase);
 
+  /// Retorna el header Authorization con un token de usuario válido garantizado.
+  /// Evita el bug del SDK donde _getAccessToken() devuelve null → se usa la anon key
+  /// → Edge Function responde 401 "Invalid JWT" (firma incorrecta para auth.getUser).
+  Future<Map<String, String>> _authHeaders() async {
+    var session = _supabase.auth.currentSession;
+    if (session == null || session.isExpired) {
+      debugPrint('[GameService] Session null/expired – refreshing before Edge Function call...');
+      final result = await _supabase.auth.refreshSession();
+      session = result.session;
+    }
+    if (session == null) {
+      throw const AuthException('No active session. Please log in again.');
+    }
+    return {'Authorization': 'Bearer ${session.accessToken}'};
+  }
+
   /// Obtiene las vidas de un jugador en un evento específico.
   /// Retorna el número de vidas o null si falla.
   Future<int?> fetchLives(String eventId, String userId) async {
@@ -234,6 +250,7 @@ class GameService {
     try {
       final response = await _supabase.functions.invoke(
         'game-play/get-leaderboard',
+        headers: await _authHeaders(),
         body: {'eventId': eventId},
         method: HttpMethod.post,
       );
@@ -303,6 +320,7 @@ class GameService {
     try {
       final response = await _supabase.functions.invoke(
         'game-play/get-clues',
+        headers: await _authHeaders(),
         body: {'eventId': eventId},
         method: HttpMethod.post,
       );
@@ -322,7 +340,9 @@ class GameService {
   Future<void> startGame(String eventId) async {
     try {
       final response = await _supabase.functions.invoke('game-play/start-game',
-          body: {'eventId': eventId}, method: HttpMethod.post);
+          headers: await _authHeaders(),
+          body: {'eventId': eventId},
+          method: HttpMethod.post);
 
       if (response.status != 200) {
         throw Exception('Failed to start game: ${response.status}');
@@ -340,6 +360,7 @@ class GameService {
     try {
       final response =
           await _supabase.functions.invoke('game-play/complete-clue',
+              headers: await _authHeaders(),
               body: {
                 'clueId': clueId,
                 'answer': answer,
@@ -404,6 +425,7 @@ class GameService {
   Future<bool> skipClue(String clueId) async {
     try {
       final response = await _supabase.functions.invoke('game-play/skip-clue',
+          headers: await _authHeaders(),
           body: {
             'clueId': clueId,
           },
@@ -421,6 +443,7 @@ class GameService {
     try {
       final response = await _supabase.functions.invoke(
         'game-play/check-race-status',
+        headers: await _authHeaders(),
         body: {'eventId': eventId},
         method: HttpMethod.post,
       );
