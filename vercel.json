@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/terms",
-            "destination": "https://hyjelngckvqoanckqwep.supabase.co/functions/v1/get-terms"
+            "destination": "https://shxbfwdapwbizxspicai.supabase.co/functions/v1/get-terms"
         }
     ]
 }

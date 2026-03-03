@@ -107,7 +107,7 @@ serve(async (req: Request) => {
                 id: eventId,
                 title: `⚡ Competencia Online #${new Date().getTime().toString().slice(-4)}`,
                 description: '¡Demuestra tu habilidad!',
-                image_url: 'https://m-competitions.supabase.co/storage/v1/object/public/logos/default_event_logo.png',
+                image_url: 'https://shxbfwdapwbizxspicai.supabase.co/storage/v1/object/public/logos/default_event_logo.png',
                 location_name: 'Online',
                 latitude: 0,
                 longitude: 0,
