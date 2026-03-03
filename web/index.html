@@ -45,7 +45,7 @@
       // Intent: 
       // - Si la app está: la abre en play.maphunter.online
       // - Si NO está: descarga el APK automáticamente (fallback)
-      const intentUrl = `intent://juego-qr.vercel.app/#Intent;scheme=https;package=com.map.hunter;S.browser_fallback_url=${encodeURIComponent(urlAPK)};end`;
+      const intentUrl = `intent://juego-qr.vercel.app#Intent;scheme=https;package=com.map.hunter;S.browser_fallback_url=${encodeURIComponent(urlAPK)};end`;
       
       window.location.href = intentUrl;
     }
