@@ -208,7 +208,9 @@ class AdminService {
     final int current = res['clovers'] ?? 0;
     // Update
     await _supabase.rpc('admin_credit_clovers', params: {
-      'p_user_id': userId, 'p_amount': amount, 'p_reason': 'admin_credit',
+      'p_user_id': userId,
+      'p_amount': amount,
+      'p_reason': 'admin_credit',
     });
   }
 
@@ -298,8 +300,10 @@ class AdminService {
   /// 2. Apuestas realizadas (Total y por usuario)
   /// 3. Ganancias de apuestas (Wallet Ledger)
   /// 4. Perfiles de usuarios (Nombres y Avatares)
-  Future<Map<String, dynamic>> getDetailedEventFinancials(String eventId) async {
-    debugPrint('💰 AdminService: Getting DETAILED financial results for $eventId');
+  Future<Map<String, dynamic>> getDetailedEventFinancials(
+      String eventId) async {
+    debugPrint(
+        '💰 AdminService: Getting DETAILED financial results for $eventId');
     try {
       // 1. Fetch Prize Distributions (Podium)
       List<dynamic> prizeDistributions = [];
@@ -310,7 +314,8 @@ class AdminService {
             .eq('event_id', eventId)
             .eq('rpc_success', true)
             .order('position', ascending: true);
-        debugPrint('💰 Prize distributions found: ${prizeDistributions.length}');
+        debugPrint(
+            '💰 Prize distributions found: ${prizeDistributions.length}');
       } catch (e) {
         debugPrint('💰 Error fetching prize_distributions: $e');
       }
@@ -339,7 +344,8 @@ class AdminService {
             .contains('metadata', {'event_id': eventId});
         debugPrint('💰 Bet payouts found: ${payouts.length}');
       } catch (e) {
-        debugPrint('💰 Error fetching wallet_ledger payouts (trying fallback): $e');
+        debugPrint(
+            '💰 Error fetching wallet_ledger payouts (trying fallback): $e');
         // Fallback: try simpler query without metadata filter
         try {
           payouts = await _supabase
@@ -356,7 +362,8 @@ class AdminService {
           }).toList();
           debugPrint('💰 Bet payouts found (fallback): ${payouts.length}');
         } catch (e2) {
-          debugPrint('💰 Error fetching wallet_ledger payouts (fallback also failed): $e2');
+          debugPrint(
+              '💰 Error fetching wallet_ledger payouts (fallback also failed): $e2');
         }
       }
 
@@ -368,7 +375,7 @@ class AdminService {
             .select('pot, configured_winners')
             .eq('id', eventId)
             .single();
-        
+
         // Use actual pot from DB (accumulated from real payments)
         final dbPot = (eventData['pot'] as num?)?.toInt() ?? 0;
         pot = (dbPot * 0.70).toInt();
@@ -390,7 +397,7 @@ class AdminService {
             .from('profiles')
             .select('id, name, avatar_id')
             .inFilter('id', userIds.toList());
-            
+
         for (var p in profiles) {
           profilesMap[p['id'] as String] = p;
         }
@@ -398,7 +405,7 @@ class AdminService {
 
       // 7. Build Podium
       List<Map<String, dynamic>> podium = [];
-      
+
       if (prizeDistributions.isNotEmpty) {
         // Primary source: prize_distributions table
         for (var p in prizeDistributions) {
@@ -414,7 +421,8 @@ class AdminService {
         }
       } else {
         // Fallback: Build podium from game_players.final_placement
-        debugPrint('💰 No prize_distributions found, building podium from game_players');
+        debugPrint(
+            '💰 No prize_distributions found, building podium from game_players');
         try {
           final topPlayers = await _supabase
               .from('game_players')
@@ -424,9 +432,10 @@ class AdminService {
               .neq('status', 'spectator')
               .order('final_placement', ascending: true)
               .limit(3);
-          
+
           // Fetch profiles for podium players
-          final podiumUserIds = topPlayers.map((p) => p['user_id'] as String).toList();
+          final podiumUserIds =
+              topPlayers.map((p) => p['user_id'] as String).toList();
           if (podiumUserIds.isNotEmpty) {
             final podiumProfiles = await _supabase
                 .from('profiles')
@@ -436,7 +445,7 @@ class AdminService {
               profilesMap[p['id'] as String] = p;
             }
           }
-          
+
           for (var p in topPlayers) {
             final uid = p['user_id'] as String;
             final profile = profilesMap[uid] ?? {};
@@ -455,24 +464,24 @@ class AdminService {
 
       // 8. Process Bettors
       final Map<String, Map<String, dynamic>> bettorsMap = {};
-      
+
       // Sum Bets per user
       for (var b in bets) {
         final uid = b['user_id'] as String;
         final amount = (b['amount'] as num).toInt();
-        
+
         if (!bettorsMap.containsKey(uid)) {
-           final profile = profilesMap[uid] ?? {};
-           bettorsMap[uid] = {
-             'user_id': uid,
-             'name': profile['name'] ?? 'Apostador',
-             'avatar_id': profile['avatar_id'],
-             'total_bet': 0,
-             'total_won': 0,
-             'bets_count': 0,
-           };
+          final profile = profilesMap[uid] ?? {};
+          bettorsMap[uid] = {
+            'user_id': uid,
+            'name': profile['name'] ?? 'Apostador',
+            'avatar_id': profile['avatar_id'],
+            'total_bet': 0,
+            'total_won': 0,
+            'bets_count': 0,
+          };
         }
-        
+
         bettorsMap[uid]!['total_bet'] += amount;
         bettorsMap[uid]!['bets_count'] += 1;
       }
@@ -481,19 +490,19 @@ class AdminService {
       for (var p in payouts) {
         final uid = p['user_id'] as String;
         final amount = (p['amount'] as num).toInt();
-        
+
         if (bettorsMap.containsKey(uid)) {
           bettorsMap[uid]!['total_won'] += amount;
         } else {
-           final profile = profilesMap[uid] ?? {};
-           bettorsMap[uid] = {
-             'user_id': uid,
-             'name': profile['name'] ?? 'Ganador',
-             'avatar_id': profile['avatar_id'],
-             'total_bet': 0,
-             'total_won': amount,
-             'bets_count': 0,
-           };
+          final profile = profilesMap[uid] ?? {};
+          bettorsMap[uid] = {
+            'user_id': uid,
+            'name': profile['name'] ?? 'Ganador',
+            'avatar_id': profile['avatar_id'],
+            'total_bet': 0,
+            'total_won': amount,
+            'bets_count': 0,
+          };
         }
       }
 
@@ -502,9 +511,10 @@ class AdminService {
         final data = bettorsMap[uid]!;
         data['net'] = (data['total_won'] as int) - (data['total_bet'] as int);
       }
-      
+
       final bettorsList = bettorsMap.values.toList();
-      bettorsList.sort((a, b) => (b['total_won'] as int).compareTo(a['total_won'] as int));
+      bettorsList.sort(
+          (a, b) => (b['total_won'] as int).compareTo(a['total_won'] as int));
 
       return {
         'status': 'completed',
@@ -512,9 +522,9 @@ class AdminService {
         'podium': podium,
         'bettors': bettorsList,
       };
-
     } catch (e) {
-      debugPrint('💰 AdminService: Critical error getting DETAILED financial results: $e');
+      debugPrint(
+          '💰 AdminService: Critical error getting DETAILED financial results: $e');
       return {'pot': 0, 'podium': [], 'bettors': []};
     }
   }
@@ -522,7 +532,7 @@ class AdminService {
   /// DEPRECATED: Use getDetailedEventFinancials
   /// Obtiene los resultados financieros finales de un evento.
   Future<Map<String, dynamic>> getEventFinancialResults(String eventId) async {
-      return getDetailedEventFinancials(eventId);
+    return getDetailedEventFinancials(eventId);
   }
 
   /// Ajusta las monedas o vidas de un jugador en un evento específico.
@@ -537,7 +547,8 @@ class AdminService {
     required String field,
     required int delta,
   }) async {
-    assert(field == 'coins' || field == 'lives', 'Field must be coins or lives');
+    assert(
+        field == 'coins' || field == 'lives', 'Field must be coins or lives');
     try {
       // 1. Read current value
       final row = await _supabase
@@ -560,7 +571,8 @@ class AdminService {
           .eq('event_id', eventId)
           .eq('user_id', userId);
 
-      debugPrint('AdminService: adjustPlayerStats $field $delta → $newValue for user $userId in event $eventId');
+      debugPrint(
+          'AdminService: adjustPlayerStats $field $delta → $newValue for user $userId in event $eventId');
     } catch (e) {
       debugPrint('AdminService: Error adjusting player stats: $e');
       rethrow;
@@ -574,7 +586,8 @@ class AdminService {
     required String field,
     required int value,
   }) async {
-    assert(field == 'coins' || field == 'lives', 'Field must be coins or lives');
+    assert(
+        field == 'coins' || field == 'lives', 'Field must be coins or lives');
     int safeValue = value < 0 ? 0 : value;
     if (field == 'lives' && safeValue > 3) safeValue = 3;
     try {
@@ -584,9 +597,176 @@ class AdminService {
           .eq('event_id', eventId)
           .eq('user_id', userId);
 
-      debugPrint('AdminService: setPlayerStat $field = $safeValue for user $userId in event $eventId');
+      debugPrint(
+          'AdminService: setPlayerStat $field = $safeValue for user $userId in event $eventId');
     } catch (e) {
       debugPrint('AdminService: Error setting player stat: $e');
+      rethrow;
+    }
+  }
+
+  /// Otorga un poder (ítem) al inventario de un jugador.
+  Future<void> adminGiftPowerToPlayer({
+    required String userId,
+    required String eventId,
+    required String powerSlug,
+    int quantity = 1,
+  }) async {
+    try {
+      final gp = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+
+      if (gp == null) throw 'Jugador no encontrado en el evento';
+      final String gpId = gp['id'];
+
+      final power = await _supabase
+          .from('powers')
+          .select('id')
+          .eq('slug', powerSlug)
+          .single();
+      final String powerId = power['id'];
+
+      final existingPower = await _supabase
+          .from('player_powers')
+          .select('id, quantity')
+          .eq('game_player_id', gpId)
+          .eq('power_id', powerId)
+          .maybeSingle();
+
+      if (existingPower != null) {
+        await _supabase.from('player_powers').update({
+          'quantity': (existingPower['quantity'] ?? 0) + quantity
+        }).eq('id', existingPower['id']);
+      } else {
+        await _supabase.from('player_powers').insert({
+          'game_player_id': gpId,
+          'power_id': powerId,
+          'quantity': quantity,
+        });
+      }
+
+      debugPrint(
+          'AdminService: adminGiftPowerToPlayer $powerSlug x$quantity to user $userId');
+    } catch (e) {
+      debugPrint('AdminService: Error gifting power: $e');
+      rethrow;
+    }
+  }
+
+  /// Aplica un efecto de poder INMEDIATO a un jugador (congelar, etc).
+  Future<void> adminApplyPowerToPlayer({
+    required String userId,
+    required String eventId,
+    required String powerSlug,
+  }) async {
+    try {
+      debugPrint(
+          'AdminService: Force applying $powerSlug to user $userId in event $eventId');
+
+      // 1. Intentar usar el RPC (más atómico y seguro)
+      try {
+        final response =
+            await _supabase.rpc('admin_force_apply_power', params: {
+          'p_event_id': eventId,
+          'p_target_userid': userId,
+          'p_power_slug': powerSlug,
+        });
+
+        if (response != null && response['success'] == true) {
+          debugPrint('AdminService: admin_force_apply_power SUCCESS');
+          return;
+        }
+      } catch (e) {
+        debugPrint(
+            'AdminService: RPC admin_force_apply_power failed/missing, trying manual fallback: $e');
+      }
+
+      // 2. Fallback Manual (si el RPC no está instalado)
+      // Nota: Requiere que el admin tenga permisos de insert en active_powers
+
+      // A. Asegurar que el admin tiene un game_player_id en este evento
+      final adminUserId = _supabase.auth.currentUser?.id;
+      if (adminUserId == null) throw 'No authenticated admin user';
+
+      var adminGp = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', adminUserId)
+          .eq('event_id', eventId)
+          .maybeSingle();
+
+      if (adminGp == null) {
+        adminGp = await _supabase
+            .from('game_players')
+            .insert({
+              'event_id': eventId,
+              'user_id': adminUserId,
+              'status': 'spectator',
+              'lives': 0
+            })
+            .select('id')
+            .single();
+      }
+      final String adminGpId = adminGp['id'];
+
+      // B. Obtener Target GamePlayer
+      final targetGp = await _supabase
+          .from('game_players')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('event_id', eventId)
+          .single();
+      final String targetGpId = targetGp['id'];
+
+      // C. Obtener Detalles del Poder
+      final power = await _supabase
+          .from('powers')
+          .select('id, duration')
+          .eq('slug', powerSlug)
+          .single();
+      final String powerId = power['id'];
+      final int duration = power['duration'] ?? 20;
+
+      // D. Insertar Efecto Activo
+      await _supabase.from('active_powers').insert({
+        'event_id': eventId,
+        'caster_id': adminGpId,
+        'target_id': targetGpId,
+        'power_id': powerId,
+        'power_slug': powerSlug,
+        'expires_at': DateTime.now()
+            .add(Duration(seconds: duration))
+            .toUtc()
+            .toIso8601String(),
+      });
+
+      // E. Caso especial: Robo de Vida (quitar vida)
+      if (powerSlug == 'life_steal') {
+        try {
+          await _supabase
+              .rpc('lose_life', params: {'p_game_player_id': targetGpId});
+        } catch (e) {
+          debugPrint('AdminService: Manual lose_life fallback failed: $e');
+        }
+      }
+
+      // F. Registrar Evento de Combate
+      await _supabase.from('combat_events').insert({
+        'event_id': eventId,
+        'attacker_id': adminGpId,
+        'target_id': targetGpId,
+        'power_id': powerId,
+        'power_slug': powerSlug,
+        'result_type': 'admin_force',
+      });
+
+      debugPrint('AdminService: Manual adminApplyPowerToPlayer SUCCESS');
+    } catch (e) {
+      debugPrint('AdminService: Error applying power effect: $e');
       rethrow;
     }
   }

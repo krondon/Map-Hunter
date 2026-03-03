@@ -1,0 +1,77 @@
+-- RPC for admins to force apply a power to a player bypassing ammo and defense if needed.
+-- Usage: select admin_force_apply_power('event-uuid', 'target-player-uuid', 'power-slug');
+
+CREATE OR REPLACE FUNCTION public.admin_force_apply_power(
+    p_event_id uuid,
+    p_target_userId uuid,
+    p_power_slug text
+) RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_admin_userId uuid := auth.uid();
+    v_admin_gp_id uuid;
+    v_target_gp_id uuid;
+    v_power_id uuid;
+    v_power_duration int;
+    v_now timestamptz := now();
+BEGIN
+    -- 1. Check if caller is admin
+    IF NOT EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = v_admin_userId AND role = 'admin'
+    ) THEN
+        RETURN json_build_object('success', false, 'error', 'unauthorized');
+    END IF;
+
+    -- 2. Get target game_player ID
+    SELECT id INTO v_target_gp_id 
+    FROM public.game_players 
+    WHERE event_id = p_event_id AND user_id = p_target_userId;
+
+    IF v_target_gp_id IS NULL THEN
+        RETURN json_build_object('success', false, 'error', 'target_not_in_event');
+    END IF;
+
+    -- 3. Get admin game_player ID (create if not exists to satisfy foreign key)
+    SELECT id INTO v_admin_gp_id 
+    FROM public.game_players 
+    WHERE event_id = p_event_id AND user_id = v_admin_userId;
+
+    IF v_admin_gp_id IS NULL THEN
+        INSERT INTO public.game_players (event_id, user_id, status, lives)
+        VALUES (p_event_id, v_admin_userId, 'spectator', 0)
+        RETURNING id INTO v_admin_gp_id;
+    END IF;
+
+    -- 4. Get power details
+    SELECT id, duration INTO v_power_id, v_power_duration 
+    FROM public.powers WHERE slug = p_power_slug;
+
+    IF v_power_id IS NULL THEN
+        RETURN json_build_object('success', false, 'error', 'power_not_found');
+    END IF;
+
+    -- 5. Special logic for Life Steal (Admin version doesn't "steal", just affects lives)
+    IF p_power_slug = 'life_steal' THEN
+        UPDATE public.game_players 
+        SET lives = GREATEST(lives - 1, 0) 
+        WHERE id = v_target_gp_id;
+        
+        -- Admins don't gain lives, so we just log it
+    END IF;
+
+    -- 6. Apply physical effect (active_powers)
+    -- We bypass shielding by just inserting. Visuals listen to this table.
+    INSERT INTO public.active_powers (event_id, caster_id, target_id, power_id, power_slug, expires_at)
+    VALUES (p_event_id, v_admin_gp_id, v_target_gp_id, v_power_id, p_power_slug, 
+            v_now + (COALESCE(v_power_duration, 20) || ' seconds')::interval);
+
+    -- 7. Log event
+    INSERT INTO public.combat_events (event_id, attacker_id, target_id, power_id, power_slug, result_type)
+    VALUES (p_event_id, v_admin_gp_id, v_target_gp_id, v_power_id, p_power_slug, 'admin_force');
+
+    RETURN json_build_object('success', true);
+END;
+$$;
