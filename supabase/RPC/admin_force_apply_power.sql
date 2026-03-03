@@ -3,7 +3,7 @@
 
 CREATE OR REPLACE FUNCTION public.admin_force_apply_power(
     p_event_id uuid,
-    p_target_userId uuid,
+    p_target_userid uuid,
     p_power_slug text
 ) RETURNS json
 LANGUAGE plpgsql
@@ -28,7 +28,7 @@ BEGIN
     -- 2. Get target game_player ID
     SELECT id INTO v_target_gp_id 
     FROM public.game_players 
-    WHERE event_id = p_event_id AND user_id = p_target_userId;
+    WHERE event_id = p_event_id AND user_id = p_target_userid;
 
     IF v_target_gp_id IS NULL THEN
         RETURN json_build_object('success', false, 'error', 'target_not_in_event');

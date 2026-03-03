@@ -700,16 +700,24 @@ class AdminService {
           .maybeSingle();
 
       if (adminGp == null) {
-        adminGp = await _supabase
-            .from('game_players')
-            .insert({
-              'event_id': eventId,
-              'user_id': adminUserId,
-              'status': 'spectator',
-              'lives': 0
-            })
-            .select('id')
-            .single();
+        try {
+          adminGp = await _supabase
+              .from('game_players')
+              .insert({
+                'event_id': eventId,
+                'user_id': adminUserId,
+                'status': 'spectator',
+                'lives': 0
+              })
+              .select('id')
+              .maybeSingle();
+
+          if (adminGp == null)
+            throw 'Error al registrar al administrador en el evento';
+        } catch (e) {
+          debugPrint('AdminService: Failed to insert admin as spectator: $e');
+          throw 'No se pudo registrar al administrador para realizar esta acción: $e';
+        }
       }
       final String adminGpId = adminGp['id'];
 
@@ -719,7 +727,12 @@ class AdminService {
           .select('id')
           .eq('user_id', userId)
           .eq('event_id', eventId)
-          .single();
+          .maybeSingle();
+
+      if (targetGp == null) {
+        throw 'Jugador objetivo no encontrado o no está inscrito en este evento.';
+      }
+
       final String targetGpId = targetGp['id'];
 
       // C. Obtener Detalles del Poder
@@ -727,7 +740,12 @@ class AdminService {
           .from('powers')
           .select('id, duration')
           .eq('slug', powerSlug)
-          .single();
+          .maybeSingle();
+
+      if (power == null) {
+        throw 'Poder "$powerSlug" no encontrado en la base de datos.';
+      }
+
       final String powerId = power['id'];
       final int duration = power['duration'] ?? 20;
 

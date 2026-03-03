@@ -361,7 +361,18 @@ class _RequestTileState extends State<RequestTile> {
     showDialog(
       context: context,
       builder: (ctx) {
-        final powers = PowerItem.getShopItems();
+        // Filter: Keep only sabotage powers, excluding buffs and direct utilities
+        final powers = PowerItem.getShopItems().where((p) {
+          const excludedIds = {
+            'life_steal',
+            'extra_life',
+            'invisibility',
+            'return',
+            'shield'
+          };
+          return !excludedIds.contains(p.id);
+        }).toList();
+
         return AlertDialog(
           backgroundColor: AppTheme.cardBg,
           title: const Row(

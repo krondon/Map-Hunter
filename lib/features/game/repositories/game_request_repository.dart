@@ -5,7 +5,8 @@ import '../models/game_request.dart';
 /// Repository interface for game request operations
 abstract class IGameRequestRepository {
   Future<GameRequest?> getRequestForPlayer(String playerId, String eventId);
-  Future<Map<String, dynamic>> getPlayerParticipation(String playerId, String eventId);
+  Future<Map<String, dynamic>> getPlayerParticipation(
+      String playerId, String eventId);
   Future<List<Map<String, dynamic>>> getAllUserParticipations(String playerId);
   Future<String?> getPlayerStatus(String playerId, String eventId);
   Future<int> getParticipantCount(String eventId);
@@ -20,15 +21,21 @@ abstract class IGameRequestRepository {
     String role = 'player',
   });
   Future<void> upgradeSpectatorToPlayer(String gamePlayerId);
+
   /// Calls the atomic RPC approve_and_pay_event_entry (admin approval + payment).
   Future<Map<String, dynamic>> approveAndPayEntry(String requestId);
+
   /// Calls the atomic RPC join_online_paid_event (self-service for online events).
-  Future<Map<String, dynamic>> joinOnlinePaidEventRPC(String userId, String eventId);
+  Future<Map<String, dynamic>> joinOnlinePaidEventRPC(
+      String userId, String eventId);
+
   /// Calls the atomic RPC join_online_free_event (create game_player and approved game_request).
-  Future<Map<String, dynamic>> joinOnlineFreeEventRPC(String userId, String eventId);
+  Future<Map<String, dynamic>> joinOnlineFreeEventRPC(
+      String userId, String eventId);
 
   /// Calls secure_clover_payment RPC directly (generic atomic clover deduction).
-  Future<Map<String, dynamic>> callSecureCloverPayment(String userId, int amount, String reason);
+  Future<Map<String, dynamic>> callSecureCloverPayment(
+      String userId, int amount, String reason);
   Future<int> getCurrentClovers(String userId);
   Future<List<GameRequest>> getAllRequests();
 }
@@ -41,23 +48,19 @@ class GameRequestRepository implements IGameRequestRepository {
       : _supabase = supabaseClient;
 
   @override
-  Future<GameRequest?> getRequestForPlayer(String playerId, String eventId) async {
+  Future<GameRequest?> getRequestForPlayer(
+      String playerId, String eventId) async {
     try {
       final data = await _supabase
           .from('game_requests')
-          .select('id, status')
+          .select('*, profiles(name, email)')
           .eq('user_id', playerId)
           .eq('event_id', eventId)
           .maybeSingle();
 
       if (data == null) return null;
-      
-      return GameRequest(
-        id: data['id'],
-        userId: playerId,
-        eventId: eventId,
-        status: data['status'],
-      );
+
+      return GameRequest.fromJson(data);
     } catch (e) {
       debugPrint('GameRequestRepository: Error fetching request: $e');
       rethrow;
@@ -65,7 +68,8 @@ class GameRequestRepository implements IGameRequestRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> getPlayerParticipation(String playerId, String eventId) async {
+  Future<Map<String, dynamic>> getPlayerParticipation(
+      String playerId, String eventId) async {
     try {
       final data = await _supabase
           .from('game_players')
@@ -89,7 +93,8 @@ class GameRequestRepository implements IGameRequestRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getAllUserParticipations(String playerId) async {
+  Future<List<Map<String, dynamic>>> getAllUserParticipations(
+      String playerId) async {
     try {
       final response = await _supabase
           .from('game_players')
@@ -97,7 +102,8 @@ class GameRequestRepository implements IGameRequestRepository {
           .eq('user_id', playerId);
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
-      debugPrint('GameRequestRepository: Error checking all participations: $e');
+      debugPrint(
+          'GameRequestRepository: Error checking all participations: $e');
       rethrow;
     }
   }
@@ -155,8 +161,7 @@ class GameRequestRepository implements IGameRequestRepository {
     try {
       await _supabase
           .from('game_requests')
-          .update({'status': status})
-          .eq('id', requestId);
+          .update({'status': status}).eq('id', requestId);
     } catch (e) {
       debugPrint('GameRequestRepository: Error updating request: $e');
       rethrow;
@@ -166,10 +171,7 @@ class GameRequestRepository implements IGameRequestRepository {
   @override
   Future<void> deleteGamePlayer(String gamePlayerId) async {
     try {
-      await _supabase
-          .from('game_players')
-          .delete()
-          .eq('id', gamePlayerId);
+      await _supabase.from('game_players').delete().eq('id', gamePlayerId);
     } catch (e) {
       debugPrint('GameRequestRepository: Error deleting game player: $e');
       rethrow;
@@ -217,7 +219,8 @@ class GameRequestRepository implements IGameRequestRepository {
   @override
   Future<Map<String, dynamic>> approveAndPayEntry(String requestId) async {
     try {
-      final result = await _supabase.rpc('approve_and_pay_event_entry', params: {
+      final result =
+          await _supabase.rpc('approve_and_pay_event_entry', params: {
         'p_request_id': requestId,
       });
       return Map<String, dynamic>.from(result as Map);
@@ -228,7 +231,8 @@ class GameRequestRepository implements IGameRequestRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> joinOnlinePaidEventRPC(String userId, String eventId) async {
+  Future<Map<String, dynamic>> joinOnlinePaidEventRPC(
+      String userId, String eventId) async {
     try {
       final result = await _supabase.rpc('join_online_paid_event', params: {
         'p_user_id': userId,
@@ -242,7 +246,8 @@ class GameRequestRepository implements IGameRequestRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> joinOnlineFreeEventRPC(String userId, String eventId) async {
+  Future<Map<String, dynamic>> joinOnlineFreeEventRPC(
+      String userId, String eventId) async {
     try {
       final result = await _supabase.rpc('join_online_free_event', params: {
         'p_user_id': userId,
@@ -256,7 +261,8 @@ class GameRequestRepository implements IGameRequestRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> callSecureCloverPayment(String userId, int amount, String reason) async {
+  Future<Map<String, dynamic>> callSecureCloverPayment(
+      String userId, int amount, String reason) async {
     try {
       final result = await _supabase.rpc('secure_clover_payment', params: {
         'p_user_id': userId,
@@ -294,23 +300,11 @@ class GameRequestRepository implements IGameRequestRepository {
           .select('*, profiles(name, email), events(title)')
           .order('created_at', ascending: false);
 
-      debugPrint('GameRequestRepository: Raw response count: ${(response as List).length}');
+      debugPrint(
+          'GameRequestRepository: Raw response count: ${(response as List).length}');
 
       return (response as List).map((data) {
-        debugPrint('GameRequestRepository: Mapping request - ID: ${data['id']}, User: ${data['profiles']?['name']}, Event: ${data['events']?['title']}');
-        
-        return GameRequest(
-          id: data['id'],
-          userId: data['user_id'],
-          eventId: data['event_id'],
-          status: data['status'],
-          createdAt: data['created_at'] != null 
-              ? DateTime.parse(data['created_at']) 
-              : null,
-          userName: data['profiles']?['name'],
-          userEmail: data['profiles']?['email'],
-          eventName: data['events']?['title'],
-        );
+        return GameRequest.fromJson(data as Map<String, dynamic>);
       }).toList();
     } catch (e) {
       debugPrint('GameRequestRepository: Error fetching all requests: $e');
