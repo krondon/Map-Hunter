@@ -52,13 +52,13 @@ serve(async (req: Request) => {
         }
 
         // 3. Randomize Parameters based on config with robust fallbacks
-        const minPlayers = Number(config.min_players) || 10;
-        const maxPlayers = Number(config.max_players) || 30;
-        const minGames = Number(config.min_games) || 4;
-        const maxGames = Number(config.max_games) || 10;
-        const minFee = Number(config.min_fee) || 0;
-        const maxFee = Number(config.max_fee) || 100;
-        const feeStep = Number(config.fee_step) || 5;
+        const minPlayers = config.min_players !== undefined ? Number(config.min_players) : 5;
+        const maxPlayers = config.max_players !== undefined ? Number(config.max_players) : 60;
+        const minGames = config.min_games !== undefined ? Number(config.min_games) : 4;
+        const maxGames = config.max_games !== undefined ? Number(config.max_games) : 10;
+        const minFee = config.min_fee !== undefined ? Number(config.min_fee) : 0;
+        const maxFee = config.max_fee !== undefined ? Number(config.max_fee) : 300;
+        const feeStep = config.fee_step !== undefined ? Number(config.fee_step) : 5;
         const pendingWaitMinutes = Number(config.pending_wait_minutes) || 5;
 
         const playerCount = Math.floor(Math.random() * (maxPlayers - minPlayers + 1)) + minPlayers;
@@ -72,10 +72,9 @@ serve(async (req: Request) => {
         console.log(`Config: Players(${minPlayers}-${maxPlayers}), Games(${minGames}-${maxGames}), Fee(${minFee}-${maxFee} step ${feeStep})`);
         console.log(`Generated: ${playerCount} players, ${gameCount} games, ${entryFee} entry fee`);
 
-        // 3. Selection Strategy (Balanced Difficulty)
-        const easyPool = ['slidingPuzzle', 'ticTacToe', 'imageTrivia', 'trueFalse', 'virusTap', 'flags', 'matchThree', 'fastNumber'];
-        const mediumPool = ['hangman', 'wordScramble', 'memorySequence', 'emojiMovie', 'bagShuffle', 'droneDodge', 'missingOperator', 'capitalCities'];
-        const hardPool = ['tetris', 'minesweeper', 'snake', 'blockFill', 'codeBreaker', 'holographicPanels', 'primeNetwork', 'percentageCalculation', 'chronologicalOrder', 'drinkMixer', 'librarySort', 'findDifference'];
+        const easyPool = ['slidingPuzzle', 'trueFalse', 'virusTap', 'flags'];
+        const mediumPool = ['memorySequence', 'emojiMovie', 'droneDodge', 'missingOperator', 'capitalCities'];
+        const hardPool = ['tetris', 'minesweeper', 'blockFill', 'holographicPanels', 'percentageCalculation', 'drinkMixer'];
 
         const selectedPuzzles: string[] = [];
         const targetEasy = Math.ceil(gameCount * 0.4);
