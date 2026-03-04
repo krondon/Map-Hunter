@@ -101,167 +101,175 @@ class _GameModeSelectorScreenState extends State<GameModeSelectorScreen> {
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                const Spacer(flex: 2),
-
-                // HEADER
-                Column(
-                  children: [
-                    Text(
-                      "SELECCIONA TU MODO",
-                      style: TextStyle(
-                          fontFamily: 'Orbitron',
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color:
-                              AppTheme.dGoldMain, // Amarillo/Dorado consistente
-                          letterSpacing: 1.5,
-                          shadows: [
-                            BoxShadow(
-                                color: AppTheme.dGoldMain.withOpacity(0.5),
-                                blurRadius: 10,
-                                spreadRadius: 2)
-                          ]),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "¿Cómo deseas participar hoy?",
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        fontSize: 14,
-                        color: Colors
-                            .white70, // Siempre claro por el fondo oscuro/imagen
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-
-                const Spacer(flex: 3),
-
-                // CARDS
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
                   child: Column(
                     children: [
-                      // MODO PRESENCIAL
-                      _buildModeCard(
-                        title: "MODO PRESENCIAL",
-                        description:
-                            "Vive la aventura en el mundo real. Requiere GPS y escanear códigos QR en ubicaciones físicas.",
-                        icon: Icons.location_on_outlined,
-                        color: AppTheme.dGoldMain, // Dorado
-                        onTap: () {
-                          // ACTUALIZAR PROVIDER GLOBAL
-                          context
-                              .read<AppModeProvider>()
-                              .setMode(GameMode.presencial);
+                      const Spacer(flex: 2),
 
-                          // Navegar a escenarios (flujo normal)
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const ScenariosScreen(isOnline: false)));
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // MODO ONLINE
-                      _buildModeCard(
-                        title: "MODO ONLINE",
-                        description:
-                            "Participa desde cualquier lugar. Acceso mediante código PIN y multijuegos digitales.",
-                        icon: Icons.wifi,
-                        color: const Color(0xFF00F0FF), // Azul Cyber / Cyan
-                        onTap: () {
-                          // ACTUALIZAR PROVIDER GLOBAL
-                          context
-                              .read<AppModeProvider>()
-                              .setMode(GameMode.online);
-
-                          // Navegar a escenarios o input de PIN
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const ScenariosScreen(isOnline: true)));
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // MODO LOCAL
-                      _buildModeCard(
-                        title: "MODO LOCAL",
-                        description:
-                            "Juega en casa con amigos. Un modo diseñado para disfrutar sin desplazamientos.",
-                        icon: Icons.home_outlined,
-                        color: const Color(0xFF9D4EDD), // Morado Cyber
-                        onTap: () {
-                          _showComingSoonDialog("Modo Local");
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Spacer(flex: 4),
-
-                // FOOTER - BOTÓN VOLVER
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 30),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(34),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(
-                            4), // Espacio para el efecto de doble borde
-                        decoration: BoxDecoration(
-                            color: const Color(0xFF9D4EDD).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(34),
-                            border: Border.all(
-                              color: const Color(0xFF9D4EDD).withOpacity(0.4),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF9D4EDD).withOpacity(0.1),
-                                blurRadius: 15,
-                                spreadRadius: 1,
-                              )
-                            ]),
-                        child: TextButton.icon(
-                          onPressed: _showLogoutDialog,
-                          icon: const Icon(Icons.arrow_back,
-                              color: Colors.white, size: 20),
-                          label: const Text("Volver",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
+                      // HEADER
+                      Column(
+                        children: [
+                          Text(
+                            "SELECCIONA TU MODO",
+                            style: TextStyle(
                                 fontFamily: 'Orbitron',
-                                letterSpacing: 1.0,
-                              )),
-                          style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFF0D0D0F)
-                                .withOpacity(0.6), // Glassy background
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 16),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                side: const BorderSide(
-                                    color: Color(0xFF9D4EDD), // Morado sólido
-                                    width: 2.0)),
-                            elevation: 0,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    AppTheme.dGoldMain, // Amarillo/Dorado consistente
+                                letterSpacing: 1.5,
+                                shadows: [
+                                  BoxShadow(
+                                      color: AppTheme.dGoldMain.withOpacity(0.5),
+                                      blurRadius: 10,
+                                      spreadRadius: 2)
+                                ]),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "¿Cómo deseas participar hoy?",
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              fontSize: 14,
+                              color: Colors
+                                  .white70, // Siempre claro por el fondo oscuro/imagen
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(flex: 3),
+
+                      // CARDS
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          children: [
+                            // MODO PRESENCIAL
+                            _buildModeCard(
+                              title: "MODO PRESENCIAL",
+                              description:
+                                  "Vive la aventura en el mundo real. Requiere GPS y escanear códigos QR en ubicaciones físicas.",
+                              icon: Icons.location_on_outlined,
+                              color: AppTheme.dGoldMain, // Dorado
+                              onTap: () {
+                                // ACTUALIZAR PROVIDER GLOBAL
+                                context
+                                    .read<AppModeProvider>()
+                                    .setMode(GameMode.presencial);
+
+                                // Navegar a escenarios (flujo normal)
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ScenariosScreen(isOnline: false)));
+                              },
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // MODO ONLINE
+                            _buildModeCard(
+                              title: "MODO ONLINE",
+                              description:
+                                  "Participa desde cualquier lugar. Acceso mediante código PIN y multijuegos digitales.",
+                              icon: Icons.wifi,
+                              color: const Color(0xFF00F0FF), // Azul Cyber / Cyan
+                              onTap: () {
+                                // ACTUALIZAR PROVIDER GLOBAL
+                                context
+                                    .read<AppModeProvider>()
+                                    .setMode(GameMode.online);
+
+                                // Navegar a escenarios o input de PIN
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ScenariosScreen(isOnline: true)));
+                              },
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // MODO LOCAL
+                            _buildModeCard(
+                              title: "MODO LOCAL",
+                              description:
+                                  "Juega en casa con amigos. Un modo diseñado para disfrutar sin desplazamientos.",
+                              icon: Icons.home_outlined,
+                              color: const Color(0xFF9D4EDD), // Morado Cyber
+                              onTap: () {
+                                _showComingSoonDialog("Modo Local");
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Spacer(flex: 4),
+
+                      // FOOTER - BOTÓN VOLVER
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 30),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(34),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                  4), // Espacio para el efecto de doble borde
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFF9D4EDD).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(34),
+                                  border: Border.all(
+                                    color: const Color(0xFF9D4EDD).withOpacity(0.4),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF9D4EDD).withOpacity(0.1),
+                                      blurRadius: 15,
+                                      spreadRadius: 1,
+                                    )
+                                  ]),
+                              child: TextButton.icon(
+                                onPressed: _showLogoutDialog,
+                                icon: const Icon(Icons.arrow_back,
+                                    color: Colors.white, size: 20),
+                                label: const Text("Volver",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontFamily: 'Orbitron',
+                                      letterSpacing: 1.0,
+                                    )),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0D0D0F)
+                                      .withOpacity(0.6), // Glassy background
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 32, vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      side: const BorderSide(
+                                          color: Color(0xFF9D4EDD), // Morado sólido
+                                          width: 2.0)),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],

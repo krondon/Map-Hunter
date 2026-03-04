@@ -8,10 +8,11 @@ import '../../features/social/screens/wallet_screen.dart'; // To access any cons
 
 class PagoAPagoService {
   // BASE URL from documentation (Your Supabase Project)
-  static const String _baseUrl = 'https://hyjelngckvqoanckqwep.supabase.co/functions/v1';
+  static String get _baseUrl => 
+    '${dotenv.env['SUPABASE_URL']}/functions/v1';
   
-  // API KEY placeholder - SHOULD BE IN .ENV but hardcoded placeholder for now as requested
-  static const String _apiKeyPlaceholder = 'PAGO_PAGO_API_KEY_AQUI'; 
+  static String get _apiKeyPlaceholder => 
+    dotenv.env['PAGO_PAGO_API_KEY'] ?? 'PAGO_PAGO_API_KEY_AQUI'; 
 
   final String apiKey;
 

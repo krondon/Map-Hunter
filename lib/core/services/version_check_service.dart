@@ -15,9 +15,7 @@ class VersionCheckService {
 
       debugPrint('VersionCheck: Local version is $localVersion');
 
-      // 2. Get remote config
-      // Note: We use .single() assuming there's only one active config row.
-      // If you have multiple rows, you might need to order by created_at or use a specific ID.
+      // 2. Get remote config from Supabase app_config
       final response = await supabaseClient
           .from('app_config')
           .select('value')
@@ -28,9 +26,10 @@ class VersionCheckService {
         debugPrint('VersionCheck: No version_configuration found in Supabase.');
         return VersionStatus(
           isUpdateRequired: false,
+          maintenanceMode: false,
           localVersion: localVersion,
           minVersion: '0.0.0',
-          storeUrl: '',
+          downloadUrl: null,
         );
       }
 
@@ -38,31 +37,51 @@ class VersionCheckService {
 
       final String minVersion =
           data['min_supported_version'] as String? ?? '0.0.0';
-      final String? androidUrl = data['android_store_url'] as String?;
-      final String? iosUrl = data['ios_store_url'] as String?;
+      final bool maintenanceMode =
+          data['maintenance_mode'] as bool? ?? false;
 
-      // 3. Compare versions
+      // 3. Selección de URL según plataforma:
+      //    iOS              → ios_store_url  (App Store)
+      //    Android en Store → android_store_url (Play Store)
+      //    Android APK      → apk_download_url  (descarga directa)
+      //    Web              → no aplica actualización forzada
+      String? downloadUrl;
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final iosUrl = data['ios_store_url'] as String?;
+        downloadUrl = (iosUrl != null && iosUrl.isNotEmpty) ? iosUrl : null;
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        final storeUrl = data['android_store_url'] as String?;
+        final apkUrl   = data['apk_download_url']  as String?;
+        // Si ya está en Play Store usa esa URL; si no, descarga directa
+        downloadUrl = (storeUrl != null && storeUrl.isNotEmpty)
+            ? storeUrl
+            : ((apkUrl != null && apkUrl.isNotEmpty) ? apkUrl : null);
+      }
+      // En web no forzamos descarga
+
+      // 4. Compare versions
       final bool updateRequired = _isUpdateRequired(localVersion, minVersion);
 
       debugPrint(
-          'VersionCheck: Required: $minVersion. Update needed: $updateRequired');
+          'VersionCheck: minVersion=$minVersion, local=$localVersion, '
+          'updateRequired=$updateRequired, maintenance=$maintenanceMode');
 
       return VersionStatus(
         isUpdateRequired: updateRequired,
+        maintenanceMode: maintenanceMode,
         localVersion: localVersion,
         minVersion: minVersion,
-        storeUrl:
-            defaultTargetPlatform == TargetPlatform.iOS ? iosUrl : androidUrl,
+        downloadUrl: downloadUrl,
       );
     } catch (e) {
       debugPrint('VersionCheck: Error checking version: $e');
-      // In case of error (e.g. offline), we usually want to let the user in (fail open)
-      // unless it's critical. For now, fail open.
+      // Fail open: si no hay conexión, dejamos entrar al usuario.
       return VersionStatus(
         isUpdateRequired: false,
+        maintenanceMode: false,
         localVersion: 'Unknown',
         minVersion: 'Unknown',
-        storeUrl: null,
+        downloadUrl: null,
       );
     }
   }
@@ -73,7 +92,6 @@ class VersionCheckService {
     List<int> minParts =
         min.split('.').map((e) => int.tryParse(e) ?? 0).toList();
 
-    // Pad with zeros if lengths differ (though usually they are x.y.z)
     int maxLength = localParts.length > minParts.length
         ? localParts.length
         : minParts.length;
@@ -82,24 +100,26 @@ class VersionCheckService {
       int l = i < localParts.length ? localParts[i] : 0;
       int m = i < minParts.length ? minParts[i] : 0;
 
-      if (l < m) return true; // Local is strictly less than min
-      if (l > m) return false; // Local is strictly greater than min
+      if (l < m) return true;  // versión local menor que la mínima
+      if (l > m) return false; // versión local mayor
     }
 
-    return false; // Equal
+    return false; // iguales
   }
 }
 
 class VersionStatus {
   final bool isUpdateRequired;
+  final bool maintenanceMode;
   final String localVersion;
   final String minVersion;
-  final String? storeUrl;
+  final String? downloadUrl;
 
   VersionStatus({
     required this.isUpdateRequired,
+    required this.maintenanceMode,
     required this.localVersion,
     required this.minVersion,
-    this.storeUrl,
+    this.downloadUrl,
   });
 }

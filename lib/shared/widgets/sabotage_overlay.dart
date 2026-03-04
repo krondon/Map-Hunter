@@ -427,7 +427,9 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
           '[UNBLOCK-CHECK] freeze=$isFreezeActive, black_screen=$isBlackScreenActive, _isBlockingActive=$_isBlockingActive');
 
       // Lista de efectos que deben congelar la navegación
-      final shouldBlock = isFreezeActive || isBlackScreenActive;
+      // [USER_REQUEST] Block navigation for regular users, but allow it for admins
+      final isNotAdmin = playerProvider.currentPlayer?.role != 'admin';
+      final shouldBlock = isNotAdmin && (isFreezeActive || isBlackScreenActive);
 
       // Actualizar estado de congelamiento en GameProvider
       // AHORA: Tanto freeze como black_screen pausan los minijuegos

@@ -46,6 +46,10 @@ class _WalletScreenState extends State<WalletScreen> {
   final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
   
+  // Recharge availability (null = still loading)
+  bool? _rechargeEnabled;
+  late final AppConfigService _appConfigService;
+
   // History State
   final ITransactionRepository _transactionRepository = SupabaseTransactionRepository();
   List<TransactionItem> _recentTransactions = [];
@@ -54,8 +58,17 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   void initState() {
     super.initState();
+    _appConfigService = AppConfigService(
+      supabaseClient: Supabase.instance.client,
+    );
+    _loadRechargeFlag();
     _loadRecentTransactions();
     _loadPaymentMethods();
+  }
+
+  Future<void> _loadRechargeFlag() async {
+    final enabled = await _appConfigService.isRechargeEnabled();
+    if (mounted) setState(() => _rechargeEnabled = enabled);
   }
 
   Future<void> _loadPaymentMethods() async {
@@ -228,10 +241,22 @@ class _WalletScreenState extends State<WalletScreen> {
                             child: Opacity(
                               opacity: _isLoading ? 0.5 : 1.0,
                               child: _buildActionButton(
-                                icon: Icons.add_circle_outline,
+                                icon: _rechargeEnabled == false
+                                    ? Icons.construction
+                                    : Icons.add_circle_outline,
                                 label: 'RECARGAR',
-                                color: AppTheme.accentGold,
-                                onTap: _isLoading ? () {} : () => _showRechargeDialog(),
+                                color: _rechargeEnabled == false
+                                    ? Colors.grey
+                                    : AppTheme.accentGold,
+                                onTap: _isLoading
+                                    ? () {}
+                                    : () {
+                                        if (_rechargeEnabled == false) {
+                                          _showRechargeMaintenance();
+                                        } else {
+                                          _showRechargeDialog();
+                                        }
+                                      },
                               ),
                             ),
                           ),
@@ -614,6 +639,49 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showRechargeMaintenance() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.construction, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Text(
+              'En Mantenimiento',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Orbitron',
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'El sistema de recargas está temporalmente en mantenimiento.\n\n'
+          'Pronto estará disponible nuevamente. Disculpa las molestias.',
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryPurple,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('ENTENDIDO'),
+          ),
+        ],
       ),
     );
   }

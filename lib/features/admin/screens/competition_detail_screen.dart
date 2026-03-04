@@ -118,7 +118,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
       // 1. Fetch ranking from game_players (ordered by clues DESC, then arrival ASC)
       final playersData = await Supabase.instance.client
           .from('game_players')
-          .select('user_id, completed_clues:completed_clues_count, last_active, coins, lives')
+          .select(
+              'user_id, completed_clues:completed_clues_count, last_active, coins, lives')
           .eq('event_id', widget.event.id)
           .neq('status', 'spectator')
           .order('completed_clues_count', ascending: false)
@@ -604,7 +605,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('⛔ No se puede editar: el evento ya no está en estado pendiente.'),
+            content: Text(
+                '⛔ No se puede editar: el evento ya no está en estado pendiente.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -693,11 +695,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
+                  border:
+                      Border.all(color: Colors.greenAccent.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shield, color: Colors.greenAccent, size: 20),
+                    const Icon(Icons.shield,
+                        color: Colors.greenAccent, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       "$cluesPreserved pistas intactas e íntegras",
@@ -727,9 +731,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryPurple),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Entendido", style: TextStyle(color: Colors.white)),
+            child:
+                const Text("Entendido", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -742,7 +748,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+          Text(label,
+              style: const TextStyle(color: Colors.white54, fontSize: 13)),
           Text("${count ?? 0}",
               style: const TextStyle(color: Colors.orangeAccent, fontSize: 13)),
         ],
@@ -871,8 +878,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text('+${r['amount']} ',
-                                    style:
-                                        const TextStyle(color: Colors.greenAccent)),
+                                    style: const TextStyle(
+                                        color: Colors.greenAccent)),
                                 const CoinImage(size: 14),
                               ],
                             ),
@@ -1498,12 +1505,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
           final query = _searchQuery.toLowerCase();
           pending = pending
               .where((r) =>
-                  (r.playerName?.toLowerCase().contains(query) ?? false) ||
+                  (r.playerName.toLowerCase().contains(query)) ||
                   (r.playerEmail?.toLowerCase().contains(query) ?? false))
               .toList();
           approved = approved
               .where((r) =>
-                  (r.playerName?.toLowerCase().contains(query) ?? false) ||
+                  (r.playerName.toLowerCase().contains(query)) ||
                   (r.playerEmail?.toLowerCase().contains(query) ?? false))
               .toList();
         }
@@ -2037,7 +2044,8 @@ class _SafeResetConfirmDialogState extends State<_SafeResetConfirmDialog> {
       backgroundColor: AppTheme.cardBg,
       title: const Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 28),
+          Icon(Icons.warning_amber_rounded,
+              color: Colors.orangeAccent, size: 28),
           SizedBox(width: 8),
           Expanded(
             child: Text("Reinicio Seguro",

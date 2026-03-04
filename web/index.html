@@ -34,5 +34,25 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+  function intentarAbrirApp() {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
+    if (isAndroid) {
+      // URL de descarga directa de tu APK
+      const urlAPK = "https://prueba.maphunter.online/download/MH20260227-0001.apk";
+      
+      // Intent: 
+      // - Si la app está: la abre en play.maphunter.online
+      // - Si NO está: descarga el APK automáticamente (fallback)
+      const intentUrl = `intent://play.maphunter.online#Intent;scheme=https;package=com.map.hunter;S.browser_fallback_url=${encodeURIComponent(urlAPK)};end`;
+      
+      window.location.href = intentUrl;
+    }
+  }
+
+  // Se ejecuta automáticamente al cargar la página de juego
+  window.onload = intentarAbrirApp;
+</script>
 </body>
 </html>

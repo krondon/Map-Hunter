@@ -26,8 +26,10 @@ class EventWaitingScreen extends StatefulWidget {
 class _EventWaitingScreenState extends State<EventWaitingScreen>
     with SingleTickerProviderStateMixin {
   Timer? _timer;
+  Timer? _statusPollingTimer; // P1: Polling de recuperación como red de seguridad
   Duration? _timeLeft;
   bool _waitingForAdmin = false; // True when countdown finished but admin hasn't started event
+  bool _isNavigating = false; // Guard: evita doble-navegación entre Realtime y Polling
   late AnimationController _controller;
   late Animation<double> _pulseAnimation;
 
@@ -49,6 +51,15 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
+    // P0: Suscripción Realtime inmediata — antes de cualquier operación async
+    // (antes estaba dentro de _loadSponsor(), causando una race condition)
+    _setupRealtimeSubscription();
+
+    // P1: Polling de recuperación cada 5s como red de seguridad ante fallos de Realtime
+    _statusPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _checkEventStatusFromServer();
+    });
+
     _loadSponsor();
   }
 
@@ -62,8 +73,7 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
         _eventSponsor = sponsor;
       });
     }
-
-    _setupRealtimeSubscription();
+    // _setupRealtimeSubscription() fue movido a initState() — ver fix P0
   }
 
   RealtimeChannel? _eventChannel;
@@ -86,19 +96,48 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
               debugPrint("🔔 Event update received: ${payload.newRecord}");
               final newStatus = payload.newRecord['status'];
               if (newStatus == 'active') {
-                debugPrint("✅ Event is now ACTIVE! Triggering navigation...");
-                if (mounted) {
-                   _timer?.cancel();
-                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) widget.onTimerFinished();
-                   });
-                }
+                debugPrint("✅ Event is now ACTIVE via Realtime! Triggering navigation...");
+                _triggerNavigation();
               }
             },
           )
           .subscribe();
     } catch (e) {
       debugPrint("❌ Error setting up realtime subscription: $e");
+    }
+  }
+
+  /// Centraliza el trigger de navegación para evitar dobles llamadas
+  /// entre Realtime y Polling (Bug #5 guard).
+  void _triggerNavigation() {
+    if (_isNavigating || !mounted) return;
+    _isNavigating = true;
+    _timer?.cancel();
+    _statusPollingTimer?.cancel();
+    debugPrint("🚀 EventWaiting: _triggerNavigation() called — navigating to game");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onTimerFinished();
+    });
+  }
+
+  /// P1+P3: Consulta el estado del evento directamente al servidor.
+  /// Actúa como red de seguridad cuando Realtime falla, se pierde o llega tarde.
+  Future<void> _checkEventStatusFromServer() async {
+    if (_isNavigating || !mounted) return;
+    try {
+      final response = await Supabase.instance.client
+          .from('events')
+          .select('status')
+          .eq('id', widget.event.id)
+          .single();
+      final status = response['status'] as String?;
+      debugPrint("⏳ Polling event status: $status");
+      if ((status == 'active' || status == 'completed') && mounted) {
+        debugPrint("✅ Polling detected event is now ACTIVE! Triggering navigation...");
+        _triggerNavigation();
+      }
+    } catch (e) {
+      debugPrint("❌ Error polling event status: $e");
     }
   }
 
@@ -135,6 +174,8 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
         });
       }
       debugPrint("⏳ Countdown finished for event ${widget.event.id}. Waiting for admin to start.");
+      // P3: Verificar estado en servidor al llegar a cero (puede que el admin ya inició)
+      _checkEventStatusFromServer();
     }
   }
 
@@ -142,6 +183,7 @@ class _EventWaitingScreenState extends State<EventWaitingScreen>
   void dispose() {
     _eventChannel?.unsubscribe();
     _timer?.cancel();
+    _statusPollingTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

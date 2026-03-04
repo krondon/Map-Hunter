@@ -148,6 +148,9 @@ Future<void> main() async {
   // Cargar variables de entorno
   await dotenv.load(fileName: ".env");
 
+  final supabaseUrl = dotenv.env['SUPABASE_URL']!;
+  debugPrint('🚀 [DEBUG-V2] CONECTANDO A SUPABASE: $supabaseUrl');
+
   // Inicializar Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
@@ -430,7 +433,8 @@ class _MapHunterAppState extends State<MapHunterApp>
                   child: AuthMonitor(
                     child: ConnectivityMonitor(
                       child: GameSessionMonitor(
-                        child: SabotageOverlay(child: child ?? const SizedBox()),
+                        child:
+                            SabotageOverlay(child: child ?? const SizedBox()),
                       ),
                     ),
                   ),

@@ -37,6 +37,14 @@ class PowerRepositoryImpl implements PowerRepository {
   }
 
   @override
+  RealtimeChannel getCombatBroadcastChannel({required String gamePlayerId}) {
+    // Canal nombrado por gamePlayerId para aislamiento por jugador.
+    // Los triggers de BD (trg_combat_event_broadcast, trg_active_power_broadcast)
+    // envían mensajes a este canal inmediatamente después del INSERT.
+    return _supabase.channel('game:$gamePlayerId');
+  }
+
+  @override
   Stream<Map<String, dynamic>?> getGamePlayerStream({required String playerId}) {
     return _supabase
         .from('game_players')

@@ -54,6 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
       // Sincronizar contexto del evento actual
       playerProvider.setCurrentEventContext(widget.eventId);
 
+      // P2: Suscribir EventProvider a cambios Realtime del evento
+      // Esto permite que HomeScreen.build() reaccione automáticamente
+      // cuando el admin activa el evento, sin depender únicamente de EventWaitingScreen
+      final eventProvider = Provider.of<EventProvider>(context, listen: false);
+      eventProvider.subscribeToEventUpdates(widget.eventId);
+
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     });
 
@@ -88,6 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Cache provider to avoid context usage in dispose
   late GameProvider _gameProviderRef;
   late PlayerProvider _playerProviderRef;
+  late EventProvider _eventProviderRef; // P2: para unsubscribe en dispose
 
   @override
   void didChangeDependencies() {
@@ -95,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Guardamos la referencia segura mientras el widget está activo
     _gameProviderRef = Provider.of<GameProvider>(context, listen: false);
     _playerProviderRef = Provider.of<PlayerProvider>(context, listen: false);
+    _eventProviderRef = Provider.of<EventProvider>(context, listen: false);
   }
 
   bool _isTutorialShowing = false;
@@ -147,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _gameProviderRef.resetState();
       _playerProviderRef
           .clearGameContext(); // ⚡ CRITICAL: Stops SabotageOverlay
+      _eventProviderRef.unsubscribeFromEventUpdates(); // P2: cleanup Realtime
       debugPrint(
           "HomeScreen disposed: Game Set Reset & Player Context Cleared");
     });

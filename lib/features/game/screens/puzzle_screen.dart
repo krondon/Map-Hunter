@@ -5,6 +5,7 @@ import '../providers/game_provider.dart';
 import '../../auth/providers/player_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/clue.dart';
+import 'dart:async';
 import '../widgets/race_track_widget.dart';
 import '../../../shared/widgets/sabotage_overlay.dart';
 import '../../../shared/models/player.dart'; // Import Player model
@@ -79,6 +80,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   bool _legalExit = false;
   bool _isNavigatingToWinner = false; // Flag to prevent double navigation
   bool _showBriefing = false; // Deshabilitado como se solicitó
+  Timer? _raceStatusPollingTimer; // Fallback: polling de recuperación si Realtime falla
 
   // Safe Provider Access
   late GameProvider _gameProvider;
@@ -129,7 +131,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       // Verificación inicial inmediata: ¿La carrera ya terminó?
       _checkRaceCompletion();
 
-      // MOVED: _checkGlobalLivesGameOver monitoring is now started inside _checkLives
+      // Polling de recuperación: si Realtime pierde el evento de finalización
+      // (p.ej. durante la breve ventana de re-suscripción del canal), esto lo detecta.
+      _raceStatusPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (!_isActive || !mounted || _isNavigatingToWinner) return;
+        gp.checkRaceStatus().then((_) => _checkRaceCompletion());
+      });
+
       // to avoid race conditions during initialization.
 
       // MOVED: Tutorial trigger
@@ -202,16 +210,18 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     if (!mounted || !_isActive || _isNavigatingToWinner) return;
 
     final gameProvider = _gameProvider;
-    // For PlayerProvider, we still need context or also cache it?
-    // Usually PlayerProvider is less volatile, but to be safe we check active first.
-    // Since we returned if !_isActive, access to context should be 'safer',
-    // but caching is best. For now we rely on _isActive check.
     if (!context.mounted) return;
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
 
-    // Si la carrera terminó (alguien ganó) y yo no he terminado todo
-    if (gameProvider.isRaceCompleted && !gameProvider.hasCompletedAllClues) {
-      _isNavigatingToWinner = true; // Set flag
+    // Navegar al podio si la carrera terminó Y el jugador NO está listo para ser
+    // llevado a Winner por su propia lógica (ya habría salido a WaitingRoom).
+    // NOTA: la condición original era `!hasCompletedAllClues`, pero eso bloqueaba
+    // la navegación cuando el último clue quedó marcado optimistamente como completado
+    // antes de que llegara el evento Realtime de finalización de carrera.
+    // Fix: navegamos si isRaceCompleted, SALVO que el player ya esté en tránsito
+    // (guard _isNavigatingToWinner evita doble navegación).
+    if (gameProvider.isRaceCompleted) {
+      _isNavigatingToWinner = true;
       _finishLegally(); // Quitamos penalización
 
       final currentPlayerId = playerProvider.currentPlayer?.id ?? '';
@@ -354,6 +364,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     // Limpiar listener de fin de carrera usando la referencia CACHEADA
     try {
+      _raceStatusPollingTimer?.cancel();
       _gameProvider.removeListener(_checkRaceCompletion);
     } catch (_) {}
 
@@ -1482,8 +1493,8 @@ Widget _buildMinigameScaffold(
                       children: [
                         // AppBar Personalizado
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: MediaQuery.of(context).size.height < 700 ? 4 : 8),
                           child: Row(
                             children: [
                               if (player?.role == 'spectator')
@@ -1561,22 +1572,30 @@ Widget _buildMinigameScaffold(
                         ),
 
                         // Mapa de Progreso
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
-                          child: RaceTrackWidget(
-                            leaderboard: game.leaderboard,
-                            currentPlayerId: player?.userId ?? '',
-                            totalClues: game.clues.length,
-                            onSurrender: () =>
-                                showSkipDialog(context, onFinish),
-                            compact: clue.puzzleType == PuzzleType.tetris ||
+                        Builder(
+                          builder: (context) {
+                            final screenHeight = MediaQuery.of(context).size.height;
+                            final isSmallScreen = screenHeight < 700;
+                            final forceCompact = isSmallScreen ||
+                                clue.puzzleType == PuzzleType.tetris ||
                                 clue.puzzleType == PuzzleType.hangman ||
-                                clue.puzzleType == PuzzleType.fastNumber,
-                          ),
+                                clue.puzzleType == PuzzleType.fastNumber;
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: isSmallScreen ? 2 : 4),
+                              child: RaceTrackWidget(
+                                leaderboard: game.leaderboard,
+                                currentPlayerId: player?.userId ?? '',
+                                totalClues: game.clues.length,
+                                onSurrender: () =>
+                                    showSkipDialog(context, onFinish),
+                                compact: forceCompact,
+                              ),
+                            );
+                          },
                         ),
 
-                        const SizedBox(height: 10),
+                        SizedBox(height: MediaQuery.of(context).size.height < 700 ? 4 : 10),
 
                         Expanded(
                           child: IgnorePointer(

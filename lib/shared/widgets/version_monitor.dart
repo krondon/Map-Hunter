@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/version_check_service.dart';
@@ -35,11 +36,12 @@ class _VersionMonitorState extends State<VersionMonitor> {
     }
   }
 
-  Future<void> _launchStore() async {
-    if (_status?.storeUrl != null && _status!.storeUrl!.isNotEmpty) {
-      final Uri url = Uri.parse(_status!.storeUrl!);
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        debugPrint('Could not launch $_status!.storeUrl');
+  Future<void> _launchDownload() async {
+    final url = _status?.downloadUrl;
+    if (url != null && url.isNotEmpty) {
+      final Uri uri = Uri.parse(url);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        debugPrint('VersionMonitor: No se pudo abrir $url');
       }
     }
   }
@@ -47,76 +49,115 @@ class _VersionMonitorState extends State<VersionMonitor> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      // While checking, we can show the child (splash) or a loading indicator.
-      // Showing the child is better UX to avoid flashes, but if the check fails quickly, it's fine.
-      // However, if we show child, user might start interacting.
-      // Given check is fast, let's just show child (Splash Screen usually covers this time).
+      // Mientras se verifica mostramos el child (usualmente el SplashScreen lo cubre)
       return widget.child;
     }
 
+    // 1. Modo mantenimiento: bloquea por completo sin ofrecer descarga
+    if (_status != null && _status!.maintenanceMode) {
+      return _buildBlockScreen(
+        icon: Icons.construction_rounded,
+        iconColor: Colors.orange,
+        title: 'En Mantenimiento',
+        message:
+            'La aplicación está en mantenimiento temporalmente. Intenta nuevamente en unos minutos.',
+        showDownloadButton: false,
+      );
+    }
+
+    // 2. Actualización requerida: versión local < mínima
     if (_status != null && _status!.isUpdateRequired) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        home: Scaffold(
-          backgroundColor: Colors.black,
-          body: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.system_update_alt,
-                    size: 80, color: AppTheme.accentGold),
-                const SizedBox(height: 24),
-                const Text(
-                  '¡Actualización Requerida!',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
+      return _buildBlockScreen(
+        icon: Icons.system_update_alt,
+        iconColor: AppTheme.accentGold,
+        title: '¡Actualización Requerida!',
+        message:
+            'Tu versión actual (${_status!.localVersion}) ya no es compatible. '
+            'Descarga la versión ${_status!.minVersion} o superior para seguir jugando.',
+        showDownloadButton: true,
+      );
+    }
+
+    return widget.child;
+  }
+
+  Widget _buildBlockScreen({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String message,
+    required bool showDownloadButton,
+  }) {
+    final hasUrl =
+        _status?.downloadUrl != null && _status!.downloadUrl!.isNotEmpty;
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 80, color: iconColor),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Tu versión actual (${_status!.localVersion}) es antigua. Necesitas actualizar a la versión ${_status!.minVersion} o superior para seguir jugando.',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              if (showDownloadButton) ...[
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton(
-                    onPressed: _launchStore,
+                  child: ElevatedButton.icon(
+                    onPressed: hasUrl ? _launchDownload : null,
+                    icon: const Icon(Icons.download_rounded),
+                    label: const Text(
+                      'DESCARGAR NUEVA VERSIÓN',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryPurple,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey[800],
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'ACTUALIZAR AHORA',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
                   ),
                 ),
-                if (_status?.storeUrl == null || _status!.storeUrl!.isEmpty)
+                if (!hasUrl)
                   Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: 12),
                     child: Text(
                       'Contacta al administrador para obtener el enlace de descarga.',
                       style: TextStyle(color: Colors.red[300], fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                if (true) // In production, maybe check kDebugMode or allow secret gesture
-                  TextButton(
+              ],
+              // Botón de bypass solo en modo debug
+              if (kDebugMode)
+                Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: TextButton(
                     onPressed: () {
                       setState(() {
-                        // Force bypass
                         _status = null;
                         _isLoading = false;
                       });
@@ -126,13 +167,11 @@ class _VersionMonitorState extends State<VersionMonitor> {
                       style: TextStyle(color: Colors.white24, fontSize: 12),
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
-      );
-    }
-
-    return widget.child;
+      ),
+    );
   }
 }

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.map.hunter",
+      "sha256_cert_fingerprints": [
+        "24:06:9B:79:4B:FE:42:3E:03:A4:9F:BD:29:FA:D9:C3:F7:4D:C8:E3:C5:3D:45:49:00:AD:E8:8E:3C:79:68:85"
+      ]
+    }
+  }
+]

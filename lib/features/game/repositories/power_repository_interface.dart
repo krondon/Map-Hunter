@@ -7,8 +7,14 @@ abstract class PowerRepository {
   /// Stream of powers cast BY the player (for outgoing effects/reflection)
   Stream<List<Map<String, dynamic>>> getOutgoingPowersStream({required String casterId});
 
-  /// Stream of combat events (shield blocks, reflections, etc.)
+  /// Stream of combat events (shield blocks, reflections, etc.) via Postgres Changes.
+  /// Latencia ~200-400ms vía WAL. Usado como fuente de verdad / fallback.
   Stream<List<Map<String, dynamic>>> getCombatEventsStream({required String targetId});
+
+  /// Canal de Broadcast de Supabase para recibir combat_events y active_powers
+  /// con latencia reducida (~50ms). Complementa getCombatEventsStream.
+  /// El cliente es responsable de llamar .subscribe() y .unsubscribe().
+  RealtimeChannel getCombatBroadcastChannel({required String gamePlayerId});
 
   /// Stream of specific game player updates (for is_protected sync)
   Stream<Map<String, dynamic>?> getGamePlayerStream({required String playerId});

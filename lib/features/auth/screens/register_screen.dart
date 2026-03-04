@@ -11,6 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'login_screen.dart';
+import '../../admin/screens/dashboard-screen.dart';
+import '../../game/providers/connectivity_provider.dart';
+import '../../game/screens/game_mode_selector_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import '../../../core/services/terms_service.dart';
@@ -214,13 +217,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      // Redirigir al Login tras un breve delay
+      // Redirigir según el estado de la sesión
       await Future.delayed(const Duration(milliseconds: 1500));
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      if (playerProvider.isLoggedIn) {
+        // En un inicio de sesión exitoso, también iniciamos monitoreo
+        context.read<ConnectivityProvider>().startMonitoring();
+
+        // El usuario ya tiene sesión (auto-login tras registro)
+        final player = playerProvider.currentPlayer;
+        if (player?.role == 'admin') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const GameModeSelectorScreen()),
+          );
+        }
+      } else {
+        // No hay sesión (probablemente requiere confirmación de email)
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 

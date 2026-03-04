@@ -8,32 +8,151 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// ─── JWT Verification ────────────────────────────────────────────────────────
+// Supabase recently migrated user tokens from HS256 → ES256 (asymmetric).
+// The gateway's built-in JWT check only understands the HS256 JWT secret, so it
+// rejects valid ES256 tokens, forcing us to use --no-verify-jwt and handle
+// verification ourselves with the project's public JWKS.
+
+let _jwksCache: { keys: JsonWebKey[] } | null = null;
+let _jwksCacheTime = 0;
+const JWKS_TTL_MS = 5 * 60 * 1000; // refresh JWKS every 5 minutes
+
+async function getJwks(): Promise<{ keys: JsonWebKey[] }> {
+  const now = Date.now();
+  if (_jwksCache && now - _jwksCacheTime < JWKS_TTL_MS) return _jwksCache;
+  const url = `${Deno.env.get("SUPABASE_URL")}/auth/v1/.well-known/jwks.json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch JWKS: ${res.status}`);
+  _jwksCache = await res.json();
+  _jwksCacheTime = now;
+  return _jwksCache!;
+}
+
+function b64url(s: string): Uint8Array {
+  const b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+  return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+}
+
+/**
+ * Verifies a JWT cryptographically:
+ *  - ES256 tokens → verified with the project's JWKS public key (new Supabase projects)
+ *  - HS256 tokens → verified with SUPABASE_JWT_SECRET (older projects / anon key)
+ * Returns the decoded payload if valid, null if forged/expired/invalid.
+ */
+async function verifyJwt(
+  token: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const header = JSON.parse(
+      new TextDecoder().decode(b64url(parts[0])),
+    ) as { alg: string; kid?: string };
+    const payload = JSON.parse(
+      new TextDecoder().decode(b64url(parts[1])),
+    ) as Record<string, unknown>;
+
+    // Reject expired tokens
+    if (
+      typeof payload.exp === "number" &&
+      payload.exp < Math.floor(Date.now() / 1000)
+    ) {
+      return null;
+    }
+
+    const signingInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const signature = b64url(parts[2]);
+
+    if (header.alg === "ES256") {
+      const jwks = await getJwks();
+      const jwk = header.kid
+        ? jwks.keys.find((k) => k.kid === header.kid)
+        : jwks.keys.find((k) => k.kty === "EC");
+      if (!jwk) return null;
+
+      const key = await crypto.subtle.importKey(
+        "jwk",
+        jwk,
+        { name: "ECDSA", namedCurve: "P-256" },
+        false,
+        ["verify"],
+      );
+      const valid = await crypto.subtle.verify(
+        { name: "ECDSA", hash: "SHA-256" },
+        key,
+        signature,
+        signingInput,
+      );
+      return valid ? payload : null;
+    }
+
+    if (header.alg === "HS256") {
+      const secret = Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+      if (!secret) return null;
+      const key = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(secret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["verify"],
+      );
+      const valid = await crypto.subtle.verify(
+        "HMAC",
+        key,
+        signature,
+        signingInput,
+      );
+      return valid ? payload : null;
+    }
+
+    return null; // unsupported algorithm
+  } catch {
+    return null;
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      },
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
+    // --- AUTH: Verify JWT signature in-function (gateway uses HS256 but tokens are ES256) ---
+    const authHeader =
+      req.headers.get("Authorization") ?? req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const token = authHeader.substring(7);
+    const payload = await verifyJwt(token);
+    const userId = payload?.sub as string | undefined;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // User-scoped client (RLS) – used for user-specific queries
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      },
+    );
+
+    // Shim so existing code that references `user.id` keeps working
+    const user = { id: userId };
 
     const url = new URL(req.url);
     const path = url.pathname.split("/").pop();
