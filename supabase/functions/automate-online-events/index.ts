@@ -77,20 +77,41 @@ serve(async (req: Request) => {
         const hardPool = ['tetris', 'minesweeper', 'blockFill', 'holographicPanels', 'percentageCalculation', 'drinkMixer'];
 
         const selectedPuzzles: string[] = [];
-        const targetEasy = Math.ceil(gameCount * 0.4);
-        const targetMedium = Math.ceil(gameCount * 0.4);
-        const targetHard = Math.max(0, gameCount - targetEasy - targetMedium);
+        const targetEasy = Math.min(easyPool.length, Math.ceil(gameCount * 0.4));
+        const targetMedium = Math.min(mediumPool.length, Math.ceil(gameCount * 0.4));
+        const targetHard = Math.min(hardPool.length, gameCount - targetEasy - targetMedium);
 
         console.log(`Generating ${gameCount} minigames: Easy: ${targetEasy}, Medium: ${targetMedium}, Hard: ${targetHard}`);
 
         const shuffle = (array: string[]) => [...array].sort(() => Math.random() - 0.5);
 
-        selectedPuzzles.push(...shuffle(easyPool).slice(0, targetEasy));
-        selectedPuzzles.push(...shuffle(mediumPool).slice(0, targetMedium));
-        selectedPuzzles.push(...shuffle(hardPool).slice(0, targetHard));
+        const shuffledEasy = shuffle(easyPool);
+        const shuffledMedium = shuffle(mediumPool);
+        const shuffledHard = shuffle(hardPool);
 
+        selectedPuzzles.push(...shuffledEasy.slice(0, targetEasy));
+        selectedPuzzles.push(...shuffledMedium.slice(0, targetMedium));
+        selectedPuzzles.push(...shuffledHard.slice(0, targetHard));
+
+        // Extraer los juegos que sobraron para rellenar huecos sin repetir
+        const unusedGames = [
+            ...shuffledEasy.slice(targetEasy),
+            ...shuffledMedium.slice(targetMedium),
+            ...shuffledHard.slice(targetHard)
+        ];
+
+        const remainingToFill = gameCount - selectedPuzzles.length;
+        if (remainingToFill > 0) {
+            selectedPuzzles.push(...shuffle(unusedGames).slice(0, remainingToFill));
+        }
+
+        // Si piden más juegos del total disponible, repetir pero sin que salgan pegados y de manera variada
         while (selectedPuzzles.length < gameCount) {
-            selectedPuzzles.push(mediumPool[Math.floor(Math.random() * mediumPool.length)]);
+            const allGames = [...easyPool, ...mediumPool, ...hardPool];
+            const candidate = allGames[Math.floor(Math.random() * allGames.length)];
+            if (selectedPuzzles[selectedPuzzles.length - 1] !== candidate) {
+                selectedPuzzles.push(candidate);
+            }
         }
 
         console.log('Selected Puzzles:', selectedPuzzles);
