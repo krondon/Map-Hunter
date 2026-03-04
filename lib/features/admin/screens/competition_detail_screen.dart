@@ -769,6 +769,64 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
   // Use the local state pot
   int get _currentPot => _pot;
 
+  Future<void> _approveAll(List<GameRequest> pending) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text("¿Aceptar a todos?",
+            style: TextStyle(color: Colors.white)),
+        content: Text(
+            "Se aprobarán las ${pending.length} solicitudes pendientes de manera instantánea. ¿Estás seguro?",
+            style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Cancelar")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("ACEPTAR TODOS",
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+    final provider = Provider.of<GameRequestProvider>(context, listen: false);
+
+    int successCount = 0;
+    int errorCount = 0;
+
+    for (var req in pending) {
+      try {
+        final result = await provider.approveRequest(req.id);
+        if (result['success'] == true) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (e) {
+        errorCount++;
+      }
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ $successCount solicitudes aprobadas' +
+              (errorCount > 0 ? '. ❌ $errorCount fallaron.' : '')),
+          backgroundColor: errorCount > 0 ? Colors.orange : Colors.green,
+        ),
+      );
+      _loadData(); // Actualizar datos
+    }
+  }
+
   void _loadData() {
     setState(() {});
     Provider.of<GameRequestProvider>(context, listen: false).fetchAllRequests();
@@ -1604,11 +1662,26 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
             ),
 
             if (pending.isNotEmpty) ...[
-              const Text("Solicitudes Pendientes",
-                  style: TextStyle(
-                      color: AppTheme.secondaryPink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Solicitudes Pendientes",
+                      style: TextStyle(
+                          color: AppTheme.secondaryPink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                  if (widget.event.type == 'on_site')
+                    TextButton.icon(
+                      onPressed: () => _approveAll(pending),
+                      icon:
+                          const Icon(Icons.done_all, color: Colors.greenAccent),
+                      label: const Text("ACEPTAR TODOS",
+                          style: TextStyle(
+                              color: Colors.greenAccent,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                ],
+              ),
               const SizedBox(height: 10),
               ...pending.map((req) => RequestTile(
                     request: req,
