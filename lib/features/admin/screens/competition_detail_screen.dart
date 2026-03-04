@@ -1316,32 +1316,34 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  height: 56,
-                  width: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGold.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
+                if (widget.event.type != 'online')
+                  Container(
+                    height: 56,
+                    width: 56,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentGold.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: AppTheme.accentGold.withOpacity(0.3)),
+                    ),
+                    child: IconButton(
+                      icon:
+                          const Icon(Icons.qr_code, color: AppTheme.accentGold),
+                      tooltip: "Ver QR del Evento",
+                      onPressed: () {
+                        if (_pin.length == 6) {
+                          final qrData = "EVENT:${widget.event.id}:$_pin";
+                          _showQRDialog(qrData, "QR de Acceso", "PIN: $_pin");
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Guarda el PIN primero')),
+                          );
+                        }
+                      },
+                    ),
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.qr_code, color: AppTheme.accentGold),
-                    tooltip: "Ver QR del Evento",
-                    onPressed: () {
-                      if (_pin.length == 6) {
-                        final qrData = "EVENT:${widget.event.id}:$_pin";
-                        _showQRDialog(qrData, "QR de Acceso", "PIN: $_pin");
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Guarda el PIN primero')),
-                        );
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
+                if (widget.event.type != 'online') const SizedBox(width: 16),
                 Expanded(
                   child: TextFormField(
                     initialValue: _maxParticipants.toString(),
@@ -1795,17 +1797,18 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon:
-                          const Icon(Icons.qr_code, color: AppTheme.accentGold),
-                      tooltip: "Ver QR",
-                      onPressed: () {
-                        final qrData = "CLUE:${widget.event.id}:${clue.id}";
-                        _showQRDialog(qrData, clue.title,
-                            "Pista: ${clue.puzzleType.label}",
-                            hint: clue.hint);
-                      },
-                    ),
+                    if (widget.event.type != 'online')
+                      IconButton(
+                        icon: const Icon(Icons.qr_code,
+                            color: AppTheme.accentGold),
+                        tooltip: "Ver QR",
+                        onPressed: () {
+                          final qrData = "CLUE:${widget.event.id}:${clue.id}";
+                          _showQRDialog(qrData, clue.title,
+                              "Pista: ${clue.puzzleType.label}",
+                              hint: clue.hint);
+                        },
+                      ),
                     if (!_isEventActive)
                       IconButton(
                         icon:
@@ -1980,16 +1983,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen>
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                              icon: const Icon(Icons.qr_code,
-                                  color: Colors.white),
-                              tooltip: "Ver QR",
-                              onPressed: () => _showQRDialog(
-                                    store.qrCodeData,
-                                    "QR de Tienda",
-                                    store.name,
-                                    hint: "Escanear para entrar",
-                                  )),
+                          if (widget.event.type != 'online')
+                            IconButton(
+                                icon: const Icon(Icons.qr_code,
+                                    color: Colors.white),
+                                tooltip: "Ver QR",
+                                onPressed: () => _showQRDialog(
+                                      store.qrCodeData,
+                                      "QR de Tienda",
+                                      store.name,
+                                      hint: "Escanear para entrar",
+                                    )),
                           IconButton(
                             icon: const Icon(Icons.edit,
                                 color: AppTheme.accentGold),
