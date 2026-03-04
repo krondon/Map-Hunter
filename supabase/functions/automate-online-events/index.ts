@@ -65,15 +65,14 @@ serve(async (req: Request) => {
 
         // Safe fee calculation
         const feeRangeCount = Math.max(0, Math.floor((maxFee - minFee) / feeStep));
-        const entryFee = (Math.floor(Math.random() * (feeRangeCount + 1)) * feeStep) + minFee;
+        const entryFee = 0; // Temporalmente seteado en 0 (gratuito)
 
         console.log(`Config: Players(${minPlayers}-${maxPlayers}), Games(${minGames}-${maxGames}), Fee(${minFee}-${maxFee} step ${feeStep})`);
         console.log(`Generated: ${playerCount} players, ${gameCount} games, ${entryFee} entry fee`);
 
-        // 3. Selection Strategy (Balanced Difficulty)
-        const easyPool = ['slidingPuzzle', 'ticTacToe', 'imageTrivia', 'trueFalse', 'virusTap', 'flags', 'matchThree', 'fastNumber'];
-        const mediumPool = ['hangman', 'wordScramble', 'memorySequence', 'emojiMovie', 'bagShuffle', 'droneDodge', 'missingOperator', 'capitalCities'];
-        const hardPool = ['tetris', 'minesweeper', 'snake', 'blockFill', 'codeBreaker', 'holographicPanels', 'primeNetwork', 'percentageCalculation', 'chronologicalOrder', 'drinkMixer', 'librarySort', 'findDifference'];
+        const easyPool = ['slidingPuzzle', 'imageTrivia', 'trueFalse', 'virusTap', 'flags', 'matchThree'];
+        const mediumPool = ['wordScramble', 'memorySequence', 'emojiMovie', 'droneDodge', 'missingOperator', 'capitalCities'];
+        const hardPool = ['tetris', 'minesweeper', 'blockFill', 'codeBreaker', 'holographicPanels', 'percentageCalculation', 'drinkMixer'];
 
         const selectedPuzzles: string[] = [];
         const targetEasy = Math.ceil(gameCount * 0.4);
