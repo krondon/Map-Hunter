@@ -242,12 +242,12 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
           ),
           const SizedBox(height: 24),
           _buildSlider('Intervalo (minutos)', 'interval_minutes', 10, 1440, 1),
-          _buildSlider('Copa Mín. Jugadores', 'min_players', 2, 20, 1),
-          _buildSlider('Copa Máx. Jugadores', 'max_players', 20, 50, 1),
+          _buildSlider('Copa Mín. Jugadores', 'min_players', 5, 20, 1),
+          _buildSlider('Copa Máx. Jugadores', 'max_players', 20, 60, 1),
           _buildSlider('Cant. Mín. Minijuegos', 'min_games', 2, 6, 1),
           _buildSlider('Cant. Máx. Minijuegos', 'max_games', 6, 15, 1),
           _buildSlider('Entry Fee Mín [COIN]', 'min_fee', 0, 50, 5),
-          _buildSlider('Entry Fee Máx [COIN]', 'max_fee', 50, 200, 5),
+          _buildSlider('Entry Fee Máx [COIN]', 'max_fee', 0, 300, 5),
         ],
       ),
     );
@@ -265,7 +265,8 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
             Row(
               children: [
                 Text(label.replaceAll('[COIN]', '').trim(),
-                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 14)),
                 if (label.contains('[COIN]')) ...[
                   const SizedBox(width: 4),
                   const CoinImage(size: 14),
