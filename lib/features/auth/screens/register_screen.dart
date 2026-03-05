@@ -346,39 +346,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
-      child: Scaffold(
-        backgroundColor:
-            dSurface0, // Force dark background to avoid white flashes
-        resizeToAvoidBottomInset: true,
-        body: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: isDarkMode
-                    ? Image.asset(
-                        'assets/images/hero.png',
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        color: Colors.black.withOpacity(0.3),
-                        colorBlendMode: BlendMode.darken,
-                      )
-                    : Stack(
-                        children: [
-                          Image.asset(
-                            'assets/images/loginclaro.png',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
-                          Container(
-                            color: Colors.black.withOpacity(0.2),
-                          ),
-                        ],
-                      ),
-              ),
-              SafeArea(
+      child: Stack(
+        children: [
+          // 1. FIXED BACKGROUND
+          Positioned.fill(
+            child: Container(
+              color: dSurface0,
+              child: isDarkMode
+                  ? Image.asset(
+                      'assets/images/hero.png',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      color: Colors.black.withOpacity(0.3),
+                      colorBlendMode: BlendMode.darken,
+                    )
+                  : Stack(
+                      children: [
+                        Image.asset(
+                          'assets/images/loginclaro.png',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                        Container(color: Colors.black.withOpacity(0.2)),
+                      ],
+                    ),
+            ),
+          ),
+
+          // 2. TRANSPARENT SCAFFOLD
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: true,
+            body: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SafeArea(
                 child: Column(
                   children: [
                     Padding(
@@ -414,6 +417,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       child: Center(
                         child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 24.0, vertical: 10.0),
                           child: Form(
@@ -856,9 +860,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
