@@ -184,6 +184,56 @@ serve(async (req: Request) => {
             throw eventError;
         }
 
+        // --- DEBUG: Checking environment variables ---
+        const osAppId = Deno.env.get('ONESIGNAL_APP_ID');
+        const osApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+        console.log(`[OneSignal Debug] APP_ID present: ${!!osAppId} (${osAppId?.slice(0, 5)}...)`);
+        console.log(`[OneSignal Debug] API_KEY present: ${!!osApiKey} (${osApiKey?.slice(0, 15)}...)`);
+
+        // --- NEW: Handle Notification (Schedule or Send Immediately) ---
+        try {
+            const eventStartTime = new Date(Date.now() + pendingWaitMinutes * 60 * 1000);
+            const notificationTime = new Date(eventStartTime.getTime() - (5 * 60 * 1000));
+            const now = new Date();
+
+            console.log(`[OneSignal] Actual: ${now.toISOString()}`);
+            console.log(`[OneSignal] Inicio Evento: ${eventStartTime.toISOString()}`);
+            console.log(`[OneSignal] Programada para: ${notificationTime.toISOString()}`);
+
+            const notificationBody: any = {
+                app_id: osAppId,
+                included_segments: ["All"],
+                headings: { "es": "⚡ ¡Competencia Proxima!", "en": "⚡ Upcoming Event!" },
+                contents: {
+                    "es": "La competencia online comienza en 5 minutos. ¡Entra ya!",
+                    "en": "The online competition starts in 5 minutes. Join now!"
+                },
+                data: { "event_id": eventId, "type": "event_reminder" }
+            };
+
+            if (notificationTime.getTime() > now.getTime() + 15000) {
+                console.log(`[OneSignal] ESTADO: Programando futuro.`);
+                notificationBody.send_after = notificationTime.toISOString();
+            } else {
+                console.log(`[OneSignal] ESTADO: Enviando ahora.`);
+            }
+
+            const oneSignalResponse = await fetch("https://onesignal.com/api/v1/notifications", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Authorization": `Basic ${osApiKey}`
+                },
+                body: JSON.stringify(notificationBody)
+            });
+
+            const osResult = await oneSignalResponse.json();
+            console.log('[OneSignal] RESPUESTA API:', JSON.stringify(osResult));
+
+        } catch (osError: any) {
+            console.error('[OneSignal] ❌ ERROR:', osError.message);
+        }
+
         // 5. Create Clues (Minigames)
         const clues = selectedPuzzles.map((puzzle, index) => ({
             event_id: eventId,
