@@ -60,6 +60,36 @@ serve(async (req: Request) => {
         const maxFee = config.max_fee !== undefined ? Number(config.max_fee) : 300;
         const feeStep = config.fee_step !== undefined ? Number(config.fee_step) : 5;
         const pendingWaitMinutes = Number(config.pending_wait_minutes) || 5;
+        const intervalMinutes = config.interval_minutes !== undefined ? Number(config.interval_minutes) : 60;
+
+        // 3.5 Check time since last automated event (Bypass if manual)
+        if (!isManualAction) {
+            const { data: lastEvent, error: lastEventError } = await supabaseClient
+                .from('events')
+                .select('created_at')
+                .eq('type', 'online')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (lastEvent && lastEvent.created_at) {
+                const lastCreatedAt = new Date(lastEvent.created_at).getTime();
+                const now = Date.now();
+                const diffMinutes = (now - lastCreatedAt) / (1000 * 60);
+
+                if (diffMinutes < intervalMinutes) {
+                    console.log(`Skipping generation. Only ${diffMinutes.toFixed(1)} mins since last event. Required: ${intervalMinutes} mins.`);
+                    return new Response(JSON.stringify({
+                        message: 'Interval not reached',
+                        minutes_since_last: diffMinutes,
+                        required_interval: intervalMinutes
+                    }), {
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                        status: 200
+                    });
+                }
+            }
+        }
 
         // Usar exactamente el valor máximo configurado por el admin
         const playerCount = maxPlayers;
