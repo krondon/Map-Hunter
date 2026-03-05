@@ -626,86 +626,94 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
             // Confetti overlay - main rain
             Align(
               alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirection: pi / 2, // Down
-                maxBlastForce: 5,
-                minBlastForce: 2,
-                emissionFrequency: 0.03,
-                numberOfParticles: 30,
-                gravity: 0.2,
-                shouldLoop: true,
-                colors: const [
-                  Colors.green,
-                  Colors.blue,
-                  Colors.pink,
-                  Colors.orange,
-                  Colors.purple,
-                  Color(0xFFFFD700),
-                  Colors.cyan,
-                  Colors.redAccent,
-                ],
+              child: RepaintBoundary(
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirection: pi / 2, // Down
+                  maxBlastForce: 5,
+                  minBlastForce: 2,
+                  emissionFrequency: 0.03,
+                  numberOfParticles: 30,
+                  gravity: 0.2,
+                  shouldLoop: true,
+                  colors: const [
+                    Colors.green,
+                    Colors.blue,
+                    Colors.pink,
+                    Colors.orange,
+                    Colors.purple,
+                    Color(0xFFFFD700),
+                    Colors.cyan,
+                    Colors.redAccent,
+                  ],
+                ),
               ),
             ),
             // Firework - Left burst
             Align(
               alignment: const Alignment(-0.8, 0.3),
-              child: ConfettiWidget(
-                confettiController: _fireworkLeftController,
-                blastDirectionality: BlastDirectionality.explosive,
-                maxBlastForce: 25,
-                minBlastForce: 10,
-                emissionFrequency: 0.0,
-                numberOfParticles: 40,
-                gravity: 0.15,
-                particleDrag: 0.05,
-                colors: const [
-                  Color(0xFFFFD700),
-                  Colors.orange,
-                  Colors.redAccent,
-                  Colors.yellowAccent,
-                ],
+              child: RepaintBoundary(
+                child: ConfettiWidget(
+                  confettiController: _fireworkLeftController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  maxBlastForce: 25,
+                  minBlastForce: 10,
+                  emissionFrequency: 0.0,
+                  numberOfParticles: 40,
+                  gravity: 0.15,
+                  particleDrag: 0.05,
+                  colors: const [
+                    Color(0xFFFFD700),
+                    Colors.orange,
+                    Colors.redAccent,
+                    Colors.yellowAccent,
+                  ],
+                ),
               ),
             ),
             // Firework - Right burst
             Align(
               alignment: const Alignment(0.8, 0.2),
-              child: ConfettiWidget(
-                confettiController: _fireworkRightController,
-                blastDirectionality: BlastDirectionality.explosive,
-                maxBlastForce: 25,
-                minBlastForce: 10,
-                emissionFrequency: 0.0,
-                numberOfParticles: 40,
-                gravity: 0.15,
-                particleDrag: 0.05,
-                colors: const [
-                  Colors.cyan,
-                  Colors.blue,
-                  Colors.purpleAccent,
-                  Colors.greenAccent,
-                ],
+              child: RepaintBoundary(
+                child: ConfettiWidget(
+                  confettiController: _fireworkRightController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  maxBlastForce: 25,
+                  minBlastForce: 10,
+                  emissionFrequency: 0.0,
+                  numberOfParticles: 40,
+                  gravity: 0.15,
+                  particleDrag: 0.05,
+                  colors: const [
+                    Colors.cyan,
+                    Colors.blue,
+                    Colors.purpleAccent,
+                    Colors.greenAccent,
+                  ],
+                ),
               ),
             ),
             // Firework - Center burst
             Align(
               alignment: const Alignment(0.0, -0.2),
-              child: ConfettiWidget(
-                confettiController: _fireworkCenterController,
-                blastDirectionality: BlastDirectionality.explosive,
-                maxBlastForce: 30,
-                minBlastForce: 12,
-                emissionFrequency: 0.0,
-                numberOfParticles: 50,
-                gravity: 0.12,
-                particleDrag: 0.05,
-                colors: const [
-                  Color(0xFFFFD700),
-                  Colors.pink,
-                  Colors.white,
-                  Colors.amber,
-                  Colors.deepPurple,
-                ],
+              child: RepaintBoundary(
+                child: ConfettiWidget(
+                  confettiController: _fireworkCenterController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  maxBlastForce: 30,
+                  minBlastForce: 12,
+                  emissionFrequency: 0.0,
+                  numberOfParticles: 50,
+                  gravity: 0.12,
+                  particleDrag: 0.05,
+                  colors: const [
+                    Color(0xFFFFD700),
+                    Colors.pink,
+                    Colors.white,
+                    Colors.amber,
+                    Colors.deepPurple,
+                  ],
+                ),
               ),
             ),
 
@@ -1041,7 +1049,9 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                         color: AppTheme.accentGold
                                             .withOpacity(0.02),
                                       ),
-                                      child: IntrinsicHeight(
+                                      child: SizedBox(
+                                        height:
+                                            180, // Fixed height instead of IntrinsicHeight
                                         child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.end,
@@ -1052,7 +1062,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                                 child: _buildPodiumColumn(
                                                   second,
                                                   2,
-                                                  90,
+                                                  110,
                                                   const Color(0xFFC0C0C0),
                                                 ),
                                               )
@@ -1064,7 +1074,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                                 child: _buildPodiumColumn(
                                                   first,
                                                   1,
-                                                  120,
+                                                  150,
                                                   const Color(0xFFFFD700),
                                                 ),
                                               )
@@ -1076,7 +1086,7 @@ class _WinnerCelebrationScreenState extends State<WinnerCelebrationScreen> {
                                                 child: _buildPodiumColumn(
                                                   third,
                                                   3,
-                                                  70,
+                                                  90,
                                                   const Color(0xFFCD7F32),
                                                 ),
                                               )

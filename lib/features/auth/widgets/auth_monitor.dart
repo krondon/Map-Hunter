@@ -102,18 +102,12 @@ class _AuthMonitorState extends State<AuthMonitor> {
       // [FIX] Activar máscara inmediatamente para ocultar la pantalla anterior
       setState(() => _showMask = true);
 
-      // [FIX] Pequeño delay para permitir que diálogos cierren limpiamente
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          debugPrint("AuthMonitor: Ejecutando navegación al Login ahora.");
-          _navigateToLogin();
+      // [FIX] Ejecutar navegación con una sola autoridad
+      _navigateToLogin();
 
-          // [FIX] Desactivar máscara después de iniciar la navegación
-          // Usamos addPostFrameCallback para asegurar que la nueva ruta ya se está construyendo
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _showMask = false);
-          });
-        }
+      // Asegurar que la máscara se quite después del build del Login
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _showMask = false);
       });
     }
 
@@ -202,9 +196,14 @@ class _AuthMonitorState extends State<AuthMonitor> {
 
   void _navigateToLogin() {
     if (rootNavigatorKey.currentState != null) {
+      // Evitar navegar de nuevo si ya estamos en un proceso de cambio a Login
+      // o si la ruta actual ya es Login
+      debugPrint("AuthMonitor: Navigating to Login...");
       rootNavigatorKey.currentState!.pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => const LoginScreen(),
+          settings:
+              const RouteSettings(name: '/login'), // Añadimos nombre para debug
         ),
         (route) => false,
       );

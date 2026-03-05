@@ -7,7 +7,7 @@ class AnimatedCyberBackground extends StatefulWidget {
   final Widget? child;
   final Color? gridColor;
   final Color? vignetteColor;
-  
+
   const AnimatedCyberBackground({
     super.key,
     this.showBackgroundBase = true,
@@ -17,7 +17,8 @@ class AnimatedCyberBackground extends StatefulWidget {
   });
 
   @override
-  State<AnimatedCyberBackground> createState() => _AnimatedCyberBackgroundState();
+  State<AnimatedCyberBackground> createState() =>
+      _AnimatedCyberBackgroundState();
 }
 
 class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
@@ -42,13 +43,13 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
     // Initialize random particles
     final random = math.Random();
     for (int i = 0; i < 30; i++) {
-        _particles.add(BackgroundParticle(
-          x: random.nextDouble() * 100,
-          y: random.nextDouble() * 100,
-          size: 1 + random.nextDouble() * 2,
-          speed: 0.2 + random.nextDouble() * 0.8,
-          opacity: 0.1 + random.nextDouble() * 0.3,
-        ));
+      _particles.add(BackgroundParticle(
+        x: random.nextDouble() * 100,
+        y: random.nextDouble() * 100,
+        size: 1 + random.nextDouble() * 2,
+        speed: 0.2 + random.nextDouble() * 0.8,
+        opacity: 0.1 + random.nextDouble() * 0.3,
+      ));
     }
   }
 
@@ -62,62 +63,64 @@ class _AnimatedCyberBackgroundState extends State<AnimatedCyberBackground>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = true /* always dark UI */;
-    final color = widget.gridColor ?? const Color(0xFF6366F1); // Always use dark mode color
+    final color = widget.gridColor ??
+        const Color(0xFF6366F1); // Always use dark mode color
 
     return Stack(
       children: [
-        // 0. Background Base (Optional)
+        // 0. Background Base (Optional) - This one is static
         if (widget.showBackgroundBase)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const RadialGradient(
-                  center: Alignment(-0.8, -0.6),
-                  radius: 1.5,
-                  colors: [
-                    AppTheme.dSurface1,
-                    AppTheme.dSurface0,
-                  ],
+          const Positioned.fill(
+            child: RepaintBoundary(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(-0.8, -0.6),
+                    radius: 1.5,
+                    colors: [
+                      AppTheme.dSurface1,
+                      AppTheme.dSurface0,
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
 
-        // 1. Grid
+        // 1 \u0026 2. Animated layers (Grid \u0026 Particles)
+        // Consolidated into a single RepaintBoundary and AnimatedBuilder to reduce overhead
         Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _gridController,
-            builder: (context, child) {
-              return CustomPaint(
-                painter: _GridPainter(_gridController.value, color),
-              );
-            },
-          ),
-        ),
-        
-        // 2. Moving Particles
-        Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _particleController,
-            builder: (context, child) {
-              return CustomPaint(
-                painter: _ParticlePainter(_particleController.value, _particles, color),
-              );
-            },
+          child: RepaintBoundary(
+            child: AnimatedBuilder(
+              animation:
+                  Listenable.merge([_gridController, _particleController]),
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: _CyberPainter(
+                    gridProgress: _gridController.value,
+                    particleProgress: _particleController.value,
+                    particles: _particles,
+                    color: color,
+                  ),
+                );
+              },
+            ),
           ),
         ),
 
-        // 3. Vignette / Subtle Overlay
+        // 3. Vignette / Subtle Overlay - This is static
         Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                radius: 1.2,
-                colors: [
-                  Colors.transparent,
-                  (widget.vignetteColor ?? Colors.black).withOpacity(0.4),
-                ],
+          child: RepaintBoundary(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.2,
+                  colors: [
+                    Colors.transparent,
+                    (widget.vignetteColor ?? Colors.black).withOpacity(0.4),
+                  ],
+                ),
               ),
             ),
           ),
@@ -145,68 +148,70 @@ class BackgroundParticle {
   });
 }
 
-class _GridPainter extends CustomPainter {
-  final double progress;
+/// Consolidated painter for both Grid and Particles to reduce CustomPaint overhead
+class _CyberPainter extends CustomPainter {
+  final double gridProgress;
+  final double particleProgress;
+  final List<BackgroundParticle> particles;
   final Color color;
 
-  _GridPainter(this.progress, this.color);
+  _CyberPainter({
+    required this.gridProgress,
+    required this.particleProgress,
+    required this.particles,
+    required this.color,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    // 1. Draw Grid
+    final gridPaint = Paint()
       ..color = color.withOpacity(0.04)
       ..strokeWidth = 1.0;
 
     const double spacing = 40.0;
-    final double offset = progress * spacing;
+    final double offset = gridProgress * spacing;
 
     for (double y = 0; y < size.height + spacing; y += spacing) {
       canvas.drawLine(
         Offset(0, y + (offset % spacing)),
         Offset(size.width, y + (offset % spacing)),
-        paint,
+        gridPaint,
       );
     }
     for (double x = 0; x < size.width + spacing; x += spacing) {
       canvas.drawLine(
         Offset(x + (offset % spacing), 0),
         Offset(x + (offset % spacing), size.height),
-        paint,
+        gridPaint,
       );
     }
-  }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _ParticlePainter extends CustomPainter {
-  final double progress;
-  final List<BackgroundParticle> particles;
-  final Color color;
-
-  _ParticlePainter(this.progress, this.particles, this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
+    // 2. Draw Particles
     for (var p in particles) {
-      final paint = Paint()
+      final particlePaint = Paint()
         ..color = color.withOpacity(p.opacity)
         ..style = PaintingStyle.fill;
 
       final x = (p.x / 100) * size.width;
-      final y = ((p.y + (progress * p.speed * 100)) % 100 / 100) * size.height;
+      final y = ((p.y + (particleProgress * p.speed * 100)) % 100 / 100) *
+          size.height;
 
-      canvas.drawCircle(Offset(x, y), p.size, paint);
-      
-      // Subtle glow
+      canvas.drawCircle(Offset(x, y), p.size, particlePaint);
+
+      // OPTIMIZATION: Use a simpler glow if we want to save more perf
+      // or just skip the MaskFilter.blur if it's too much.
+      // For now we keep it but only in a single painter pass.
       final glowPaint = Paint()
         ..color = color.withOpacity(p.opacity * 0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      canvas.drawCircle(Offset(x, y), p.size * 2, glowPaint);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+      canvas.drawCircle(Offset(x, y), p.size * 1.5, glowPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _CyberPainter oldDelegate) {
+    return oldDelegate.gridProgress != gridProgress ||
+        oldDelegate.particleProgress != particleProgress;
+  }
 }

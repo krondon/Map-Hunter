@@ -51,6 +51,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final mainScroll = CustomScrollView(
+      physics:
+          const BouncingScrollPhysics(), // Smoother scrolling with keyboard
       slivers: [
         if (!widget.hideScaffold)
           SliverAppBar(
@@ -58,11 +60,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             floating: true,
             pinned: true,
             backgroundColor: Colors.black.withOpacity(0.5),
+            elevation: 0,
             title: const Text('ID DE JUGADOR',
                 style: TextStyle(
                     letterSpacing: 4,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16)),
+                    fontSize: 16,
+                    fontFamily: 'Orbitron')),
             centerTitle: true,
             actions: [
               IconButton(
@@ -75,7 +79,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(
+                20, 10, 20, 100), // Extra bottom padding
             child: Column(
               children: [
                 // 1. GAMER CARD WITH NEON GLOW
@@ -85,8 +90,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // 2. TRÉBOLES DORADOS - NEW ANIMATED SECTION
                 _buildGoldenCloversSection(gameProvider, isDarkMode),
-
-                const SizedBox(height: 24),
 
                 const SizedBox(height: 40),
                 const Text("ASTHORIA PROTOCOL v1.0.4",
@@ -100,35 +103,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
 
-    final content = widget.hideScaffold
-        ? mainScroll
-        : AnimatedCyberBackground(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/fotogrupalnoche.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                  ),
-                ),
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withOpacity(0.6),
-                  ),
-                ),
-                mainScroll,
-              ],
-            ),
-          );
-
-    if (widget.hideScaffold) return content;
+    if (widget.hideScaffold) {
+      return mainScroll;
+    }
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor:
+          Colors.transparent, // Set to transparent to show fixed background
       extendBody: true,
       bottomNavigationBar: _buildBottomNavBar(),
-      body: content,
+      body: Stack(
+        children: [
+          // STABLE FIXED BACKGROUND
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/fotogrupalnoche.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.6),
+            ),
+          ),
+          // ANIMATED CYBER BACKGROUND (Optimized version)
+          const Positioned.fill(
+            child: AnimatedCyberBackground(showBackgroundBase: false),
+          ),
+          // MAIN CONTENT
+          SafeArea(child: mainScroll),
+        ],
+      ),
     );
   }
 
@@ -505,10 +511,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: AppTheme.secondaryPink, size: 28),
                             "${player.totalXP}",
                             "XP Total"),
-                        _buildStatWidget(
-                            const CoinImage(size: 24),
-                            "${player.clovers}",
-                            "Tréboles"),
+                        _buildStatWidget(const CoinImage(size: 24),
+                            "${player.clovers}", "Tréboles"),
                         _buildStatWidget(
                             const Icon(Icons.emoji_events,
                                 color: AppTheme.accentGold, size: 28),
@@ -572,7 +576,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     // ADMIN: Admin Panel access button
-                    if (player.isAdmin) ...[  
+                    if (player.isAdmin) ...[
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -1630,31 +1634,45 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     try {
       final playerProvider =
           Provider.of<PlayerProvider>(context, listen: false);
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final effectProvider =
+          Provider.of<PowerEffectProvider>(context, listen: false);
 
-      // Limpiar efectos de sabotaje ANTES del borrado
+      // 1. Limpiar estados de juego y suscripciones Realtime INMEDIATAMENTE
+      // Esto evita que los streams intenten leer datos del usuario borrado durante la transición
       if (mounted) {
-        context.read<PowerEffectProvider>().resetState();
+        effectProvider.resetState();
+        gameProvider.resetState();
       }
 
+      // 2. Ejecutar borrado permanente
+      // El servicio invocará el logout global, lo que disparará el AuthMonitor
       await playerProvider.deleteAccount(password);
 
-      if (!mounted) return;
+      // 3. No navegamos manualmente aquí. AuthMonitor detectará el Logout
+      // y nos llevará al Login de forma limpia, evitando el problema de pantalla negra.
 
-      if (playerProvider.isLoggedIn) {
-        // Si sigue logueado, es que falló algo sin lanzar excepción (raro pero posible)
-        Navigator.pop(context);
-      } else {
-        // Logged out successfully
-        Navigator.pop(context); // Close dialog
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Tu cuenta ha sido eliminada permanentemente."),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
+
+      final errorMsg = e.toString();
+      // Si el error dice "password" o similar, es un error de validación, no de sistema
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: currentRed),
+        SnackBar(
+            content: Text(
+                errorMsg.contains('password') || errorMsg.contains('contraseña')
+                    ? "Contraseña incorrecta"
+                    : "Error: $e"),
+            backgroundColor: currentRed),
       );
     }
   }
