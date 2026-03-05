@@ -32,8 +32,7 @@ class PowerRepositoryImpl implements PowerRepository {
         .from('combat_events')
         .stream(primaryKey: ['id'])
         .eq('target_id', targetId)
-        .order('created_at', ascending: false)
-        .order('created_at', ascending: false); // Note: Keep existing weird ordering if it was there, or clean it up.
+        .order('created_at', ascending: false); // Fix 3.7: removed duplicate .order() call
   }
 
   @override

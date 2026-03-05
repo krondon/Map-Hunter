@@ -26,6 +26,7 @@ import '../utils/global_keys.dart'; // Importar para navegación
 import '../../features/game/widgets/minigames/game_over_overlay.dart';
 import '../../features/mall/screens/mall_screen.dart';
 import '../../core/services/effect_timer_service.dart'; // NEW: For timer expiration events
+import '../../features/game/providers/connectivity_provider.dart';
 
 class SabotageOverlay extends StatefulWidget {
   final Widget child;
@@ -614,8 +615,10 @@ class _SabotageOverlayState extends State<SabotageOverlay> {
 
             // Nuevo efecto de ESCUDO ACTIVO
             // Don't show active shield if it's currently breaking
+            // En minijuegos solo se muestra el ShieldBadge en el header, no este overlay
             if (powerProvider.isEffectActive('shield') &&
-                !_showShieldBreakAnimation)
+                !_showShieldBreakAnimation &&
+                !context.read<ConnectivityProvider>().isInMinigame)
               ShieldActiveEffect(
                   expiresAt: powerProvider.getPowerExpiration('shield')),
 

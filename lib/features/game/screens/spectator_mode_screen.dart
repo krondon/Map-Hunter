@@ -16,9 +16,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../mall/models/power_item.dart';
 import '../models/event.dart';
 import '../providers/power_effect_provider.dart';
-import '../../../core/services/effect_timer_service.dart';
-import '../repositories/power_repository_impl.dart';
-import '../strategies/power_strategy_factory.dart';
 import '../../events/services/event_service.dart';
 import '../widgets/betting_modal.dart';
 import '../widgets/my_bets_modal.dart';
@@ -45,7 +42,6 @@ class SpectatorModeScreen extends StatefulWidget {
 
 class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   int _selectedTab = 0; // 0: Actividad, 1: Apuestas, 2: Tienda
-  late PowerEffectProvider _powerEffectProvider;
   late Stream<GameEvent> _eventStream;
   bool _hasNavigatedToPodium =
       false; // Prevent double-navigation when event completes
@@ -54,12 +50,6 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
   void initState() {
     super.initState();
     final supabase = Supabase.instance.client;
-    _powerEffectProvider = PowerEffectProvider(
-      repository: PowerRepositoryImpl(supabaseClient: supabase),
-      timerService: EffectTimerService(),
-      strategyFactory: PowerStrategyFactory(supabase),
-    );
-
     _eventStream = EventService(supabase).getEventStream(widget.eventId);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -110,10 +100,17 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       // Registrarse como espectador para habilitar compras/sabotajes
       await playerProvider.joinAsSpectator(widget.eventId);
 
-      // Inicializar listener de efectos si el espectador tiene gamePlayerId (ahora debería tenerlo)
+      // Fix 3.7: Usar el PowerEffectManager GLOBAL (single source of truth).
+      // Evita el split-brain donde SabotageOverlay usaba el global y esta pantalla
+      // usaba una instancia local independiente.
       if (playerProvider.currentPlayer?.gamePlayerId != null) {
-        _powerEffectProvider
-            .startListening(playerProvider.currentPlayer!.gamePlayerId);
+        final powerManager =
+            Provider.of<PowerEffectManager>(context, listen: false);
+        powerManager.startListening(
+          playerProvider.currentPlayer!.gamePlayerId,
+          eventId: widget.eventId,
+          forceRestart: true,
+        );
       }
 
       _showSpectatorTutorial();
@@ -332,7 +329,8 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       } catch (_) {}
     });
 
-    _powerEffectProvider.dispose();
+    // Fix 3.7: No llamar dispose() aqui. El PowerEffectManager global es gestionado
+    // por el MultiProvider en main.dart y sobrevive la navegación.
     super.dispose();
   }
 
@@ -1265,7 +1263,7 @@ class _SpectatorModeScreenState extends State<SpectatorModeScreen> {
       final result = await playerProvider.usePower(
         powerSlug: powerSlug,
         targetGamePlayerId: targetId,
-        effectProvider: _powerEffectProvider,
+        effectProvider: Provider.of<PowerEffectManager>(context, listen: false),
         gameProvider: Provider.of<GameProvider>(context, listen: false),
       );
 
