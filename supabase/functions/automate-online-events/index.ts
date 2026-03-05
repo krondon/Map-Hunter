@@ -61,10 +61,8 @@ serve(async (req: Request) => {
         const feeStep = config.fee_step !== undefined ? Number(config.fee_step) : 5;
         const pendingWaitMinutes = Number(config.pending_wait_minutes) || 5;
 
-        // Calcular jugadores en múltiplos de 5 para que se vea mejor (5, 10, 15...)
-        const playerStep = 5;
-        const playerRangeCount = Math.max(0, Math.floor((maxPlayers - minPlayers) / playerStep));
-        const playerCount = (Math.floor(Math.random() * (playerRangeCount + 1)) * playerStep) + minPlayers;
+        // Usar exactamente el valor máximo configurado por el admin
+        const playerCount = maxPlayers;
         const gameCount = Math.floor(Math.random() * (maxGames - minGames + 1)) + minGames;
         const configuredWinners = playerCount < 6 ? 1 : playerCount < 11 ? 2 : 3;
 
