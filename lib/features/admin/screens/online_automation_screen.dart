@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/app_config_service.dart';
 import '../../../shared/widgets/coin_image.dart';
+import '../../mall/models/power_item.dart';
 
 class OnlineAutomationScreen extends StatefulWidget {
   const OnlineAutomationScreen({super.key});
@@ -256,8 +258,91 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
           const SizedBox(height: 8),
           _buildSlider('Espera antes de iniciar (min)', 'pending_wait_minutes', 1, 120, 1),
           _buildSlider('Jugadores mín. para iniciar', 'min_players_to_start', 2, 20, 1),
+          const Divider(color: Colors.white12, height: 32),
+          _buildPriceSection(
+            'player_prices',
+            '🎮 Precios Tienda (Jugadores)',
+            AppTheme.primaryPurple,
+          ),
+          const Divider(color: Colors.white12, height: 32),
+          _buildPriceSection(
+            'spectator_prices',
+            '👁 Precios Tienda (Espectadores)',
+            AppTheme.accentGold,
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPriceSection(String configKey, String title, Color color) {
+    final Map<String, dynamic> priceMap = (_config[configKey] is Map)
+        ? Map<String, dynamic>.from(_config[configKey] as Map)
+        : {};
+    final powers = PowerItem.getShopItems();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5)),
+        const SizedBox(height: 12),
+        ...powers.map((power) {
+          final currentPrice = priceMap.containsKey(power.id)
+              ? (priceMap[power.id] as num).toInt()
+              : power.cost;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Text(power.icon, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text(power.name,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13))),
+                SizedBox(
+                  width: 80,
+                  child: TextFormField(
+                    key: ValueKey('$configKey-${power.id}'),
+                    initialValue: currentPrice.toString(),
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: color, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 5),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none),
+                    ),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (val) {
+                      final newCost = int.tryParse(val);
+                      if (newCost != null) {
+                        final current = (_config[configKey] is Map)
+                            ? Map<String, dynamic>.from(
+                                _config[configKey] as Map)
+                            : <String, dynamic>{};
+                        current[power.id] = newCost;
+                        _config[configKey] = current;
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 

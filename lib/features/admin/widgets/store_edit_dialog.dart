@@ -207,8 +207,7 @@ class _StoreEditDialogState extends State<StoreEditDialog> {
                         title: Text(item.name,
                             style: const TextStyle(color: Colors.white)),
                         subtitle: Text(
-                            // Show custom cost if editing, else default
-                            "Costo Base: ${item.cost}",
+                            "Precio Actual: ${_customCosts[item.id] ?? item.cost}  (Default: ${item.cost})",
                             style: const TextStyle(color: Colors.white54)),
                         secondary: Text(item.icon,
                             style: const TextStyle(fontSize: 24)),

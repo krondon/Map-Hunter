@@ -48,6 +48,9 @@ class EventCreationProvider extends ChangeNotifier {
   // Spectator Prices (All Modes)
   Map<String, int> _spectatorPrices = {};
 
+  // Player Store Prices (Online Mode)
+  Map<String, int> _playerPrices = {};
+
   // Control
   bool _isLoading = false;
   String _eventId = const Uuid().v4();
@@ -72,6 +75,7 @@ class EventCreationProvider extends ChangeNotifier {
   int get currentClueIndex => _currentClueIndex;
   List<Map<String, dynamic>> get pendingStores => _pendingStores;
   Map<String, int> get spectatorPrices => _spectatorPrices;
+  Map<String, int> get playerPrices => _playerPrices;
   bool get isLoading => _isLoading;
   String get eventId => _eventId;
   bool get isFormValid => _isFormValid;
@@ -155,6 +159,12 @@ class EventCreationProvider extends ChangeNotifier {
     _spectatorPrices = {};
     for (var item in PowerItem.getShopItems()) {
       _spectatorPrices[item.id] = item.cost;
+    }
+
+    // Initialize default player (store) prices
+    _playerPrices = {};
+    for (var item in PowerItem.getShopItems()) {
+      _playerPrices[item.id] = item.cost;
     }
 
     notifyListeners();
@@ -441,7 +451,15 @@ class EventCreationProvider extends ChangeNotifier {
   void setSpectatorPrice(String powerId, int price) {
     if (price < 0) return;
     _spectatorPrices[powerId] = price;
-    notifyListeners();
+    // No notifyListeners() — TextFormField manages its own display.
+    // The map is updated synchronously and read at submit time.
+  }
+
+  // --- Player Store Prices Logic ---
+  void setPlayerPrice(String powerId, int price) {
+    if (price < 0) return;
+    _playerPrices[powerId] = price;
+    // No notifyListeners() — same reason as above.
   }
 
   // --- Validation ---
@@ -539,14 +557,11 @@ class EventCreationProvider extends ChangeNotifier {
       // 3. Create Stores
       if (createdEventId != null) {
         if (_eventType == 'online') {
-          // Default Online Store via Domain Service
-          // Default Online Store via Domain Service
+          // Default Online Store via Domain Service – use configured player prices
           try {
             final defaultStore = EventDomainService.createDefaultOnlineStore(
               createdEventId,
-              // customPrices: _spectatorPrices, // OLD: Used to set store prices directly
-              // NEW: Store keeps default prices for Players. Spectators use spectator_config override.
-              customPrices: null,
+              customPrices: _playerPrices.isNotEmpty ? _playerPrices : null,
             );
             // We pass null for imageFile as we don't have one selected
             await storeProvider.createStore(defaultStore, null);

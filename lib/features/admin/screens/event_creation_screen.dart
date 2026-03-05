@@ -1384,6 +1384,128 @@ class _EventCreationScreenState extends State<EventCreationScreen> {
                             ),
                           ),
                           const SizedBox(height: 30),
+                          // --- Precios Jugadores (tienda online) ---
+                          if (provider.eventType == 'online') ...[
+                            const Text("Precios Tienda (Jugadores)",
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryPurple)),
+                            const SizedBox(height: 10),
+                            const Text(
+                                "Costo de los poderes que los jugadores compran con monedas.",
+                                style: TextStyle(
+                                    color: Colors.white54, fontSize: 14)),
+                            const SizedBox(height: 20),
+                            LayoutBuilder(builder: (context, constraints) {
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount:
+                                      constraints.maxWidth < 600 ? 1 : 2,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: constraints.maxWidth < 600
+                                      ? 2.5
+                                      : 3,
+                                ),
+                                itemCount: PowerItem.getShopItems().length,
+                                itemBuilder: (context, index) {
+                                  final power =
+                                      PowerItem.getShopItems()[index];
+                                  final currentPrice =
+                                      provider.playerPrices[power.id] ??
+                                          power.cost;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.cardBg,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.white10),
+                                    ),
+                                    padding: const EdgeInsets.all(12),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          height: 48,
+                                          width: 48,
+                                          decoration: BoxDecoration(
+                                            color:
+                                                power.color.withOpacity(0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(power.icon,
+                                              style: const TextStyle(
+                                                  fontSize: 24)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(power.name,
+                                                  style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                              Text(
+                                                  "${power.cost} Default",
+                                                  style: const TextStyle(
+                                                      color: Colors.white38,
+                                                      fontSize: 12)),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 80,
+                                          child: TextFormField(
+                                            initialValue:
+                                                currentPrice.toString(),
+                                            keyboardType:
+                                                TextInputType.number,
+                                            textAlign: TextAlign.center,
+                                            decoration:
+                                                inputDecoration.copyWith(
+                                              contentPadding:
+                                                  const EdgeInsets
+                                                      .symmetric(
+                                                      vertical: 10,
+                                                      horizontal: 5),
+                                              isDense: true,
+                                            ),
+                                            style: const TextStyle(
+                                                color:
+                                                    AppTheme.primaryPurple,
+                                                fontWeight:
+                                                    FontWeight.bold),
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter
+                                                  .digitsOnly
+                                            ],
+                                            onChanged: (v) {
+                                              final val = int.tryParse(v);
+                                              if (val != null) {
+                                                provider.setPlayerPrice(
+                                                    power.id, val);
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            }),
+                            const SizedBox(height: 30),
+                          ],
                           // --- Configuración de Precios para Espectadores (ALWAYS VISIBLE) ---
                           const Text("Precios para Espectadores",
                               style: TextStyle(

@@ -62,6 +62,20 @@ serve(async (req: Request) => {
         const pendingWaitMinutes = Number(config.pending_wait_minutes) || 5;
         const intervalMinutes = config.interval_minutes !== undefined ? Number(config.interval_minutes) : 60;
 
+        // Price defaults (same values hardcoded before, now overridable from admin config)
+        const defaultPrices: Record<string, number> = {
+            black_screen: 75, blur_screen: 75, extra_life: 40,
+            return: 90, freeze: 120, shield: 40, life_steal: 120, invisibility: 40
+        };
+        const configPlayerPrices: Record<string, number> =
+            (config.player_prices && typeof config.player_prices === 'object')
+                ? config.player_prices as Record<string, number>
+                : {};
+        const configSpectatorPrices: Record<string, number> =
+            (config.spectator_prices && typeof config.spectator_prices === 'object')
+                ? config.spectator_prices as Record<string, number>
+                : {};
+
         // 3.5 Check time since last automated event (Bypass if manual)
         if (!isManualAction) {
             const { data: lastEvent, error: lastEventError } = await supabaseClient
@@ -174,6 +188,9 @@ serve(async (req: Request) => {
                 status: 'pending',   // ← starts pending; activated by auto_start_online_event RPC
                 configured_winners: configuredWinners,
                 is_automated: true,  // ← no admin intervention needed; auto-starts at countdown end
+                spectator_config: Object.keys(configSpectatorPrices).length > 0
+                    ? configSpectatorPrices
+                    : defaultPrices,
                 created_at: new Date().toISOString()
             })
             .select()
@@ -214,17 +231,11 @@ serve(async (req: Request) => {
 
         console.log(`✅ Successfully saved ${savedClues?.length || 0} clues.`);
 
-        // 6. Create Store with consistent prices
-        const storeProducts = [
-            { id: 'black_screen', cost: 75 },
-            { id: 'blur_screen', cost: 75 },
-            { id: 'extra_life', cost: 40 },
-            { id: 'return', cost: 90 },
-            { id: 'freeze', cost: 120 },
-            { id: 'shield', cost: 40 },
-            { id: 'life_steal', cost: 120 },
-            { id: 'invisibility', cost: 40 }
-        ];
+        // 6. Create Store – use admin-configured player prices, fallback to defaults
+        const storeProducts = Object.entries(defaultPrices).map(([id, defaultCost]) => ({
+            id,
+            cost: configPlayerPrices[id] !== undefined ? Number(configPlayerPrices[id]) : defaultCost
+        }));
 
         console.log(`Creating mall store for event ${eventId}...`);
 
