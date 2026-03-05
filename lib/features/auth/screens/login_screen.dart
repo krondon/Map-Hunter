@@ -305,21 +305,26 @@ class _LoginScreenState extends State<LoginScreen>
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: 'EMAIL DEL GREMIO',
-                        labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
-                        prefixIcon: const Icon(Icons.alternate_email, color: dGoldMain),
+                        labelStyle: const TextStyle(
+                            color: Colors.white54, fontSize: 12),
+                        prefixIcon:
+                            const Icon(Icons.alternate_email, color: dGoldMain),
                         filled: true,
                         fillColor: const Color(0xFF2A2A2E).withOpacity(0.8),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: dGoldMain, width: 2),
+                          borderSide:
+                              const BorderSide(color: dGoldMain, width: 2),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                          borderSide:
+                              BorderSide(color: Colors.white.withOpacity(0.1)),
                         ),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Ingresa tu email';
+                        if (value == null || value.isEmpty)
+                          return 'Ingresa tu email';
                         if (!value.contains('@')) return 'Email inválido';
                         return null;
                       },
@@ -327,11 +332,14 @@ class _LoginScreenState extends State<LoginScreen>
                   ],
                 ),
               ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               actions: [
                 TextButton(
                   onPressed: isSending ? null : () => Navigator.pop(context),
-                  child: const Text('CANCELAR', style: TextStyle(color: Colors.white54, letterSpacing: 1)),
+                  child: const Text('CANCELAR',
+                      style:
+                          TextStyle(color: Colors.white54, letterSpacing: 1)),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -355,8 +363,10 @@ class _LoginScreenState extends State<LoginScreen>
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: isSending
                         ? null
@@ -371,7 +381,8 @@ class _LoginScreenState extends State<LoginScreen>
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Transmisión enviada. Revisa tu correo.'),
+                                    content: Text(
+                                        'Transmisión enviada. Revisa tu correo.'),
                                     backgroundColor: AppTheme.accentGold,
                                   ),
                                 );
@@ -379,7 +390,9 @@ class _LoginScreenState extends State<LoginScreen>
                                 setDialogState(() => isSending = false);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(ErrorHandler.getFriendlyErrorMessage(e)),
+                                    content: Text(
+                                        ErrorHandler.getFriendlyErrorMessage(
+                                            e)),
                                     backgroundColor: AppTheme.dangerRed,
                                   ),
                                 );
@@ -392,10 +405,13 @@ class _LoginScreenState extends State<LoginScreen>
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.black),
                             ),
                           )
-                        : const Text('ENVIAR ENLACE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                        : const Text('ENVIAR ENLACE',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900, fontSize: 13)),
                   ),
                 ),
               ],
@@ -608,7 +624,8 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       ),
       child: Scaffold(
-        backgroundColor: currentSurface0,
+        backgroundColor:
+            dSurface0, // Force dark background to avoid white flashes
         resizeToAvoidBottomInset: true,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -617,13 +634,12 @@ class _LoginScreenState extends State<LoginScreen>
               // Fondo con imagen hero.png en modo oscuro o loginclaro.png en modo claro
               Positioned.fill(
                 child: isDarkMode
-                    ? Opacity(
-                        opacity: 0.6, // Opacidad para mejor legibilidad
-                        child: Image.asset(
-                          'assets/images/hero.png',
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                        ),
+                    ? Image.asset(
+                        'assets/images/hero.png',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        color: Colors.black.withOpacity(0.4),
+                        colorBlendMode: BlendMode.darken,
                       )
                     : Stack(
                         children: [
@@ -661,244 +677,253 @@ class _LoginScreenState extends State<LoginScreen>
                                 constraints:
                                     const BoxConstraints(maxWidth: 400),
                                 child: AutofillGroup(
-                              child: Form(
-                                key: _formKey,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Align(
-                                      alignment: Alignment.topRight,
-                                      child: IconButton(
-                                        icon: Icon(
-                                          isDarkMode
-                                              ? Icons.wb_sunny_outlined
-                                              : Icons.nightlight_round_outlined,
-                                          color: Colors.white,
-                                          size: 28,
-                                        ),
-                                        onPressed: () {
-                                          debugPrint(
-                                              "Toggle presionado: actual=$isDarkMode");
-                                          playerProvider
-                                              .toggleDarkMode(!isDarkMode);
-                                        },
-                                      ),
-                                    ),
-                                    const Spacer(flex: 1),
-                                    // Logo de MapHunter
-                                    Image.asset(
-                                      'assets/images/logo4.1.png',
-                                      height: 180,
-                                      fit: BoxFit.contain,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      "Búsqueda del tesoro ☘️",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white.withOpacity(0.9),
-                                        fontWeight: FontWeight.w400,
-                                        letterSpacing: 2.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 40),
-
-                                    Text(
-                                      'INICIA TU AVENTURA',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 3,
-                                            fontSize: 12,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 30),
-
-                                    // Email field
-                                    TextFormField(
-                                      controller: _emailController,
-                                      keyboardType: TextInputType.emailAddress,
-                                      textInputAction: TextInputAction.next,
-                                      autofillHints: const [
-                                        AutofillHints.email
-                                      ],
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                      decoration: const InputDecoration(
-                                        labelText: 'EMAIL',
-                                        prefixIcon: Icon(Icons.email_outlined),
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty)
-                                          return 'Ingresa tu email';
-                                        if (!value.contains('@'))
-                                          return 'Email inválido';
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // Password field
-                                    TextFormField(
-                                      controller: _passwordController,
-                                      obscureText: !_isPasswordVisible,
-                                      textInputAction: TextInputAction.done,
-                                      autofillHints: const [
-                                        AutofillHints.password
-                                      ],
-                                      onEditingComplete: _handleLogin,
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                      decoration: InputDecoration(
-                                        labelText: 'CONTRASEÑA',
-                                        prefixIcon:
-                                            const Icon(Icons.lock_outline),
-                                        suffixIcon: IconButton(
-                                          icon: Icon(
-                                            _isPasswordVisible
-                                                ? Icons.visibility
-                                                : Icons.visibility_off,
-                                          ),
-                                          onPressed: () {
-                                            setState(() {
-                                              _isPasswordVisible =
-                                                  !_isPasswordVisible;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty)
-                                          return 'Ingresa tu contraseña';
-                                        if (value.length < 6)
-                                          return 'Mínimo 6 caracteres';
-                                        return null;
-                                      },
-                                    ),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton(
-                                        onPressed: _showForgotPasswordDialog,
-                                        child: Text(
-                                          '¿Olvidaste tu contraseña?',
-                                          style: TextStyle(
-                                            color:
-                                                Colors.white.withOpacity(0.8),
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-
-                                    // Login button con "Legendary Gold" Gradient
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 56,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [dGoldLight, dGoldMain],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: dGoldMain.withOpacity(0.3),
-                                              blurRadius: 15,
-                                              offset: const Offset(0, 5),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ElevatedButton(
-                                          onPressed: _isLoggingIn
-                                              ? null
-                                              : _handleLogin,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.transparent,
-                                            shadowColor: Colors.transparent,
-                                            foregroundColor: Colors.black,
-                                            disabledBackgroundColor:
-                                                Colors.transparent,
-                                            disabledForegroundColor:
-                                                Colors.black45,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          child: _isLoggingIn
-                                              ? const SizedBox(
-                                                  width: 24,
-                                                  height: 24,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2.5,
-                                                    valueColor:
-                                                        AlwaysStoppedAnimation<
-                                                                Color>(
-                                                            Colors.black54),
-                                                  ),
-                                                )
-                                              : const Text(
-                                                  'INICIAR SESIÓN',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w900,
-                                                    letterSpacing: 1.5,
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-
-                                    // Register link
-                                    Row(
+                                  child: Form(
+                                    key: _formKey,
+                                    child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Text(
-                                          '¿No tienes cuenta? ',
-                                          style: TextStyle(
-                                              color: Colors.white
-                                                  .withOpacity(0.8)),
+                                        Align(
+                                          alignment: Alignment.topRight,
+                                          child: IconButton(
+                                            icon: Icon(
+                                              isDarkMode
+                                                  ? Icons.wb_sunny_outlined
+                                                  : Icons
+                                                      .nightlight_round_outlined,
+                                              color: Colors.white,
+                                              size: 28,
+                                            ),
+                                            onPressed: () {
+                                              debugPrint(
+                                                  "Toggle presionado: actual=$isDarkMode");
+                                              playerProvider
+                                                  .toggleDarkMode(!isDarkMode);
+                                            },
+                                          ),
                                         ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const RegisterScreen()),
-                                            );
+                                        const Spacer(flex: 1),
+                                        // Logo de MapHunter
+                                        Image.asset(
+                                          'assets/images/logo4.1.png',
+                                          height: 180,
+                                          fit: BoxFit.contain,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          "Búsqueda del tesoro ☘️",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color:
+                                                Colors.white.withOpacity(0.9),
+                                            fontWeight: FontWeight.w400,
+                                            letterSpacing: 2.0,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 40),
+
+                                        Text(
+                                          'INICIA TU AVENTURA',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 3,
+                                                fontSize: 12,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 30),
+
+                                        // Email field
+                                        TextFormField(
+                                          controller: _emailController,
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          textInputAction: TextInputAction.next,
+                                          autofillHints: const [
+                                            AutofillHints.email
+                                          ],
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          decoration: const InputDecoration(
+                                            labelText: 'EMAIL',
+                                            prefixIcon:
+                                                Icon(Icons.email_outlined),
+                                          ),
+                                          validator: (value) {
+                                            if (value == null || value.isEmpty)
+                                              return 'Ingresa tu email';
+                                            if (!value.contains('@'))
+                                              return 'Email inválido';
+                                            return null;
                                           },
-                                          child: Text(
-                                            'Regístrate',
-                                            style: TextStyle(
-                                              color: dGoldMain,
-                                              fontWeight: FontWeight.bold,
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        // Password field
+                                        TextFormField(
+                                          controller: _passwordController,
+                                          obscureText: !_isPasswordVisible,
+                                          textInputAction: TextInputAction.done,
+                                          autofillHints: const [
+                                            AutofillHints.password
+                                          ],
+                                          onEditingComplete: _handleLogin,
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          decoration: InputDecoration(
+                                            labelText: 'CONTRASEÑA',
+                                            prefixIcon:
+                                                const Icon(Icons.lock_outline),
+                                            suffixIcon: IconButton(
+                                              icon: Icon(
+                                                _isPasswordVisible
+                                                    ? Icons.visibility
+                                                    : Icons.visibility_off,
+                                              ),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _isPasswordVisible =
+                                                      !_isPasswordVisible;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          validator: (value) {
+                                            if (value == null || value.isEmpty)
+                                              return 'Ingresa tu contraseña';
+                                            if (value.length < 6)
+                                              return 'Mínimo 6 caracteres';
+                                            return null;
+                                          },
+                                        ),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: TextButton(
+                                            onPressed:
+                                                _showForgotPasswordDialog,
+                                            child: Text(
+                                              '¿Olvidaste tu contraseña?',
+                                              style: TextStyle(
+                                                color: Colors.white
+                                                    .withOpacity(0.8),
+                                                fontWeight: FontWeight.normal,
+                                                fontSize: 13,
+                                              ),
                                             ),
                                           ),
                                         ),
+                                        const SizedBox(height: 20),
+
+                                        // Login button con "Legendary Gold" Gradient
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 56,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [dGoldLight, dGoldMain],
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: dGoldMain
+                                                      .withOpacity(0.3),
+                                                  blurRadius: 15,
+                                                  offset: const Offset(0, 5),
+                                                ),
+                                              ],
+                                            ),
+                                            child: ElevatedButton(
+                                              onPressed: _isLoggingIn
+                                                  ? null
+                                                  : _handleLogin,
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                shadowColor: Colors.transparent,
+                                                foregroundColor: Colors.black,
+                                                disabledBackgroundColor:
+                                                    Colors.transparent,
+                                                disabledForegroundColor:
+                                                    Colors.black45,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                              child: _isLoggingIn
+                                                  ? const SizedBox(
+                                                      width: 24,
+                                                      height: 24,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2.5,
+                                                        valueColor:
+                                                            AlwaysStoppedAnimation<
+                                                                    Color>(
+                                                                Colors.black54),
+                                                      ),
+                                                    )
+                                                  : const Text(
+                                                      'INICIAR SESIÓN',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        letterSpacing: 1.5,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 20),
+
+                                        // Register link
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              '¿No tienes cuenta? ',
+                                              style: TextStyle(
+                                                  color: Colors.white
+                                                      .withOpacity(0.8)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          const RegisterScreen()),
+                                                );
+                                              },
+                                              child: Text(
+                                                'Regístrate',
+                                                style: TextStyle(
+                                                  color: dGoldMain,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const Spacer(flex: 2),
+
+                                        // Morna Branding
+                                        _buildMornaBranding(isDark: isDarkMode),
+                                        const SizedBox(height: 10),
                                       ],
                                     ),
-                                    const Spacer(flex: 2),
-
-                                    // Morna Branding
-                                    _buildMornaBranding(isDark: isDarkMode),
-                                    const SizedBox(height: 10),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
                           ),
                         ),
                       ),

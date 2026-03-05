@@ -347,7 +347,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
       child: Scaffold(
-        backgroundColor: currentSurface0,
+        backgroundColor:
+            dSurface0, // Force dark background to avoid white flashes
         resizeToAvoidBottomInset: true,
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -355,13 +356,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               Positioned.fill(
                 child: isDarkMode
-                    ? Opacity(
-                        opacity: 0.7,
-                        child: Image.asset(
-                          'assets/images/hero.png',
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                        ),
+                    ? Image.asset(
+                        'assets/images/hero.png',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        color: Colors.black.withOpacity(0.3),
+                        colorBlendMode: BlendMode.darken,
                       )
                     : Stack(
                         children: [
