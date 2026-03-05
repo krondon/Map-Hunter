@@ -505,10 +505,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: AppTheme.secondaryPink, size: 28),
                             "${player.totalXP}",
                             "XP Total"),
-                        _buildStatWidget(
-                            const CoinImage(size: 24),
-                            "${player.clovers}",
-                            "Tréboles"),
+                        _buildStatWidget(const CoinImage(size: 24),
+                            "${player.clovers}", "Tréboles"),
                         _buildStatWidget(
                             const Icon(Icons.emoji_events,
                                 color: AppTheme.accentGold, size: 28),
@@ -572,7 +570,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     // ADMIN: Admin Panel access button
-                    if (player.isAdmin) ...[  
+                    if (player.isAdmin) ...[
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -1630,31 +1628,45 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     try {
       final playerProvider =
           Provider.of<PlayerProvider>(context, listen: false);
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      final effectProvider =
+          Provider.of<PowerEffectProvider>(context, listen: false);
 
-      // Limpiar efectos de sabotaje ANTES del borrado
+      // 1. Limpiar estados de juego y suscripciones Realtime INMEDIATAMENTE
+      // Esto evita que los streams intenten leer datos del usuario borrado durante la transición
       if (mounted) {
-        context.read<PowerEffectProvider>().resetState();
+        effectProvider.resetState();
+        gameProvider.resetState();
       }
 
+      // 2. Ejecutar borrado permanente
+      // El servicio invocará el logout global, lo que disparará el AuthMonitor
       await playerProvider.deleteAccount(password);
 
-      if (!mounted) return;
+      // 3. No navegamos manualmente aquí. AuthMonitor detectará el Logout
+      // y nos llevará al Login de forma limpia, evitando el problema de pantalla negra.
 
-      if (playerProvider.isLoggedIn) {
-        // Si sigue logueado, es que falló algo sin lanzar excepción (raro pero posible)
-        Navigator.pop(context);
-      } else {
-        // Logged out successfully
-        Navigator.pop(context); // Close dialog
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Tu cuenta ha sido eliminada permanentemente."),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
+
+      final errorMsg = e.toString();
+      // Si el error dice "password" o similar, es un error de validación, no de sistema
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: currentRed),
+        SnackBar(
+            content: Text(
+                errorMsg.contains('password') || errorMsg.contains('contraseña')
+                    ? "Contraseña incorrecta"
+                    : "Error: $e"),
+            backgroundColor: currentRed),
       );
     }
   }
