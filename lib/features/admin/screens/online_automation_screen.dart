@@ -251,11 +251,17 @@ class _OnlineAutomationScreenState extends State<OnlineAutomationScreen> {
           const Divider(color: Colors.white12, height: 32),
           const Text(
             'Inicio de Sala (Pending → Active)',
-            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5),
           ),
           const SizedBox(height: 8),
-          _buildSlider('Espera antes de iniciar (min)', 'pending_wait_minutes', 1, 120, 1),
-          _buildSlider('Jugadores mín. para iniciar', 'min_players_to_start', 2, 20, 1),
+          _buildSlider('Espera antes de iniciar (min)', 'pending_wait_minutes',
+              1, 120, 1),
+          _buildSlider(
+              'Jugadores mín. para iniciar', 'min_players_to_start', 2, 20, 1),
         ],
       ),
     );

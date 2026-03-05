@@ -74,14 +74,11 @@ class AppConfigService {
     try {
       final userId = _supabase.auth.currentUser?.id;
 
-      await _supabase
-          .from('app_config')
-          .update({
-            'value': rate,
-            'updated_at': DateTime.now().toIso8601String(),
-            'updated_by': userId?.toString(),
-          })
-          .eq('key', 'bcv_exchange_rate');
+      await _supabase.from('app_config').update({
+        'value': rate,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': userId?.toString(),
+      }).eq('key', 'bcv_exchange_rate');
 
       debugPrint('[AppConfigService] Exchange rate updated to $rate');
       return true;
@@ -124,14 +121,11 @@ class AppConfigService {
     try {
       final userId = _supabase.auth.currentUser?.id;
 
-      await _supabase
-          .from('app_config')
-          .update({
-            'value': fee,
-            'updated_at': DateTime.now().toIso8601String(),
-            'updated_by': userId?.toString(),
-          })
-          .eq('key', 'gateway_fee_percentage');
+      await _supabase.from('app_config').update({
+        'value': fee,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': userId?.toString(),
+      }).eq('key', 'gateway_fee_percentage');
 
       debugPrint('[AppConfigService] Gateway fee updated to $fee%');
       return true;

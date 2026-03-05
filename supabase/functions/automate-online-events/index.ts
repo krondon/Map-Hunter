@@ -190,48 +190,59 @@ serve(async (req: Request) => {
         console.log(`[OneSignal Debug] APP_ID present: ${!!osAppId} (${osAppId?.slice(0, 5)}...)`);
         console.log(`[OneSignal Debug] API_KEY present: ${!!osApiKey} (${osApiKey?.slice(0, 15)}...)`);
 
-        // --- NEW: Handle Notification (Schedule or Send Immediately) ---
+        // --- Push Notification Logic ---
         try {
-            const eventStartTime = new Date(Date.now() + pendingWaitMinutes * 60 * 1000);
-            const notificationTime = new Date(eventStartTime.getTime() - (5 * 60 * 1000));
-            const now = new Date();
+            const osAppId = Deno.env.get('ONESIGNAL_APP_ID');
+            const osApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+            const appEnv = Deno.env.get('APP_ENV') || 'dev'; // Por defecto es dev
 
-            console.log(`[OneSignal] Actual: ${now.toISOString()}`);
-            console.log(`[OneSignal] Inicio Evento: ${eventStartTime.toISOString()}`);
-            console.log(`[OneSignal] Programada para: ${notificationTime.toISOString()}`);
+            if (osAppId && osApiKey) {
+                const eventStartTime = new Date(Date.now() + pendingWaitMinutes * 60 * 1000);
+                const notificationTime = new Date(eventStartTime.getTime() - (5 * 60 * 1000));
+                const now = new Date();
 
-            const notificationBody: any = {
-                app_id: osAppId,
-                included_segments: ["All"],
-                headings: { "es": "⚡ ¡Competencia Proxima!", "en": "⚡ Upcoming Event!" },
-                contents: {
-                    "es": "La competencia online comienza en 5 minutos. ¡Entra ya!",
-                    "en": "The online competition starts in 5 minutes. Join now!"
-                },
-                data: { "event_id": eventId, "type": "event_reminder" }
-            };
+                const notificationBody: any = {
+                    app_id: osAppId,
+                    headings: { "es": "⚡ ¡Competencia Proxima!", "en": "⚡ Upcoming Event!" },
+                    contents: {
+                        "es": "La competencia online comienza en 5 minutos. ¡Entra ya!",
+                        "en": "The online competition starts in 5 minutes. Join now!"
+                    },
+                    data: { "event_id": eventId, "type": "event_reminder" }
+                };
 
-            if (notificationTime.getTime() > now.getTime() + 15000) {
-                console.log(`[OneSignal] ESTADO: Programando futuro.`);
-                notificationBody.send_after = notificationTime.toISOString();
-            } else {
-                console.log(`[OneSignal] ESTADO: Enviando ahora.`);
+                // --- SWITCH INTELIGENTE DE AUDIENCIA ---
+                if (appEnv === 'prod') {
+                    // En producción enviamos a todos
+                    notificationBody.included_segments = ["All"];
+                    console.log('📢 Target: All users (Production mode)');
+                } else {
+                    // En desarrollo enviamos SOLO a los marcados como dev
+                    notificationBody.filters = [
+                        { "field": "tag", "key": "app_env", "relation": "=", "value": "dev" }
+                    ];
+                    console.log('📢 Target: Dev testers only (Development mode)');
+                }
+
+                if (notificationTime.getTime() > now.getTime() + 15000) {
+                    notificationBody.send_after = notificationTime.toISOString();
+                    console.log(`📅 Scheduled for: ${notificationTime.toISOString()}`);
+                }
+
+                const response = await fetch("https://onesignal.com/api/v1/notifications", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Authorization": `Basic ${osApiKey}`
+                    },
+                    body: JSON.stringify(notificationBody)
+                });
+
+                const result = await response.json();
+                console.log(`✅ OneSignal response:`, JSON.stringify(result));
             }
-
-            const oneSignalResponse = await fetch("https://onesignal.com/api/v1/notifications", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Authorization": `Basic ${osApiKey}`
-                },
-                body: JSON.stringify(notificationBody)
-            });
-
-            const osResult = await oneSignalResponse.json();
-            console.log('[OneSignal] RESPUESTA API:', JSON.stringify(osResult));
-
-        } catch (osError: any) {
-            console.error('[OneSignal] ❌ ERROR:', osError.message);
+        } catch (error) {
+            console.error('⚠️ Notification error (non-critical):', error);
         }
 
         // 5. Create Clues (Minigames)
