@@ -68,7 +68,8 @@
     </section>
     
 <section class="desc markdown">
-  <p>Stream of combat events (shield blocks, reflections, etc.)</p>
+  <p>Stream of combat events (shield blocks, reflections, etc.) via Postgres Changes.
+Latencia ~200-400ms vía WAL. Usado como fuente de verdad / fallback.</p>
 </section>
 
 
@@ -81,8 +82,7 @@ Stream&lt;List&lt;Map&lt;String, dynamic&gt;&gt;&gt; getCombatEventsStream({requ
       .from(&#39;combat_events&#39;)
       .stream(primaryKey: [&#39;id&#39;])
       .eq(&#39;target_id&#39;, targetId)
-      .order(&#39;created_at&#39;, ascending: false)
-      .order(&#39;created_at&#39;, ascending: false); &#47;&#47; Note: Keep existing weird ordering if it was there, or clean it up.
+      .order(&#39;created_at&#39;, ascending: false); &#47;&#47; Fix 3.7: removed duplicate .order() call
 }</code></pre>
 </section>
 
@@ -111,7 +111,7 @@ Stream&lt;List&lt;Map&lt;String, dynamic&gt;&gt;&gt; getCombatEventsStream({requ
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

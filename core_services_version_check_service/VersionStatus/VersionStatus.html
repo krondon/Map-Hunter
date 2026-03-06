@@ -55,9 +55,10 @@
     <section class="multi-line-signature">
       
       <span class="name ">VersionStatus</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="-param-isUpdateRequired"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">isUpdateRequired</span>, </span></li>
+<li><span class="parameter" id="-param-maintenanceMode"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">maintenanceMode</span>, </span></li>
 <li><span class="parameter" id="-param-localVersion"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">localVersion</span>, </span></li>
 <li><span class="parameter" id="-param-minVersion"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">minVersion</span>, </span></li>
-<li><span class="parameter" id="-param-storeUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">storeUrl</span>, </span></li>
+<li><span class="parameter" id="-param-downloadUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">downloadUrl</span>, </span></li>
 </ol>})
     </section>
     
@@ -68,9 +69,10 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">VersionStatus({
   required this.isUpdateRequired,
+  required this.maintenanceMode,
   required this.localVersion,
   required this.minVersion,
-  this.storeUrl,
+  this.downloadUrl,
 });</code></pre>
 </section>
 
@@ -99,7 +101,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

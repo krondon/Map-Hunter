@@ -168,6 +168,21 @@ Returns the fee as a double (e.g., 3.0 for 3%), or 0.0 as fallback.
 
 </dd>
 
+        <dt id="getVersionConfig" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/getVersionConfig.html">getVersionConfig</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Reads the full version_configuration object from app_config.
+Returns a map with: latest_version, min_supported_version,
+maintenance_mode, apk_download_url.
+  
+
+</dd>
+
         <dt id="isBcvRateValid" class="callable">
   <span class="name"><a href="../core_services_app_config_service/AppConfigService/isBcvRateValid.html">isBcvRateValid</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
@@ -183,6 +198,21 @@ Used by the UI to show maintenance banners and disable withdrawal buttons.
 
 </dd>
 
+        <dt id="isRechargeEnabled" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/isRechargeEnabled.html">isRechargeEnabled</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns true if the recharge (top-up) flow is currently enabled.
+Defaults to true (enabled) on any error so users are never hard-blocked
+by a network issue — only an explicit false from the DB disables it.
+  
+
+</dd>
+
         <dt id="noSuchMethod" class="callable inherited">
   <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
     <span class="returntype parameter">&#8594; dynamic</span>
@@ -193,6 +223,20 @@ Used by the UI to show maintenance banners and disable withdrawal buttons.
 <dd class="inherited">
   Invoked when a nonexistent method or property is accessed.
   <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="setRechargeEnabled" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/setRechargeEnabled.html">setRechargeEnabled</a></span><span class="signature">(<wbr><span class="parameter" id="setRechargeEnabled-param-enabled"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enabled</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Enables or disables the recharge flow for all users.
+Only admins can call this (enforced by RLS).
+  
 
 </dd>
 
@@ -263,6 +307,19 @@ Only admins can perform this operation (enforced by RLS).
 
 </dd>
 
+        <dt id="updateVersionConfig" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/updateVersionConfig.html">updateVersionConfig</a></span><span class="signature">(<wbr><span class="parameter" id="updateVersionConfig-param-config"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">config</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Saves the full version_configuration object to app_config.
+  
+
+</dd>
+
     </dl>
   </section>
     
@@ -313,7 +370,7 @@ Only admins can perform this operation (enforced by RLS).
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

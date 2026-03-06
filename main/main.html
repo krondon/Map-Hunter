@@ -156,6 +156,9 @@
   &#47;&#47; Cargar variables de entorno
   await dotenv.load(fileName: &quot;.env&quot;);
 
+  final supabaseUrl = dotenv.env[&#39;SUPABASE_URL&#39;]!;
+  debugPrint(&#39;🚀 [DEBUG-V2] CONECTANDO A SUPABASE: $supabaseUrl&#39;);
+
   &#47;&#47; Inicializar Supabase
   await Supabase.initialize(
     url: dotenv.env[&#39;SUPABASE_URL&#39;]!,
@@ -166,12 +169,15 @@
   );
 
   &#47;&#47; Initialize OneSignal
-  &#47;&#47; Remove this method to stop OneSignal Debugging
   if (!kIsWeb &amp;&amp; (Platform.isAndroid || Platform.isIOS)) {
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-    OneSignal.initialize(&quot;bbcc3a18-666a-4fa7-855a-4047b56a3e7d&quot;);
-    &#47;&#47; The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
+    OneSignal.initialize(dotenv.env[&#39;ONESIGNAL_APP_ID&#39;]!);
     OneSignal.Notifications.requestPermission(true);
+
+    &#47;&#47; --- AUTO-TAGGING: Distinguir Dev&#47;Prod sin crear dos apps ---
+    final String envTag = kDebugMode ? &#39;dev&#39; : &#39;prod&#39;;
+    OneSignal.User.addTagWithKey(&quot;app_env&quot;, envTag);
+    debugPrint(&#39;🏷️ OneSignal user tagged as: $envTag&#39;);
   }
 
   &#47;&#47; 3. La configuración de orientación y UI Overlay es solo para MÓVIL (Android&#47;iOS)
@@ -221,7 +227,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

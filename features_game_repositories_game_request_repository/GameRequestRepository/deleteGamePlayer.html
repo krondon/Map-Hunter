@@ -75,10 +75,7 @@
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;void&gt; deleteGamePlayer(String gamePlayerId) async {
   try {
-    await _supabase
-        .from(&#39;game_players&#39;)
-        .delete()
-        .eq(&#39;id&#39;, gamePlayerId);
+    await _supabase.from(&#39;game_players&#39;).delete().eq(&#39;id&#39;, gamePlayerId);
   } catch (e) {
     debugPrint(&#39;GameRequestRepository: Error deleting game player: $e&#39;);
     rethrow;
@@ -111,7 +108,7 @@ Future&lt;void&gt; deleteGamePlayer(String gamePlayerId) async {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

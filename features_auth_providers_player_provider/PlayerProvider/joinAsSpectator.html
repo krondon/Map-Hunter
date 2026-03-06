@@ -122,6 +122,18 @@ Esto le permite tener un game_player_id para comprar y sabotear.</p>
           &#39;PlayerProvider: ${existing[&#39;status&#39;]} user can now view as spectator (status unchanged)&#39;);
     }
 
+    &#47;&#47; 3. Eliminar cualquier solicitud pendiente en game_requests
+    try {
+      await _supabase
+          .from(&#39;game_requests&#39;)
+          .delete()
+          .eq(&#39;user_id&#39;, userId)
+          .eq(&#39;event_id&#39;, eventId);
+      debugPrint(&#39;PlayerProvider: Removed pending game_requests for spectator $userId&#39;);
+    } catch (e) {
+      debugPrint(&#39;PlayerProvider: ⚠️ Error removing game_requests: $e&#39;);
+    }
+
     &#47;&#47; Refrescar perfil para cargar el gamePlayerId actualizado
     &#47;&#47; NOTE: No llamamos clearGameContext() aquí porque causaría un bucle de rebuilds.
     &#47;&#47; refreshProfile() se encargará de actualizar el estado correctamente.
@@ -157,7 +169,7 @@ Esto le permite tener un game_player_id para comprar y sabotear.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -76,19 +76,24 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;?&gt; completeClue(String clueId, String answer,
     {String? eventId}) async {
   try {
-    final response =
-        await _supabase.functions.invoke(&#39;game-play&#47;complete-clue&#39;,
-            body: {
-              &#39;clueId&#39;: clueId,
-              &#39;answer&#39;: answer,
-            },
-            method: HttpMethod.post);
+    &#47;&#47; [PERFORMANCE OPTIMIZATION] Option 1: Atomic RPC
+    &#47;&#47; Consolidates 15+ DB operations (validation, progress, ranking, rewards)
+    &#47;&#47; into a single database roundtrip for high-concurrency (50+ users).
+    final response = await _supabase.rpc(&#39;submit_clue_answer&#39;, params: {
+      &#39;p_clue_id&#39;: int.tryParse(clueId) ?? clueId,
+      &#39;p_answer&#39;: answer,
+    });
 
-    if (response.status == 200) {
-      final data = response.data as Map&lt;String, dynamic&gt;?;
+    if (response != null &amp;&amp; response is Map&lt;String, dynamic&gt;) {
+      final data = response;
+
+      if (data[&#39;success&#39;] == false) {
+        debugPrint(&#39;❌ Error completing clue (RPC): ${data[&#39;error&#39;]}&#39;);
+        return null;
+      }
 
       &#47;&#47; AUTO-DISTRIBUTE PRIZES IF RACE COMPLETED (ATOMIC RPC)
-      if (data != null &amp;&amp; data[&#39;raceCompleted&#39;] == true) {
+      if (data[&#39;raceCompleted&#39;] == true) {
         debugPrint(&quot;🏁 Race Completed (Last Clue). Calling RegisterRPC...&quot;);
 
         &#47;&#47; Use provided eventId, fallback to response, then null
@@ -97,13 +102,13 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
         if (eventIdToUse != null) {
           final rpcRes = await _registerFinisher(eventIdToUse);
           if (rpcRes != null &amp;&amp; rpcRes[&#39;success&#39;] == true) {
-             &#47;&#47; Inject prize&#47;position into response so UI knows
-             final newData = Map&lt;String, dynamic&gt;.from(data);
-             newData[&#39;prizeAmount&#39;] = rpcRes[&#39;prize&#39;];
-             newData[&#39;position&#39;] = rpcRes[&#39;position&#39;];
-             &#47;&#47; CRITICAL: Ensure this flag is passed up
-             newData[&#39;raceCompletedGlobal&#39;] = rpcRes[&#39;race_completed&#39;];
-             return newData;
+            &#47;&#47; Inject prize&#47;position into response so UI knows
+            final newData = Map&lt;String, dynamic&gt;.from(data);
+            newData[&#39;prizeAmount&#39;] = rpcRes[&#39;prize&#39;];
+            newData[&#39;position&#39;] = rpcRes[&#39;position&#39;];
+            &#47;&#47; CRITICAL: Ensure this flag is passed up
+            newData[&#39;raceCompletedGlobal&#39;] = rpcRes[&#39;race_completed&#39;];
+            return newData;
           }
         }
       }
@@ -143,7 +148,7 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

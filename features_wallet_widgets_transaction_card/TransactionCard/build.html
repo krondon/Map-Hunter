@@ -238,14 +238,20 @@ Widget build(BuildContext context) {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   &#47;&#47; Clover Amount (Primary)
-                  Text(
-                    &#39;${item.isCredit ? &#39;+&#39; : &#39;&#39;}${item.amount.toInt()} 🍀&#39;,
-                    style: TextStyle(
-                      fontFamily: &#39;Orbitron&#39;,
-                      color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        &#39;${item.isCredit ? &#39;+&#39; : &#39;&#39;}${item.amount.toInt()} &#39;,
+                        style: TextStyle(
+                          fontFamily: &#39;Orbitron&#39;,
+                          color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const CoinImage(size: 14),
+                    ],
                   ),
                   &#47;&#47; Fiat Amount (Secondary)
                   if (item.fiatAmount != null &amp;&amp;
@@ -362,7 +368,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

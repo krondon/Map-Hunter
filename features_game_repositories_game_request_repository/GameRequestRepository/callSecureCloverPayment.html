@@ -78,7 +78,8 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-Future&lt;Map&lt;String, dynamic&gt;&gt; callSecureCloverPayment(String userId, int amount, String reason) async {
+Future&lt;Map&lt;String, dynamic&gt;&gt; callSecureCloverPayment(
+    String userId, int amount, String reason) async {
   try {
     final result = await _supabase.rpc(&#39;secure_clover_payment&#39;, params: {
       &#39;p_user_id&#39;: userId,
@@ -118,7 +119,7 @@ Future&lt;Map&lt;String, dynamic&gt;&gt; callSecureCloverPayment(String userId, 
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

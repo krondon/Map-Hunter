@@ -84,6 +84,7 @@ listeners or not immediately before disposal.</p>
 void dispose() {
   stopLeaderboardUpdates();
   stopLivesSubscription();
+  _leaderboardDebouncer.dispose();
   super.dispose();
 }</code></pre>
 </section>
@@ -113,7 +114,7 @@ void dispose() {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

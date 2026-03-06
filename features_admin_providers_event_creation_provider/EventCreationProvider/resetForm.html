@@ -96,6 +96,12 @@
     _spectatorPrices[item.id] = item.cost;
   }
 
+  &#47;&#47; Initialize default player (store) prices
+  _playerPrices = {};
+  for (var item in PowerItem.getShopItems()) {
+    _playerPrices[item.id] = item.cost;
+  }
+
   notifyListeners();
   &#47;&#47; Ensure sponsors are loaded for new forms too
   if (_sponsors.isEmpty) loadSponsors();
@@ -127,7 +133,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

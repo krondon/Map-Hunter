@@ -69,15 +69,30 @@
   <pre class="language-dart"><code class="language-dart">void subscribeToRaceStatus() {
   if (_currentEventId == null) return;
 
+  &#47;&#47; Fix: evitar unsubscribe&#47;resubscribe en cada fetchClues(silent:true) para el mismo evento.
+  &#47;&#47; La race condition anterior: cada pista completada llamaba fetchClues(silent:true) → aquí →
+  &#47;&#47; desuscribía el canal brevemente → si el evento se completaba en esa ventana, se perdía.
+  if (_raceStatusChannel != null &amp;&amp; _subscribedRaceEventId == _currentEventId) {
+    debugPrint(&#39;[Race] ✅ Canal ya activo para $_currentEventId — omitiendo re-suscripción&#39;);
+    return;
+  }
+
   _raceStatusChannel?.unsubscribe();
+  _subscribedRaceEventId = _currentEventId;
 
   _raceStatusChannel = _gameService.subscribeToRaceStatus(
       _currentEventId!, totalClues, (completed, source) {
     _setRaceCompleted(completed, source);
   }, onProgressUpdate: () {
     debugPrint(
-        &#39;🏎️ RACE UPDATE: Realtime progress detected, refreshing leaderboard...&#39;);
-    _fetchLeaderboardInternal(silent: true);
+        &#39;🏎️ RACE UPDATE: Realtime progress detected, scheduling debounced leaderboard refresh...&#39;);
+    &#47;&#47; OPTIMIZACIÓN: Debounce de 2s para evitar 50+ fetches&#47;segundo en ráfagas.
+    &#47;&#47; Si hay actividad continua, maxWait=5s garantiza que no parezca congelado.
+    _leaderboardDebouncer.schedule(() {
+      debugPrint(
+          &#39;📊 LeaderboardDebouncer: flush → _fetchLeaderboardInternal&#39;);
+      _fetchLeaderboardInternal(silent: true);
+    });
   });
 }</code></pre>
 </section>
@@ -107,7 +122,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

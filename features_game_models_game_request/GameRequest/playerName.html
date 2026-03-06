@@ -59,7 +59,7 @@
   <section id="getter">
     <section class="multi-line-signature">
       
-      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
       get
       <span class="name ">playerName</span>
       
@@ -70,7 +70,8 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">String? get playerName =&gt; userName;</code></pre>
+  <pre class="language-dart"><code class="language-dart">String get playerName =&gt;
+    userName ?? &#39;Cazador&#39;;</code></pre>
 </section>
 
   </section>
@@ -100,7 +101,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

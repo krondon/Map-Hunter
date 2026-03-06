@@ -68,7 +68,8 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; createCluesBatch(String eventId, List&lt;Map&lt;String, dynamic&gt;&gt; cluesData) async {
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; createCluesBatch(
+    String eventId, List&lt;Map&lt;String, dynamic&gt;&gt; cluesData) async {
   try {
     await _eventService.createCluesBatch(eventId, cluesData);
     debugPrint(&quot;✅ Pistas creadas exitosamente para el evento $eventId&quot;);
@@ -104,7 +105,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

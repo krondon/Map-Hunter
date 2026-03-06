@@ -77,8 +77,10 @@ Agrega:</p>
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;&gt; getDetailedEventFinancials(String eventId) async {
-  debugPrint(&#39;💰 AdminService: Getting DETAILED financial results for $eventId&#39;);
+  <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;&gt; getDetailedEventFinancials(
+    String eventId) async {
+  debugPrint(
+      &#39;💰 AdminService: Getting DETAILED financial results for $eventId&#39;);
   try {
     &#47;&#47; 1. Fetch Prize Distributions (Podium)
     List&lt;dynamic&gt; prizeDistributions = [];
@@ -89,7 +91,8 @@ Agrega:</p>
           .eq(&#39;event_id&#39;, eventId)
           .eq(&#39;rpc_success&#39;, true)
           .order(&#39;position&#39;, ascending: true);
-      debugPrint(&#39;💰 Prize distributions found: ${prizeDistributions.length}&#39;);
+      debugPrint(
+          &#39;💰 Prize distributions found: ${prizeDistributions.length}&#39;);
     } catch (e) {
       debugPrint(&#39;💰 Error fetching prize_distributions: $e&#39;);
     }
@@ -118,7 +121,8 @@ Agrega:</p>
           .contains(&#39;metadata&#39;, {&#39;event_id&#39;: eventId});
       debugPrint(&#39;💰 Bet payouts found: ${payouts.length}&#39;);
     } catch (e) {
-      debugPrint(&#39;💰 Error fetching wallet_ledger payouts (trying fallback): $e&#39;);
+      debugPrint(
+          &#39;💰 Error fetching wallet_ledger payouts (trying fallback): $e&#39;);
       &#47;&#47; Fallback: try simpler query without metadata filter
       try {
         payouts = await _supabase
@@ -135,7 +139,8 @@ Agrega:</p>
         }).toList();
         debugPrint(&#39;💰 Bet payouts found (fallback): ${payouts.length}&#39;);
       } catch (e2) {
-        debugPrint(&#39;💰 Error fetching wallet_ledger payouts (fallback also failed): $e2&#39;);
+        debugPrint(
+            &#39;💰 Error fetching wallet_ledger payouts (fallback also failed): $e2&#39;);
       }
     }
 
@@ -193,7 +198,8 @@ Agrega:</p>
       }
     } else {
       &#47;&#47; Fallback: Build podium from game_players.final_placement
-      debugPrint(&#39;💰 No prize_distributions found, building podium from game_players&#39;);
+      debugPrint(
+          &#39;💰 No prize_distributions found, building podium from game_players&#39;);
       try {
         final topPlayers = await _supabase
             .from(&#39;game_players&#39;)
@@ -205,7 +211,8 @@ Agrega:</p>
             .limit(3);
 
         &#47;&#47; Fetch profiles for podium players
-        final podiumUserIds = topPlayers.map((p) =&gt; p[&#39;user_id&#39;] as String).toList();
+        final podiumUserIds =
+            topPlayers.map((p) =&gt; p[&#39;user_id&#39;] as String).toList();
         if (podiumUserIds.isNotEmpty) {
           final podiumProfiles = await _supabase
               .from(&#39;profiles&#39;)
@@ -241,15 +248,15 @@ Agrega:</p>
       final amount = (b[&#39;amount&#39;] as num).toInt();
 
       if (!bettorsMap.containsKey(uid)) {
-         final profile = profilesMap[uid] ?? {};
-         bettorsMap[uid] = {
-           &#39;user_id&#39;: uid,
-           &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Apostador&#39;,
-           &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
-           &#39;total_bet&#39;: 0,
-           &#39;total_won&#39;: 0,
-           &#39;bets_count&#39;: 0,
-         };
+        final profile = profilesMap[uid] ?? {};
+        bettorsMap[uid] = {
+          &#39;user_id&#39;: uid,
+          &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Apostador&#39;,
+          &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
+          &#39;total_bet&#39;: 0,
+          &#39;total_won&#39;: 0,
+          &#39;bets_count&#39;: 0,
+        };
       }
 
       bettorsMap[uid]![&#39;total_bet&#39;] += amount;
@@ -264,15 +271,15 @@ Agrega:</p>
       if (bettorsMap.containsKey(uid)) {
         bettorsMap[uid]![&#39;total_won&#39;] += amount;
       } else {
-         final profile = profilesMap[uid] ?? {};
-         bettorsMap[uid] = {
-           &#39;user_id&#39;: uid,
-           &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Ganador&#39;,
-           &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
-           &#39;total_bet&#39;: 0,
-           &#39;total_won&#39;: amount,
-           &#39;bets_count&#39;: 0,
-         };
+        final profile = profilesMap[uid] ?? {};
+        bettorsMap[uid] = {
+          &#39;user_id&#39;: uid,
+          &#39;name&#39;: profile[&#39;name&#39;] ?? &#39;Ganador&#39;,
+          &#39;avatar_id&#39;: profile[&#39;avatar_id&#39;],
+          &#39;total_bet&#39;: 0,
+          &#39;total_won&#39;: amount,
+          &#39;bets_count&#39;: 0,
+        };
       }
     }
 
@@ -283,7 +290,8 @@ Agrega:</p>
     }
 
     final bettorsList = bettorsMap.values.toList();
-    bettorsList.sort((a, b) =&gt; (b[&#39;total_won&#39;] as int).compareTo(a[&#39;total_won&#39;] as int));
+    bettorsList.sort(
+        (a, b) =&gt; (b[&#39;total_won&#39;] as int).compareTo(a[&#39;total_won&#39;] as int));
 
     return {
       &#39;status&#39;: &#39;completed&#39;,
@@ -291,9 +299,9 @@ Agrega:</p>
       &#39;podium&#39;: podium,
       &#39;bettors&#39;: bettorsList,
     };
-
   } catch (e) {
-    debugPrint(&#39;💰 AdminService: Critical error getting DETAILED financial results: $e&#39;);
+    debugPrint(
+        &#39;💰 AdminService: Critical error getting DETAILED financial results: $e&#39;);
     return {&#39;pot&#39;: 0, &#39;podium&#39;: [], &#39;bettors&#39;: []};
   }
 }</code></pre>
@@ -324,7 +332,7 @@ Agrega:</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

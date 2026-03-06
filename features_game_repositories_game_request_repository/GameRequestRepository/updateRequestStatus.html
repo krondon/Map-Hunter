@@ -78,8 +78,7 @@ Future&lt;void&gt; updateRequestStatus(String requestId, String status) async {
   try {
     await _supabase
         .from(&#39;game_requests&#39;)
-        .update({&#39;status&#39;: status})
-        .eq(&#39;id&#39;, requestId);
+        .update({&#39;status&#39;: status}).eq(&#39;id&#39;, requestId);
   } catch (e) {
     debugPrint(&#39;GameRequestRepository: Error updating request: $e&#39;);
     rethrow;
@@ -112,7 +111,7 @@ Future&lt;void&gt; updateRequestStatus(String requestId, String status) async {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -62,9 +62,14 @@
     </section>
     
 <section class="desc markdown">
-  <p>Inicia el polling periódico del Leaderboard (cada 5 segundos).</p>
-<p>Llama a <code>fetchLeaderboard</code> inicialmente y luego lo programa.
-Útil para mantener la tabla de posiciones actualizada sin Realtime excesivo.</p>
+  <p>Inicia el polling periódico del Leaderboard (heartbeat de fallback: cada 30 segundos).</p>
+<p>OPTIMIZACIÓN: El intervalo principal de actualización ahora corre por
+<a href="../../features_game_providers_game_provider/GameProvider/subscribeToRaceStatus.html">subscribeToRaceStatus</a> + <code>_leaderboardDebouncer</code> (event-driven, 2s debounce).
+Este timer es solo un "heartbeat" de reconciliación para cubrir casos edge:</p>
+<ul>
+<li>Reconexión tras pérdida de WebSocket</li>
+<li>Eventos que llegaron durante desconexión temporal</li>
+</ul>
 </section>
 
 
@@ -75,7 +80,9 @@
   fetchLeaderboard();
   stopLeaderboardUpdates();
 
-  _leaderboardTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+  &#47;&#47; 30s en lugar de 5s: Realtime + debounce maneja las actualizaciones reactivas.
+  &#47;&#47; Este timer solo es fallback de resync.
+  _leaderboardTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
     if (_currentEventId != null) {
       _fetchLeaderboardInternal(silent: true);
     }
@@ -108,7 +115,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

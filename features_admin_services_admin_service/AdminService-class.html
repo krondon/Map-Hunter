@@ -125,6 +125,32 @@ de depender de variables globales.</p>
 
 </dd>
 
+        <dt id="adminApplyPowerToPlayer" class="callable">
+  <span class="name"><a href="../features_admin_services_admin_service/AdminService/adminApplyPowerToPlayer.html">adminApplyPowerToPlayer</a></span><span class="signature">(<wbr>{<span class="parameter" id="adminApplyPowerToPlayer-param-userId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="adminApplyPowerToPlayer-param-eventId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="adminApplyPowerToPlayer-param-powerSlug"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">powerSlug</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Aplica un efecto de poder INMEDIATO a un jugador (congelar, etc).
+  
+
+</dd>
+
+        <dt id="adminGiftPowerToPlayer" class="callable">
+  <span class="name"><a href="../features_admin_services_admin_service/AdminService/adminGiftPowerToPlayer.html">adminGiftPowerToPlayer</a></span><span class="signature">(<wbr>{<span class="parameter" id="adminGiftPowerToPlayer-param-userId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="adminGiftPowerToPlayer-param-eventId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="adminGiftPowerToPlayer-param-powerSlug"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">powerSlug</span>, </span><span class="parameter" id="adminGiftPowerToPlayer-param-quantity"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">quantity</span> = <span class="default-value">1</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Otorga un poder (ítem) al inventario de un jugador.
+  
+
+</dd>
+
         <dt id="checkPrizeDistributionStatus" class="callable">
   <span class="name"><a href="../features_admin_services_admin_service/AdminService/checkPrizeDistributionStatus.html">checkPrizeDistributionStatus</a></span><span class="signature">(<wbr><span class="parameter" id="checkPrizeDistributionStatus-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
@@ -372,7 +398,7 @@ Obtiene los resultados financieros finales de un evento.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

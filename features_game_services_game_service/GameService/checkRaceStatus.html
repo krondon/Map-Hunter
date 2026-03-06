@@ -74,6 +74,7 @@
   try {
     final response = await _supabase.functions.invoke(
       &#39;game-play&#47;check-race-status&#39;,
+      headers: await _authHeaders(),
       body: {&#39;eventId&#39;: eventId},
       method: HttpMethod.post,
     );
@@ -82,6 +83,22 @@
       final data = response.data as Map&lt;String, dynamic&gt;?;
       if (data != null) {
         return data[&#39;isCompleted&#39;] ?? false;
+      }
+    } else if (response.status == 401) {
+      &#47;&#47; Handle Invalid JWT by forcing a refresh and retrying once
+      debugPrint(&#39;[GameService] 401 Detected. Forcing session refresh...&#39;);
+      await _supabase.auth.refreshSession();
+
+      final retryResponse = await _supabase.functions.invoke(
+        &#39;game-play&#47;check-race-status&#39;,
+        headers: await _authHeaders(),
+        body: {&#39;eventId&#39;: eventId},
+        method: HttpMethod.post,
+      );
+
+      if (retryResponse.status == 200) {
+         final data = retryResponse.data as Map&lt;String, dynamic&gt;?;
+         return data?[&#39;isCompleted&#39;] ?? false;
       }
     }
     return false;
@@ -117,7 +134,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

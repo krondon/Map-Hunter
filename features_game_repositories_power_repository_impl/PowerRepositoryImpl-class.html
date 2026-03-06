@@ -154,6 +154,21 @@ Clears is_protected and removes expired defense rows from active_powers.
 
 </dd>
 
+        <dt id="getCombatBroadcastChannel" class="callable">
+  <span class="name"><a href="../features_game_repositories_power_repository_impl/PowerRepositoryImpl/getCombatBroadcastChannel.html">getCombatBroadcastChannel</a></span><span class="signature">(<wbr>{<span class="parameter" id="getCombatBroadcastChannel-param-gamePlayerId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">gamePlayerId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://pub.dev/documentation/realtime_client/2.7.0/realtime_client/RealtimeChannel-class.html">RealtimeChannel</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Canal de Broadcast de Supabase para recibir combat_events y active_powers
+con latencia reducida (~50ms). Complementa getCombatEventsStream.
+El cliente es responsable de llamar .subscribe() y .unsubscribe().
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
         <dt id="getCombatEventsStream" class="callable">
   <span class="name"><a href="../features_game_repositories_power_repository_impl/PowerRepositoryImpl/getCombatEventsStream.html">getCombatEventsStream</a></span><span class="signature">(<wbr>{<span class="parameter" id="getCombatEventsStream-param-targetId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">targetId</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Stream-class.html">Stream</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>&gt;</span></span>
@@ -162,7 +177,8 @@ Clears is_protected and removes expired defense rows from active_powers.
 
 </dt>
 <dd>
-  Stream of combat events (shield blocks, reflections, etc.)
+  Stream of combat events (shield blocks, reflections, etc.) via Postgres Changes.
+Latencia ~200-400ms vía WAL. Usado como fuente de verdad / fallback.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -322,7 +338,7 @@ Needed for gift notifications when the sender is not in the local leaderboard (s
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

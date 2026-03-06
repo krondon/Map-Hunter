@@ -110,32 +110,41 @@ and</li>
   <pre class="language-dart"><code class="language-dart">@override
 Widget build(BuildContext context) {
   return Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (showMessage) ...[
-          Text(
-            message,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: fontSize,
-              decoration: TextDecoration.none,
-              fontFamily: &#39;Inter&#39;,
-              letterSpacing: 1.2,
-            ),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isVerySmall = constraints.maxHeight &lt; 60;
+        return SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showMessage &amp;&amp; !isVerySmall) ...[
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: fontSize,
+                    decoration: TextDecoration.none,
+                    fontFamily: &#39;Inter&#39;,
+                    letterSpacing: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+              ],
+              SizedBox(
+                width: isVerySmall ? 20 : fontSize * 1.2,
+                height: isVerySmall ? 20 : fontSize * 1.2,
+                child: CircularProgressIndicator(
+                  color: color,
+                  strokeWidth: 2,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
-        SizedBox(
-          width: fontSize * 1.5,
-          height: fontSize * 1.5,
-          child: CircularProgressIndicator(
-            color: color,
-            strokeWidth: 2,
-          ),
-        ),
-      ],
+        );
+      },
     ),
   );
 }</code></pre>
@@ -166,7 +175,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

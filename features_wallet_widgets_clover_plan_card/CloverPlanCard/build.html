@@ -135,26 +135,20 @@ Widget build(BuildContext context) {
               ]
             : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            &#47;&#47; Clover Icons at top
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(cloverIconCount, (index) =&gt;
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  child: const Text(
-                    &#39;🍀&#39;,
-                    style: TextStyle(
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-              ),
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        &#47;&#47; Coin Icons at top
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(cloverIconCount, (index) =&gt;
+             Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: CoinImage(size: 20 + (index * 2)),
             ),
+          ),
+        ),
 
             const SizedBox(height: 12),
 
@@ -199,7 +193,6 @@ Widget build(BuildContext context) {
           ],
         ),
       ),
-    ),
   );
 }</code></pre>
 </section>
@@ -229,7 +222,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

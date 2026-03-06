@@ -81,12 +81,21 @@
     }
   }
 
-  &#47;&#47; 2. Cerrar sesión en Supabase
+  &#47;&#47; 2. Limpiar token local PRIMERO — garantiza que el storage quede limpio
+  &#47;&#47;    incluso si signOut() falla por red, sesión expirada, etc.
+  try {
+    await SecureLocalStorage().removePersistedSession();
+    debugPrint(&#39;AuthService: Local token cleared.&#39;);
+  } catch (e) {
+    debugPrint(&#39;AuthService: Error clearing local token: $e&#39;);
+  }
+
+  &#47;&#47; 3. Cerrar sesión en Supabase (invalida el token en el servidor)
   try {
     await _supabase.auth.signOut();
   } catch (e) {
-    debugPrint(&#39;AuthService: Error force-closing session: $e&#39;);
-    &#47;&#47; No re-lanzamos para permitir que la App asuma que salió localmente
+    debugPrint(&#39;AuthService: Error closing server session (token already cleared locally): $e&#39;);
+    &#47;&#47; No re-lanzamos — el token local ya fue borrado, la App puede continuar
   }
 }</code></pre>
 </section>
@@ -116,7 +125,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

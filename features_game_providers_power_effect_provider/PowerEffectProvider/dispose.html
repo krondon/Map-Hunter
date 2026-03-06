@@ -85,10 +85,13 @@ void dispose() {
   _subscription?.cancel();
   _casterSubscription?.cancel();
   _combatEventsSubscription?.cancel();
-  _timerEventSubscription?.cancel(); &#47;&#47; NEW: Cancel timer event subscription
+  _gamePlayerSubscription?.cancel(); &#47;&#47; Fix 3.1: prevent zombie listeners
+  _timerEventSubscription?.cancel();
   _defenseFeedbackTimer?.cancel();
+  _broadcastChannel?.unsubscribe();
+  _broadcastChannel = null;
   _clearAllEffects();
-  _feedbackStreamController.close(); &#47;&#47; Cleanup Stream
+  _feedbackQueue.dispose(); &#47;&#47; Cleanup feedback queue
   super.dispose();
 }</code></pre>
 </section>
@@ -118,7 +121,7 @@ void dispose() {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

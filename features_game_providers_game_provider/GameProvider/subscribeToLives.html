@@ -101,89 +101,45 @@ y filtra manualmente en el callback para evitar discrepancias de tipos de ID.</p
         event: PostgresChangeEvent.update,
         schema: &#39;public&#39;,
         table: &#39;game_players&#39;,
-        &#47;&#47; ⚡ SIN FILTRO: Recibimos TODOS los updates de game_players
-        &#47;&#47; La validación se hace manualmente en el callback
+        &#47;&#47; ✅ FILTRO SERVER-SIDE: Requiere REPLICA IDENTITY FULL en game_players
+        &#47;&#47; (aplicado en migración 20260303100000_realtime_performance_optimizations.sql).
+        &#47;&#47; Con 50 jugadores, esto reduce de 50×enviados&#47;todos a 1×solo-el-mío.
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: &#39;user_id&#39;,
+          value: normalizedUserId,
+        ),
         callback: (payload) {
           final record = payload.newRecord;
           final timestamp = DateTime.now().toIso8601String();
 
-          &#47;&#47; 🔥 AUDITORÍA COMPLETA: Log de entrada del evento
           debugPrint(&#39;━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━&#39;);
           debugPrint(&#39;[LIVES_SYNC] 🔥 REALTIME EVENT RECEIVED @ $timestamp&#39;);
 
-          &#47;&#47; Extraer y normalizar IDs entrantes
-          final incomingUserIdRaw = record[&#39;user_id&#39;];
+          &#47;&#47; Con filtro server-side, el event_id aún requiere validación
+          &#47;&#47; porque la columna user_id no garantiza pertenecer a este evento.
           final incomingEventIdRaw = record[&#39;event_id&#39;];
           final incomingLivesRaw = record[&#39;lives&#39;];
 
-          &#47;&#47; Log de tipos para debugging
-          debugPrint(&#39;[LIVES_SYNC]   📦 Raw Data Types:&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      user_id: ${incomingUserIdRaw.runtimeType} = $incomingUserIdRaw&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      event_id: ${incomingEventIdRaw.runtimeType} = $incomingEventIdRaw&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      lives: ${incomingLivesRaw.runtimeType} = $incomingLivesRaw&#39;);
-
-          &#47;&#47; Normalizar IDs entrantes (manejar UUID objects y Strings)
-          final String incomingUserId =
-              incomingUserIdRaw?.toString().trim() ?? &#39;&#39;;
           final String incomingEventId =
               incomingEventIdRaw?.toString().trim() ?? &#39;&#39;;
-
-          &#47;&#47; Comparación con IDs esperados
-          debugPrint(&#39;[LIVES_SYNC]   🎯 ID Comparison:&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      Expected user_id: &quot;$normalizedUserId&quot;&#39;);
-          debugPrint(&#39;[LIVES_SYNC]      Incoming user_id: &quot;$incomingUserId&quot;&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      User Match: ${incomingUserId == normalizedUserId}&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      Expected event_id: &quot;$normalizedEventId&quot;&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      Incoming event_id: &quot;$incomingEventId&quot;&#39;);
-          debugPrint(
-              &#39;[LIVES_SYNC]      Event Match: ${incomingEventId == normalizedEventId}&#39;);
-
-          &#47;&#47; Filtrado robusto: Solo procesar si ambos IDs coinciden
-          final bool userMatches = incomingUserId == normalizedUserId;
           final bool eventMatches = incomingEventId == normalizedEventId;
 
-          if (userMatches &amp;&amp; eventMatches) {
-            &#47;&#47; ✅ MATCH: Este evento es para nuestro usuario
+          if (eventMatches) {
             final int newLives = incomingLivesRaw as int;
-            debugPrint(&#39;[LIVES_SYNC] ✅ MATCH CONFIRMED - Processing update&#39;);
-            debugPrint(&#39;[LIVES_SYNC]   Old lives: $_lives&#39;);
-            debugPrint(&#39;[LIVES_SYNC]   New lives: $newLives&#39;);
+            debugPrint(
+                &#39;[LIVES_SYNC] ✅ Match - Updating lives: $_lives → $newLives&#39;);
 
-            &#47;&#47; Solo actualizar si el valor cambió
             if (_lives != newLives) {
-              final int oldLives = _lives;
               _lives = newLives;
-
-              debugPrint(
-                  &#39;[LIVES_SYNC]   📢 Lives changed: $oldLives → $newLives&#39;);
-              debugPrint(&#39;[LIVES_SYNC]   🔔 Calling notifyListeners()...&#39;);
-
-              notifyListeners(); &#47;&#47; 📢 Esto despierta a la UI
-
-              debugPrint(
-                  &#39;[LIVES_SYNC]   ✅ notifyListeners() completed @ ${DateTime.now().toIso8601String()}&#39;);
-              debugPrint(
-                  &#39;[LIVES_SYNC]   💡 UI should rebuild NOW with new value: $newLives&#39;);
+              notifyListeners();
+              debugPrint(&#39;[LIVES_SYNC] 🔔 notifyListeners() called&#39;);
             } else {
               debugPrint(
-                  &#39;[LIVES_SYNC]   ⚠️ Value unchanged ($newLives), skipping notification&#39;);
+                  &#39;[LIVES_SYNC] ⚠️ Value unchanged ($newLives), skipping&#39;);
             }
           } else {
-            &#47;&#47; ⚠️ NO MATCH: Evento filtrado
-            debugPrint(&#39;[LIVES_SYNC] ⚠️ EVENT FILTERED OUT&#39;);
-            if (!userMatches) {
-              debugPrint(&#39;[LIVES_SYNC]   ❌ User ID mismatch&#39;);
-            }
-            if (!eventMatches) {
-              debugPrint(&#39;[LIVES_SYNC]   ❌ Event ID mismatch&#39;);
-            }
+            debugPrint(&#39;[LIVES_SYNC] ⚠️ Event ID mismatch - filtered out&#39;);
           }
 
           debugPrint(&#39;━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━&#39;);
@@ -220,7 +176,7 @@ y filtra manualmente en el callback para evitar discrepancias de tipos de ID.</p
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

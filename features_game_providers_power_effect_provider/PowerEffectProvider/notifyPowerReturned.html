@@ -70,7 +70,7 @@
   <pre class="language-dart"><code class="language-dart">void notifyPowerReturned(String byPlayerName) {
   _returnedByPlayerName = byPlayerName;
   _registerDefenseAction(DefenseAction.returned);
-  _feedbackStreamController.add(PowerFeedbackEvent(
+  _feedbackQueue.add(PowerFeedbackEvent(
     PowerFeedbackType.returnRejection,
     relatedPlayerName: byPlayerName,
   ));
@@ -103,7 +103,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -97,6 +97,7 @@ void resetState() {
   _isMinigameDataLoading = false;
   _currentSponsor = null;
   _currentUserId = null;
+  _subscribedRaceEventId = null; &#47;&#47; Fix: resetear tracking
 
   stopLeaderboardUpdates();
   stopLivesSubscription();
@@ -129,7 +130,7 @@ void resetState() {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

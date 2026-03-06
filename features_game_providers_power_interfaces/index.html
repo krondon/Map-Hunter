@@ -156,6 +156,8 @@ Used by UI widgets to display active effects.
       <li><a href="../core_services_app_config_service/">core/services/app_config_service</a></li>
       <li><a href="../core_services_connectivity_service/">core/services/connectivity_service</a></li>
       <li><a href="../core_services_effect_timer_service/">core/services/effect_timer_service</a></li>
+      <li><a href="../core_services_feedback_event_queue/">core/services/feedback_event_queue</a></li>
+      <li><a href="../core_services_leaderboard_debouncer/">core/services/leaderboard_debouncer</a></li>
       <li><a href="../core_services_pago_a_pago_service/">core/services/pago_a_pago_service</a></li>
       <li><a href="../core_services_terms_service/">core/services/terms_service</a></li>
       <li><a href="../core_services_terms_service_interface/">core/services/terms_service_interface</a></li>
@@ -287,15 +289,14 @@ Used by UI widgets to display active effects.
       <li><a href="../features_game_widgets_effects_shield_break_effect/">features/game/widgets/effects/shield_break_effect</a></li>
       <li><a href="../features_game_widgets_effects_shield_breaking_effect/">features/game/widgets/effects/shield_breaking_effect</a></li>
       <li><a href="../features_game_widgets_effects_steal_failed_effect/">features/game/widgets/effects/steal_failed_effect</a></li>
+      <li><a href="../features_game_widgets_event_launch_countdown_overlay/">features/game/widgets/event_launch_countdown_overlay</a></li>
       <li><a href="../features_game_widgets_game_over_dialog/">features/game/widgets/game_over_dialog</a></li>
       <li><a href="../features_game_widgets_loss_flash_overlay/">features/game/widgets/loss_flash_overlay</a></li>
       <li><a href="../features_game_widgets_minigame_countdown_overlay/">features/game/widgets/minigame_countdown_overlay</a></li>
       <li><a href="../features_game_widgets_minigames_bag_shuffle_minigame/">features/game/widgets/minigames/bag_shuffle_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_block_fill_minigame/">features/game/widgets/minigames/block_fill_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_capital_cities_minigame/">features/game/widgets/minigames/capital_cities_minigame</a></li>
-      <li><a href="../features_game_widgets_minigames_charge_shaker_minigame/">features/game/widgets/minigames/charge_shaker_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_chronological_order_minigame/">features/game/widgets/minigames/chronological_order_minigame</a></li>
-      <li><a href="../features_game_widgets_minigames_code_breaker_widget/">features/game/widgets/minigames/code_breaker_widget</a></li>
       <li><a href="../features_game_widgets_minigames_cyber_surrender_button/">features/game/widgets/minigames/cyber_surrender_button</a></li>
       <li><a href="../features_game_widgets_minigames_drink_mixer_minigame/">features/game/widgets/minigames/drink_mixer_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_drone_dodge_minigame/">features/game/widgets/minigames/drone_dodge_minigame</a></li>
@@ -306,8 +307,6 @@ Used by UI widgets to display active effects.
       <li><a href="../features_game_widgets_minigames_game_over_overlay/">features/game/widgets/minigames/game_over_overlay</a></li>
       <li><a href="../features_game_widgets_minigames_hangman_minigame/">features/game/widgets/minigames/hangman_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_holographic_panels_minigame/">features/game/widgets/minigames/holographic_panels_minigame</a></li>
-      <li><a href="../features_game_widgets_minigames_image_trivia_widget/">features/game/widgets/minigames/image_trivia_widget</a></li>
-      <li><a href="../features_game_widgets_minigames_library_sort_minigame/">features/game/widgets/minigames/library_sort_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_match_three_minigame/">features/game/widgets/minigames/match_three_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_memory_sequence_minigame/">features/game/widgets/minigames/memory_sequence_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_minesweeper_minigame/">features/game/widgets/minigames/minesweeper_minigame</a></li>
@@ -320,10 +319,10 @@ Used by UI widgets to display active effects.
       <li><a href="../features_game_widgets_minigames_tic_tac_toe_minigame/">features/game/widgets/minigames/tic_tac_toe_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_true_false_minigame/">features/game/widgets/minigames/true_false_minigame</a></li>
       <li><a href="../features_game_widgets_minigames_virus_tap_minigame/">features/game/widgets/minigames/virus_tap_minigame</a></li>
-      <li><a href="../features_game_widgets_minigames_word_scramble_widget/">features/game/widgets/minigames/word_scramble_widget</a></li>
       <li><a href="../features_game_widgets_mission_briefing_overlay/">features/game/widgets/mission_briefing_overlay</a></li>
       <li><a href="../features_game_widgets_my_bets_modal/">features/game/widgets/my_bets_modal</a></li>
       <li><a href="../features_game_widgets_no_lives_widget/">features/game/widgets/no_lives_widget</a></li>
+      <li><a href="../features_game_widgets_performance_selector_guide/">features/game/widgets/performance/selector_guide</a></li>
       <li><a href="../features_game_widgets_player_group_selector/">features/game/widgets/player_group_selector</a></li>
       <li><a href="../features_game_widgets_power_gesture_wrapper/">features/game/widgets/power_gesture_wrapper</a></li>
       <li><a href="../features_game_widgets_power_selector_bottom_sheet/">features/game/widgets/power_selector_bottom_sheet</a></li>
@@ -370,6 +369,9 @@ Used by UI widgets to display active effects.
       <li><a href="../features_wallet_widgets_edit_payment_method_dialog/">features/wallet/widgets/edit_payment_method_dialog</a></li>
       <li><a href="../features_wallet_widgets_payment_webview_modal/">features/wallet/widgets/payment_webview_modal</a></li>
       <li><a href="../features_wallet_widgets_transaction_card/">features/wallet/widgets/transaction_card</a></li>
+      <li><a href="../features_wallet_widgets_url_helper/">features/wallet/widgets/url_helper</a></li>
+      <li><a href="../features_wallet_widgets_url_helper_stub/">features/wallet/widgets/url_helper_stub</a></li>
+      <li><a href="../features_wallet_widgets_url_helper_web/">features/wallet/widgets/url_helper_web</a></li>
       <li><a href="../features_wallet_widgets_withdrawal_method_selector/">features/wallet/widgets/withdrawal_method_selector</a></li>
       <li><a href="../main/">main</a></li>
       <li><a href="../main_admin/">main_admin</a></li>
@@ -379,6 +381,7 @@ Used by UI widgets to display active effects.
       <li><a href="../shared_utils_game_ui_utils/">shared/utils/game_ui_utils</a></li>
       <li><a href="../shared_utils_global_keys/">shared/utils/global_keys</a></li>
       <li><a href="../shared_widgets_animated_cyber_background/">shared/widgets/animated_cyber_background</a></li>
+      <li><a href="../shared_widgets_coin_image/">shared/widgets/coin_image</a></li>
       <li><a href="../shared_widgets_connectivity_monitor/">shared/widgets/connectivity_monitor</a></li>
       <li><a href="../shared_widgets_cyber_tutorial_overlay/">shared/widgets/cyber_tutorial_overlay</a></li>
       <li><a href="../shared_widgets_development_bypass_button/">shared/widgets/development_bypass_button</a></li>
@@ -404,7 +407,7 @@ Used by UI widgets to display active effects.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -74,9 +74,7 @@
 
     debugPrint(&#39;VersionCheck: Local version is $localVersion&#39;);
 
-    &#47;&#47; 2. Get remote config
-    &#47;&#47; Note: We use .single() assuming there&#39;s only one active config row.
-    &#47;&#47; If you have multiple rows, you might need to order by created_at or use a specific ID.
+    &#47;&#47; 2. Get remote config from Supabase app_config
     final response = await supabaseClient
         .from(&#39;app_config&#39;)
         .select(&#39;value&#39;)
@@ -87,9 +85,10 @@
       debugPrint(&#39;VersionCheck: No version_configuration found in Supabase.&#39;);
       return VersionStatus(
         isUpdateRequired: false,
+        maintenanceMode: false,
         localVersion: localVersion,
         minVersion: &#39;0.0.0&#39;,
-        storeUrl: &#39;&#39;,
+        downloadUrl: null,
       );
     }
 
@@ -97,31 +96,51 @@
 
     final String minVersion =
         data[&#39;min_supported_version&#39;] as String? ?? &#39;0.0.0&#39;;
-    final String? androidUrl = data[&#39;android_store_url&#39;] as String?;
-    final String? iosUrl = data[&#39;ios_store_url&#39;] as String?;
+    final bool maintenanceMode =
+        data[&#39;maintenance_mode&#39;] as bool? ?? false;
 
-    &#47;&#47; 3. Compare versions
+    &#47;&#47; 3. Selección de URL según plataforma:
+    &#47;&#47;    iOS              → ios_store_url  (App Store)
+    &#47;&#47;    Android en Store → android_store_url (Play Store)
+    &#47;&#47;    Android APK      → apk_download_url  (descarga directa)
+    &#47;&#47;    Web              → no aplica actualización forzada
+    String? downloadUrl;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final iosUrl = data[&#39;ios_store_url&#39;] as String?;
+      downloadUrl = (iosUrl != null &amp;&amp; iosUrl.isNotEmpty) ? iosUrl : null;
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      final storeUrl = data[&#39;android_store_url&#39;] as String?;
+      final apkUrl   = data[&#39;apk_download_url&#39;]  as String?;
+      &#47;&#47; Si ya está en Play Store usa esa URL; si no, descarga directa
+      downloadUrl = (storeUrl != null &amp;&amp; storeUrl.isNotEmpty)
+          ? storeUrl
+          : ((apkUrl != null &amp;&amp; apkUrl.isNotEmpty) ? apkUrl : null);
+    }
+    &#47;&#47; En web no forzamos descarga
+
+    &#47;&#47; 4. Compare versions
     final bool updateRequired = _isUpdateRequired(localVersion, minVersion);
 
     debugPrint(
-        &#39;VersionCheck: Required: $minVersion. Update needed: $updateRequired&#39;);
+        &#39;VersionCheck: minVersion=$minVersion, local=$localVersion, &#39;
+        &#39;updateRequired=$updateRequired, maintenance=$maintenanceMode&#39;);
 
     return VersionStatus(
       isUpdateRequired: updateRequired,
+      maintenanceMode: maintenanceMode,
       localVersion: localVersion,
       minVersion: minVersion,
-      storeUrl:
-          defaultTargetPlatform == TargetPlatform.iOS ? iosUrl : androidUrl,
+      downloadUrl: downloadUrl,
     );
   } catch (e) {
     debugPrint(&#39;VersionCheck: Error checking version: $e&#39;);
-    &#47;&#47; In case of error (e.g. offline), we usually want to let the user in (fail open)
-    &#47;&#47; unless it&#39;s critical. For now, fail open.
+    &#47;&#47; Fail open: si no hay conexión, dejamos entrar al usuario.
     return VersionStatus(
       isUpdateRequired: false,
+      maintenanceMode: false,
       localVersion: &#39;Unknown&#39;,
       minVersion: &#39;Unknown&#39;,
-      storeUrl: null,
+      downloadUrl: null,
     );
   }
 }</code></pre>
@@ -152,7 +171,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

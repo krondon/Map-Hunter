@@ -79,7 +79,8 @@
   required String field,
   required int value,
 }) async {
-  assert(field == &#39;coins&#39; || field == &#39;lives&#39;, &#39;Field must be coins or lives&#39;);
+  assert(
+      field == &#39;coins&#39; || field == &#39;lives&#39;, &#39;Field must be coins or lives&#39;);
   int safeValue = value &lt; 0 ? 0 : value;
   if (field == &#39;lives&#39; &amp;&amp; safeValue &gt; 3) safeValue = 3;
   try {
@@ -89,7 +90,8 @@
         .eq(&#39;event_id&#39;, eventId)
         .eq(&#39;user_id&#39;, userId);
 
-    debugPrint(&#39;AdminService: setPlayerStat $field = $safeValue for user $userId in event $eventId&#39;);
+    debugPrint(
+        &#39;AdminService: setPlayerStat $field = $safeValue for user $userId in event $eventId&#39;);
   } catch (e) {
     debugPrint(&#39;AdminService: Error setting player stat: $e&#39;);
     rethrow;
@@ -122,7 +124,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

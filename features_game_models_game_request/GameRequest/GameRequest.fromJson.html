@@ -64,6 +64,14 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">factory GameRequest.fromJson(Map&lt;String, dynamic&gt; json) {
+  &#47;&#47; Helper to extract nested data that might be a List or a Map
+  dynamic getNested(dynamic data, String field) {
+    if (data == null) return null;
+    if (data is List &amp;&amp; data.isNotEmpty) return data.first[field];
+    if (data is Map) return data[field];
+    return null;
+  }
+
   return GameRequest(
     id: json[&#39;id&#39;] as String,
     userId: json[&#39;user_id&#39;] as String,
@@ -72,9 +80,10 @@
     createdAt: json[&#39;created_at&#39;] != null
         ? DateTime.parse(json[&#39;created_at&#39;] as String)
         : null,
-    userName: json[&#39;profiles&#39;]?[&#39;name&#39;] as String?,
-    userEmail: json[&#39;profiles&#39;]?[&#39;email&#39;] as String?,
-    eventName: json[&#39;events&#39;]?[&#39;name&#39;] as String?,
+    userName: getNested(json[&#39;profiles&#39;], &#39;name&#39;) as String?,
+    userEmail: getNested(json[&#39;profiles&#39;], &#39;email&#39;) as String?,
+    eventName: getNested(json[&#39;events&#39;], &#39;name&#39;) as String? ??
+        getNested(json[&#39;events&#39;], &#39;title&#39;) as String?,
   );
 }</code></pre>
 </section>
@@ -104,7 +113,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

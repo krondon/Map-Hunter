@@ -83,6 +83,9 @@ void resetState() {
   _returnedByPlayerName = null;
   _returnedAgainstCasterId = null;
   _listeningForEventId = null;
+  _feedbackQueue
+      .clear(); &#47;&#47; Descartar eventos pendientes de la sesión anterior
+  _broadcastProcessedIds.clear();
   notifyListeners();
 }</code></pre>
 </section>
@@ -112,7 +115,7 @@ void resetState() {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

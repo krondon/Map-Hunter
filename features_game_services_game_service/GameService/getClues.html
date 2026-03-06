@@ -63,7 +63,8 @@
     </section>
     
 <section class="desc markdown">
-  <p>Obtiene las pistas de un evento.</p>
+  <p>Obtiene las pistas de un evento.
+<code>PERFORMANCE</code> Migrado de Edge Function a RPC atómico.</p>
 </section>
 
 
@@ -72,19 +73,19 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;Clue&gt;&gt; getClues(String eventId) async {
   try {
-    final response = await _supabase.functions.invoke(
-      &#39;game-play&#47;get-clues&#39;,
-      body: {&#39;eventId&#39;: eventId},
-      method: HttpMethod.post,
-    );
+    final response = await _supabase.rpc(&#39;get_clues_with_progress&#39;, params: {
+      &#39;p_event_id&#39;: eventId,
+    });
 
-    if (response.status == 200) {
-      final List&lt;dynamic&gt; data = response.data;
-      return data.map((json) =&gt; Clue.fromJson(json)).toList();
+    if (response != null) {
+      final List&lt;dynamic&gt; data = response is List ? response : [];
+      return data
+          .map((json) =&gt; Clue.fromJson(json as Map&lt;String, dynamic&gt;))
+          .toList();
     }
-    throw Exception(&#39;Failed to fetch clues: ${response.status}&#39;);
+    return [];
   } catch (e) {
-    debugPrint(&#39;Error fetching clues: $e&#39;);
+    debugPrint(&#39;Error fetching clues (RPC): $e&#39;);
     rethrow;
   }
 }</code></pre>
@@ -115,7 +116,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

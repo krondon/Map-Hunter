@@ -74,23 +74,19 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-Future&lt;GameRequest?&gt; getRequestForPlayer(String playerId, String eventId) async {
+Future&lt;GameRequest?&gt; getRequestForPlayer(
+    String playerId, String eventId) async {
   try {
     final data = await _supabase
         .from(&#39;game_requests&#39;)
-        .select(&#39;id, status&#39;)
+        .select(&#39;*, profiles(name, email)&#39;)
         .eq(&#39;user_id&#39;, playerId)
         .eq(&#39;event_id&#39;, eventId)
         .maybeSingle();
 
     if (data == null) return null;
 
-    return GameRequest(
-      id: data[&#39;id&#39;],
-      userId: playerId,
-      eventId: eventId,
-      status: data[&#39;status&#39;],
-    );
+    return GameRequest.fromJson(data);
   } catch (e) {
     debugPrint(&#39;GameRequestRepository: Error fetching request: $e&#39;);
     rethrow;
@@ -123,7 +119,7 @@ Future&lt;GameRequest?&gt; getRequestForPlayer(String playerId, String eventId) 
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

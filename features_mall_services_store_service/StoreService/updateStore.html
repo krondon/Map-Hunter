@@ -76,27 +76,26 @@
     String? imageUrl = store.imageUrl;
 
     if (newImageFile != null) {
-       final fileExt = &#39;jpg&#39;;
-       final fileName = &#39;${DateTime.now().millisecondsSinceEpoch}_updated.$fileExt&#39;;
-       final filePath = &#39;store-images&#47;$fileName&#39;;
+      final fileExt = &#39;jpg&#39;;
+      final fileName =
+          &#39;${DateTime.now().millisecondsSinceEpoch}_updated.$fileExt&#39;;
+      final filePath = &#39;store-images&#47;$fileName&#39;;
 
-       if (newImageFile is XFile) {
-           final bytes = await newImageFile.readAsBytes();
-           await _supabase.storage
-            .from(&#39;events-images&#39;)
-            .uploadBinary(filePath, bytes, fileOptions: const FileOptions(upsert: true));
+      if (newImageFile is XFile) {
+        final bytes = await newImageFile.readAsBytes();
+        await _supabase.storage.from(&#39;events-images&#39;).uploadBinary(
+            filePath, bytes,
+            fileOptions: const FileOptions(upsert: true));
 
-           imageUrl = _supabase.storage.from(&#39;events-images&#39;).getPublicUrl(filePath);
-       }
+        imageUrl =
+            _supabase.storage.from(&#39;events-images&#39;).getPublicUrl(filePath);
+      }
     }
 
     final data = store.toMap();
     data[&#39;image_url&#39;] = imageUrl;
 
-    await _supabase
-        .from(&#39;mall_stores&#39;)
-        .update(data)
-        .eq(&#39;id&#39;, store.id);
+    await _supabase.from(&#39;mall_stores&#39;).update(data).eq(&#39;id&#39;, store.id);
   } catch (e) {
     debugPrint(&#39;Error updating store: $e&#39;);
     rethrow;
@@ -129,7 +128,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -75,14 +75,11 @@ Only admins can perform this operation (enforced by RLS).</p>
   try {
     final userId = _supabase.auth.currentUser?.id;
 
-    await _supabase
-        .from(&#39;app_config&#39;)
-        .update({
-          &#39;value&#39;: rate,
-          &#39;updated_at&#39;: DateTime.now().toIso8601String(),
-          &#39;updated_by&#39;: userId?.toString(),
-        })
-        .eq(&#39;key&#39;, &#39;bcv_exchange_rate&#39;);
+    await _supabase.from(&#39;app_config&#39;).update({
+      &#39;value&#39;: rate,
+      &#39;updated_at&#39;: DateTime.now().toIso8601String(),
+      &#39;updated_by&#39;: userId?.toString(),
+    }).eq(&#39;key&#39;, &#39;bcv_exchange_rate&#39;);
 
     debugPrint(&#39;[AppConfigService] Exchange rate updated to $rate&#39;);
     return true;
@@ -118,7 +115,7 @@ Only admins can perform this operation (enforced by RLS).</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

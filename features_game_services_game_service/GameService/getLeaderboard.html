@@ -92,26 +92,28 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
     &#47;&#47; Fetch currently invisible players to exclude them from the list
     try {
       final invisiblePlayers = await _supabase
-         .from(&#39;active_powers&#39;)
-         .select(&#39;target_id&#39;)
-         .eq(&#39;event_id&#39;, eventId)
-         .eq(&#39;power_slug&#39;, &#39;invisibility&#39;)
-         .gt(&#39;expires_at&#39;, DateTime.now().toUtc().toIso8601String());
+          .from(&#39;active_powers&#39;)
+          .select(&#39;target_id&#39;)
+          .eq(&#39;event_id&#39;, eventId)
+          .eq(&#39;power_slug&#39;, &#39;invisibility&#39;)
+          .gt(&#39;expires_at&#39;, DateTime.now().toUtc().toIso8601String());
 
-      final Set&lt;String&gt; invisibleIds = invisiblePlayers.map((e) =&gt; e[&#39;target_id&#39;]?.toString() ?? &#39;&#39;).toSet();
+      final Set&lt;String&gt; invisibleIds = invisiblePlayers
+          .map((e) =&gt; e[&#39;target_id&#39;]?.toString() ?? &#39;&#39;)
+          .toSet();
 
       if (invisibleIds.isNotEmpty) {
-         &#47;&#47; Remove invisible players from the main list (unless it&#39;s ME checking my own rank?)
-         &#47;&#47; Requirement: &quot;demás usuarios pueden verlo... debería de no aparecer&quot;
-         &#47;&#47; Usually I should still see MYSELF even if invisible.
-         leaderboardData.removeWhere((p) {
-            final pid = p[&#39;game_player_id&#39;]?.toString() ?? p[&#39;id&#39;]?.toString();
-            &#47;&#47; Keep myself visible to me
-            final uid = p[&#39;user_id&#39;]?.toString();
-            if (currentUserId != null &amp;&amp; uid == currentUserId) return false;
+        &#47;&#47; Remove invisible players from the main list (unless it&#39;s ME checking my own rank?)
+        &#47;&#47; Requirement: &quot;demás usuarios pueden verlo... debería de no aparecer&quot;
+        &#47;&#47; Usually I should still see MYSELF even if invisible.
+        leaderboardData.removeWhere((p) {
+          final pid = p[&#39;game_player_id&#39;]?.toString() ?? p[&#39;id&#39;]?.toString();
+          &#47;&#47; Keep myself visible to me
+          final uid = p[&#39;user_id&#39;]?.toString();
+          if (currentUserId != null &amp;&amp; uid == currentUserId) return false;
 
-            return invisibleIds.contains(pid);
-         });
+          return invisibleIds.contains(pid);
+        });
       }
     } catch (e) {
       debugPrint(&#39;Error filtering invisible players: $e&#39;);
@@ -145,7 +147,8 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
               leaderboardData.add(myData);
               debugPrint(&quot;👻 Current user added to leaderboard list.&quot;);
             } else {
-               debugPrint(&quot;👻 Current user found but is SPECTATOR. Not adding to race view.&quot;);
+              debugPrint(
+                  &quot;👻 Current user found but is SPECTATOR. Not adding to race view.&quot;);
             }
           } else {
             debugPrint(
@@ -159,7 +162,8 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
 
     if (leaderboardData.isNotEmpty) {
       debugPrint(&quot;📊 Sample Entry: ${leaderboardData.first}&quot;);
-      debugPrint(&quot;📊 Sample completed_clues_count: ${leaderboardData.first[&#39;completed_clues_count&#39;]}&quot;);
+      debugPrint(
+          &quot;📊 Sample completed_clues_count: ${leaderboardData.first[&#39;completed_clues_count&#39;]}&quot;);
     } else {
       debugPrint(&quot;⚠️ getLeaderboard: NO DATA FOUND for event $eventId&quot;);
     }
@@ -191,7 +195,8 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
       &#47;&#47; Normalización de IDs obligatoria
       if (json[&#39;id&#39;] == null) json[&#39;id&#39;] = uid;
       &#47;&#47; Map completed_clues_count to all expected keys
-      final int clueCount = json[&#39;completed_clues_count&#39;] ?? json[&#39;completed_clues&#39;] ?? 0;
+      final int clueCount =
+          json[&#39;completed_clues_count&#39;] ?? json[&#39;completed_clues&#39;] ?? 0;
       json[&#39;total_xp&#39;] = clueCount;
       json[&#39;completed_clues&#39;] = clueCount;
       json[&#39;completed_clues_count&#39;] = clueCount;
@@ -243,7 +248,7 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

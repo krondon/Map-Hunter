@@ -82,12 +82,13 @@
       final filePath = &#39;store-images&#47;$fileName&#39;;
 
       if (imageFile is XFile) {
-          final bytes = await imageFile.readAsBytes();
-           await _supabase.storage
-            .from(&#39;events-images&#39;)
-            .uploadBinary(filePath, bytes, fileOptions: const FileOptions(upsert: true));
+        final bytes = await imageFile.readAsBytes();
+        await _supabase.storage.from(&#39;events-images&#39;).uploadBinary(
+            filePath, bytes,
+            fileOptions: const FileOptions(upsert: true));
 
-           imageUrl = _supabase.storage.from(&#39;events-images&#39;).getPublicUrl(filePath);
+        imageUrl =
+            _supabase.storage.from(&#39;events-images&#39;).getPublicUrl(filePath);
       }
     }
 
@@ -130,7 +131,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

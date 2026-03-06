@@ -78,7 +78,8 @@
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;Map&lt;String, dynamic&gt;&gt; approveAndPayEntry(String requestId) async {
   try {
-    final result = await _supabase.rpc(&#39;approve_and_pay_event_entry&#39;, params: {
+    final result =
+        await _supabase.rpc(&#39;approve_and_pay_event_entry&#39;, params: {
       &#39;p_request_id&#39;: requestId,
     });
     return Map&lt;String, dynamic&gt;.from(result as Map);
@@ -114,7 +115,7 @@ Future&lt;Map&lt;String, dynamic&gt;&gt; approveAndPayEntry(String requestId) as
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

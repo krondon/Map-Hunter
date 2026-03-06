@@ -80,6 +80,10 @@
     _subscription?.cancel();
     _casterSubscription?.cancel();
     _combatEventsSubscription?.cancel();
+    _gamePlayerSubscription?.cancel();
+    _gamePlayerSubscription = null;
+    _broadcastChannel?.unsubscribe();
+    _broadcastChannel = null;
     return;
   }
 
@@ -104,12 +108,14 @@
   _listeningForId = myGamePlayerId;
   _listeningForEventId = eventId;
   _sessionStartTime = DateTime.now().toUtc();
+  _purgeBroadcastIds(); &#47;&#47; Clean stale dedup entries on new session
 
   debugPrint(
       &#39;🛡️ PowerEffectProvider STARTING LISTENING: localId=$myGamePlayerId, eventId=$eventId&#39;);
 
   &#47;&#47; 0. Listen for Game Player Updates (PROTECTION STATE) - DEFENSE MUTUAL EXCLUSIVITY FIX
-  _repository.getGamePlayerStream(playerId: myGamePlayerId).listen(
+  _gamePlayerSubscription?.cancel(); &#47;&#47; Fix 3.1: Cancel previous before creating new
+  _gamePlayerSubscription = _repository.getGamePlayerStream(playerId: myGamePlayerId).listen(
       (Map&lt;String, dynamic&gt;? player) {
     if (player != null) {
       &#47;&#47; DEBUG: Check if column exists
@@ -177,10 +183,22 @@
   });
 
   &#47;&#47; 1. Listen for Active Powers
+  &#47;&#47; [PERFORMANCE] Debounce: Con 50+ jugadores atacando, el stream puede
+  &#47;&#47; disparar muchos eventos en ráfaga. Agrupamos en ventana de 150ms
+  &#47;&#47; y procesamos solo el estado más reciente.
+  List&lt;Map&lt;String, dynamic&gt;&gt;? _pendingEffectsData;
   _subscription = _repository
       .getActivePowersStream(targetId: myGamePlayerId)
       .listen((List&lt;Map&lt;String, dynamic&gt;&gt; data) async {
-    await _processEffects(data);
+    _pendingEffectsData = data;
+    _effectsDebounceTimer?.cancel();
+    _effectsDebounceTimer =
+        Timer(const Duration(milliseconds: 150), () async {
+      if (_pendingEffectsData != null) {
+        await _processEffects(_pendingEffectsData!);
+        _pendingEffectsData = null;
+      }
+    });
   }, onError: (e) {
     debugPrint(&#39;PowerEffectProvider active_powers stream error: $e&#39;);
   });
@@ -198,10 +216,41 @@
   _combatEventsSubscription = _repository
       .getCombatEventsStream(targetId: myGamePlayerId)
       .listen((List&lt;Map&lt;String, dynamic&gt;&gt; data) async {
-    await _handleCombatEvents(data);
+    &#47;&#47; OPTIMIZACIÓN: Filtrar eventos que ya fueron procesados via Broadcast
+    &#47;&#47; para evitar procesamiento redundante del mismo evento.
+    final fresh = data.where((e) {
+      final id = e[&#39;id&#39;]?.toString();
+      return id == null || !_isBroadcastProcessed(id);
+    }).toList();
+    await _handleCombatEvents(fresh);
   }, onError: (e) {
     debugPrint(&#39;PowerEffectProvider combat_events stream error: $e&#39;);
   });
+
+  &#47;&#47; 3b. Canal de Broadcast (fast-path ~50ms) para combat_events y power_applied.
+  &#47;&#47; Los triggers DB alimentan este canal. Si llega aquí primero, marcamos el ID
+  &#47;&#47; como procesado para que el Postgres Changes (3a) lo ignore.
+  _broadcastChannel?.unsubscribe();
+  _broadcastChannel = _repository
+      .getCombatBroadcastChannel(gamePlayerId: myGamePlayerId)
+      .onBroadcast(
+        event: &#39;combat_event&#39;,
+        callback: (payload) async {
+          final data = payload as Map&lt;String, dynamic&gt;?;
+          if (data == null) return;
+
+          final id = data[&#39;id&#39;]?.toString();
+          if (id != null) {
+            if (_isBroadcastProcessed(id)) return; &#47;&#47; Ya procesado (TTL check)
+            _broadcastProcessedIds[id] = DateTime.now();
+          }
+
+          debugPrint(
+              &#39;⚡ [BROADCAST] combat_event recibido (fast-path): ${data[&#39;result_type&#39;]}&#39;);
+          await _enqueueCombatEvent(data);
+        },
+      );
+  _broadcastChannel!.subscribe();
 
   &#47;&#47; 4. Listen for Timer Expiration Events (CRITICAL for UI unlock + defense deactivation)
   _timerEventSubscription?.cancel();
@@ -211,10 +260,13 @@
       debugPrint(
           &#39;🔓 [UI-UNLOCK] Removiendo bloqueo de pantalla para efecto: ${event.slug}&#39;);
 
-      &#47;&#47; FIX: If a timed defense (invisibility) expires, clear is_protected server-side
-      if (event.slug == _activeDefenseSlug &amp;&amp; _isProtected) {
+      &#47;&#47; Solo desactivamos server-side si expira INVISIBILIDAD (único poder de defensa temporal).
+      &#47;&#47; Escudo y devolución nunca deben expirar por tiempo local — solo por combat_event.
+      if (event.slug == &#39;invisibility&#39; &amp;&amp;
+          event.slug == _activeDefenseSlug &amp;&amp;
+          _isProtected) {
         debugPrint(
-            &#39;🛡️ [DEFENSE-EXPIRE] Timed defense &quot;${event.slug}&quot; expired, calling deactivate_defense RPC&#39;);
+            &#39;🛡️ [DEFENSE-EXPIRE] Invisibility expired. Calling deactivate_defense RPC.&#39;);
         deactivateDefense();
       }
 
@@ -250,7 +302,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -79,23 +79,11 @@ Future&lt;List&lt;GameRequest&gt;&gt; getAllRequests() async {
         .select(&#39;*, profiles(name, email), events(title)&#39;)
         .order(&#39;created_at&#39;, ascending: false);
 
-    debugPrint(&#39;GameRequestRepository: Raw response count: ${(response as List).length}&#39;);
+    debugPrint(
+        &#39;GameRequestRepository: Raw response count: ${(response as List).length}&#39;);
 
     return (response as List).map((data) {
-      debugPrint(&#39;GameRequestRepository: Mapping request - ID: ${data[&#39;id&#39;]}, User: ${data[&#39;profiles&#39;]?[&#39;name&#39;]}, Event: ${data[&#39;events&#39;]?[&#39;title&#39;]}&#39;);
-
-      return GameRequest(
-        id: data[&#39;id&#39;],
-        userId: data[&#39;user_id&#39;],
-        eventId: data[&#39;event_id&#39;],
-        status: data[&#39;status&#39;],
-        createdAt: data[&#39;created_at&#39;] != null
-            ? DateTime.parse(data[&#39;created_at&#39;])
-            : null,
-        userName: data[&#39;profiles&#39;]?[&#39;name&#39;],
-        userEmail: data[&#39;profiles&#39;]?[&#39;email&#39;],
-        eventName: data[&#39;events&#39;]?[&#39;title&#39;],
-      );
+      return GameRequest.fromJson(data as Map&lt;String, dynamic&gt;);
     }).toList();
   } catch (e) {
     debugPrint(&#39;GameRequestRepository: Error fetching all requests: $e&#39;);
@@ -129,7 +117,7 @@ Future&lt;List&lt;GameRequest&gt;&gt; getAllRequests() async {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

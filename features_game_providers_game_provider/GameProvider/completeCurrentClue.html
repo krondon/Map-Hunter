@@ -113,8 +113,11 @@ Retorna null si falla, o un Map con success, raceCompleted, coins_earned.</p>
         &#47;&#47; The user should go to Waiting Room.
       }
 
-      await fetchClues(silent: true);
-      fetchLeaderboard();
+      &#47;&#47; [PERFORMANCE] Fire-and-forget: El RPC ya hizo todo atómicamente y
+      &#47;&#47; la actualización optimista ya refrescó el UI. Este fetch es solo
+      &#47;&#47; para confirmar estado desde el servidor, no debe bloquear.
+      unawaited(fetchClues(silent: true));
+      unawaited(fetchLeaderboard());
       return data;
     } else {
       return null;
@@ -153,7 +156,7 @@ Retorna null si falla, o un Map con success, raceCompleted, coins_earned.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

@@ -79,7 +79,7 @@
       &#39;value&#39;: value,
       &#39;updated_at&#39;: DateTime.now().toIso8601String(),
       &#39;updated_by&#39;: userId,
-    });
+    }, onConflict: &#39;key&#39;);
     return true;
   } catch (e) {
     debugPrint(&#39;[AppConfigService] Error updating config $key: $e&#39;);
@@ -113,7 +113,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

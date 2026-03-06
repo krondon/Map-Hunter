@@ -75,6 +75,9 @@
   _leaderboardTimer = null;
   _raceStatusChannel?.unsubscribe();
   _raceStatusChannel = null;
+  _subscribedRaceEventId = null; &#47;&#47; Fix: resetear tracking para siguiente suscripción
+  _leaderboardDebouncer
+      .flush(); &#47;&#47; Ejecutar cualquier update pendiente antes de parar
 }</code></pre>
 </section>
 
@@ -103,7 +106,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

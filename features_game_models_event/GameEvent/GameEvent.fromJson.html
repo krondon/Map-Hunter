@@ -96,6 +96,11 @@
         : {}, &#47;&#47; NEW
     betTicketPrice: (json[&#39;bet_ticket_price&#39;] as num?)?.toInt() ?? 100, &#47;&#47; NEW
     sponsorId: json[&#39;sponsor_id&#39;] as String?, &#47;&#47; NEW
+    storePrices: (json[&#39;store_prices&#39;] as Map&lt;String, dynamic&gt;?)?.map(
+          (k, v) =&gt; MapEntry(k, (v as num).toInt()),
+        ) ??
+        {}, &#47;&#47; NEW
+    isAutomated: (json[&#39;is_automated&#39;] as bool?) ?? false,
   );
 }</code></pre>
 </section>
@@ -125,7 +130,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

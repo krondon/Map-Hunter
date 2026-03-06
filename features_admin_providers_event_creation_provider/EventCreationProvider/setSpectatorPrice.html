@@ -71,7 +71,8 @@
   <pre class="language-dart"><code class="language-dart">void setSpectatorPrice(String powerId, int price) {
   if (price &lt; 0) return;
   _spectatorPrices[powerId] = price;
-  notifyListeners();
+  &#47;&#47; No notifyListeners() — TextFormField manages its own display.
+  &#47;&#47; The map is updated synchronously and read at submit time.
 }</code></pre>
 </section>
 
@@ -100,7 +101,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

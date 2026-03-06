@@ -146,74 +146,76 @@ Widget build(BuildContext context) {
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    &#47;&#47; Icon
-                    Icon(
-                      isVictory ? Icons.emoji_events_rounded : Icons.warning_amber_rounded,
-                      color: accentColor,
-                      size: 52,
-                    ),
-                    const SizedBox(height: 16),
-
-                    &#47;&#47; Title
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      &#47;&#47; Icon
+                      Icon(
+                        isVictory ? Icons.emoji_events_rounded : Icons.warning_amber_rounded,
                         color: accentColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
+                        size: 52,
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                    &#47;&#47; Message
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 14,
-                        height: 1.5,
+                      &#47;&#47; Title
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    &#47;&#47; Retry button
-                    if (onRetry != null)
-                      _buildButton(
-                        label: &#39;REINTENTAR&#39;,
-                        icon: Icons.refresh_rounded,
-                        color: AppTheme.accentGold,
-                        onTap: onRetry!,
-                      ),
-
-                    &#47;&#47; Go to shop button
-                    if (onGoToShop != null) ...[
                       const SizedBox(height: 12),
-                      _buildButton(
-                        label: &#39;IR A LA TIENDA&#39;,
-                        icon: Icons.storefront_rounded,
-                        color: AppTheme.accentGold,
-                        onTap: onGoToShop!,
-                      ),
-                    ],
 
-                    &#47;&#47; Exit button
-                    if (onExit != null) ...[
-                      const SizedBox(height: 12),
-                      _buildButton(
-                        label: &#39;SALIR&#39;,
-                        icon: Icons.exit_to_app_rounded,
-                        color: Colors.white54,
-                        onTap: onExit!,
-                        subtle: true,
+                      &#47;&#47; Message
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
                       ),
+                      const SizedBox(height: 28),
+
+                      &#47;&#47; Retry button
+                      if (onRetry != null)
+                        _buildButton(
+                          label: &#39;REINTENTAR&#39;,
+                          icon: Icons.refresh_rounded,
+                          color: AppTheme.accentGold,
+                          onTap: onRetry!,
+                        ),
+
+                      &#47;&#47; Go to shop button
+                      if (onGoToShop != null) ...[
+                        const SizedBox(height: 12),
+                        _buildButton(
+                          label: &#39;IR A LA TIENDA&#39;,
+                          icon: Icons.storefront_rounded,
+                          color: AppTheme.accentGold,
+                          onTap: onGoToShop!,
+                        ),
+                      ],
+
+                      &#47;&#47; Exit button
+                      if (onExit != null) ...[
+                        const SizedBox(height: 12),
+                        _buildButton(
+                          label: &#39;SALIR&#39;,
+                          icon: Icons.exit_to_app_rounded,
+                          color: Colors.white54,
+                          onTap: onExit!,
+                          subtle: true,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -250,7 +252,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

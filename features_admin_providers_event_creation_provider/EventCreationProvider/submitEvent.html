@@ -136,14 +136,11 @@
     &#47;&#47; 3. Create Stores
     if (createdEventId != null) {
       if (_eventType == &#39;online&#39;) {
-        &#47;&#47; Default Online Store via Domain Service
-        &#47;&#47; Default Online Store via Domain Service
+        &#47;&#47; Default Online Store via Domain Service – use configured player prices
         try {
           final defaultStore = EventDomainService.createDefaultOnlineStore(
             createdEventId,
-            &#47;&#47; customPrices: _spectatorPrices, &#47;&#47; OLD: Used to set store prices directly
-            &#47;&#47; NEW: Store keeps default prices for Players. Spectators use spectator_config override.
-            customPrices: null,
+            customPrices: _playerPrices.isNotEmpty ? _playerPrices : null,
           );
           &#47;&#47; We pass null for imageFile as we don&#39;t have one selected
           await storeProvider.createStore(defaultStore, null);
@@ -225,7 +222,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

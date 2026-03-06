@@ -77,7 +77,8 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-Future&lt;Map&lt;String, dynamic&gt;&gt; joinOnlinePaidEventRPC(String userId, String eventId) async {
+Future&lt;Map&lt;String, dynamic&gt;&gt; joinOnlinePaidEventRPC(
+    String userId, String eventId) async {
   try {
     final result = await _supabase.rpc(&#39;join_online_paid_event&#39;, params: {
       &#39;p_user_id&#39;: userId,
@@ -116,7 +117,7 @@ Future&lt;Map&lt;String, dynamic&gt;&gt; joinOnlinePaidEventRPC(String userId, S
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

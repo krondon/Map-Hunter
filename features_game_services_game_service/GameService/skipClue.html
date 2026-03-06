@@ -63,7 +63,8 @@
     </section>
     
 <section class="desc markdown">
-  <p>Salta una pista.</p>
+  <p>Salta una pista.
+<code>PERFORMANCE</code> Migrado de Edge Function a RPC atómico.</p>
 </section>
 
 
@@ -72,15 +73,16 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;bool&gt; skipClue(String clueId) async {
   try {
-    final response = await _supabase.functions.invoke(&#39;game-play&#47;skip-clue&#39;,
-        body: {
-          &#39;clueId&#39;: clueId,
-        },
-        method: HttpMethod.post);
+    final response = await _supabase.rpc(&#39;skip_clue_rpc&#39;, params: {
+      &#39;p_clue_id&#39;: int.tryParse(clueId) ?? clueId,
+    });
 
-    return response.status == 200;
+    if (response != null &amp;&amp; response is Map&lt;String, dynamic&gt;) {
+      return response[&#39;success&#39;] == true;
+    }
+    return false;
   } catch (e) {
-    debugPrint(&#39;Error skipping clue: $e&#39;);
+    debugPrint(&#39;Error skipping clue (RPC): $e&#39;);
     return false;
   }
 }</code></pre>
@@ -111,7 +113,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

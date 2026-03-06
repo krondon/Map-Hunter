@@ -73,7 +73,9 @@
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; startGame(String eventId) async {
   try {
     final response = await _supabase.functions.invoke(&#39;game-play&#47;start-game&#39;,
-        body: {&#39;eventId&#39;: eventId}, method: HttpMethod.post);
+        headers: await _authHeaders(),
+        body: {&#39;eventId&#39;: eventId},
+        method: HttpMethod.post);
 
     if (response.status != 200) {
       throw Exception(&#39;Failed to start game: ${response.status}&#39;);
@@ -110,7 +112,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>

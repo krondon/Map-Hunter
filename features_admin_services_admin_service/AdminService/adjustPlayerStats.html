@@ -83,7 +83,8 @@
   required String field,
   required int delta,
 }) async {
-  assert(field == &#39;coins&#39; || field == &#39;lives&#39;, &#39;Field must be coins or lives&#39;);
+  assert(
+      field == &#39;coins&#39; || field == &#39;lives&#39;, &#39;Field must be coins or lives&#39;);
   try {
     &#47;&#47; 1. Read current value
     final row = await _supabase
@@ -106,7 +107,8 @@
         .eq(&#39;event_id&#39;, eventId)
         .eq(&#39;user_id&#39;, userId);
 
-    debugPrint(&#39;AdminService: adjustPlayerStats $field $delta → $newValue for user $userId in event $eventId&#39;);
+    debugPrint(
+        &#39;AdminService: adjustPlayerStats $field $delta → $newValue for user $userId in event $eventId&#39;);
   } catch (e) {
     debugPrint(&#39;AdminService: Error adjusting player stats: $e&#39;);
     rethrow;
@@ -139,7 +141,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.1+2
+      1.0.2
   </span>
   
 </footer>
