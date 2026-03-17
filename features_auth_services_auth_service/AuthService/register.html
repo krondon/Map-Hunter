@@ -68,6 +68,9 @@
     
 <section class="desc markdown">
   <p>Registra un nuevo usuario con nombre, email y password.</p>
+<p>El registro es ATÓMICO: la Edge Function llama a signUp() y el trigger
+<code>handle_new_user</code> crea el perfil completo dentro de la misma transacción.
+Si algo falla, se hace rollback automático — nunca quedan usuarios huérfanos.</p>
 <p>Retorna el ID del usuario creado en caso de éxito.
 Lanza una excepción con mensaje legible si falla.</p>
 </section>
@@ -92,40 +95,21 @@ Lanza una excepción con mensaje legible si falla.</p>
     );
 
     if (response.status != 200) {
-      final error = response.data[&#39;error&#39;] ?? &#39;Error desconocido&#39;;
-      &#47;&#47; 409 = user already exists (race condition handled gracefully)
-      &#47;&#47; Just rethrow the user-friendly message from the server
+      final data = response.data;
+      final error = (data is Map) ? (data[&#39;error&#39;] ?? &#39;Error desconocido&#39;) : &#39;Error del servidor (${response.status})&#39;;
       throw error;
     }
 
     final data = response.data;
 
     if (data[&#39;user&#39;] != null) {
-      &#47;&#47; Si hay usuario, el registro fue exitoso a nivel de BD.
-      &#47;&#47; Si hay sesión, la guardamos. Si no (porque requiere confirmación), seguimos igual.
+      &#47;&#47; Si hay sesión, la guardamos (auto-login).
+      &#47;&#47; Si no hay sesión (requiere confirmación de email), continuamos igual.
       if (data[&#39;session&#39;] != null) {
         await _supabase.auth.setSession(data[&#39;session&#39;][&#39;refresh_token&#39;]);
       }
 
-      final userId = data[&#39;user&#39;][&#39;id&#39;] as String;
-
-      &#47;&#47; Delay para permitir que la BD sincronice el perfil (Trigger)
-      await Future.delayed(const Duration(seconds: 1));
-
-      &#47;&#47; Actualización explícita de datos extra en perfil si tenemos sesión
-      &#47;&#47; Si no tenemos sesión (email sin confirmar), esto fallará por RLS, así que lo omitimos o lo intentamos con catch
-      if ((cedula != null || phone != null) &amp;&amp; data[&#39;session&#39;] != null) {
-        try {
-          await _supabase.from(&#39;profiles&#39;).update({
-            if (cedula != null) &#39;cedula&#39;: cedula,
-            if (phone != null) &#39;phone&#39;: phone,
-          }).eq(&#39;id&#39;, userId);
-        } catch (e) {
-          debugPrint(&#39;Warning: Could not update extra profile fields: $e&#39;);
-        }
-      }
-
-      return userId;
+      return data[&#39;user&#39;][&#39;id&#39;] as String;
     }
     throw &#39;No se recibió información del usuario&#39;;
   } catch (e) {
@@ -160,7 +144,7 @@ Lanza una excepción con mensaje legible si falla.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

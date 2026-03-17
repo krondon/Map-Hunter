@@ -75,16 +75,19 @@ Lanza una excepción con mensaje legible si falla.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;String&gt; login(String email, String password) async {
   try {
+    debugPrint(&#39;AuthService: Iniciando login para $email&#39;);
+
     final response = await _supabase.functions.invoke(
       &#39;auth-service&#47;login&#39;,
       body: {&#39;email&#39;: email, &#39;password&#39;: password},
       method: HttpMethod.post,
     );
 
-    if (response.status != 200) {
-      final error = response.data[&#39;error&#39;] ?? &#39;Error desconocido&#39;;
+    final dynamic data = response.data;
 
-      &#47;&#47; 403 = email not verified → clean up any local session state
+    if (response.status != 200) {
+      final error = (data is Map) ? (data[&#39;error&#39;] ?? &#39;Error desconocido&#39;) : &#39;Error del servidor (${response.status})&#39;;
+
       if (response.status == 403) {
         try {
           await _supabase.auth.signOut();
@@ -93,17 +96,30 @@ Lanza una excepción con mensaje legible si falla.</p>
       throw error;
     }
 
-    final data = response.data;
+    if (data == null) throw &#39;No se recibió respuesta del servidor&#39;;
 
-    if (data[&#39;session&#39;] != null) {
-      await _supabase.auth.setSession(data[&#39;session&#39;][&#39;refresh_token&#39;]);
+    &#47;&#47; Manejar el caso donde la respuesta no sea un Map directo (ej. si el SDK no decodifica automáticamente)
+    final Map&lt;String, dynamic&gt; payload;
+    if (data is Map) {
+      payload = Map&lt;String, dynamic&gt;.from(data);
+    } else {
+      throw &#39;Respuesta del servidor inválida: Se esperaba JSON&#39;;
+    }
 
-      if (data[&#39;user&#39;] != null) {
-        final user = data[&#39;user&#39;];
+    if (payload[&#39;session&#39;] != null) {
+      final sessionData = payload[&#39;session&#39;];
 
-        &#47;&#47; Verificar si el email ha sido confirmado (redundant safety check)
+      &#47;&#47; En Supabase 2.x, setSession requiere el refresh_token string
+      final String? refreshToken = sessionData[&#39;refresh_token&#39;];
+      if (refreshToken == null) throw &#39;La sesión no contiene un token de refresco válido&#39;;
+
+      await _supabase.auth.setSession(refreshToken);
+
+      if (payload[&#39;user&#39;] != null) {
+        final user = payload[&#39;user&#39;];
+
         if (user[&#39;email_confirmed_at&#39;] == null) {
-          await logout(); &#47;&#47; Limpiar cualquier sesión parcial
+          await logout();
           throw &#39;Tu cuenta aún no está activa. Por favor, verifica tu correo electrónico.&#39;;
         }
 
@@ -111,7 +127,7 @@ Lanza una excepción con mensaje legible si falla.</p>
       }
       throw &#39;No se recibió información del usuario&#39;;
     } else {
-      throw &#39;No se recibió sesión válida&#39;;
+      throw &#39;No se recibió una sesión válida&#39;;
     }
   } catch (e) {
     debugPrint(&#39;AuthService: Error logging in: $e&#39;);
@@ -145,7 +161,7 @@ Lanza una excepción con mensaje legible si falla.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

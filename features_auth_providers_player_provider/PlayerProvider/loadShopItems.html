@@ -62,8 +62,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Load shop items configuration from service.
-Load shop items configuration from service.</p>
+  <p>Load shop items configuration from service.</p>
 </section>
 
 
@@ -73,12 +72,18 @@ Load shop items configuration from service.</p>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; loadShopItems() async {
   try {
     final configs = await _powerService.getPowerConfigs();
+    final String? eventId = _currentPlayer?.currentEventId;
 
-    &#47;&#47; NEW: Fetch Spectator Prices if applicable
+    &#47;&#47; Fetch overrides from DB: 1. Spectator Config (on event), 2. Mall Store Prices (on mall_stores)
     Map&lt;String, dynamic&gt; spectatorPrices = {};
-    if (_isSpectatorSession &amp;&amp; _currentPlayer?.currentEventId != null) {
-      spectatorPrices = await _powerService
-          .getSpectatorConfig(_currentPlayer!.currentEventId!);
+    Map&lt;String, int&gt; mallStorePrices = {};
+
+    if (eventId != null) {
+      if (_isSpectatorSession) {
+        spectatorPrices = await _powerService.getSpectatorConfig(eventId);
+      } else {
+        mallStorePrices = await _powerService.getStorePrices(eventId);
+      }
     }
 
     &#47;&#47; Refresh base items to ensure clean slate
@@ -100,16 +105,23 @@ Load shop items configuration from service.</p>
         }
       }
 
-      &#47;&#47; NEW: Spectator Price Override
+      &#47;&#47; Apply Price Override: Priority depends on current role&#47;session
       int finalCost = item.cost;
-      if (_isSpectatorSession &amp;&amp; spectatorPrices.containsKey(item.id)) {
-        finalCost = (spectatorPrices[item.id] as num).toInt();
+
+      if (_isSpectatorSession) {
+        if (spectatorPrices.containsKey(item.id)) {
+          finalCost = (spectatorPrices[item.id] as num).toInt();
+        }
+      } else {
+        if (mallStorePrices.containsKey(item.id)) {
+          finalCost = mallStorePrices[item.id]!;
+        }
       }
 
       return item.copyWith(
         durationSeconds: duration,
         description: newDesc,
-        cost: finalCost, &#47;&#47; Apply override
+        cost: finalCost,
       );
     }).toList();
 
@@ -145,7 +157,7 @@ Load shop items configuration from service.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

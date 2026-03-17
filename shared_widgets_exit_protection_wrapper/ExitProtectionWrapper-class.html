@@ -89,7 +89,7 @@
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="ExitProtectionWrapper.new" class="callable">
-          <span class="name"><a href="../shared_widgets_exit_protection_wrapper/ExitProtectionWrapper/ExitProtectionWrapper.html">ExitProtectionWrapper</a></span><span class="signature">({<span class="parameter" id="-param-key"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/foundation/Key-class.html">Key</a>?</span> <span class="parameter-name">key</span>, </span><span class="parameter" id="-param-child"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/Widget-class.html">Widget</a></span> <span class="parameter-name">child</span>, </span><span class="parameter" id="-param-title"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">title</span> = <span class="default-value">&quot;¿Salir del Evento?&quot;</span>, </span><span class="parameter" id="-param-message"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">message</span> = <span class="default-value">&quot;Si sales ahora, podrías perder tu progreso o tu posición en el ranking.&quot;</span>, </span><span class="parameter" id="-param-enableProtection"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enableProtection</span> = <span class="default-value">true</span></span>})</span>
+          <span class="name"><a href="../shared_widgets_exit_protection_wrapper/ExitProtectionWrapper/ExitProtectionWrapper.html">ExitProtectionWrapper</a></span><span class="signature">({<span class="parameter" id="-param-key"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/foundation/Key-class.html">Key</a>?</span> <span class="parameter-name">key</span>, </span><span class="parameter" id="-param-child"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/Widget-class.html">Widget</a></span> <span class="parameter-name">child</span>, </span><span class="parameter" id="-param-title"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">title</span> = <span class="default-value">&quot;¿Salir del Evento?&quot;</span>, </span><span class="parameter" id="-param-message"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">message</span> = <span class="default-value">&quot;Si sales ahora, podrías perder tu progreso o tu posición en el ranking.&quot;</span>, </span><span class="parameter" id="-param-enableProtection"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enableProtection</span> = <span class="default-value">true</span>, </span><span class="parameter" id="-param-onExit"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-ui/VoidCallback.html">VoidCallback</a>?</span> <span class="parameter-name">onExit</span></span>})</span>
         </dt>
         <dd>
           
@@ -159,6 +159,20 @@
 </dt>
 <dd>
   
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onExit" class="property">
+  <span class="name"><a href="../shared_widgets_exit_protection_wrapper/ExitProtectionWrapper/onExit.html">onExit</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-ui/VoidCallback.html">VoidCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Optional custom exit callback. When provided, this is called instead of
+the default <code>Navigator.pop</code>. Use it to navigate to a specific screen
+or perform cleanup before leaving.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -395,7 +409,7 @@ tools and by <a href="https://api.flutter.dev/flutter/foundation/DiagnosticsNode
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

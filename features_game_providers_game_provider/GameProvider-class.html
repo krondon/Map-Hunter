@@ -353,6 +353,18 @@
 
 </dd>
 
+        <dt id="isVoluntaryExit" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isVoluntaryExit.html">isVoluntaryExit</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
         <dt id="leaderboard" class="property">
   <span class="name"><a href="../features_game_providers_game_provider/GameProvider/leaderboard.html">leaderboard</a></span>
   <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../shared_models_player/Player-class.html">Player</a></span>&gt;</span></span>
@@ -380,6 +392,30 @@
         <dt id="minigameCapitals" class="property">
   <span class="name"><a href="../features_game_providers_game_provider/GameProvider/minigameCapitals.html">minigameCapitals</a></span>
   <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="minigameChronologicalEvents" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/minigameChronologicalEvents.html">minigameChronologicalEvents</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="minigameEmojiMovies" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/minigameEmojiMovies.html">minigameEmojiMovies</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
   
 
 </dt>
@@ -521,6 +557,20 @@ Sigue una jerarquía estricta de seguridad:
 </dt>
 <dd>
   
+  
+
+</dd>
+
+        <dt id="clearVoluntaryExit" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/clearVoluntaryExit.html">clearVoluntaryExit</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Limpia la bandera de salida voluntaria. Se llama desde
+GameSessionMonitor después de procesar la transición.
   
 
 </dd>
@@ -668,6 +718,21 @@ Llama al RPC initialize_game_for_user y espera el resultado.
 </dt>
 <dd>
   Ejecuta la pérdida de una vida (Optimistic UI).
+  
+
+</dd>
+
+        <dt id="markVoluntaryExit" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/markVoluntaryExit.html">markVoluntaryExit</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Marca una salida voluntaria del jugador. Debe llamarse ANTES de
+cualquier resetState/clearGameContext para que GameSessionMonitor
+no muestre el mensaje de "expulsado por admin".
   
 
 </dd>
@@ -975,7 +1040,7 @@ se actualizará automáticamente sin necesidad de fetch manual.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

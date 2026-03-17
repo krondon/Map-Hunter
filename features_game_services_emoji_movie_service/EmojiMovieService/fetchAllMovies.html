@@ -62,7 +62,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Fetches a list of random movies from the database.</p>
+  <p>Fetches a list of random movies from the database and merges with fallback list.</p>
 </section>
 
 
@@ -70,13 +70,14 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;EmojiMovieProblem&gt;&gt; fetchAllMovies() async {
+  List&lt;EmojiMovieProblem&gt; dbMovies = [];
   try {
     final response = await _supabase
         .from(&#39;minigame_emoji_movies&#39;)
         .select(&#39;emojis, valid_answers&#39;);
 
     final List&lt;dynamic&gt; data = response;
-    return data.map((json) {
+    dbMovies = data.map((json) {
       return EmojiMovieProblem(
         emojis: json[&#39;emojis&#39;] as String,
         validAnswers: List&lt;String&gt;.from(json[&#39;valid_answers&#39;] as List),
@@ -84,9 +85,17 @@
     }).toList();
   } catch (e) {
     print(&quot;Error fetching emoji movies from DB: $e&quot;);
-    &#47;&#47; Return empty list on error (no local fallback)
-    return [];
   }
+
+  &#47;&#47; Merge lists, avoid exact duplicates by emojis
+  final allMovies = [...dbMovies];
+  for (var fallback in _fallbackMovies) {
+    if (!allMovies.any((m) =&gt; m.emojis == fallback.emojis)) {
+      allMovies.add(fallback);
+    }
+  }
+
+  return allMovies;
 }</code></pre>
 </section>
 
@@ -115,7 +124,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

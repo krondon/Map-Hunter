@@ -86,7 +86,7 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
         .neq(&#39;status&#39;, &#39;spectator&#39;)
         .order(&#39;completed_clues_count&#39;, ascending: false)
         .order(&#39;last_active&#39;, ascending: true)
-        .limit(50);
+        .limit(100); &#47;&#47; Increased from 50: with exactly 50 players the old limit caused unsorted user injection.
 
     &#47;&#47; --- INVISIBILITY FILTER ---
     &#47;&#47; Fetch currently invisible players to exclude them from the list
@@ -248,7 +248,7 @@ allowCurrentUser: Si se pasa, asegura que este usuario esté incluido en la list
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

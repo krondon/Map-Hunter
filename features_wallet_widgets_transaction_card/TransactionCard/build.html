@@ -127,6 +127,11 @@ Widget build(BuildContext context) {
        statusText = &#39;Pendiente&#39;;
        icon = Icons.access_time_rounded;
        break;
+     case &#39;cancelled&#39;:
+     case &#39;canceled&#39;:
+       statusText = &#39;Cancelado&#39;;
+       icon = Icons.block_rounded;
+       break;
      case &#39;failed&#39;:
      case &#39;error&#39;:
        statusText = &#39;Fallido&#39;;
@@ -368,7 +373,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

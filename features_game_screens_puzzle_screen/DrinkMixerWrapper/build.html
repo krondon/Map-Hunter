@@ -111,13 +111,10 @@ and</li>
 Widget build(BuildContext context) =&gt; _buildMinigameScaffold(
     context,
     clue,
-    onFinish,
+    () {},
     DrinkMixerMinigame(
         clue: clue,
-        onSuccess: () {
-          onFinish();
-          _showSuccessDialog(context, clue);
-        }));</code></pre>
+        onSuccess: () =&gt; onSuccess(clue)));</code></pre>
 </section>
 
 
@@ -145,7 +142,7 @@ Widget build(BuildContext context) =&gt; _buildMinigameScaffold(
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

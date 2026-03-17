@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the initiateStripePurchase method from the StripeService class, for the Dart programming language.">
+  <title>initiateStripePurchase method - StripeService class - stripe_service library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">map_hunter</a></li>
+    <li><a href="../../core_services_stripe_service/">core&#47;services&#47;stripe_service.dart</a></li>
+    <li><a href="../../core_services_stripe_service/StripeService-class.html">StripeService</a></li>
+    <li class="self-crumb">initiateStripePurchase static method</li>
+  </ol>
+  <div class="self-name">initiateStripePurchase</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="core_services_stripe_service&#47;StripeService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">initiateStripePurchase</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../core_services_stripe_service/StripePaymentResult.html">StripePaymentResult</a></span>&gt;</span></span>
+<span class="name ">initiateStripePurchase</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="initiateStripePurchase-param-planId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">planId</span>, </span></li>
+<li><span class="parameter" id="initiateStripePurchase-param-context"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span>, </span></li>
+</ol>})
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Initiates a Stripe purchase for the given plan ID.</p>
+<p>Flow:</p>
+<ol>
+<li>Calls <code>stripe-create-payment-intent</code> Edge Function with <code>planId</code></li>
+<li>Initializes the Stripe Payment Sheet</li>
+<li>Presents the Payment Sheet to the user</li>
+<li>Returns a <a href="../../core_services_stripe_service/StripePaymentResult.html">StripePaymentResult</a></li>
+</ol>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static Future&lt;StripePaymentResult&gt; initiateStripePurchase({
+  required String planId,
+  required BuildContext context,
+}) async {
+  if (!isAvailable) {
+    debugPrint(&#39;[StripeService] Stripe not available. Init status: $_initialized, Web: $kIsWeb&#39;);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(&#39;El servicio de Stripe no está disponible en este momento. Verifica tu configuración.&#39;),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+    return StripePaymentResult.failed;
+  }
+
+  try {
+    debugPrint(&#39;[StripeService] Creating PaymentIntent for plan: $planId&#39;);
+
+    &#47;&#47; 1. Call the Edge Function to create a PaymentIntent (server-side)
+    final FunctionResponse response = await Supabase.instance.client.functions.invoke(
+      &#39;stripe-create-payment-intent&#39;,
+      body: {&#39;plan_id&#39;: planId},
+    );
+
+    if (response.status != 200) {
+      final errorMsg = response.data?[&#39;error&#39;] ?? &#39;Error desconocido del servidor&#39;;
+      throw Exception(&#39;Error al crear pago: $errorMsg (${response.status})&#39;);
+    }
+
+    final data = response.data as Map&lt;String, dynamic&gt;;
+    if (data[&#39;success&#39;] != true) {
+      throw Exception(&#39;Error: ${data[&#39;error&#39;] ?? &#39;Respuesta inválida del servidor&#39;}&#39;);
+    }
+
+    final paymentData = data[&#39;data&#39;] as Map&lt;String, dynamic&gt;;
+    final String clientSecret = paymentData[&#39;client_secret&#39;] as String;
+    final int amountCents = paymentData[&#39;amount_cents&#39;] as int;
+    final String planName = (paymentData[&#39;plan&#39;] as Map&lt;String, dynamic&gt;)[&#39;name&#39;] as String;
+
+    debugPrint(&#39;[StripeService] PaymentIntent created: ${paymentData[&#39;payment_intent_id&#39;]}&#39;);
+
+    &#47;&#47; 2. Initialize the Payment Sheet
+    await Stripe.instance.initPaymentSheet(
+      paymentSheetParameters: SetupPaymentSheetParameters(
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: &#39;MapHunter&#39;,
+        style: ThemeMode.dark,
+        appearance: const PaymentSheetAppearance(
+          colors: PaymentSheetAppearanceColors(
+            primary: Color(0xFFFECB00),       &#47;&#47; AppTheme.accentGold
+            background: Color(0xFF151517),
+            componentBackground: Color(0xFF1E1E21),
+            primaryText: Colors.white,
+            secondaryText: Color(0xFFAAAAAA),
+          ),
+          shapes: PaymentSheetShape(
+            borderWidth: 1.5,
+            borderRadius: 12.0,
+          ),
+        ),
+      ),
+    );
+
+    &#47;&#47; 3. Present the Payment Sheet
+    await Stripe.instance.presentPaymentSheet();
+
+    &#47;&#47; If we reach here, payment was successful (no exception thrown)
+    debugPrint(&#39;[StripeService] ✅ Payment completed successfully!&#39;);
+    return StripePaymentResult.success;
+
+  } on StripeException catch (e) {
+    &#47;&#47; Handle Stripe-specific errors
+    switch (e.error.code) {
+      case FailureCode.Canceled:
+        debugPrint(&#39;[StripeService] Payment cancelled by user.&#39;);
+        return StripePaymentResult.cancelled;
+      case FailureCode.Failed:
+        debugPrint(&#39;[StripeService] Payment failed: ${e.error.message}&#39;);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(&#39;Pago fallido: ${e.error.localizedMessage ?? e.error.message ?? &quot;Error desconocido&quot;}&#39;),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return StripePaymentResult.failed;
+      default:
+        debugPrint(&#39;[StripeService] Stripe error: ${e.error.code} — ${e.error.message}&#39;);
+        return StripePaymentResult.failed;
+    }
+  } catch (e) {
+    debugPrint(&#39;[StripeService] Unexpected error: $e&#39;);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(&#39;Error inesperado: $e&#39;),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    return StripePaymentResult.failed;
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">map_hunter</a></li>
+    <li><a href="../../core_services_stripe_service/">stripe_service</a></li>
+    <li><a href="../../core_services_stripe_service/StripeService-class.html">StripeService</a></li>
+    <li class="self-crumb">initiateStripePurchase static method</li>
+</ol>
+
+    <h5>StripeService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    map_hunter
+      1.0.3
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

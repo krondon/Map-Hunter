@@ -64,7 +64,9 @@
     </section>
     
 <section class="desc markdown">
-  <p>Diálogo de rendición actualizado para manejar la salida legal</p>
+  <p>Diálogo de rendición: quita 1 vida y reinicia el minijuego in-place.
+Ya NO cierra la PuzzleScreen — el jugador puede seguir intentando.
+Solo sale al mapa si se queda sin vidas.</p>
 </section>
 
 
@@ -187,13 +189,80 @@
                           await MinigameLogicHelper.executeLoseLife(context);
                         }
 
-                        &#47;&#47; 5. Feedback
+                        &#47;&#47; 5. Feedback Premium
                         messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                &#39;Te has rendido (-1 Vida). Puedes volver a intentarlo cuando estés listo.&#39;),
-                            backgroundColor: AppTheme.warningOrange,
-                            duration: Duration(seconds: 3),
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            content: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.warningOrange,
+                                    AppTheme.warningOrange.withOpacity(0.8),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.4),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.favorite_rounded,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          &#39;MISIÓN CANCELADA&#39;,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            letterSpacing: 1.2,
+                                          ),
+                                        ),
+                                        Text(
+                                          &#39;Has perdido una vida (-1 ❤️). Reinténtalo cuando estés listo.&#39;,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            duration: const Duration(seconds: 4),
                           ),
                         );
                       },
@@ -249,7 +318,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

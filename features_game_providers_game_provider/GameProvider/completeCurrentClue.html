@@ -66,6 +66,8 @@
 <section class="desc markdown">
   <p>Completa una pista y retorna los datos del servidor incluyendo coins_earned.
 Retorna null si falla, o un Map con success, raceCompleted, coins_earned.</p>
+<p><code>clueId</code> DEBE pasarse siempre que esté disponible para evitar race conditions
+con _currentClueIndex (puede cambiar por fetchClues concurrentes).</p>
 </section>
 
 
@@ -79,14 +81,28 @@ Retorna null si falla, o un Map con success, raceCompleted, coins_earned.</p>
   if (clueId != null) {
     targetId = clueId;
   } else {
-    if (_currentClueIndex &gt;= _clues.length) return null;
+    if (_currentClueIndex &gt;= _clues.length) {
+      debugPrint(&#39;⚠️ completeCurrentClue: _currentClueIndex ($_currentClueIndex) &gt;= _clues.length (${_clues.length})&#39;);
+      return null;
+    }
     targetId = _clues[_currentClueIndex].id;
   }
 
   &#47;&#47; --- ACTUALIZACIÓN OPTIMISTA ---
-  int localIndex = _clues.indexWhere((c) =&gt; c.id == targetId);
+  &#47;&#47; FIX: Solo marcar la pista identificada por ID como completada.
+  &#47;&#47; NO se desbloquea la siguiente pista en el cliente: el servidor es la
+  &#47;&#47; única fuente de verdad para is_locked (via submit_clue_answer que escribe
+  &#47;&#47; en user_clue_progress). El fetchClues(silent:true) posterior sincroniza
+  &#47;&#47; el estado real desde el servidor de forma atómica.
+  final int localIndex = _clues.indexWhere((c) =&gt; c.id == targetId);
+  final int prevClueIndex = _currentClueIndex;
+  bool didOptimisticUpdate = false;
+
   if (localIndex != -1) {
     _clues[localIndex].isCompleted = true;
+    didOptimisticUpdate = true;
+    &#47;&#47; Avanzar el índice al siguiente sin previamente desbloquearlo aquí.
+    &#47;&#47; El estado real de is_locked llega del servidor vía fetchClues(silent:true).
     if (localIndex + 1 &lt; _clues.length) {
       _currentClueIndex = localIndex + 1;
     }
@@ -98,35 +114,40 @@ Retorna null si falla, o un Map con success, raceCompleted, coins_earned.</p>
         eventId: _currentEventId);
 
     if (data != null) {
-      &#47;&#47; Success
-      &#47;&#47; Success
-      &#47;&#47; CRITICAL FIX: Only treat as Globally Completed if backend says so (raceCompletedGlobal)
-      &#47;&#47; &#39;raceCompleted&#39; in previous logic might have meant &quot;User Finished&quot;.
-      &#47;&#47; We rely on &#39;raceCompletedGlobal&#39; which comes from the RPC.
       if (data[&#39;raceCompletedGlobal&#39;] == true) {
         debugPrint(&quot;🏆 GLOBAL Race Completed confirmed by RPC!&quot;);
         _setRaceCompleted(true, &#39;Clue Completion (RPC)&#39;);
       } else {
         debugPrint(
             &quot;👤 User finished clues, but Race is NOT globally finished yet.&quot;);
-        &#47;&#47; Ensure we DO NOT set _isRaceCompleted = true here.
-        &#47;&#47; The user should go to Waiting Room.
       }
 
-      &#47;&#47; [PERFORMANCE] Fire-and-forget: El RPC ya hizo todo atómicamente y
-      &#47;&#47; la actualización optimista ya refrescó el UI. Este fetch es solo
-      &#47;&#47; para confirmar estado desde el servidor, no debe bloquear.
+      &#47;&#47; Fire-and-forget: confirmar estado desde el servidor
       unawaited(fetchClues(silent: true));
       unawaited(fetchLeaderboard());
       return data;
     } else {
+      &#47;&#47; RPC falló: revertir estado optimista para que el usuario pueda reintentar
+      debugPrint(&#39;⚠️ completeCurrentClue: RPC returned null, reverting optimistic state&#39;);
+      &#47;&#47; FIX: Rollback solo de la pista específica (by ID, no by index).
+      &#47;&#47; No se revierte is_locked de la siguiente porque nunca se modificó.
+      if (didOptimisticUpdate &amp;&amp; localIndex != -1 &amp;&amp; localIndex &lt; _clues.length) {
+        _clues[localIndex].isCompleted = false;
+        _currentClueIndex = prevClueIndex;
+        notifyListeners();
+      }
+      unawaited(fetchClues(silent: true));
       return null;
     }
   } catch (e) {
     debugPrint(&#39;Error completing clue: $e&#39;);
-    &#47;&#47; En caso de error de red, aún retornamos éxito local
-    &#47;&#47; ya que la actualización optimista ya se hizo
-    return {&#39;success&#39;: true, &#39;coins_earned&#39;: 0, &#39;error&#39;: e.toString()};
+    if (didOptimisticUpdate &amp;&amp; localIndex != -1 &amp;&amp; localIndex &lt; _clues.length) {
+      _clues[localIndex].isCompleted = false;
+      _currentClueIndex = prevClueIndex;
+      notifyListeners();
+    }
+    unawaited(fetchClues(silent: true));
+    return null;
   }
 }</code></pre>
 </section>
@@ -156,7 +177,7 @@ Retorna null si falla, o un Map con success, raceCompleted, coins_earned.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

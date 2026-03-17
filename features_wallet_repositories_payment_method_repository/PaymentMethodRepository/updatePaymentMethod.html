@@ -80,6 +80,8 @@ Future&lt;void&gt; updatePaymentMethod(String id, PaymentMethodCreate data) asyn
       &#39;bank_code&#39;: data.bankCode,
       &#39;phone_number&#39;: data.phoneNumber,
       &#39;dni&#39;: data.dni,
+      &#39;type&#39;: data.type,
+      &#39;identifier&#39;: data.identifier,
       &#39;is_default&#39;: data.isDefault,
     }).eq(&#39;id&#39;, id);
   } catch (e) {
@@ -114,7 +116,7 @@ Future&lt;void&gt; updatePaymentMethod(String id, PaymentMethodCreate data) asyn
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

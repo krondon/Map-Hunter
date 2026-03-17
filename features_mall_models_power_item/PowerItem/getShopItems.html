@@ -67,88 +67,92 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static List&lt;PowerItem&gt; getShopItems() {
+  int getCost(String id, int defaultCost) {
+    return _dbCosts[id] ?? defaultCost;
+  }
+
   return [
     &#47;&#47; Catálogo oficial (6 poderes) alineado con Supabase
-    const PowerItem(
+    PowerItem(
       id: &#39;black_screen&#39;,
       name: &#39;Pantalla Negra&#39;,
       description: &#39;Ciega al rival por 25s&#39;,
       type: PowerType.blind,
-      cost: 75, &#47;&#47; Tier 2: Blur&#47;Black Screen
+      cost: getCost(&#39;black_screen&#39;, 75), &#47;&#47; Tier 2: Blur&#47;Black Screen
       icon: &#39;🕶️&#39;,
       color: Colors.black87,
       durationMinutes: 0,
     ),
 
-    const PowerItem(
+    PowerItem(
       id: &#39;blur_screen&#39;,
       name: &#39;Pantalla Borrosa&#39;,
       description:
           &#39;Aplica un efecto borroso sobre la pantalla de todos los rivales.&#39;,
       type: PowerType.blur,
-      cost: 300, &#47;&#47; Updated to 300 as global default
+      cost: getCost(&#39;blur_screen&#39;, 300), &#47;&#47; Default 300 or DB override
       icon: &#39;🌫️&#39;,
       color: Colors.blueGrey,
       durationMinutes: 0,
     ),
 
-    const PowerItem(
+    PowerItem(
       id: &#39;extra_life&#39;,
       name: &#39;Vida&#39;,
       description: &#39;Recupera una vida perdida&#39;,
       type: PowerType.buff,
-      cost: 40, &#47;&#47; Tier 1: Extra Life
+      cost: getCost(&#39;extra_life&#39;, 40), &#47;&#47; Tier 1: Extra Life
       icon: &#39;❤️&#39;,
       color: Colors.red,
       durationMinutes: 0,
     ),
 
-    const PowerItem(
+    PowerItem(
       id: &#39;return&#39;,
       name: &#39;Devolución&#39;,
       description: &#39;Devuelve el ataque al origen&#39;,
       type: PowerType.buff, &#47;&#47; CAMBIADO: De utility a buff
-      cost: 90,
+      cost: getCost(&#39;return&#39;, 90),
       icon: &#39;↩️&#39;,
       color: Colors.purple,
       durationMinutes: 0,
     ),
-    const PowerItem(
+    PowerItem(
       id: &#39;freeze&#39;,
       name: &#39;Congelar&#39;,
       description: &#39;Congela al rival por 30s&#39;,
       type: PowerType.freeze,
-      cost: 120, &#47;&#47; Tier 3: Freeze&#47;Life Steal
+      cost: getCost(&#39;freeze&#39;, 120), &#47;&#47; Tier 3: Freeze&#47;Life Steal
       icon: &#39;❄️&#39;,
       color: Colors.cyan,
       durationMinutes: 1,
     ),
-    const PowerItem(
+    PowerItem(
       id: &#39;shield&#39;,
       name: &#39;Escudo&#39;,
       description: &#39;Bloquea sabotajes por 120s&#39;,
       type: PowerType.shield,
-      cost: 40, &#47;&#47; Tier 1: Shield&#47;Invisibility
+      cost: getCost(&#39;shield&#39;, 40), &#47;&#47; Tier 1: Shield&#47;Invisibility
       icon: &#39;🛡️&#39;,
       color: Colors.indigo,
       durationMinutes: 2,
     ),
-    const PowerItem(
+    PowerItem(
       id: &#39;life_steal&#39;,
       name: &#39;Robo de Vida&#39;,
       description: &#39;Roba una vida a un rival&#39;,
       type: PowerType.lifeSteal,
-      cost: 120, &#47;&#47; Tier 3: Freeze&#47;Life Steal
+      cost: getCost(&#39;life_steal&#39;, 120), &#47;&#47; Tier 3: Freeze&#47;Life Steal
       icon: &#39;🧛&#39;,
       color: Colors.redAccent,
       durationMinutes: 0,
     ),
-    const PowerItem(
+    PowerItem(
       id: &#39;invisibility&#39;,
       name: &#39;Invisibilidad&#39;,
       description: &#39;Te vuelve invisible por 45s&#39;,
       type: PowerType.stealth,
-      cost: 40, &#47;&#47; Tier 1: Shield&#47;Invisibility
+      cost: getCost(&#39;invisibility&#39;, 40), &#47;&#47; Tier 1: Shield&#47;Invisibility
       icon: &#39;👻&#39;,
       color: Colors.grey,
       durationMinutes: 0,
@@ -182,7 +186,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

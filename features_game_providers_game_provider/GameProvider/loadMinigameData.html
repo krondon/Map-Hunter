@@ -70,8 +70,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; loadMinigameData() async {
-  if (_minigameCapitals.isNotEmpty &amp;&amp; _minigameTFStatements.isNotEmpty)
-    return;
+  if (_isMinigameDataLoading) return;
 
   _isMinigameDataLoading = true;
   notifyListeners();
@@ -80,14 +79,17 @@
     final results = await Future.wait([
       _gameService.fetchMinigameCapitals(),
       _gameService.fetchMinigameTrueFalse(),
+      _gameService.fetchMinigameChronologicalOrder(),
+      _gameService.fetchMinigameEmojiMovies(),
     ]);
 
     _minigameCapitals = results[0] as List&lt;Map&lt;String, String&gt;&gt;;
-    final tfRaw = results[1] as List&lt;Map&lt;String, dynamic&gt;&gt;;
-    _minigameTFStatements = tfRaw;
+    _minigameTFStatements = results[1] as List&lt;Map&lt;String, dynamic&gt;&gt;;
+    _minigameChronologicalEvents = results[2] as List&lt;Map&lt;String, dynamic&gt;&gt;;
+    _minigameEmojiMovies = results[3] as List&lt;Map&lt;String, dynamic&gt;&gt;;
 
     debugPrint(
-        &#39;GameProvider: Loaded ${_minigameCapitals.length} capitals and ${_minigameTFStatements.length} TF statements.&#39;);
+        &#39;GameProvider: Loaded ${_minigameCapitals.length} capitals, ${_minigameTFStatements.length} TF statements, ${_minigameChronologicalEvents.length} chrono events, and ${_minigameEmojiMovies.length} movie events.&#39;);
   } catch (e) {
     debugPrint(&#39;GameProvider: Error loading minigame data: $e&#39;);
   } finally {
@@ -122,7 +124,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

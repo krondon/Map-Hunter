@@ -70,6 +70,7 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; login(String email, String password) async {
   try {
+    _isNewlyRegistered = false; &#47;&#47; Regular login is not a registration
     final userId = await _authService.login(email, password);
     await restoreSession(userId);
   } catch (e) {
@@ -104,7 +105,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

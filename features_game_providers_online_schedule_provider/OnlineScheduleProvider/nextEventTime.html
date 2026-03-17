@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the nextEventTime property from the OnlineScheduleProvider class, for the Dart programming language.">
+  <title>nextEventTime property - OnlineScheduleProvider class - online_schedule_provider library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">map_hunter</a></li>
+    <li><a href="../../features_game_providers_online_schedule_provider/">features&#47;game&#47;providers&#47;online_schedule_provider.dart</a></li>
+    <li><a href="../../features_game_providers_online_schedule_provider/OnlineScheduleProvider-class.html">OnlineScheduleProvider</a></li>
+    <li class="self-crumb">nextEventTime property</li>
+  </ol>
+  <div class="self-name">nextEventTime</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="features_game_providers_online_schedule_provider&#47;OnlineScheduleProvider-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-property">nextEventTime</span> property 
+</h1></div>
+
+    
+
+    
+        
+  <section id="getter">
+    <section class="multi-line-signature">
+      
+      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a>?</span>
+      get
+      <span class="name ">nextEventTime</span>
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Computes the next event start time based on the active mode.</p>
+<ul>
+<li><strong>scheduled</strong>: returns the next scheduled hour (converted from VET to local).</li>
+<li><strong>automatic</strong>: returns <code>null</code> (interval-based; depends on server state).</li>
+</ul>
+</section>
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">DateTime? get nextEventTime {
+  if (!isEnabled) return null;
+  if (mode != &#39;scheduled&#39; || scheduledHours.isEmpty) return null;
+
+  final nowUtc = DateTime.now().toUtc();
+
+  final todaySlots = &lt;DateTime&gt;[];
+  for (final hourStr in scheduledHours) {
+    final parts = hourStr.split(&#39;:&#39;);
+    if (parts.length &lt; 2) continue;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) continue;
+
+    &#47;&#47; Hours are in VET (UTC-4), convert to UTC for comparison
+    final utcHour = h - _vetOffsetHours; &#47;&#47; e.g. 15 VET → 19 UTC
+    todaySlots.add(DateTime.utc(
+      nowUtc.year, nowUtc.month, nowUtc.day, utcHour, m,
+    ));
+  }
+  todaySlots.sort();
+
+  &#47;&#47; Find the first slot still in the future
+  for (final slot in todaySlots) {
+    if (slot.isAfter(nowUtc)) return slot.toLocal();
+  }
+
+  &#47;&#47; All today&#39;s slots passed → first slot tomorrow
+  if (todaySlots.isNotEmpty) {
+    return todaySlots.first.add(const Duration(days: 1)).toLocal();
+  }
+
+  return null;
+}</code></pre>
+</section>
+
+  </section>
+
+
+</div> <!-- /.main-content -->
+<div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+  <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">map_hunter</a></li>
+    <li><a href="../../features_game_providers_online_schedule_provider/">online_schedule_provider</a></li>
+    <li><a href="../../features_game_providers_online_schedule_provider/OnlineScheduleProvider-class.html">OnlineScheduleProvider</a></li>
+    <li class="self-crumb">nextEventTime property</li>
+</ol>
+
+  <h5>OnlineScheduleProvider class</h5>
+  <div id="dartdoc-sidebar-left-content"></div>
+</div><!--/.sidebar-offcanvas-->
+<div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    map_hunter
+      1.0.3
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

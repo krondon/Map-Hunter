@@ -67,6 +67,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; loadTheme() async {
+  _isNewlyRegistered = false; &#47;&#47; Default: not new on session load
   final prefs = await SharedPreferences.getInstance();
   _isAutoTheme = prefs.getBool(&#39;is_auto_theme&#39;) ?? true; &#47;&#47; Default: auto
 
@@ -106,7 +107,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

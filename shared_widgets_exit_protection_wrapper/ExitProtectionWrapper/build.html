@@ -216,7 +216,11 @@ Widget build(BuildContext context) {
       );
 
       if (shouldExit == true &amp;&amp; context.mounted) {
-        Navigator.pop(context);
+        if (onExit != null) {
+          onExit!();
+        } else {
+          Navigator.pop(context);
+        }
       }
     },
     child: child,
@@ -249,7 +253,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

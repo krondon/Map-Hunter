@@ -74,6 +74,7 @@
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; register(String name, String email, String password,
     {String? cedula, String? phone}) async {
   try {
+    _isNewlyRegistered = true; &#47;&#47; MARK AS NEWLY REGISTERED
     final userId = await _authService.register(name, email, password,
         cedula: cedula, phone: phone);
 
@@ -113,7 +114,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>

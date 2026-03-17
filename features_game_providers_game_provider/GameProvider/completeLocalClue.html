@@ -70,6 +70,9 @@
   <pre class="language-dart"><code class="language-dart">void completeLocalClue(String clueId) {
   final index = _clues.indexWhere((c) =&gt; c.id == clueId);
   if (index != -1) {
+    &#47;&#47; Solo marcar la pista específica por ID como completada.
+    &#47;&#47; No se toca is_locked de ninguna otra pista: el servidor es la fuente
+    &#47;&#47; de verdad para el desbloqueo (via submit_clue_answer → user_clue_progress).
     _clues[index].isCompleted = true;
     _hintActive = false;
     _activeHintText = null;
@@ -103,7 +106,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.2
+      1.0.3
   </span>
   
 </footer>
