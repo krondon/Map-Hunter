@@ -64,7 +64,7 @@
     
 <section class="desc markdown">
   <p>Registra que hay un cambio pendiente en el leaderboard.</p>
-<p><code>callback</code> será llamado después de <a href="../../core_services_leaderboard_debouncer/LeaderboardDebouncer/interval.html">interval</a> de inactividad,
+<p><code>callback</code> será llamado después de <a href="../../core_services_leaderboard_debouncer/LeaderboardDebouncer/interval.html">interval</a> + un retraso aleatorio de inactividad,
 o después de <a href="../../core_services_leaderboard_debouncer/LeaderboardDebouncer/maxWait.html">maxWait</a> si hay actualizaciones continuas.</p>
 </section>
 
@@ -76,17 +76,21 @@ o después de <a href="../../core_services_leaderboard_debouncer/LeaderboardDebo
   _pendingCallback = callback;
   _hasPendingUpdate = true;
 
-  &#47;&#47; Reiniciar el timer de debounce
+  &#47;&#47; Reiniciar el timer de debounce con un jitter para prevenir Thundering Herd
   _debounceTimer?.cancel();
-  _debounceTimer = Timer(interval, _flush);
+  final randomizedInterval = interval + Duration(milliseconds: _random.nextInt(jitter.inMilliseconds + 1));
+  _debounceTimer = Timer(randomizedInterval, _flush);
 
-  &#47;&#47; Iniciar timer de maxWait solo si no está corriendo
-  _maxWaitTimer ??= Timer(maxWait, () {
-    _maxWaitTimer = null;
-    if (_hasPendingUpdate) {
-      _flush();
-    }
-  });
+  &#47;&#47; Iniciar timer de maxWait solo si no está corriendo (con jitter también)
+  if (_maxWaitTimer == null) {
+    final randomizedMaxWait = maxWait + Duration(milliseconds: _random.nextInt(jitter.inMilliseconds + 1));
+    _maxWaitTimer = Timer(randomizedMaxWait, () {
+      _maxWaitTimer = null;
+      if (_hasPendingUpdate) {
+        _flush();
+      }
+    });
+  }
 }</code></pre>
 </section>
 
@@ -115,7 +119,7 @@ o después de <a href="../../core_services_leaderboard_debouncer/LeaderboardDebo
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

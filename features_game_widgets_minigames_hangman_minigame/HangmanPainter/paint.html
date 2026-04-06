@@ -110,82 +110,60 @@ obtain the correct rendering size.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
 void paint(Canvas canvas, Size size) {
-  &#47;&#47; Paints for different parts
   final gallowsPaint = Paint()
     ..color = Colors.white54
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 5.0 &#47;&#47; Thicker
+    ..strokeWidth = 5.0
     ..strokeCap = StrokeCap.round;
 
   final bodyPaint = Paint()
     ..color = Colors.white
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 4.0 &#47;&#47; Thicker
+    ..strokeWidth = 4.0
     ..strokeCap = StrokeCap.round;
 
   final double w = size.width;
   final double h = size.height;
 
-  &#47;&#47; 8 Intentos - Dibujo Progresivo
-
-  &#47;&#47; 1. Base Suelo (Base)
   if (wrongAttempts &gt;= 1)
     canvas.drawLine(
         Offset(w * 0.15, h * 0.9), Offset(w * 0.85, h * 0.9), gallowsPaint);
-
-  &#47;&#47; 2. Poste Vertical (Poste 1)
   if (wrongAttempts &gt;= 2)
     canvas.drawLine(
         Offset(w * 0.25, h * 0.9), Offset(w * 0.25, h * 0.1), gallowsPaint);
-
-  &#47;&#47; 3. Poste Horizontal + Soporte (Poste 2)
   if (wrongAttempts &gt;= 3) {
     canvas.drawLine(
         Offset(w * 0.25, h * 0.1), Offset(w * 0.65, h * 0.1), gallowsPaint);
-    canvas.drawLine(Offset(w * 0.25, h * 0.2), Offset(w * 0.4, h * 0.1),
-        gallowsPaint); &#47;&#47; Soporte
+    canvas.drawLine(
+        Offset(w * 0.25, h * 0.2), Offset(w * 0.4, h * 0.1), gallowsPaint);
   }
-
-  &#47;&#47; 4. Cuerda
-  if (wrongAttempts &gt;= 4) {
+  if (wrongAttempts &gt;= 4)
     canvas.drawLine(
         Offset(w * 0.65, h * 0.1), Offset(w * 0.65, h * 0.2), gallowsPaint);
-  }
-
-  &#47;&#47; 5. Cabeza
   if (wrongAttempts &gt;= 5)
     canvas.drawCircle(Offset(w * 0.65, h * 0.3), h * 0.1, bodyPaint);
-
-  &#47;&#47; 6. Cuerpo
   if (wrongAttempts &gt;= 6)
     canvas.drawLine(
         Offset(w * 0.65, h * 0.4), Offset(w * 0.65, h * 0.7), bodyPaint);
-
-  &#47;&#47; 7. Brazos (Ambos)
   if (wrongAttempts &gt;= 7) {
-    canvas.drawLine(Offset(w * 0.65, h * 0.45), Offset(w * 0.55, h * 0.55),
-        bodyPaint); &#47;&#47; Izq
-    canvas.drawLine(Offset(w * 0.65, h * 0.45), Offset(w * 0.75, h * 0.55),
-        bodyPaint); &#47;&#47; Der
+    canvas.drawLine(
+        Offset(w * 0.65, h * 0.45), Offset(w * 0.55, h * 0.55), bodyPaint);
+    canvas.drawLine(
+        Offset(w * 0.65, h * 0.45), Offset(w * 0.75, h * 0.55), bodyPaint);
   }
-
-  &#47;&#47; 8. Piernas (Ambas) + Ojos (Game Over)
   if (wrongAttempts &gt;= 8) {
-    canvas.drawLine(Offset(w * 0.65, h * 0.7), Offset(w * 0.55, h * 0.85),
-        bodyPaint); &#47;&#47; Izq
-    canvas.drawLine(Offset(w * 0.65, h * 0.7), Offset(w * 0.75, h * 0.85),
-        bodyPaint); &#47;&#47; Der
-
+    canvas.drawLine(
+        Offset(w * 0.65, h * 0.7), Offset(w * 0.55, h * 0.85), bodyPaint);
+    canvas.drawLine(
+        Offset(w * 0.65, h * 0.7), Offset(w * 0.75, h * 0.85), bodyPaint);
     final eyePaint = Paint()
       ..color = AppTheme.dangerRed
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
-
     canvas.drawLine(
         Offset(w * 0.62, h * 0.28), Offset(w * 0.64, h * 0.30), eyePaint);
     canvas.drawLine(
         Offset(w * 0.64, h * 0.28), Offset(w * 0.62, h * 0.30), eyePaint);
-
     canvas.drawLine(
         Offset(w * 0.66, h * 0.28), Offset(w * 0.68, h * 0.30), eyePaint);
     canvas.drawLine(
@@ -219,7 +197,7 @@ void paint(Canvas canvas, Size size) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

@@ -77,6 +77,12 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static void navigateToClue(BuildContext context, Clue clue) async {
+  final remaining = await _getMinigameCooldownRemainingSeconds();
+  if (remaining &gt; 0) {
+    await _showMinigameCooldownDialog(context, remaining);
+    return;
+  }
+
   &#47;&#47; Get the app mode - this is the USER&#39;s selected mode, not the clue data
   final appMode = Provider.of&lt;AppModeProvider&gt;(context, listen: false);
   final isOnlineMode = appMode.isOnlineMode;
@@ -127,7 +133,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

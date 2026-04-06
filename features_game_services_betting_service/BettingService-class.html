@@ -61,7 +61,7 @@
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="BettingService.new" class="callable">
-          <span class="name"><a href="../features_game_services_betting_service/BettingService/BettingService.html">BettingService</a></span><span class="signature">(<span class="parameter" id="-param-_supabase"><span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.2/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">_supabase</span></span>)</span>
+          <span class="name"><a href="../features_game_services_betting_service/BettingService/BettingService.html">BettingService</a></span><span class="signature">(<span class="parameter" id="-param-_supabase"><span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.4/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">_supabase</span></span>)</span>
         </dt>
         <dd>
           
@@ -150,6 +150,19 @@ datos agregados sin necesidad de leer filas individuales de <code>bets</code>.
 
 </dd>
 
+        <dt id="getEventBettingStats" class="callable">
+  <span class="name"><a href="../features_game_services_betting_service/BettingService/getEventBettingStats.html">getEventBettingStats</a></span><span class="signature">(<wbr><span class="parameter" id="getEventBettingStats-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Obtiene stats agregadas del evento (pote total y cantidad de apuestas).
+  
+
+</dd>
+
         <dt id="getTotalBetsCount" class="callable">
   <span class="name"><a href="../features_game_services_betting_service/BettingService/getTotalBetsCount.html">getTotalBetsCount</a></span><span class="signature">(<wbr><span class="parameter" id="getTotalBetsCount-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>
@@ -160,6 +173,20 @@ datos agregados sin necesidad de leer filas individuales de <code>bets</code>.
 <dd>
   Obtiene el número total de apuestas en un evento.
 Usa el RPC seguro para no depender de lectura directa de <code>bets</code>.
+  
+
+</dd>
+
+        <dt id="getUserBetOutcome" class="callable">
+  <span class="name"><a href="../features_game_services_betting_service/BettingService/getUserBetOutcome.html">getUserBetOutcome</a></span><span class="signature">(<wbr><span class="parameter" id="getUserBetOutcome-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="getUserBetOutcome-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Obtiene el resumen del resultado de apuestas para el usuario.
+Retorna un mapa con payout, pool, ganadores y conteos de tickets.
   
 
 </dd>
@@ -207,7 +234,7 @@ Retorna el resultado del RPC.
 
         <dt id="subscribeToBets" class="callable">
   <span class="name"><a href="../features_game_services_betting_service/BettingService/subscribeToBets.html">subscribeToBets</a></span><span class="signature">(<wbr><span class="parameter" id="subscribeToBets-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="subscribeToBets-param-callback"><span class="type-annotation">dynamic</span> <span class="parameter-name">callback</span>()</span>)
-    <span class="returntype parameter">&#8594; <a href="https://pub.dev/documentation/realtime_client/2.7.0/realtime_client/RealtimeChannel-class.html">RealtimeChannel</a></span>
+    <span class="returntype parameter">&#8594; <a href="https://pub.dev/documentation/realtime_client/2.7.1/realtime_client/RealtimeChannel-class.html">RealtimeChannel</a></span>
   </span>
   
 
@@ -281,7 +308,7 @@ Retorna el resultado del RPC.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

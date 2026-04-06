@@ -68,9 +68,16 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static LinearGradient mainGradient(BuildContext context) {
-  &#47;&#47; Always dark gradient — UI is always dark-styled
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  if (isDark) {
+    return const LinearGradient(
+      colors: [dSurface0, dSurface1],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+  }
   return const LinearGradient(
-    colors: [dSurface0, dSurface1],
+    colors: [lSurface0, lSurface1],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -102,7 +109,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

@@ -79,11 +79,17 @@ Lanza excepción si hay error de red en <code>GameService</code>.</p>
     final lives = await _gameService.fetchLives(_currentEventId!, userId);
 
     if (lives != null) {
-      _lives = lives;
+      if (_lives != lives) {
+        _lives = lives;
+        notifyListeners();
+      }
     } else {
-      _lives = 3;
+      &#47;&#47; Fallback for null (standard lives)
+      if (_lives != 3) {
+        _lives = 3;
+        notifyListeners();
+      }
     }
-    notifyListeners();
   } catch (e) {
     debugPrint(&#39;Error fetching lives: $e&#39;);
   }
@@ -115,7 +121,7 @@ Lanza excepción si hay error de red en <code>GameService</code>.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

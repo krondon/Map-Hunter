@@ -111,20 +111,25 @@ and</li>
 Widget build(BuildContext context) {
   return MultiProvider(
     providers: [
+      Provider&lt;AuthService&gt;(
+        create: (_) =&gt; AuthService(supabaseClient: Supabase.instance.client),
+      ),
+      Provider&lt;AdminService&gt;(
+        create: (context) =&gt; AdminService(
+          supabaseClient: Supabase.instance.client,
+          authService: Provider.of&lt;AuthService&gt;(context, listen: false),
+        ),
+      ),
       ChangeNotifierProvider(create: (_) {
         final supabase = Supabase.instance.client;
         return GameProvider(gameService: GameService(supabase));
       }),
-      ChangeNotifierProvider(create: (_) {
+      ChangeNotifierProvider(create: (context) {
         final supabase = Supabase.instance.client;
-        final authService = AuthService(supabaseClient: supabase);
         return PlayerProvider(
           supabaseClient: supabase,
-          authService: authService,
-          adminService: AdminService(
-            supabaseClient: supabase,
-            authService: authService,
-          ),
+          authService: Provider.of&lt;AuthService&gt;(context, listen: false),
+          adminService: Provider.of&lt;AdminService&gt;(context, listen: false),
           inventoryService: InventoryService(supabaseClient: supabase),
           powerService: PowerService(supabaseClient: supabase),
         );
@@ -138,6 +143,10 @@ Widget build(BuildContext context) {
       ChangeNotifierProvider(create: (_) {
         final supabase = Supabase.instance.client;
         return EventProvider(eventService: EventService(supabase));
+      }),
+      ChangeNotifierProvider(create: (_) {
+        final supabase = Supabase.instance.client;
+        return StoreProvider(storeService: StoreService(supabase));
       }),
     ],
     child: MaterialApp(
@@ -185,7 +194,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

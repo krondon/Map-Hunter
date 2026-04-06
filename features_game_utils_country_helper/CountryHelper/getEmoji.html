@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
 <span class="name ">getEmoji</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="getEmoji-param-countryName"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">countryName</span></span></li>
 </ol>)
 
@@ -67,19 +67,36 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static String getEmoji(String countryName) {
-  if (countryName.isEmpty) return &#39;🌍&#39;;
+  <pre class="language-dart"><code class="language-dart">static String? getEmoji(String countryName) {
+  if (countryName.isEmpty) return &#39;🚩&#39;; &#47;&#47; Placeholder flag if empty
 
-  &#47;&#47; Búsqueda robusta: trim y case-insensitive
-  final searchName = countryName.trim().toLowerCase();
+  &#47;&#47; Si ya es un emoji (empieza por un código de región o tiene un símbolo de bandera)
+  &#47;&#47; Usamos una comprobación simple de rango Unicode para banderas
+  if (countryName.length &gt;= 2 &amp;&amp; countryName.runes.first &gt; 127) {
+    return countryName;
+  }
 
+  final searchName = _normalize(countryName);
+
+  &#47;&#47; 1. Intento directo normalizado
   for (var entry in _nameToEmoji.entries) {
-    if (entry.key.toLowerCase() == searchName) {
+    if (_normalize(entry.key) == searchName) {
       return entry.value;
     }
   }
 
-  return &#39;🌍&#39;;
+  &#47;&#47; 2. Intento de sub-cadena (Contiene)
+  &#47;&#47; Útil para &quot;Reino Unido de Gran Bretaña&quot; -&gt; &quot;Reino Unido&quot;
+  for (var entry in _nameToEmoji.entries) {
+    final keyNorm = _normalize(entry.key);
+    if (searchName.contains(keyNorm) || keyNorm.contains(searchName)) {
+      if (keyNorm.length &gt; 3) { &#47;&#47; Evitar falsos positivos con nombres muy cortos
+         return entry.value;
+      }
+    }
+  }
+
+  return null; &#47;&#47; Retornamos null para que el UI pueda decidir qué mostrar (ej. el Nombre)
 }</code></pre>
 </section>
 
@@ -108,7 +125,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

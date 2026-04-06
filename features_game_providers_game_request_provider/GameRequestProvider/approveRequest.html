@@ -63,16 +63,9 @@
     </section>
     
 <section class="desc markdown">
-  <p>Aprueba una solicitud de acceso y ejecuta el pago atómicamente.</p>
-<p>Usa la RPC <code>approve_and_pay_event_entry</code> que en una sola transacción:</p>
-<ol>
-<li>Valida que la solicitud esté en estado 'pending'</li>
-<li>Ejecuta secure_clover_payment (si el evento tiene costo)</li>
-<li>Crea el registro game_player</li>
-<li>Incrementa el pote del evento</li>
-</ol>
-<p>Retorna un Map con el resultado incluyendo si se cobró y el monto.
-Lanza excepción si falla para que el UI muestre feedback.</p>
+  <p>Aprueba una solicitud de acceso usando la Edge Function de admin-actions.</p>
+<p>Retorna un Map con el resultado. Lanza excepción si falla para que el UI
+muestre feedback.</p>
 </section>
 
 
@@ -81,7 +74,7 @@ Lanza excepción si falla para que el UI muestre feedback.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;&gt; approveRequest(String requestId) async {
   try {
-    debugPrint(&#39;[APPROVE] 🎯 Approving request via atomic RPC: $requestId&#39;);
+    debugPrint(&#39;[APPROVE] 🎯 Approving request via edge: $requestId&#39;);
 
     final result = await _repository.approveAndPayEntry(requestId);
 
@@ -132,7 +125,7 @@ Lanza excepción si falla para que el UI muestre feedback.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

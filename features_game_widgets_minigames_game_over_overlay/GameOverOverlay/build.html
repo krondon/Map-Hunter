@@ -192,14 +192,36 @@ Widget build(BuildContext context) {
                           onTap: onRetry!,
                         ),
 
-                      &#47;&#47; Go to shop button
+                      &#47;&#47; Go to shop &#47; buy coins button
                       if (onGoToShop != null) ...[
                         const SizedBox(height: 12),
-                        _buildButton(
-                          label: &#39;IR A LA TIENDA&#39;,
-                          icon: Icons.storefront_rounded,
-                          color: AppTheme.accentGold,
-                          onTap: onGoToShop!,
+                        Builder(
+                          builder: (btnContext) {
+                            final player = Provider.of&lt;PlayerProvider&gt;(btnContext, listen: true).currentPlayer;
+                            final int coins = player?.coins ?? 0;
+
+                            if (coins == 0) {
+                              return _buildButton(
+                                label: &#39;COMPRAR MONEDAS&#39;,
+                                icon: Icons.currency_exchange_rounded,
+                                color: AppTheme.accentGold,
+                                onTap: () async {
+                                  final bool? success = await BuyCoinsWithCloversModal.show(context);
+                                  if (success == true) {
+                                    &#47;&#47; Después de comprar monedas, puede ir a la tienda a comprar vidas
+                                    onGoToShop!();
+                                  }
+                                },
+                              );
+                            }
+
+                            return _buildButton(
+                              label: &#39;IR A LA TIENDA&#39;,
+                              icon: Icons.storefront_rounded,
+                              color: AppTheme.accentGold,
+                              onTap: onGoToShop!,
+                            );
+                          }
                         ),
                       ],
 
@@ -252,7 +274,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

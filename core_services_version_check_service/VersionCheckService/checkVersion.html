@@ -96,8 +96,7 @@
 
     final String minVersion =
         data[&#39;min_supported_version&#39;] as String? ?? &#39;0.0.0&#39;;
-    final bool maintenanceMode =
-        data[&#39;maintenance_mode&#39;] as bool? ?? false;
+    final bool maintenanceMode = data[&#39;maintenance_mode&#39;] as bool? ?? false;
 
     &#47;&#47; 3. Selección de URL según plataforma:
     &#47;&#47;    iOS              → ios_store_url  (App Store)
@@ -109,20 +108,15 @@
       final iosUrl = data[&#39;ios_store_url&#39;] as String?;
       downloadUrl = (iosUrl != null &amp;&amp; iosUrl.isNotEmpty) ? iosUrl : null;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      final storeUrl = data[&#39;android_store_url&#39;] as String?;
-      final apkUrl   = data[&#39;apk_download_url&#39;]  as String?;
-      &#47;&#47; Si ya está en Play Store usa esa URL; si no, descarga directa
-      downloadUrl = (storeUrl != null &amp;&amp; storeUrl.isNotEmpty)
-          ? storeUrl
-          : ((apkUrl != null &amp;&amp; apkUrl.isNotEmpty) ? apkUrl : null);
+      final apkUrl = data[&#39;apk_download_url&#39;] as String?;
+      downloadUrl = (apkUrl != null &amp;&amp; apkUrl.isNotEmpty) ? apkUrl : null;
     }
     &#47;&#47; En web no forzamos descarga
 
     &#47;&#47; 4. Compare versions
     final bool updateRequired = _isUpdateRequired(localVersion, minVersion);
 
-    debugPrint(
-        &#39;VersionCheck: minVersion=$minVersion, local=$localVersion, &#39;
+    debugPrint(&#39;VersionCheck: minVersion=$minVersion, local=$localVersion, &#39;
         &#39;updateRequired=$updateRequired, maintenance=$maintenanceMode&#39;);
 
     return VersionStatus(
@@ -171,7 +165,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

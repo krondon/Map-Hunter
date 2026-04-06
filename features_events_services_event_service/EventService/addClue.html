@@ -90,13 +90,9 @@
       &#39;title&#39;: clue.title,
       &#39;hint&#39;: clue.hint,
       &#39;type&#39;: clue.type.toString().split(&#39;.&#39;).last,
-      &#39;puzzle_type&#39;: (clue is OnlineClue)
-          ? (clue as OnlineClue).puzzleType.toString().split(&#39;.&#39;).last
-          : null,
-      &#39;riddle_question&#39;:
-          (clue is OnlineClue) ? (clue as OnlineClue).riddleQuestion : null,
-      &#39;riddle_answer&#39;:
-          (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
+      &#39;puzzle_type&#39;: clue.puzzleType.toString().split(&#39;.&#39;).last,
+      &#39;riddle_question&#39;: clue.riddleQuestion,
+      &#39;riddle_answer&#39;: clue.riddleAnswer,
       &#39;xp_reward&#39;: clue.xpReward,
       &#39;sequence_index&#39;: clue.sequenceIndex &gt; 0
           ? clue.sequenceIndex
@@ -138,7 +134,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

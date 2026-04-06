@@ -107,6 +107,18 @@ Lanza una excepción con mensaje legible si falla.</p>
       &#47;&#47; Si no hay sesión (requiere confirmación de email), continuamos igual.
       if (data[&#39;session&#39;] != null) {
         await _supabase.auth.setSession(data[&#39;session&#39;][&#39;refresh_token&#39;]);
+
+        &#47;&#47; SINGLE DEVICE POLICY: Create new session token for the newly registered user
+        final userId = data[&#39;user&#39;][&#39;id&#39;] as String;
+        try {
+          final sessionService = SessionService();
+          final sessionToken = await sessionService.generateAndSaveSessionToken();
+          await _supabase.rpc(&#39;set_current_session_id&#39;, params: {
+            &#39;p_session_id&#39;: sessionToken,
+          });
+        } catch(e) {
+          debugPrint(&#39;AuthService: Failed to set current_session_id during register: $e&#39;);
+        }
       }
 
       return data[&#39;user&#39;][&#39;id&#39;] as String;
@@ -144,7 +156,7 @@ Lanza una excepción con mensaje legible si falla.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

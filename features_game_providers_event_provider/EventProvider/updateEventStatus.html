@@ -74,41 +74,8 @@
 
     final index = _events.indexWhere((e) =&gt; e.id == eventId);
     if (index != -1) {
-      &#47;&#47; Create a copy with updated status
-      &#47;&#47; Since GameEvent fields are final, we need to create a new instance
-      &#47;&#47; copying all fields but status.
-      &#47;&#47; Ideally GameEvent should have a copyWith method.
-      &#47;&#47; Assuming we rely on fetchEvents refresh or just optimistic update for now.
-      &#47;&#47; Let&#39;s implement a manual copy for now if copyWith is missing,
-      &#47;&#47; or just fetch updated event. Fetching is safer.
-      &#47;&#47; But for UI responsiveness, let&#39;s update local list if possible.
-      &#47;&#47; I&#39;ll check GameEvent for copyWith. If not there, I will just refetch or do a manual copy.
-      &#47;&#47; Given I verified GameEvent and it didn&#39;t have copyWith in the view_file output (Step 167),
-      &#47;&#47; I will implement a manual copy here for the specific field, or cleaner: refetch.
-      &#47;&#47; Actually, looking at the code, GameEvent is a simple PODO.
-
-      &#47;&#47; Let&#39;s try to do a manual update on the list by creating a new object.
       final old = _events[index];
-      _events[index] = GameEvent(
-        id: old.id,
-        title: old.title,
-        description: old.description,
-        locationName: old.locationName,
-        latitude: old.latitude,
-        longitude: old.longitude,
-        date: old.date,
-        createdByAdminId: old.createdByAdminId,
-        clue: old.clue,
-        imageUrl: old.imageUrl,
-        maxParticipants: old.maxParticipants,
-        pin: old.pin,
-        status: status, &#47;&#47; UPDATED
-        completedAt: old.completedAt,
-        winnerId: old.winnerId,
-        type: old.type,
-        entryFee: old.entryFee,
-        currentParticipants: old.currentParticipants,
-      );
+      _events[index] = old.copyWith(status: status);
       notifyListeners();
     }
   } catch (e) {
@@ -143,7 +110,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

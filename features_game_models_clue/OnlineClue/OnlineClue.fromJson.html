@@ -81,11 +81,9 @@
           )
         : PuzzleType.slidingPuzzle,
     xpReward: (json[&#39;xp_reward&#39;] as num?)?.toInt() ?? 50,
-    &#47;&#47; coinReward: (json[&#39;coin_reward&#39;] as num?)?.toInt() ?? 10, &#47;&#47; REMOVED
     isCompleted: json[&#39;isCompleted&#39;] ?? json[&#39;is_completed&#39;] ?? false,
     isLocked: json[&#39;isLocked&#39;] ?? json[&#39;is_locked&#39;] ?? true,
     sequenceIndex: json[&#39;sequence_index&#39;] ?? 0,
-    &#47;&#47; Parse coordinates for online clues
     latitude: (json[&#39;latitude&#39;] as num?)?.toDouble(),
     longitude: (json[&#39;longitude&#39;] as num?)?.toDouble(),
     qrCode: json[&#39;qr_code&#39;],
@@ -118,7 +116,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

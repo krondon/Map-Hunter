@@ -87,13 +87,18 @@ Lanza una excepción con mensaje legible si falla.</p>
 
     if (response.status != 200) {
       final error = (data is Map) ? (data[&#39;error&#39;] ?? &#39;Error desconocido&#39;) : &#39;Error del servidor (${response.status})&#39;;
+      final bool isUnverified = (data is Map) &amp;&amp; data[&#39;unverified&#39;] == true;
 
       if (response.status == 403) {
         try {
           await _supabase.auth.signOut();
         } catch (_) {}
       }
-      throw error;
+
+      if (isUnverified) {
+        throw AuthUserException(_handleAuthError(error), isUnverified: true);
+      }
+      throw _handleAuthError(error);
     }
 
     if (data == null) throw &#39;No se recibió respuesta del servidor&#39;;
@@ -120,17 +125,46 @@ Lanza una excepción con mensaje legible si falla.</p>
 
         if (user[&#39;email_confirmed_at&#39;] == null) {
           await logout();
-          throw &#39;Tu cuenta aún no está activa. Por favor, verifica tu correo electrónico.&#39;;
+          throw AuthUserException(&#39;Tu cuenta aún no está activa. Por favor, verifica tu correo electrónico.&#39;, isUnverified: true);
         }
 
-        return user[&#39;id&#39;] as String;
+        final userId = user[&#39;id&#39;] as String;
+
+        &#47;&#47; SINGLE DEVICE POLICY: Generate session token and update profile BEFORE granting access
+        try {
+          final sessionService = SessionService();
+          final sessionToken = await sessionService.generateAndSaveSessionToken();
+          await _supabase.rpc(&#39;set_current_session_id&#39;, params: {
+            &#39;p_session_id&#39;: sessionToken,
+          });
+        } catch (e) {
+          debugPrint(&#39;AuthService: Failed to set current_session_id during login: $e&#39;);
+          &#47;&#47; Allow login to proceed even if token update fails, or you could throw. Throwing is safer for strict policy.
+          &#47;&#47; But we will just log it here for minimum disruption.
+        }
+
+        return userId;
       }
       throw &#39;No se recibió información del usuario&#39;;
     } else {
       throw &#39;No se recibió una sesión válida&#39;;
     }
   } catch (e) {
+    if (e is AuthUserException) rethrow;
+
     debugPrint(&#39;AuthService: Error logging in: $e&#39;);
+
+    &#47;&#47; Detect unverified status inside FunctionException details
+    if (e is FunctionException) {
+      final details = e.details;
+      if (details is Map &amp;&amp; details[&#39;unverified&#39;] == true) {
+        throw AuthUserException(
+          _handleAuthError(details[&#39;error&#39;] ?? &#39;Debes confirmar tu correo para entrar.&#39;),
+          isUnverified: true,
+        );
+      }
+    }
+
     throw _handleAuthError(e);
   }
 }</code></pre>
@@ -161,7 +195,7 @@ Lanza una excepción con mensaje legible si falla.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

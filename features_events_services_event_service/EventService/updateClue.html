@@ -76,14 +76,9 @@
         .from(&#39;clues&#39;)
         .update({
           &#39;title&#39;: clue.title,
-          &#39;puzzle_type&#39;: (clue is OnlineClue)
-              ? (clue as OnlineClue).puzzleType.toString().split(&#39;.&#39;).last
-              : null,
-          &#39;riddle_question&#39;: (clue is OnlineClue)
-              ? (clue as OnlineClue).riddleQuestion
-              : null,
-          &#39;riddle_answer&#39;:
-              (clue is OnlineClue) ? (clue as OnlineClue).riddleAnswer : null,
+          &#39;puzzle_type&#39;: clue.puzzleType.toString().split(&#39;.&#39;).last,
+          &#39;riddle_question&#39;: clue.riddleQuestion,
+          &#39;riddle_answer&#39;: clue.riddleAnswer,
           &#39;xp_reward&#39;: clue.xpReward,
           &#39;latitude&#39;: clue.latitude,
           &#39;longitude&#39;: clue.longitude,
@@ -126,7 +121,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

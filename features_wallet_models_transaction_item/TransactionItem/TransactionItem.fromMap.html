@@ -72,8 +72,14 @@
     description: map[&#39;description&#39;] ?? &#39;Transacción&#39;,
     status: map[&#39;status&#39;] ?? &#39;unknown&#39;,
     type: map[&#39;type&#39;] ?? &#39;unknown&#39;,
+    ledgerType: map[&#39;ledger_type&#39;]?.toString(),
     paymentUrl: map[&#39;payment_url&#39;],
     fiatAmount: map[&#39;fiat_amount&#39;] != null ? (map[&#39;fiat_amount&#39;] as num).toDouble() : null,
+    fiatAmountVes: map[&#39;fiat_amount_ves&#39;] != null ? (map[&#39;fiat_amount_ves&#39;] as num).toDouble() : null,
+    pagoOrderId: map[&#39;pago_pago_order_id&#39;]?.toString(),
+    gateway: map[&#39;gateway&#39;]?.toString(),
+    invoiceUrl: map[&#39;invoice_url&#39;]?.toString(),
+    stripePaymentIntentId: map[&#39;stripe_payment_intent_id&#39;]?.toString(),
   );
 }</code></pre>
 </section>
@@ -103,7 +109,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

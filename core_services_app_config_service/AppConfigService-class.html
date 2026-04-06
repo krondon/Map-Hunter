@@ -68,7 +68,7 @@
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="AppConfigService.new" class="callable">
-          <span class="name"><a href="../core_services_app_config_service/AppConfigService/AppConfigService.html">AppConfigService</a></span><span class="signature">({<span class="parameter" id="-param-supabaseClient"><span>required</span> <span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.2/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">supabaseClient</span></span>})</span>
+          <span class="name"><a href="../core_services_app_config_service/AppConfigService/AppConfigService.html">AppConfigService</a></span><span class="signature">({<span class="parameter" id="-param-supabaseClient"><span>required</span> <span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.4/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">supabaseClient</span></span>})</span>
         </dt>
         <dd>
           
@@ -168,6 +168,62 @@ Returns the fee as a double (e.g., 3.0 for 3%), or 0.0 as fallback.
 
 </dd>
 
+        <dt id="getMinigameMinDurationEnabled" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/getMinigameMinDurationEnabled.html">getMinigameMinDurationEnabled</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Reads the flag that enables/disables minigame min-duration checks.
+Defaults to true if missing or invalid.
+  
+
+</dd>
+
+        <dt id="getMinigameMinDurationsByDifficulty" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/getMinigameMinDurationsByDifficulty.html">getMinigameMinDurationsByDifficulty</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Reads the min duration (seconds) per minigame difficulty.
+Falls back to defaults if missing or invalid.
+  
+
+</dd>
+
+        <dt id="getPagoMovilRecipient" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/getPagoMovilRecipient.html">getPagoMovilRecipient</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Reads the Pago Móvil recipient configuration.
+Returns a map with: banco, cedula, telefono.
+  
+
+</dd>
+
+        <dt id="getPaymentMethodsStatus" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/getPaymentMethodsStatus.html">getPaymentMethodsStatus</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../core_models_payment_methods_config/PaymentMethodsConfig-class.html">PaymentMethodsConfig</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Reads payment method status config (purchase/withdrawal maps).
+Returns all disabled on any error.
+  
+
+</dd>
+
         <dt id="getPowerDefaultCosts" class="callable">
   <span class="name"><a href="../core_services_app_config_service/AppConfigService/getPowerDefaultCosts.html">getPowerDefaultCosts</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>&gt;</span></span>
@@ -211,6 +267,21 @@ Used by the UI to show maintenance banners and disable withdrawal buttons.
 
 </dd>
 
+        <dt id="isMerchandiseStoreEnabled" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/isMerchandiseStoreEnabled.html">isMerchandiseStoreEnabled</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns true if the merchandise store (Tienda) tab is enabled.
+Defaults to false (hidden) on any error — store stays hidden until
+an admin explicitly enables it.
+  
+
+</dd>
+
         <dt id="isRechargeEnabled" class="callable">
   <span class="name"><a href="../core_services_app_config_service/AppConfigService/isRechargeEnabled.html">isRechargeEnabled</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
@@ -236,6 +307,20 @@ by a network issue — only an explicit false from the DB disables it.
 <dd class="inherited">
   Invoked when a nonexistent method or property is accessed.
   <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="setMerchandiseStoreEnabled" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/setMerchandiseStoreEnabled.html">setMerchandiseStoreEnabled</a></span><span class="signature">(<wbr><span class="parameter" id="setMerchandiseStoreEnabled-param-enabled"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enabled</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Toggles the merchandise store visibility via a secure RPC.
+The RPC validates that the caller is an admin before applying changes.
+  
 
 </dd>
 
@@ -320,6 +405,58 @@ Only admins can perform this operation (enforced by RLS).
 
 </dd>
 
+        <dt id="updateMinigameMinDurationEnabled" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/updateMinigameMinDurationEnabled.html">updateMinigameMinDurationEnabled</a></span><span class="signature">(<wbr><span class="parameter" id="updateMinigameMinDurationEnabled-param-enabled"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enabled</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates the flag that enables/disables minigame min-duration checks.
+  
+
+</dd>
+
+        <dt id="updateMinigameMinDurationsByDifficulty" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/updateMinigameMinDurationsByDifficulty.html">updateMinigameMinDurationsByDifficulty</a></span><span class="signature">(<wbr><span class="parameter" id="updateMinigameMinDurationsByDifficulty-param-durations"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span> <span class="parameter-name">durations</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Saves the min duration (seconds) per minigame difficulty.
+  
+
+</dd>
+
+        <dt id="updatePagoMovilRecipient" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/updatePagoMovilRecipient.html">updatePagoMovilRecipient</a></span><span class="signature">(<wbr><span class="parameter" id="updatePagoMovilRecipient-param-data"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">data</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Saves the Pago Móvil recipient configuration.
+  
+
+</dd>
+
+        <dt id="updatePaymentMethodsStatus" class="callable">
+  <span class="name"><a href="../core_services_app_config_service/AppConfigService/updatePaymentMethodsStatus.html">updatePaymentMethodsStatus</a></span><span class="signature">(<wbr><span class="parameter" id="updatePaymentMethodsStatus-param-config"><span class="type-annotation"><a href="../core_models_payment_methods_config/PaymentMethodsConfig-class.html">PaymentMethodsConfig</a></span> <span class="parameter-name">config</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates payment method status config.
+  
+
+</dd>
+
         <dt id="updatePowerDefaultCosts" class="callable">
   <span class="name"><a href="../core_services_app_config_service/AppConfigService/updatePowerDefaultCosts.html">updatePowerDefaultCosts</a></span><span class="signature">(<wbr><span class="parameter" id="updatePowerDefaultCosts-param-costs"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span> <span class="parameter-name">costs</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
@@ -396,7 +533,7 @@ Only admins can perform this operation (enforced by RLS).
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

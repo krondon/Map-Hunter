@@ -107,12 +107,18 @@ For ON-SITE events, full location/GPS checks are performed.</p>
 
   &#47;&#47; Additionally skip for desktop platforms (development)
   if (shouldCheckLocation) {
-    try {
-      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        shouldCheckLocation = false;
+    if (kIsWeb) {
+      &#47;&#47; En la web, generalmente omitimos la geocerca estricta de GPS nativo
+      &#47;&#47; a menos que sea un requisito crítico (pero Platform.is fallaría).
+      shouldCheckLocation = false;
+    } else {
+      try {
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          shouldCheckLocation = false;
+        }
+      } catch (e) {
+        &#47;&#47; On unknown platform, keep the original decision
       }
-    } catch (e) {
-      &#47;&#47; On web or unknown platform, keep the original decision
     }
   }
 
@@ -252,7 +258,7 @@ For ON-SITE events, full location/GPS checks are performed.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

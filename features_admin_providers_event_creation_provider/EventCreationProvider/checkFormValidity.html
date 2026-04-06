@@ -80,6 +80,9 @@
     if (_latitude == null || _longitude == null) isValid = false;
   }
 
+  &#47;&#47; CRITICAL: At least one minigame&#47;clue required
+  if (_clueForms.isEmpty || _numberOfClues &lt;= 0) isValid = false;
+
   &#47;&#47; Validate key fields for all modes
   if (_entryFee == null) isValid = false;
 
@@ -117,7 +120,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

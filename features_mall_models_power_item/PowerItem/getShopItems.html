@@ -68,7 +68,7 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static List&lt;PowerItem&gt; getShopItems() {
   int getCost(String id, int defaultCost) {
-    return _dbCosts[id] ?? defaultCost;
+    return _dbCosts[id] ?? _dbCosts[id.trim().toLowerCase()] ?? defaultCost;
   }
 
   return [
@@ -186,7 +186,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

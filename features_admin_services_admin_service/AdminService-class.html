@@ -55,7 +55,7 @@
     
 <section class="desc markdown">
   <p>Servicio de administración que encapsula la lógica de gestión de usuarios.</p>
-<p>Implementa DIP al recibir <a href="https://pub.dev/documentation/supabase/2.10.2/supabase/SupabaseClient-class.html">SupabaseClient</a> por constructor en lugar
+<p>Implementa DIP al recibir <a href="https://pub.dev/documentation/supabase/2.10.4/supabase/SupabaseClient-class.html">SupabaseClient</a> por constructor en lugar
 de depender de variables globales.</p>
 </section>
 
@@ -66,7 +66,7 @@ de depender de variables globales.</p>
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="AdminService.new" class="callable">
-          <span class="name"><a href="../features_admin_services_admin_service/AdminService/AdminService.html">AdminService</a></span><span class="signature">({<span class="parameter" id="-param-supabaseClient"><span>required</span> <span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.2/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">supabaseClient</span>, </span><span class="parameter" id="-param-authService"><span>required</span> <span class="type-annotation"><a href="../features_auth_services_auth_service/AuthService-class.html">AuthService</a></span> <span class="parameter-name">authService</span></span>})</span>
+          <span class="name"><a href="../features_admin_services_admin_service/AdminService/AdminService.html">AdminService</a></span><span class="signature">({<span class="parameter" id="-param-supabaseClient"><span>required</span> <span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.4/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">supabaseClient</span>, </span><span class="parameter" id="-param-authService"><span>required</span> <span class="type-annotation"><a href="../features_auth_services_auth_service/AuthService-class.html">AuthService</a></span> <span class="parameter-name">authService</span></span>})</span>
         </dt>
         <dd>
           
@@ -264,7 +264,8 @@ de depender de variables globales.</p>
 </dt>
 <dd>
   Obtiene los resultados financieros detallados de un evento.
-Agrega:
+Usa un RPC SECURITY DEFINER para poder leer prize_distributions
+y wallet_ledger de TODOS los usuarios (bypass RLS).
   
 
 </dd>
@@ -398,7 +399,7 @@ Obtiene los resultados financieros finales de un evento.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

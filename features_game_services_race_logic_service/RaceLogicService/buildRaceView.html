@@ -156,99 +156,123 @@
   &#47;&#47; 6. Identify Leader from filtered list
   Player? leader = filteredRacers.isNotEmpty ? filteredRacers.first : null;
 
-  &#47;&#47; 7. Build View Models
+  &#47;&#47; 8. Generate Progress Groups for UI overlap detection &amp; vertical spreading
+  final progressGroups = _buildProgressGroups(filteredRacers, totalClues);
+
+  &#47;&#47; 9. Assign lanes using the distribution logic
   final List&lt;RacerViewModel&gt; viewModels = [];
   final Set&lt;String&gt; addedIds = {};
 
-  &#47;&#47; Find my position in filtered list for lane calculation
-  final meFilteredIndex = filteredRacers
-      .indexWhere((p) =&gt; _normalizeId(p.userId) == normalizedCurrentUserId);
+  for (final group in progressGroups) {
+    &#47;&#47; Members are sorted by leaderboard rank in the group
+    final members = group.members;
 
-  void addRacer(Player p, int lane) {
-    &#47;&#47; Use UserID for uniqueness check in this context
-    final normalizedUserId = _normalizeId(p.userId);
-    if (addedIds.contains(normalizedUserId)) return;
+    &#47;&#47; Vertical distribution within the group
+    for (int i = 0; i &lt; members.length; i++) {
+      final p = members[i];
+      final normalizedUserId = _normalizeId(p.userId);
 
-    final bool isMe = normalizedUserId == normalizedCurrentUserId;
-    &#47;&#47; Leader check also by userId
-    final bool isLeader = (leader != null &amp;&amp;
-        _normalizeId(p.userId) == _normalizeId(leader.userId));
+      final bool isMe = normalizedUserId == normalizedCurrentUserId;
+      final bool isLeader = (leader != null &amp;&amp;
+          _normalizeId(p.userId) == _normalizeId(leader.userId));
 
-    &#47;&#47; Calculate visual state
-    double opacity = 1.0;
-    if (isMe) {
-      final amInvisible = activePowers.any((e) =&gt;
-          _normalizeId(e.targetId) == _normalizeId(p.id) &amp;&amp;
-          (e.powerSlug == &#39;invisibility&#39; || e.powerSlug == &#39;stealth&#39;) &amp;&amp;
-          !e.isExpired);
-      if (amInvisible || p.isInvisible) opacity = 0.5;
+      &#47;&#47; LANE LOGIC:
+      &#47;&#47; System spreads members of the group vertically.
+      &#47;&#47; 0 is the center line.
+      &#47;&#47; Small stagger: -1, 1, -2, 2...
+      int laneIndex = 0;
+
+      if (members.length &gt; 1) {
+         &#47;&#47; If I am in the group, I MUST be lane 0
+         final meInGroupIdx = members.indexWhere((m) =&gt; _normalizeId(m.userId) == normalizedCurrentUserId);
+
+         if (meInGroupIdx != -1) {
+           if (isMe) {
+             laneIndex = 0;
+           } else {
+             &#47;&#47; Offset others from me: 1, -1, 2, -2...
+             int offsetFromMe = i - meInGroupIdx;
+             if (offsetFromMe &gt; 0) {
+               laneIndex = offsetFromMe;
+             } else {
+               laneIndex = offsetFromMe; &#47;&#47; -1, -2...
+             }
+           }
+         } else {
+           &#47;&#47; Group doesn&#39;t contain me. Use position relative to me to pick a base &quot;sector&quot;
+           &#47;&#47; meIndex is original leaderboard index
+           final firstInGroupIdx = sortedPlayers.indexWhere((m) =&gt; _normalizeId(m.userId) == _normalizeId(members.first.userId));
+           final myOriginalIdx = sortedPlayers.indexWhere((m) =&gt; _normalizeId(m.userId) == normalizedCurrentUserId);
+
+           final bool groupIsAhead = firstInGroupIdx &lt; myOriginalIdx || myOriginalIdx == -1;
+
+           &#47;&#47; Stagger around -1 if ahead, and around 1 if behind
+           if (groupIsAhead) {
+              &#47;&#47; Ahead: -1, -2, -3...
+              laneIndex = -(i + 1);
+           } else {
+              &#47;&#47; Behind: 1, 2, 3...
+              laneIndex = (i + 1);
+           }
+         }
+      } else {
+        &#47;&#47; Single member: standard lane
+        final myOriginalIdx = sortedPlayers.indexWhere((m) =&gt; _normalizeId(m.userId) == normalizedCurrentUserId);
+        final playerIdx = sortedPlayers.indexWhere((m) =&gt; _normalizeId(m.userId) == normalizedUserId);
+
+        if (isMe) laneIndex = 0;
+        else if (playerIdx &lt; myOriginalIdx || myOriginalIdx == -1) laneIndex = -1;
+        else laneIndex = 1;
+      }
+
+      &#47;&#47; Clamp laneIndex to avoid going too far out of bounds (max +&#47;- 3 lanes)
+      laneIndex = laneIndex.clamp(-3, 3);
+
+      &#47;&#47; Calculate visual state
+      double opacity = 1.0;
+      if (isMe) {
+        final amInvisible = activePowers.any((e) =&gt;
+            _normalizeId(e.targetId) == _normalizeId(p.id) &amp;&amp;
+            (e.powerSlug == &#39;invisibility&#39; || e.powerSlug == &#39;stealth&#39;) &amp;&amp;
+            !e.isExpired);
+        if (amInvisible || p.isInvisible) opacity = 0.5;
+      }
+
+      IconData? statusIcon;
+      Color? statusColor;
+
+      final activeDebuffs = activePowers
+          .where((e) =&gt;
+              _normalizeId(e.targetId) == _normalizeId(p.id) &amp;&amp; !e.isExpired)
+          .toList();
+
+      if (activeDebuffs.any((e) =&gt; e.powerSlug == &#39;freeze&#39;)) {
+        statusIcon = Icons.ac_unit;
+        statusColor = Colors.cyanAccent;
+      } else if (activeDebuffs.any(
+          (e) =&gt; e.powerSlug == &#39;black_screen&#39; || e.powerSlug == &#39;blind&#39;)) {
+        statusIcon = Icons.visibility_off;
+        statusColor = Colors.black;
+      } else if (p.status == PlayerStatus.shielded || p.isProtected) {
+        statusIcon = Icons.shield;
+        statusColor = Colors.indigoAccent;
+      }
+
+      viewModels.add(RacerViewModel(
+        data: p,
+        lane: laneIndex,
+        isMe: isMe,
+        isLeader: isLeader,
+        isTargetable: isVisible(p),
+        opacity: opacity,
+        statusIcon: statusIcon,
+        statusColor: statusColor,
+      ));
     }
-
-    IconData? statusIcon;
-    Color? statusColor;
-
-    &#47;&#47; Check for debuffs on this player (Powers use ID&#47;GamePlayerID)
-    final activeDebuffs = activePowers
-        .where((e) =&gt;
-            _normalizeId(e.targetId) == _normalizeId(p.id) &amp;&amp; !e.isExpired)
-        .toList();
-
-    &#47;&#47; Priority icons
-    if (activeDebuffs.any((e) =&gt; e.powerSlug == &#39;freeze&#39;)) {
-      statusIcon = Icons.ac_unit;
-      statusColor = Colors.cyanAccent;
-    } else if (activeDebuffs.any(
-        (e) =&gt; e.powerSlug == &#39;black_screen&#39; || e.powerSlug == &#39;blind&#39;)) {
-      statusIcon = Icons.visibility_off;
-      statusColor = Colors.black;
-    } else if (p.status == PlayerStatus.shielded) {
-      statusIcon = Icons.shield;
-      statusColor = Colors.indigoAccent;
-    }
-
-    viewModels.add(RacerViewModel(
-      data: p,
-      lane: lane,
-      isMe: isMe,
-      isLeader: isLeader,
-      isTargetable:
-          isVisible(p), &#47;&#47; Can target self (for defense) and visible rivals
-      opacity: opacity,
-      statusIcon: statusIcon,
-      statusColor: statusColor,
-    ));
-
-    addedIds.add(normalizedUserId);
   }
 
-  &#47;&#47; Add racers with lane calculation based on position relative to me
-  for (int i = 0; i &lt; filteredRacers.length; i++) {
-    final player = filteredRacers[i];
-    int lane;
-
-    if (meFilteredIndex == -1) {
-      &#47;&#47; I&#39;m not in the list, treat all as ahead
-      lane = -1;
-    } else if (i &lt; meFilteredIndex) {
-      lane = -1; &#47;&#47; Ahead
-    } else if (i &gt; meFilteredIndex) {
-      lane = 1; &#47;&#47; Behind
-    } else {
-      lane = 0; &#47;&#47; Me
-    }
-
-    addRacer(player, lane);
-  }
-
-  &#47;&#47; If me was not in filtered list but exists, add them
-  if (me != null &amp;&amp; !addedIds.contains(normalizedCurrentUserId)) {
-    addRacer(me, 0);
-  }
-
-  &#47;&#47; 8. Generate Progress Groups for UI overlap detection
-  final progressGroups = _buildProgressGroups(viewModels, totalClues);
-
-  &#47;&#47; 9. Motivation Text
+  &#47;&#47; 10. Finalize result
+  &#47;&#47; 11. Motivation Text
   String motivation = &quot;&quot;;
   if (me != null) {
     if (me.completedCluesCount == 0)
@@ -295,7 +319,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

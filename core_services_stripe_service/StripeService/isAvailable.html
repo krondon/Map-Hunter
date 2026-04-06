@@ -74,8 +74,6 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static bool get isAvailable {
-  &#47;&#47; On Web, we often don&#39;t need explicit init if using stripe-js,
-  &#47;&#47; but the package handles it if publishableKey is set.
   return _isSupportedPlatform &amp;&amp; (kIsWeb || _initialized);
 }</code></pre>
 </section>
@@ -107,7 +105,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

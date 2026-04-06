@@ -81,7 +81,7 @@ Retorna el nuevo número de vidas confirmadas por el servidor.</p>
     final response = await _supabase.rpc(&#39;lose_life&#39;, params: {
       &#39;p_user_id&#39;: userId,
       &#39;p_event_id&#39;: eventId,
-    }).catchError((e) {
+    }).timeout(const Duration(seconds: 10)).catchError((e) {
       debugPrint(
           &#39;[LIVES_DEBUG] RPC Error caught: $e. Switching to Fallback.&#39;);
       return null;
@@ -102,7 +102,8 @@ Retorna el nuevo número de vidas confirmadas por el servidor.</p>
         .select(&#39;lives&#39;)
         .eq(&#39;user_id&#39;, userId)
         .eq(&#39;event_id&#39;, eventId)
-        .single();
+        .single()
+        .timeout(const Duration(seconds: 10));
 
     final int currentLives = row[&#39;lives&#39;] as int;
     final int newLives = currentLives &gt; 0 ? currentLives - 1 : 0;
@@ -112,14 +113,16 @@ Retorna el nuevo número de vidas confirmadas por el servidor.</p>
         .from(&#39;game_players&#39;)
         .update({&#39;lives&#39;: newLives})
         .eq(&#39;user_id&#39;, userId)
-        .eq(&#39;event_id&#39;, eventId);
+        .eq(&#39;event_id&#39;, eventId)
+        .timeout(const Duration(seconds: 10));
 
     debugPrint(&#39;[LIVES_DEBUG] Direct Update Success. New Lives: $newLives&#39;);
     return newLives;
   } catch (e) {
     debugPrint(
         &#39;[LIVES_DEBUG] CRITICAL ERROR deleting life (both RPC and Direct failed): $e&#39;);
-    rethrow;
+    &#47;&#47; No rethrow, try to return something sensible or let provider handle it
+    return 0;
   }
 }</code></pre>
 </section>
@@ -149,7 +152,7 @@ Retorna el nuevo número de vidas confirmadas por el servidor.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

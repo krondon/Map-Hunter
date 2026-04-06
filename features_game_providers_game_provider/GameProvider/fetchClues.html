@@ -113,15 +113,40 @@
 
     final fetchedClues = await _gameService.getClues(idToUse);
 
+    if (silent) {
+      &#47;&#47; [FIX] Proteger el estado &#39;isCompleted&#39; optimista contra respuestas del servidor stale.
+      &#47;&#47; Si localmente ya la tenemos como completada, no desmarcarla en un fetch silencioso.
+      for (var newClue in fetchedClues) {
+        final oldClue = _clues.firstWhere((c) =&gt; c.id == newClue.id,
+            orElse: () =&gt; newClue);
+        if (oldClue.isCompleted &amp;&amp; !newClue.isCompleted) {
+          debugPrint(
+              &#39;[FETCH_CLUES] 🛡️ Protecting optimistic completion for clue ${newClue.id}&#39;);
+          newClue.isCompleted = true;
+        }
+      }
+    }
     _clues = fetchedClues;
     _hintActive = false;
     _activeHintText = null;
 
-    final index = _clues.indexWhere((c) =&gt; !c.isCompleted &amp;&amp; !c.isLocked);
-    _currentClueIndex = (index != -1) ? index : _clues.length;
-  } catch (e) {
-    _errorMessage = &#39;Error fetching clues: $e&#39;;
-  } finally {
+    &#47;&#47; [FIX] Sincronización Estricta de Índice
+    &#47;&#47; El servidor determina el índice basándose en qué pistas tienen is_completed = true
+    final serverIndex = _clues.indexWhere((c) =&gt; !c.isCompleted);
+    final newIndex = (serverIndex != -1) ? serverIndex : _clues.length;
+
+    &#47;&#47; [ROBUSTNESS]: Solo actualizamos el índice si avanzamos.
+    &#47;&#47; Si el servidor envía datos &#39;viejos&#39; (stale) que dicen que no hemos terminado una pista
+    &#47;&#47; que YA marcamos como completada localmente (y confirmada), ignoramos el rollback.
+    if (!silent || newIndex &gt;= _currentClueIndex) {
+      debugPrint(
+          &#39;[FETCH_CLUES] 🧭 Updating index strictly: $_currentClueIndex -&gt; $newIndex (silent: $silent)&#39;);
+      _currentClueIndex = newIndex;
+    } else {
+      debugPrint(
+          &#39;[FETCH_CLUES] ⚠️ Stale state prevention: Server says index $newIndex but local is $_currentClueIndex. Keeping current progress.&#39;);
+    }
+
     &#47;&#47; ⚡ CRÍTICO: Suscribirse o actualizar suscripción una vez que totalClues es real
     subscribeToRaceStatus();
 
@@ -147,7 +172,9 @@
         debugPrint(&#39;⚠️ Error fetching sponsor in GameProvider: $e&#39;);
       }
     }
-
+  } catch (e) {
+    _errorMessage = &#39;Error fetching clues: $e&#39;;
+  } finally {
     _isLoading = false;
     notifyListeners();
   }
@@ -179,7 +206,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

@@ -65,8 +65,8 @@
     </section>
     
 <section class="desc markdown">
-  <p>Completa una pista.
-Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
+  <p>Completa una pista via admin RPC (direct access revoked for regular users).
+Only admins can call this path; regular users must use verifyAndCompleteMinigame.</p>
 </section>
 
 
@@ -76,16 +76,15 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;?&gt; completeClue(String clueId, String answer,
     {String? eventId}) async {
   try {
-    &#47;&#47; [PERFORMANCE OPTIMIZATION] Option 1: Atomic RPC
-    &#47;&#47; Consolidates 15+ DB operations (validation, progress, ranking, rewards)
-    &#47;&#47; into a single database roundtrip for high-concurrency (50+ users).
-    final response = await _supabase.rpc(&#39;submit_clue_answer&#39;, params: {
+    debugPrint(&#39;[GameService] 📡 RPC admin_complete_clue: clueId=$clueId&#39;);
+    final response = await _supabase.rpc(&#39;admin_complete_clue&#39;, params: {
       &#39;p_clue_id&#39;: int.tryParse(clueId) ?? clueId,
       &#39;p_answer&#39;: answer,
-    });
+    }).timeout(const Duration(seconds: 12));
 
     if (response != null &amp;&amp; response is Map&lt;String, dynamic&gt;) {
       final data = response;
+      debugPrint(&#39;[GameService] 📥 RPC Response: $data&#39;);
 
       if (data[&#39;success&#39;] == false) {
         debugPrint(&#39;❌ Error completing clue (RPC): ${data[&#39;error&#39;]}&#39;);
@@ -100,7 +99,7 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
         final eventIdToUse = eventId ?? data[&#39;eventId&#39;];
 
         if (eventIdToUse != null) {
-          final rpcRes = await _registerFinisher(eventIdToUse);
+          final rpcRes = await registerFinisher(eventIdToUse);
           if (rpcRes != null &amp;&amp; rpcRes[&#39;success&#39;] == true) {
             &#47;&#47; Inject prize&#47;position into response so UI knows
             final newData = Map&lt;String, dynamic&gt;.from(data);
@@ -112,9 +111,9 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
           }
         }
       }
-
       return data;
     }
+    debugPrint(&#39;[GameService] ⚠️ RPC returned null or empty response&#39;);
     return null;
   } catch (e) {
     debugPrint(&#39;Error completing clue: $e&#39;);
@@ -148,7 +147,7 @@ Retorna un mapa con el resultado, incluyendo si la carrera se completó.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

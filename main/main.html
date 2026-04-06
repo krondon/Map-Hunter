@@ -154,7 +154,9 @@
   };
 
   &#47;&#47; Cargar variables de entorno
+  debugPrint(&#39;📍 [MAIN] Intentando cargar .env...&#39;);
   await dotenv.load(fileName: &quot;.env&quot;);
+  debugPrint(&#39;📍 [MAIN] .env cargado correctamente.&#39;);
 
   final supabaseUrl = dotenv.env[&#39;SUPABASE_URL&#39;]!;
   final supabaseAnonKey = dotenv.env[&#39;SUPABASE_ANON_KEY&#39;]!;
@@ -172,24 +174,31 @@
       await prefs.clear(); &#47;&#47; Clear all prefs for the new project
     }
     await prefs.setString(&#39;last_supabase_url&#39;, supabaseUrl);
+    debugPrint(&#39;📍 [MAIN] Guard de proyecto completado.&#39;);
   } catch (e) {
     debugPrint(&#39;⚠️ [GUARD] Failed to run project change guard: $e&#39;);
   }
 
   &#47;&#47; Invalidate cached session if the Supabase project changed (e.g. dev→prod)
+  debugPrint(&#39;📍 [MAIN] Limpiando sesión si el proyecto cambió...&#39;);
   await SecureLocalStorage.clearIfProjectChanged(supabaseUrl);
+  debugPrint(&#39;📍 [MAIN] Limpieza de sesión completada.&#39;);
 
   &#47;&#47; Inicializar Supabase
+  debugPrint(&#39;📍 [MAIN] Inicializando Supabase...&#39;);
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
     authOptions: FlutterAuthClientOptions(
       localStorage: SecureLocalStorage(),
+      authFlowType: AuthFlowType.pkce,
     ),
   );
+  debugPrint(&#39;📍 [MAIN] Supabase inicializado.&#39;);
 
   &#47;&#47; Load global default power costs
   try {
+    debugPrint(&#39;📍 [MAIN] Cargando costos de poderes...&#39;);
     final appConfigService =
         AppConfigService(supabaseClient: Supabase.instance.client);
     final globalPowerCosts = await appConfigService.getPowerDefaultCosts();
@@ -200,7 +209,9 @@
   }
 
   &#47;&#47; Initialize Stripe (Android&#47;iOS only — guard is inside the service)
+  debugPrint(&#39;📍 [MAIN] Inicializando Stripe...&#39;);
   await StripeService.init();
+  debugPrint(&#39;📍 [MAIN] Stripe inicializado.&#39;);
 
   &#47;&#47; Initialize OneSignal
   if (!kIsWeb &amp;&amp; (Platform.isAndroid || Platform.isIOS)) {
@@ -239,6 +250,7 @@
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
+  debugPrint(&#39;🚀 [MAIN] ¡Lanzando aplicación (runApp)!&#39;);
   runApp(const MapHunterApp());
 }</code></pre>
 </section>
@@ -267,7 +279,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

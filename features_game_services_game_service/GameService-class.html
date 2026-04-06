@@ -61,7 +61,7 @@
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="GameService.new" class="callable">
-          <span class="name"><a href="../features_game_services_game_service/GameService/GameService.html">GameService</a></span><span class="signature">(<span class="parameter" id="-param-_supabase"><span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.2/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">_supabase</span></span>)</span>
+          <span class="name"><a href="../features_game_services_game_service/GameService/GameService.html">GameService</a></span><span class="signature">(<span class="parameter" id="-param-_supabase"><span class="type-annotation"><a href="https://pub.dev/documentation/supabase/2.10.4/supabase/SupabaseClient-class.html">SupabaseClient</a></span> <span class="parameter-name">_supabase</span></span>)</span>
         </dt>
         <dd>
           
@@ -142,8 +142,8 @@ Retorna true si el usuario está baneado (status = 'banned').
 
 </dt>
 <dd>
-  Completa una pista.
-Retorna un mapa con el resultado, incluyendo si la carrera se completó.
+  Completa una pista via admin RPC (direct access revoked for regular users).
+Only admins can call this path; regular users must use verifyAndCompleteMinigame.
   
 
 </dd>
@@ -250,7 +250,7 @@ Retorna un Map con {id, event_id, lives} o null si no existe.
 </dt>
 <dd>
   Obtiene las pistas de un evento.
-<code>PERFORMANCE</code> Migrado de Edge Function a RPC atómico.
+Usa la RPC optimizada get_clues_with_progress para alto rendimiento.
   
 
 </dd>
@@ -364,6 +364,19 @@ Retorna el nuevo número de vidas confirmadas por el servidor.
 
 </dd>
 
+        <dt id="registerFinisher" class="callable">
+  <span class="name"><a href="../features_game_services_game_service/GameService/registerFinisher.html">registerFinisher</a></span><span class="signature">(<wbr><span class="parameter" id="registerFinisher-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registra al finalista en el backend de forma atómica.
+  
+
+</dd>
+
         <dt id="skipClue" class="callable">
   <span class="name"><a href="../features_game_services_game_service/GameService/skipClue.html">skipClue</a></span><span class="signature">(<wbr><span class="parameter" id="skipClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clueId</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
@@ -372,8 +385,7 @@ Retorna el nuevo número de vidas confirmadas por el servidor.
 
 </dt>
 <dd>
-  Salta una pista.
-<code>PERFORMANCE</code> Migrado de Edge Function a RPC atómico.
+  Salta una pista via Edge Function (admin-only server-side).
   
 
 </dd>
@@ -391,9 +403,22 @@ Retorna el nuevo número de vidas confirmadas por el servidor.
 
 </dd>
 
+        <dt id="startMinigameSession" class="callable">
+  <span class="name"><a href="../features_game_services_game_service/GameService/startMinigameSession.html">startMinigameSession</a></span><span class="signature">(<wbr>{<span class="parameter" id="startMinigameSession-param-clueId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clueId</span>, </span><span class="parameter" id="startMinigameSession-param-minDurationSeconds"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">minDurationSeconds</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Inicia sesion de minijuego via Edge Function con headers seguros.
+  
+
+</dd>
+
         <dt id="subscribeToRaceStatus" class="callable">
   <span class="name"><a href="../features_game_services_game_service/GameService/subscribeToRaceStatus.html">subscribeToRaceStatus</a></span><span class="signature">(<wbr><span class="parameter" id="subscribeToRaceStatus-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="subscribeToRaceStatus-param-totalClues"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">totalClues</span>, </span><span class="parameter" id="subscribeToRaceStatus-param-onRaceCompleted"><span class="type-annotation">dynamic</span> <span class="parameter-name">onRaceCompleted</span>(<span class="parameter" id="param-isCompleted"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">isCompleted</span>, </span><span class="parameter" id="param-source"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">source</span></span>), {</span><span class="parameter" id="subscribeToRaceStatus-param-onProgressUpdate"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-ui/VoidCallback.html">VoidCallback</a>?</span> <span class="parameter-name">onProgressUpdate</span></span>})
-    <span class="returntype parameter">&#8594; <a href="https://pub.dev/documentation/realtime_client/2.7.0/realtime_client/RealtimeChannel-class.html">RealtimeChannel</a></span>
+    <span class="returntype parameter">&#8594; <a href="https://pub.dev/documentation/realtime_client/2.7.1/realtime_client/RealtimeChannel-class.html">RealtimeChannel</a></span>
   </span>
   
 
@@ -415,6 +440,19 @@ Retorna el canal de suscripción.
 <dd class="inherited">
   A string representation of this object.
   <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="verifyAndCompleteMinigame" class="callable">
+  <span class="name"><a href="../features_game_services_game_service/GameService/verifyAndCompleteMinigame.html">verifyAndCompleteMinigame</a></span><span class="signature">(<wbr>{<span class="parameter" id="verifyAndCompleteMinigame-param-sessionId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">sessionId</span>, </span><span class="parameter" id="verifyAndCompleteMinigame-param-answer"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">answer</span>, </span><span class="parameter" id="verifyAndCompleteMinigame-param-challengeToken"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">challengeToken</span>, </span><span class="parameter" id="verifyAndCompleteMinigame-param-result"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">result</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Verifica y completa el minijuego via Edge Function.
+  
 
 </dd>
 
@@ -468,7 +506,7 @@ Retorna el canal de suscripción.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

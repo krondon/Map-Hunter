@@ -62,27 +62,28 @@
 
     </section>
     
+<section class="desc markdown">
+  <p>Cancels a pending order via the <code>api_cancel_order</code> Edge Function.
+The API key is handled server-side — never sent from the client.</p>
+</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;bool&gt; cancelOrder(String orderId) async {
-  final url = Uri.parse(&#39;$_baseUrl&#47;api_cancel_order&#39;);
   try {
-    final response = await http.put(
-      url,
-       headers: {
-        &#39;Content-Type&#39;: &#39;application&#47;json&#39;,
-        &#39;pago_pago_api&#39;: apiKey,
-      },
-      body: jsonEncode({&#39;order_id&#39;: orderId}),
+    debugPrint(&#39;[PagoAPagoService] Cancelling order: $orderId&#39;);
+
+    final response = await _client.functions.invoke(
+      &#39;api_cancel_order&#39;,
+      body: {&#39;order_id&#39;: orderId},
     );
 
-    return response.statusCode == 200;
+    return response.status == 200;
   } catch (e) {
-     debugPrint(&#39;PagoAPagoService: Cancel error: $e&#39;);
-     return false;
+    debugPrint(&#39;[PagoAPagoService] Cancel error: $e&#39;);
+    return false;
   }
 }</code></pre>
 </section>
@@ -112,7 +113,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

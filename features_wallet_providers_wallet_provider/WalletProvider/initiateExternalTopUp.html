@@ -55,7 +55,8 @@
     <section class="multi-line-signature">
       
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-<span class="name ">initiateExternalTopUp</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="initiateExternalTopUp-param-amount"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">amount</span></span></li>
+<span class="name ">initiateExternalTopUp</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="initiateExternalTopUp-param-amount"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">amount</span>, </span></li>
+<li><span class="parameter" id="initiateExternalTopUp-param-cloversAmount"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">cloversAmount</span></span></li>
 </ol>)
 
       
@@ -70,7 +71,7 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; initiateExternalTopUp(double amount) async {
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; initiateExternalTopUp(double amount, double cloversAmount) async {
   if (_paymentService == null) {
     _errorMessage = &quot;Servicio de pagos no configurado&quot;;
     notifyListeners();
@@ -85,6 +86,7 @@
   try {
     final url = await _paymentService!.createPaymentOrder(
       amount: amount,
+      cloversAmount: cloversAmount,
       userId: _currentUserId!,
     );
 
@@ -126,7 +128,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

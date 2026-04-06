@@ -58,11 +58,13 @@
 <p>Problema que resuelve:
 Con 50 jugadores, cada pista completada o vida perdida dispara un Postgres
 Change que llama <code>notifyListeners()</code> directamente. En ráfagas de actividad,
-esto causa 50+ reconstrucciones/segundo del widget del podio.</p>
+esto causa 50+ reconstrucciones/segundo del widget del podio.
+Además, para evitar el problema de "Thundering Herd" (todos los clientes consultando
+al mismo milisegundo al recibir el socket de actualización), añade un JITTER aleatorio.</p>
 <p>Solución:
 Acumula cambios durante <a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/interval.html">interval</a> y emite solo una actualización al final
-del período de silencio (trailing debounce). Si la ráfaga dura más de
-<a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/maxWait.html">maxWait</a>, fuerza una actualización para no parecer congelado.</p>
+del período de silencio (trailing debounce) más un <a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/jitter.html">jitter</a> aleatorio. Si la ráfaga
+dura más de <a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/maxWait.html">maxWait</a>, fuerza una actualización para no parecer congelado.</p>
 </section>
 
 
@@ -72,7 +74,7 @@ del período de silencio (trailing debounce). Si la ráfaga dura más de
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="LeaderboardDebouncer.new" class="callable">
-          <span class="name"><a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/LeaderboardDebouncer.html">LeaderboardDebouncer</a></span><span class="signature">({<span class="parameter" id="-param-interval"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">interval</span> = <span class="default-value">const Duration(milliseconds: 2000)</span>, </span><span class="parameter" id="-param-maxWait"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">maxWait</span> = <span class="default-value">const Duration(milliseconds: 5000)</span></span>})</span>
+          <span class="name"><a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/LeaderboardDebouncer.html">LeaderboardDebouncer</a></span><span class="signature">({<span class="parameter" id="-param-interval"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">interval</span> = <span class="default-value">const Duration(milliseconds: 2000)</span>, </span><span class="parameter" id="-param-maxWait"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">maxWait</span> = <span class="default-value">const Duration(milliseconds: 5000)</span>, </span><span class="parameter" id="-param-jitter"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">jitter</span> = <span class="default-value">const Duration(milliseconds: 1500)</span></span>})</span>
         </dt>
         <dd>
           
@@ -99,6 +101,18 @@ del período de silencio (trailing debounce). Si la ráfaga dura más de
 
         <dt id="interval" class="property">
   <span class="name"><a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/interval.html">interval</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="jitter" class="property">
+  <span class="name"><a href="../core_services_leaderboard_debouncer/LeaderboardDebouncer/jitter.html">jitter</a></span>
   <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span>
   
 
@@ -257,7 +271,7 @@ del período de silencio (trailing debounce). Si la ráfaga dura más de
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

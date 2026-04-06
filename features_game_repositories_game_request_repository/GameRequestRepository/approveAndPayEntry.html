@@ -78,11 +78,21 @@
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;Map&lt;String, dynamic&gt;&gt; approveAndPayEntry(String requestId) async {
   try {
-    final result =
-        await _supabase.rpc(&#39;approve_and_pay_event_entry&#39;, params: {
-      &#39;p_request_id&#39;: requestId,
-    });
-    return Map&lt;String, dynamic&gt;.from(result as Map);
+    final response = await _supabase.functions.invoke(
+      &#39;admin-actions&#47;approve-request&#39;,
+      body: {&#39;requestId&#39;: requestId},
+      method: HttpMethod.post,
+    );
+
+    if (response.status != 200) {
+      throw Exception(&#39;approve-request failed: ${response.status}&#39;);
+    }
+
+    final data = response.data;
+    if (data is Map&lt;String, dynamic&gt;) {
+      return data;
+    }
+    return Map&lt;String, dynamic&gt;.from(data as Map? ?? {&#39;success&#39;: true});
   } catch (e) {
     debugPrint(&#39;GameRequestRepository: Error in approveAndPayEntry: $e&#39;);
     rethrow;
@@ -115,7 +125,7 @@ Future&lt;Map&lt;String, dynamic&gt;&gt; approveAndPayEntry(String requestId) as
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

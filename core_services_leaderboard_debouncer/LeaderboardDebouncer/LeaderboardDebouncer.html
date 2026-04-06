@@ -56,6 +56,7 @@
       
       <span class="name ">LeaderboardDebouncer</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="-param-interval"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">interval</span> = <span class="default-value">const Duration(milliseconds: 2000)</span>, </span></li>
 <li><span class="parameter" id="-param-maxWait"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">maxWait</span> = <span class="default-value">const Duration(milliseconds: 5000)</span>, </span></li>
+<li><span class="parameter" id="-param-jitter"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Duration-class.html">Duration</a></span> <span class="parameter-name">jitter</span> = <span class="default-value">const Duration(milliseconds: 1500)</span>, </span></li>
 </ol>})
     </section>
     
@@ -67,6 +68,7 @@
   <pre class="language-dart"><code class="language-dart">LeaderboardDebouncer({
   this.interval = const Duration(milliseconds: 2000),
   this.maxWait = const Duration(milliseconds: 5000),
+  this.jitter = const Duration(milliseconds: 1500), &#47;&#47; Rango de Jitter
 });</code></pre>
 </section>
 
@@ -95,7 +97,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

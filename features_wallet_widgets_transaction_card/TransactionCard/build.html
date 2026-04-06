@@ -159,7 +159,9 @@ Widget build(BuildContext context) {
   final lowerDesc = displayDescription.toLowerCase();
 
   &#47;&#47; --- Specific descriptions from wallet_ledger (highest priority) ---
-  if (lowerDesc.contains(&#39;comisión por ataque&#39;)) {
+  if (item.ledgerType == &#39;runner_bet_commission&#39;) {
+    displayDescription = &#39;COMISION POR APUESTAS A TU VICTORIA&#39;;
+  } else if (lowerDesc.contains(&#39;comisión por ataque&#39;)) {
     displayDescription = &#39;COMISIÓN POR ATAQUE&#39;;
   } else if (lowerDesc.contains(&#39;premio&#39;) || lowerDesc.contains(&#39;podio&#39;) || lowerDesc.contains(&#39;prize&#39;)) {
     displayDescription = &#39;PREMIO OBTENIDO&#39;;
@@ -191,11 +193,17 @@ Widget build(BuildContext context) {
     if (displayDescription.isEmpty) displayDescription = &#39;TRANSACCIÓN&#39;;
   }
 
+  final showFiatAmount = item.fiatAmount != null &amp;&amp;
+    item.fiatAmount! &gt; 0 &amp;&amp;
+    (item.type == &#39;deposit&#39; ||
+      item.type == &#39;withdrawal&#39; ||
+      item.type == &#39;purchase_order&#39;);
+
   return Card(
     margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
     elevation: 2,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    color: Colors.white.withOpacity(0.05), &#47;&#47; Subtle cyber glass
+    color: Colors.white.withOpacity(0.05), &#47;&#47; Always subtle cyber glass
     child: Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -242,26 +250,16 @@ Widget build(BuildContext context) {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  &#47;&#47; Clover Amount (Primary)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        &#39;${item.isCredit ? &#39;+&#39; : &#39;&#39;}${item.amount.toInt()} &#39;,
-                        style: TextStyle(
-                          fontFamily: &#39;Orbitron&#39;,
-                          color: item.isCredit ? AppTheme.successGreen : AppTheme.dangerRed,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const CoinImage(size: 14),
-                    ],
+                  Text(
+                    &#39;${item.isCredit ? &quot;+&quot; : &quot;-&quot;}${item.amount.toStringAsFixed(1)}&#39;,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      fontFamily: &#39;Orbitron&#39;,
+                    ),
                   ),
-                  &#47;&#47; Fiat Amount (Secondary)
-                  if (item.fiatAmount != null &amp;&amp;
-                      item.fiatAmount! &gt; 0 &amp;&amp;
-                      [&#39;completed&#39;, &#39;success&#39;, &#39;paid&#39;].contains(item.status.toLowerCase()))
+                  if (showFiatAmount)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
@@ -298,11 +296,27 @@ Widget build(BuildContext context) {
               ),
             ],
           ),
-          if (item.canResumePayment || item.canCancel) ...[
+          if (item.canResumePayment || item.canValidateMpay || item.canCancel || item.hasInvoice) ...[
             const Divider(height: 24, color: Colors.white10),
             Row(
               children: [
-                 if (item.canResumePayment)
+                 if (item.canValidateMpay)
+                   Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onValidateMpay,
+                      icon: const Icon(Icons.phone_android, size: 18),
+                      label: const Text(&#39;Completar Pago&#39;),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentGold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  )
+                 else if (item.canResumePayment)
                    Expanded(
                     child: ElevatedButton.icon(
                       onPressed: onResumePayment,
@@ -318,11 +332,9 @@ Widget build(BuildContext context) {
                       ),
                     ),
                   ),
-
-                  if (item.canResumePayment &amp;&amp; item.canCancel)
-                    const SizedBox(width: 8),
-
-                  if (item.canCancel)
+                  if (item.canCancel) ...[
+                    if (item.canResumePayment || item.canValidateMpay)
+                      const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: onCancelOrder,
@@ -338,6 +350,33 @@ Widget build(BuildContext context) {
                         ),
                       ),
                     ),
+                  ],
+
+                  if (item.hasInvoice) ...[
+                    if (item.canResumePayment || item.canValidateMpay || item.canCancel)
+                      const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final url = Uri.parse(item.invoiceUrl!);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                        label: const Text(&#39;Ver Factura&#39;),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                          foregroundColor: Colors.blueAccent,
+                          side: BorderSide(color: Colors.blueAccent.withOpacity(0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
               ],
             ),
           ],
@@ -373,7 +412,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

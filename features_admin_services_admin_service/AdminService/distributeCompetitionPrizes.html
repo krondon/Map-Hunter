@@ -87,14 +87,43 @@ Distribuye los premios del bote acumulado a los ganadores (Server-Side RPC).</p>
     debugPrint(&#39;AdminService: RPC Response: $response&#39;);
 
     final data = response as Map&lt;String, dynamic&gt;;
+    final bool success = data[&#39;success&#39;] ?? false;
 
-    &#47;&#47; Mapear respuesta del RPC al formato esperado por la UI si es necesario
+    List&lt;Map&lt;String, dynamic&gt;&gt; mappedResults = [];
+
+    &#47;&#47; Si fue exitoso, mapeamos los campos y buscamos nombres reales de usuarios
+    if (success &amp;&amp; data[&#39;results&#39;] != null) {
+      final List rawResults = data[&#39;results&#39;] as List;
+      final List&lt;String&gt; userIds =
+          rawResults.map((r) =&gt; r[&#39;user_id&#39;] as String).toList();
+
+      &#47;&#47; 1. Buscar nombres de los perfiles para mostrar algo legible en el Admin
+      final profiles = await _supabase
+          .from(&#39;profiles&#39;)
+          .select(&#39;id, name&#39;)
+          .inFilter(&#39;id&#39;, userIds);
+
+      final Map&lt;String, String&gt; namesMap = {
+        for (var p in profiles) p[&#39;id&#39;] as String: p[&#39;name&#39;] as String
+      };
+
+      &#47;&#47; 2. Mapear de [rank, user_id] a [place, user] que espera la UI
+      for (var res in rawResults) {
+        final uid = res[&#39;user_id&#39;] as String;
+        mappedResults.add({
+          &#39;place&#39;: res[&#39;rank&#39;] ?? 0,
+          &#39;user&#39;: namesMap[uid] ?? &#39;Usuario Desconocido&#39;,
+          &#39;amount&#39;: res[&#39;amount&#39;] ?? 0,
+        });
+      }
+    }
+
     return {
-      &#39;success&#39;: data[&#39;success&#39;] ?? false,
+      &#39;success&#39;: success,
       &#39;message&#39;: data[&#39;message&#39;] ??
-          (data[&#39;success&#39;] ? &#39;Distribución completada&#39; : &#39;Error desconocido&#39;),
+          (success ? &#39;Distribución completada&#39; : &#39;Error desconocido&#39;),
       &#39;pot&#39;: data[&#39;distributable_pot&#39;] ?? 0.0,
-      &#39;results&#39;: data[&#39;results&#39;] ?? [],
+      &#39;results&#39;: mappedResults,
       &#39;winners_count&#39;: data[&#39;winners_count&#39;] ?? 0,
     };
   } catch (e) {
@@ -102,7 +131,8 @@ Distribuye los premios del bote acumulado a los ganadores (Server-Side RPC).</p>
     return {
       &#39;success&#39;: false,
       &#39;message&#39;: &#39;Error de conexión o RPC: $e&#39;,
-      &#39;pot&#39;: 0.0
+      &#39;pot&#39;: 0.0,
+      &#39;results&#39;: [],
     };
   }
 }</code></pre>
@@ -133,7 +163,7 @@ Distribuye los premios del bote acumulado a los ganadores (Server-Side RPC).</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

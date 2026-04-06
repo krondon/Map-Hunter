@@ -60,7 +60,8 @@
     </ol>
   </div>
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-<span class="name ">launchTerms</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="launchTerms-param-baseUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">baseUrl</span></span></li>
+<span class="name ">launchTerms</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="launchTerms-param-baseUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">baseUrl</span>, </span></li>
+<li><span class="parameter" id="launchTerms-param-anonKey"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">anonKey</span></span></li>
 </ol>)
 
       <div class="features"><span class="feature">override</span></div>
@@ -73,22 +74,28 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-Future&lt;void&gt; launchTerms(String baseUrl) async {
+Future&lt;void&gt; launchTerms(String baseUrl, String anonKey) async {
   try {
+    &#47;&#47; Use the Edge Function as a secure proxy to hide the Storage URL
     final termsUrl = &#39;$baseUrl&#47;functions&#47;v1&#47;get-terms&#39;;
 
-    &#47;&#47; Descargamos los bytes del PDF de forma privada
-    final response = await http.get(Uri.parse(termsUrl));
+    &#47;&#47; Download bytes privately via the proxy function with auth headers
+    final response = await http.get(
+      Uri.parse(termsUrl),
+      headers: {
+        &#39;apikey&#39;: anonKey,
+        &#39;Authorization&#39;: &#39;Bearer $anonKey&#39;,
+      },
+    );
 
     if (response.statusCode == 200) {
-      &#47;&#47; Usamos el paquete &#39;printing&#39; para mostrar el PDF en un visor nativo
-      &#47;&#47; Esto NO abre el navegador y NO muestra ninguna URL al usuario.
+      &#47;&#47; Use printing package to show PDF in native viewer
       await Printing.layoutPdf(
         onLayout: (_) =&gt; response.bodyBytes,
         name: &#39;Terminos_y_Condiciones_Maphunter.pdf&#39;,
       );
     } else {
-      throw Exception(&#39;Falló la descarga del PDF: ${response.statusCode}&#39;);
+      throw Exception(&#39;Falló la descarga del PDF del storage: ${response.statusCode}&#39;);
     }
   } catch (e) {
     throw Exception(&#39;Error al abrir términos en móvil: $e&#39;);
@@ -121,7 +128,7 @@ Future&lt;void&gt; launchTerms(String baseUrl) async {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

@@ -190,6 +190,28 @@ Widget build(BuildContext context) {
                 ),
               ),
             ),
+
+            &#47;&#47; Gateway fee breakdown (only for pago móvil)
+            if (feePercentage != null &amp;&amp; feePercentage! &gt; 0) ...[
+              const SizedBox(height: 6),
+              Text(
+                &#39;+${feePercentage!.toStringAsFixed(0)}% pasarela&#39;,
+                style: TextStyle(
+                  color: Colors.orangeAccent.withOpacity(0.6),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                &#39;Total: \$${(plan.priceUsd &#47; (1 - feePercentage! &#47; 100)).toStringAsFixed(2)}&#39;,
+                style: TextStyle(
+                  color: Colors.orangeAccent.withOpacity(0.9),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -222,7 +244,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

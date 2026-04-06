@@ -70,6 +70,7 @@
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; logout({bool clearBanMessage = true}) async {
   if (_isLoggingOut) return;
   _isLoggingOut = true;
+  _lastLoginTime = null; &#47;&#47; Clear login guard on logout
 
   try {
     &#47;&#47; Use centralized AuthService logout which triggers callbacks
@@ -117,7 +118,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

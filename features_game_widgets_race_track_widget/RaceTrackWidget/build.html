@@ -137,7 +137,8 @@ Widget build(BuildContext context) {
     if (isReadOnly) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(&#39;⛔ Ya terminaste la carrera. No puedes usar poderes en la sala de espera.&#39;),
+          content: Text(
+              &#39;⛔ Ya terminaste la carrera. No puedes usar poderes en la sala de espera.&#39;),
           backgroundColor: Colors.grey,
           duration: Duration(seconds: 2),
         ),
@@ -211,7 +212,7 @@ Widget build(BuildContext context) {
   }
 
   return Container(
-    margin: EdgeInsets.symmetric(vertical: compact ? 10 : 20),
+    margin: EdgeInsets.symmetric(vertical: compact ? 4 : 8),
     padding: const EdgeInsets.all(4), &#47;&#47; Espacio para el efecto de doble borde
     decoration: BoxDecoration(
       color: Colors.white.withOpacity(0.03),
@@ -222,7 +223,7 @@ Widget build(BuildContext context) {
       ),
     ),
     child: Container(
-      padding: EdgeInsets.all(compact ? 12 : 16),
+      padding: EdgeInsets.all(compact ? 8 : 10),
       decoration: BoxDecoration(
         color: const Color(0xFF151517), &#47;&#47; Solid Dark
         borderRadius: BorderRadius.circular(20),
@@ -306,18 +307,21 @@ Widget build(BuildContext context) {
 
               &#47;&#47; --- RACE TRACK (RENDERING ONLY via RaceViewData) ---
               SizedBox(
-                height: compact ? 95 : 120,
+                height: compact ? 135 : 180, &#47;&#47; Increased to prevent avocados and badges bleeding out
                 child: LayoutBuilder(
                   builder: (context, constraints) {
+                    final double trackTop = compact ? 30.0 : 40.0;
+
                     return Stack(
-                      alignment: Alignment.centerLeft,
                       clipBehavior: Clip.none,
                       children: [
                         &#47;&#47; 1. Base Line (The Track)
-                        Center(
+                        Positioned(
+                          top: trackTop,
+                          left: 0,
+                          right: 0,
                           child: Container(
                             height: 6,
-                            width: double.infinity,
                             decoration: BoxDecoration(
                               color: Colors.grey[800],
                               borderRadius: BorderRadius.circular(3),
@@ -328,39 +332,47 @@ Widget build(BuildContext context) {
                         &#47;&#47; 2. Goal Flag (Meta)
                         Positioned(
                           right: -10,
+                          top: trackTop - 20, &#47;&#47; Center circle on track line
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFFFFD700),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(color: Color(0x66FFD700), blurRadius: 10, spreadRadius: 2)
-                                  ]
-                                ),
-                                child: const Icon(Icons.flag, color: Colors.black, size: 24),
+                                    color: Color(0xFFFFD700),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: Color(0x66FFD700),
+                                          blurRadius: 10,
+                                          spreadRadius: 2)
+                                    ]),
+                                child: const Icon(Icons.flag,
+                                    color: Colors.black, size: 24),
                               ),
                               const SizedBox(height: 4),
                               const Text(
                                 &quot;META&quot;,
-                                style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1),
+                                style: TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1),
                               ),
                             ],
                           ),
                         ),
 
-                        &#47;&#47; Markers
+                        &#47;&#47; Markers (&quot;START&quot;)
                         Positioned(
                             left: 0,
-                            top: compact ? 45 : 65,
+                            top: trackTop + 5,
                             child: Text(&quot;START&quot;,
                                 style: TextStyle(
                                     fontSize: 8,
                                     color: currentTextSec.withOpacity(0.5)))),
 
-                        &#47;&#47; 2. Render View Models (Using ITargetable, decoupled from Player)
+                        &#47;&#47; 3. Render View Models (Avatars)
                         ...raceView.racers.map((vm) =&gt; _RacerAvatarWidget(
                               vm: vm,
                               trackWidth: constraints.maxWidth,
@@ -369,6 +381,7 @@ Widget build(BuildContext context) {
                                   gameProvider.targetPlayerId == vm.data.id,
                               onTap: () =&gt; handleAvatarTap(vm),
                               compact: compact,
+                              trackTop: trackTop,
                             )),
                       ],
                     );
@@ -452,7 +465,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

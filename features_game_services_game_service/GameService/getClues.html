@@ -64,7 +64,7 @@
     
 <section class="desc markdown">
   <p>Obtiene las pistas de un evento.
-<code>PERFORMANCE</code> Migrado de Edge Function a RPC atómico.</p>
+Usa la RPC optimizada get_clues_with_progress para alto rendimiento.</p>
 </section>
 
 
@@ -75,18 +75,15 @@
   try {
     final response = await _supabase.rpc(&#39;get_clues_with_progress&#39;, params: {
       &#39;p_event_id&#39;: eventId,
-    });
+    }).timeout(const Duration(seconds: 15));
 
-    if (response != null) {
-      final List&lt;dynamic&gt; data = response is List ? response : [];
-      return data
-          .map((json) =&gt; Clue.fromJson(json as Map&lt;String, dynamic&gt;))
-          .toList();
-    }
-    return [];
+    if (response == null) return [];
+
+    final data = response is List ? response : [];
+    return data.map((json) =&gt; Clue.fromJson(json)).toList();
   } catch (e) {
     debugPrint(&#39;Error fetching clues (RPC): $e&#39;);
-    rethrow;
+    return [];
   }
 }</code></pre>
 </section>
@@ -116,7 +113,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

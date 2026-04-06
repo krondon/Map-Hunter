@@ -55,44 +55,50 @@
     <section class="multi-line-signature">
       
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../core_models_pago_a_pago_models/WithdrawalResponse-class.html">WithdrawalResponse</a></span>&gt;</span></span>
-<span class="name ">withdrawFunds</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="withdrawFunds-param-request"><span class="type-annotation"><a href="../../core_models_pago_a_pago_models/WithdrawalRequest-class.html">WithdrawalRequest</a></span> <span class="parameter-name">request</span>, </span></li>
-<li><span class="parameter" id="withdrawFunds-param-authToken"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">authToken</span></span></li>
+<span class="name ">withdrawFunds</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="withdrawFunds-param-request"><span class="type-annotation"><a href="../../core_models_pago_a_pago_models/WithdrawalRequest-class.html">WithdrawalRequest</a></span> <span class="parameter-name">request</span></span></li>
 </ol>)
 
       
 
     </section>
     
+<section class="desc markdown">
+  <p>Processes a withdrawal via the <code>api_withdraw_funds</code> Edge Function.
+Sends plan_id; the Edge Function validates price/balance server-side.</p>
+</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;WithdrawalResponse&gt; withdrawFunds(WithdrawalRequest request, String authToken) async {
-  final url = Uri.parse(&#39;$_baseUrl&#47;api_withdraw_funds&#39;);
-
+  <pre class="language-dart"><code class="language-dart">Future&lt;WithdrawalResponse&gt; withdrawFunds(WithdrawalRequest request) async {
   try {
-    final response = await http.post(
-      url,
-      headers: {
-        &#39;Content-Type&#39;: &#39;application&#47;json&#39;,
-        &#39;Authorization&#39;: &#39;Bearer $authToken&#39;,
-      },
-      body: jsonEncode(request.toJson()),
+    debugPrint(&#39;[PagoAPagoService] Invoking api_withdraw_funds...&#39;);
+
+    final response = await _client.functions.invoke(
+      &#39;api_withdraw_funds&#39;,
+      body: request.toJson(),
     );
 
-    debugPrint(&#39;Withdrawal Response: ${response.body}&#39;);
+    debugPrint(&#39;[PagoAPagoService] Withdrawal status: ${response.status}&#39;);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return WithdrawalResponse.fromJson(jsonDecode(response.body));
+    if (response.status == 200) {
+      return WithdrawalResponse.fromJson(response.data);
     } else {
-       final errorBody = jsonDecode(response.body);
-       return WithdrawalResponse(
-         success: false,
-         message: errorBody[&#39;error&#39;] ?? errorBody[&#39;message&#39;] ?? &#39;Error ${response.statusCode}&#39;
-       );
+      final errorData = response.data;
+      return WithdrawalResponse(
+        success: false,
+        message: errorData?[&#39;error&#39;] ?? errorData?[&#39;message&#39;] ?? &#39;Error ${response.status}&#39;,
+      );
     }
   } catch (e) {
+    debugPrint(&#39;[PagoAPagoService] Withdrawal exception: $e&#39;);
+    if (e is FunctionException) {
+      return WithdrawalResponse(
+        success: false,
+        message: &#39;Error: ${e.details} (${e.reasonPhrase})&#39;,
+      );
+    }
     return WithdrawalResponse(success: false, message: &#39;Error de red: $e&#39;);
   }
 }</code></pre>
@@ -123,7 +129,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

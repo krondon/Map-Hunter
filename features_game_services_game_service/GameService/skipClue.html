@@ -63,8 +63,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Salta una pista.
-<code>PERFORMANCE</code> Migrado de Edge Function a RPC atómico.</p>
+  <p>Salta una pista via Edge Function (admin-only server-side).</p>
 </section>
 
 
@@ -73,16 +72,18 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;bool&gt; skipClue(String clueId) async {
   try {
-    final response = await _supabase.rpc(&#39;skip_clue_rpc&#39;, params: {
-      &#39;p_clue_id&#39;: int.tryParse(clueId) ?? clueId,
-    });
-
-    if (response != null &amp;&amp; response is Map&lt;String, dynamic&gt;) {
-      return response[&#39;success&#39;] == true;
-    }
+    final response = await SecurityGuard.invokeSecureAction(
+      action: &#39;skip-clue&#39;,
+      payload: {
+        &#39;clue_id&#39;: int.tryParse(clueId) ?? clueId,
+      },
+    );
+    return response?[&#39;success&#39;] == true;
+  } on CustomSecurityException catch (e) {
+    debugPrint(&#39;Error skipping clue (Security): $e&#39;);
     return false;
   } catch (e) {
-    debugPrint(&#39;Error skipping clue (RPC): $e&#39;);
+    debugPrint(&#39;Error skipping clue: $e&#39;);
     return false;
   }
 }</code></pre>
@@ -113,7 +114,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

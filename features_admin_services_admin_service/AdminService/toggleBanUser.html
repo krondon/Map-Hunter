@@ -82,6 +82,14 @@
         &#39;new_status&#39;: ban ? &#39;banned&#39; : &#39;active&#39;,
       },
     );
+
+    &#47;&#47; Si se está baneando, revocar todas sus sesiones activas para expulsarlo inmediatamente
+    if (ban) {
+      await _supabase.functions.invoke(
+        &#39;admin-actions&#47;revoke-sessions&#39;,
+        body: {&#39;userId&#39;: userId},
+      );
+    }
   } catch (e) {
     debugPrint(&#39;AdminService: Error toggling ban: $e&#39;);
     rethrow;
@@ -114,7 +122,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

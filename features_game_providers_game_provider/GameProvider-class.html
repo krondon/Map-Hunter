@@ -329,6 +329,30 @@
 
 </dd>
 
+        <dt id="isModalActive" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isModalActive.html">isModalActive</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isPaused" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isPaused.html">isPaused</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Indica si el juego debe estar en pausa (por congelamiento o modal activo)
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
         <dt id="isPowerActionLoading" class="property">
   <span class="name"><a href="../features_game_providers_game_provider/GameProvider/isPowerActionLoading.html">isPowerActionLoading</a></span>
   <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
@@ -576,7 +600,7 @@ GameSessionMonitor después de procesar la transición.
 </dd>
 
         <dt id="completeCurrentClue" class="callable">
-  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/completeCurrentClue.html">completeCurrentClue</a></span><span class="signature">(<wbr><span class="parameter" id="completeCurrentClue-param-answer"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">answer</span>, {</span><span class="parameter" id="completeCurrentClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">clueId</span></span>})
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/completeCurrentClue.html">completeCurrentClue</a></span><span class="signature">(<wbr><span class="parameter" id="completeCurrentClue-param-answer"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">answer</span>, {</span><span class="parameter" id="completeCurrentClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">clueId</span>, </span><span class="parameter" id="completeCurrentClue-param-sessionId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">sessionId</span>, </span><span class="parameter" id="completeCurrentClue-param-challengeToken"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">challengeToken</span>, </span><span class="parameter" id="completeCurrentClue-param-result"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">result</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
   </span>
   
@@ -804,6 +828,19 @@ Implementación de IResettable
 
 </dd>
 
+        <dt id="setModalActive" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/setModalActive.html">setModalActive</a></span><span class="signature">(<wbr><span class="parameter" id="setModalActive-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Indica si hay un modal activo que debe pausar el juego
+  
+
+</dd>
+
         <dt id="setPowerActionLoading" class="callable">
   <span class="name"><a href="../features_game_providers_game_provider/GameProvider/setPowerActionLoading.html">setPowerActionLoading</a></span><span class="signature">(<wbr><span class="parameter" id="setPowerActionLoading-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
     <span class="returntype parameter">&#8594; void</span>
@@ -865,6 +902,19 @@ Implementación de IResettable
 </dt>
 <dd>
   Inicia el polling periódico del Leaderboard (heartbeat de fallback: cada 30 segundos).
+  
+
+</dd>
+
+        <dt id="startMinigameSession" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/startMinigameSession.html">startMinigameSession</a></span><span class="signature">(<wbr>{<span class="parameter" id="startMinigameSession-param-clueId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">clueId</span>, </span><span class="parameter" id="startMinigameSession-param-minDurationSeconds"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">minDurationSeconds</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
   
 
 </dd>
@@ -1040,7 +1090,7 @@ se actualizará automáticamente sin necesidad de fetch manual.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

@@ -74,6 +74,9 @@ Solo sale al mapa si se queda sin vidas.</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">void showSkipDialog(BuildContext context, VoidCallback? onLegalExit) {
+  final provider = Provider.of&lt;GameProvider&gt;(context, listen: false);
+  provider.setModalActive(true);
+
   showDialog(
     context: context,
     builder: (dialogContext) =&gt; Dialog(
@@ -140,7 +143,10 @@ Solo sale al mapa si se queda sin vidas.</p>
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () =&gt; Navigator.pop(dialogContext),
+                      onPressed: () {
+                        provider.setModalActive(false);
+                        Navigator.pop(dialogContext);
+                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -171,6 +177,7 @@ Solo sale al mapa si se queda sin vidas.</p>
                         }
 
                         &#47;&#47; 2. Cerrar diálogo
+                        provider.setModalActive(false);
                         Navigator.pop(dialogContext);
 
                         &#47;&#47; 3. Cerrar pantalla actual (PuzzleScreen)
@@ -318,7 +325,7 @@ Solo sale al mapa si se queda sin vidas.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

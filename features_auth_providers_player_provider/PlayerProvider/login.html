@@ -71,9 +71,11 @@
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; login(String email, String password) async {
   try {
     _isNewlyRegistered = false; &#47;&#47; Regular login is not a registration
+    _lastLoginTime = DateTime.now(); &#47;&#47; Guard: mark login start
     final userId = await _authService.login(email, password);
     await restoreSession(userId);
   } catch (e) {
+    _lastLoginTime = null;
     debugPrint(&#39;Error logging in: $e&#39;);
     rethrow;
   }
@@ -105,7 +107,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

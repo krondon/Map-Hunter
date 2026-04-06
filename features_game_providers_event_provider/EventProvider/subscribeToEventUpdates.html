@@ -117,10 +117,13 @@ HomeScreen.build() hace rebuild automático mostrando el juego.</p>
             final Map&lt;String, dynamic&gt;? newSpectatorConfig =
                 record[&#39;spectator_config&#39;];
             final int? newPot = record[&#39;pot&#39;];
+            final int? newConfiguredWinners =
+                (record[&#39;configured_winners&#39;] as num?)?.toInt();
 
             _events[index] = old.copyWith(
               status: newStatus,
               pot: newPot,
+              configuredWinners: newConfiguredWinners,
               spectatorConfig: newSpectatorConfig,
               storePrices: newStorePricesRaw
                   ?.map((k, v) =&gt; MapEntry(k, (v as num).toInt())),
@@ -166,7 +169,7 @@ HomeScreen.build() hace rebuild automático mostrando el juego.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

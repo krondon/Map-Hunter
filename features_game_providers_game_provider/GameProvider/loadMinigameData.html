@@ -83,10 +83,10 @@
       _gameService.fetchMinigameEmojiMovies(),
     ]);
 
-    _minigameCapitals = results[0] as List&lt;Map&lt;String, String&gt;&gt;;
-    _minigameTFStatements = results[1] as List&lt;Map&lt;String, dynamic&gt;&gt;;
-    _minigameChronologicalEvents = results[2] as List&lt;Map&lt;String, dynamic&gt;&gt;;
-    _minigameEmojiMovies = results[3] as List&lt;Map&lt;String, dynamic&gt;&gt;;
+    _minigameCapitals = (results[0] as List).map((e) =&gt; Map&lt;String, String&gt;.from(e as Map)).toList();
+    _minigameTFStatements = (results[1] as List).map((e) =&gt; Map&lt;String, dynamic&gt;.from(e as Map)).toList();
+    _minigameChronologicalEvents = (results[2] as List).map((e) =&gt; Map&lt;String, dynamic&gt;.from(e as Map)).toList();
+    _minigameEmojiMovies = (results[3] as List).map((e) =&gt; Map&lt;String, dynamic&gt;.from(e as Map)).toList();
 
     debugPrint(
         &#39;GameProvider: Loaded ${_minigameCapitals.length} capitals, ${_minigameTFStatements.length} TF statements, ${_minigameChronologicalEvents.length} chrono events, and ${_minigameEmojiMovies.length} movie events.&#39;);
@@ -124,7 +124,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

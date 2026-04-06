@@ -115,7 +115,7 @@ Si no, retorna el game_player más reciente.</p>
     &#47;&#47; 2. Traer poderes con JOIN
     final List&lt;dynamic&gt; powersData = await _supabase
         .from(&#39;player_powers&#39;)
-        .select(&#39;quantity, powers!inner(slug)&#39;)
+        .select(&#39;quantity, powers!inner(slug, name, icon)&#39;)
         .eq(&#39;game_player_id&#39;, gamePlayerId)
         .gt(&#39;quantity&#39;, 0);
 
@@ -124,7 +124,8 @@ Si no, retorna el game_player más reciente.</p>
     for (var item in powersData) {
       final powerDetails = item[&#39;powers&#39;];
       if (powerDetails != null &amp;&amp; powerDetails[&#39;slug&#39;] != null) {
-        final String slug = powerDetails[&#39;slug&#39;];
+        final String rawSlug = powerDetails[&#39;slug&#39;] ?? &#39;&#39;;
+        final String slug = rawSlug.trim().toLowerCase();
         final int qty = item[&#39;quantity&#39;];
 
         for (var i = 0; i &lt; qty; i++) {
@@ -171,7 +172,7 @@ Si no, retorna el game_player más reciente.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

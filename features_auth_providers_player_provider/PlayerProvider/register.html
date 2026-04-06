@@ -75,6 +75,7 @@
     {String? cedula, String? phone}) async {
   try {
     _isNewlyRegistered = true; &#47;&#47; MARK AS NEWLY REGISTERED
+    _lastLoginTime = DateTime.now(); &#47;&#47; Guard: same as login
     final userId = await _authService.register(name, email, password,
         cedula: cedula, phone: phone);
 
@@ -83,6 +84,7 @@
       await restoreSession(userId);
     }
   } catch (e) {
+    _lastLoginTime = null;
     debugPrint(&#39;Error registering: $e&#39;);
     rethrow;
   }
@@ -114,7 +116,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

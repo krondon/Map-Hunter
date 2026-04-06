@@ -84,23 +84,30 @@
       if (data != null) {
         return data[&#39;isCompleted&#39;] ?? false;
       }
-    } else if (response.status == 401) {
-      &#47;&#47; Handle Invalid JWT by forcing a refresh and retrying once
-      debugPrint(&#39;[GameService] 401 Detected. Forcing session refresh...&#39;);
-      await _supabase.auth.refreshSession();
+    }
+    return false;
+  } on FunctionException catch (fe) {
+    if (fe.status == 401) {
+      debugPrint(&#39;[GameService] 401 FunctionException. Forcing session refresh...&#39;);
+      try {
+        await _supabase.auth.refreshSession();
 
-      final retryResponse = await _supabase.functions.invoke(
-        &#39;game-play&#47;check-race-status&#39;,
-        headers: await _authHeaders(),
-        body: {&#39;eventId&#39;: eventId},
-        method: HttpMethod.post,
-      );
+        final retryResponse = await _supabase.functions.invoke(
+          &#39;game-play&#47;check-race-status&#39;,
+          headers: await _authHeaders(),
+          body: {&#39;eventId&#39;: eventId},
+          method: HttpMethod.post,
+        );
 
-      if (retryResponse.status == 200) {
-         final data = retryResponse.data as Map&lt;String, dynamic&gt;?;
-         return data?[&#39;isCompleted&#39;] ?? false;
+        if (retryResponse.status == 200) {
+          final data = retryResponse.data as Map&lt;String, dynamic&gt;?;
+          return data?[&#39;isCompleted&#39;] ?? false;
+        }
+      } catch (e) {
+        debugPrint(&#39;Error during 401 retry: $e&#39;);
       }
     }
+    debugPrint(&#39;FunctionException in checkRaceStatus: ${fe.status} - $fe&#39;);
     return false;
   } catch (e) {
     debugPrint(&#39;Error checking race status: $e&#39;);
@@ -134,7 +141,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

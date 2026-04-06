@@ -124,7 +124,7 @@ Widget build(BuildContext context) {
     child: Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isLocked || clue.isCompleted ? null : onTap,
+        onTap: clue.isCompleted ? null : onTap,
         borderRadius: BorderRadius.circular(24),
         child: Container(
           padding: const EdgeInsets.all(4),
@@ -276,7 +276,7 @@ Widget build(BuildContext context) {
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

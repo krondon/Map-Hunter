@@ -83,7 +83,11 @@
   &#47;&#47; Final check
   checkFormValidity();
   if (!_isFormValid) {
-    onError(&quot;Faltan campos por completar&quot;);
+    if (_clueForms.isEmpty || _numberOfClues &lt;= 0) {
+      onError(&quot;Debes agregar al menos un minijuego&#47;pista&quot;);
+    } else {
+      onError(&quot;Faltan campos por completar&quot;);
+    }
     return false;
   }
 
@@ -222,7 +226,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

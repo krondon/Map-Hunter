@@ -116,7 +116,16 @@
         &#47;&#47; Jugadores activos pagan con monedas de sesión (game_players.coins)
         _currentPlayer!.coins -= cost;
       }
+
+      &#47;&#47; SYNC FIX: Fetch inventory immediately and notify
       await fetchInventory(_currentPlayer!.userId, eventId);
+
+      &#47;&#47; Optimistic local update for the item list (backward compatibility with _currentPlayer.inventory)
+      if (!isPower &amp;&amp; itemId != &#39;extra_life&#39;) {
+         &#47;&#47; If it&#39;s a generic item, reload profile to be sure
+         await reloadProfile();
+      }
+
       notifyListeners();
     }
     return result.success;
@@ -152,7 +161,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

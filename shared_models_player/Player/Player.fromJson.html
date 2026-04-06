@@ -157,6 +157,7 @@
     gamePlayerId: json[&#39;player_id&#39;] ?? json[&#39;game_player_id&#39;],
     avatarId: avatarId,
     clovers: json[&#39;clovers&#39;] ?? 0,
+    wonEventsCount: json[&#39;won_events_count&#39;] ?? 0,
     documentType: docTypeVal,
     &#47;&#47; Map &#39;dni&#39; (int) from DB to &#39;cedula&#39; (String) in model if &#39;cedula&#39; is null
     cedula: dniVal,
@@ -164,6 +165,9 @@
     createdAt: json[&#39;created_at&#39;] != null ? DateTime.tryParse(json[&#39;created_at&#39;].toString()) : null,
     isProtected: json[&#39;is_protected&#39;] ?? false,
     emailVerified: json[&#39;email_verified&#39;] ?? true,
+    stripeCustomerId: json[&#39;stripe_customer_id&#39;],
+    stripeConnectId: json[&#39;stripe_connect_id&#39;],
+    stripeOnboardingCompleted: json[&#39;stripe_onboarding_completed&#39;] ?? false,
   );
 }</code></pre>
 </section>
@@ -193,7 +197,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

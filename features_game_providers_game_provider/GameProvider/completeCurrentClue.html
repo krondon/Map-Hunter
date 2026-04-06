@@ -57,6 +57,9 @@
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
 <span class="name ">completeCurrentClue</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="completeCurrentClue-param-answer"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">answer</span>, {</span></li>
 <li><span class="parameter" id="completeCurrentClue-param-clueId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">clueId</span>, </span></li>
+<li><span class="parameter" id="completeCurrentClue-param-sessionId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">sessionId</span>, </span></li>
+<li><span class="parameter" id="completeCurrentClue-param-challengeToken"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">challengeToken</span>, </span></li>
+<li><span class="parameter" id="completeCurrentClue-param-result"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">result</span>, </span></li>
 </ol>})
 
       
@@ -75,7 +78,7 @@ con _currentClueIndex (puede cambiar por fetchClues concurrentes).</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;?&gt; completeCurrentClue(String answer,
-    {String? clueId}) async {
+    {String? clueId, String? sessionId, String? challengeToken, Map&lt;String, dynamic&gt;? result}) async {
   String targetId;
 
   if (clueId != null) {
@@ -99,46 +102,85 @@ con _currentClueIndex (puede cambiar por fetchClues concurrentes).</p>
   bool didOptimisticUpdate = false;
 
   if (localIndex != -1) {
+    debugPrint(&#39;[COMPLETE_CLUE] 🟢 Optimistic Update: Marking clue $localIndex (${targetId}) as completed&#39;);
     _clues[localIndex].isCompleted = true;
     didOptimisticUpdate = true;
-    &#47;&#47; Avanzar el índice al siguiente sin previamente desbloquearlo aquí.
-    &#47;&#47; El estado real de is_locked llega del servidor vía fetchClues(silent:true).
+
     if (localIndex + 1 &lt; _clues.length) {
+      debugPrint(&#39;[COMPLETE_CLUE] ➡️ Advancing currentClueIndex: $_currentClueIndex -&gt; ${localIndex + 1}&#39;);
       _currentClueIndex = localIndex + 1;
+    } else {
+      debugPrint(&#39;[COMPLETE_CLUE] 🏁 Last clue reached or index at bounds&#39;);
     }
     notifyListeners();
+  } else {
+    debugPrint(&#39;[COMPLETE_CLUE] ⚠️ localIndex not found for id: $targetId&#39;);
   }
 
   try {
-    final data = await _gameService.completeClue(targetId, answer,
-        eventId: _currentEventId);
+    final data = sessionId != null
+        ? await _gameService.verifyAndCompleteMinigame(
+            sessionId: sessionId,
+            answer: answer,
+            challengeToken: challengeToken,
+            result: result,
+          )
+        : await _gameService.completeClue(targetId, answer,
+            eventId: _currentEventId);
 
-    if (data != null) {
+    &#47;&#47; [FIX] Strict security: accept true (RPC Edge Function) or null + no error (legacy completeClue)
+    final isSuccess = data != null &amp;&amp;
+        (data[&#39;success&#39;] == true || (data[&#39;success&#39;] == null &amp;&amp; !data.containsKey(&#39;error&#39;)));
+
+    if (isSuccess) {
       if (data[&#39;raceCompletedGlobal&#39;] == true) {
         debugPrint(&quot;🏆 GLOBAL Race Completed confirmed by RPC!&quot;);
         _setRaceCompleted(true, &#39;Clue Completion (RPC)&#39;);
+      } else if (data[&#39;raceCompleted&#39;] == true &amp;&amp; data[&#39;raceCompletedGlobal&#39;] != true) {
+        &#47;&#47; Defense-in-depth: Edge Function should have called register_race_finisher
+        &#47;&#47; server-side, but if it didn&#39;t propagate raceCompletedGlobal, try client-side.
+        debugPrint(&quot;🏁 raceCompleted=true but raceCompletedGlobal missing. Client-side fallback...&quot;);
+        final fallbackEventId = data[&#39;eventId&#39;]?.toString() ?? _currentEventId;
+        if (fallbackEventId != null) {
+          final rpcRes = await _gameService.registerFinisher(fallbackEventId);
+          if (rpcRes != null &amp;&amp; rpcRes[&#39;success&#39;] == true) {
+            data[&#39;raceCompletedGlobal&#39;] = rpcRes[&#39;race_completed&#39;];
+            data[&#39;prizeAmount&#39;] = rpcRes[&#39;prize&#39;];
+            data[&#39;position&#39;] = rpcRes[&#39;position&#39;];
+            if (rpcRes[&#39;race_completed&#39;] == true) {
+              _setRaceCompleted(true, &#39;Clue Completion (Client Fallback)&#39;);
+            }
+          }
+        }
       } else {
         debugPrint(
             &quot;👤 User finished clues, but Race is NOT globally finished yet.&quot;);
       }
 
-      &#47;&#47; Fire-and-forget: confirmar estado desde el servidor
-      unawaited(fetchClues(silent: true));
+      &#47;&#47; Fire-and-forget: confirmar estado desde el servidor con un respiro para el commit DB
+      &#47;&#47; Aumentado a 800ms para asegurar que el trigger de unlock en DB haya terminado
+      Future.delayed(const Duration(milliseconds: 800), () async {
+        await fetchClues(silent: true);
+        &#47;&#47; Retry if next clue is still locked but we know we advanced
+        if (_currentClueIndex &lt; _clues.length &amp;&amp; _clues[_currentClueIndex].isLocked) {
+           debugPrint(&quot;🔄 Next clue still locked, retrying fetch...&quot;);
+           await Future.delayed(const Duration(milliseconds: 1000));
+           await fetchClues(silent: true);
+        }
+      });
       unawaited(fetchLeaderboard());
       return data;
-    } else {
-      &#47;&#47; RPC falló: revertir estado optimista para que el usuario pueda reintentar
-      debugPrint(&#39;⚠️ completeCurrentClue: RPC returned null, reverting optimistic state&#39;);
-      &#47;&#47; FIX: Rollback solo de la pista específica (by ID, no by index).
-      &#47;&#47; No se revierte is_locked de la siguiente porque nunca se modificó.
-      if (didOptimisticUpdate &amp;&amp; localIndex != -1 &amp;&amp; localIndex &lt; _clues.length) {
-        _clues[localIndex].isCompleted = false;
-        _currentClueIndex = prevClueIndex;
-        notifyListeners();
-      }
-      unawaited(fetchClues(silent: true));
-      return null;
     }
+
+    &#47;&#47; RPC falló o devolvió un error: revertir estado optimista para reintentar
+    debugPrint(&#39;⚠️ completeCurrentClue: RPC failed, reverting optimistic state&#39;);
+    if (didOptimisticUpdate &amp;&amp; localIndex != -1 &amp;&amp; localIndex &lt; _clues.length) {
+      _clues[localIndex].isCompleted = false;
+      _currentClueIndex = prevClueIndex;
+      notifyListeners();
+    }
+    unawaited(fetchClues(silent: true));
+    return data;
   } catch (e) {
     debugPrint(&#39;Error completing clue: $e&#39;);
     if (didOptimisticUpdate &amp;&amp; localIndex != -1 &amp;&amp; localIndex &lt; _clues.length) {
@@ -177,7 +219,7 @@ con _currentClueIndex (puede cambiar por fetchClues concurrentes).</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

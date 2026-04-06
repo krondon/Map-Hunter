@@ -71,6 +71,7 @@
   if (value &gt; 20) value = 20;
   if (value &lt; 0) value = 0;
   _numberOfClues = value;
+  checkFormValidity(); &#47;&#47; Update validity if they set it back to 0
   notifyListeners();
 }</code></pre>
 </section>
@@ -100,7 +101,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

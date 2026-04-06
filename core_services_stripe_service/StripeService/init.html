@@ -82,9 +82,11 @@
     debugPrint(&#39;[StripeService] Intentando inicializar con clave: ${publishableKey.substring(0, 10)}...&#39;);
 
     if (kIsWeb) {
-      Stripe.publishableKey = publishableKey;
+      &#47;&#47; On Web, we don&#39;t need Stripe.instance or applySettings()
+      &#47;&#47; because we use url_launcher with Stripe Checkout in initiateStripePurchase.
+      &#47;&#47; Direct package initialization causes &quot;Platform._operatingSystem&quot; errors.
       _initialized = true;
-      debugPrint(&#39;[StripeService] ✅ Inicializado para Web.&#39;);
+      debugPrint(&#39;[StripeService] ✅ Inicializado para Web (Redirect Mode).&#39;);
       return;
     }
 
@@ -126,7 +128,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>

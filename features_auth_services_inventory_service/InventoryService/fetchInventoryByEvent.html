@@ -90,7 +90,8 @@
 
     for (var item in response) {
       &#47;&#47; Usamos &#39;slug&#39; en lugar de &#39;power_id&#39; para coincidir con PowerItem.getShopItems()
-      final String itemId = item[&#39;slug&#39;] ?? item[&#39;power_id&#39;].toString();
+      final String rawId = item[&#39;slug&#39;] ?? item[&#39;power_id&#39;].toString();
+      final String itemId = rawId.trim().toLowerCase();
       final int qty = item[&#39;quantity&#39;] ?? 0;
 
       eventItems[itemId] = qty;
@@ -136,7 +137,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.3
+      1.0.4
   </span>
   
 </footer>
