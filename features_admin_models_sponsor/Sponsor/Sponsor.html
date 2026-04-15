@@ -59,8 +59,10 @@
 <li><span class="parameter" id="-param-planType"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">planType</span>, </span></li>
 <li><span class="parameter" id="-param-logoUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">logoUrl</span>, </span></li>
 <li><span class="parameter" id="-param-bannerUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">bannerUrl</span>, </span></li>
+<li><span class="parameter" id="-param-targetUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">targetUrl</span>, </span></li>
 <li><span class="parameter" id="-param-minigameAssetUrl"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">minigameAssetUrl</span>, </span></li>
 <li><span class="parameter" id="-param-isActive"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">isActive</span>, </span></li>
+<li><span class="parameter" id="-param-weight"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">weight</span> = <span class="default-value">1</span>, </span></li>
 <li><span class="parameter" id="-param-createdAt"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a></span> <span class="parameter-name">createdAt</span>, </span></li>
 </ol>})
     </section>
@@ -76,8 +78,10 @@
   required this.planType,
   this.logoUrl,
   this.bannerUrl,
+  this.targetUrl,
   this.minigameAssetUrl,
   required this.isActive,
+  this.weight = 1,
   required this.createdAt,
 });</code></pre>
 </section>
@@ -107,7 +111,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

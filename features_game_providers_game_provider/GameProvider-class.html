@@ -473,6 +473,18 @@
 
 </dd>
 
+        <dt id="sponsorRotation" class="property">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/sponsorRotation.html">sponsorRotation</a></span>
+  <span class="signature">&#8594; <a href="../features_game_services_sponsor_rotation_manager/SponsorRotationManager-class.html">SponsorRotationManager</a></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
         <dt id="targetPlayerId" class="property">
   <span class="name"><a href="../features_game_providers_game_provider/GameProvider/targetPlayerId.html">targetPlayerId</a></span>
   <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
@@ -638,6 +650,20 @@ Retorna null si falla, o un Map con success, raceCompleted, coins_earned.
 object is not in a usable state and should be discarded (calls to
 <a href="https://api.flutter.dev/flutter/foundation/ChangeNotifier/addListener.html">addListener</a> will throw after the object is disposed).
   <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="ensureEventContext" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/ensureEventContext.html">ensureEventContext</a></span><span class="signature">(<wbr><span class="parameter" id="ensureEventContext-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Ensures the current event context is set without forcing a full reset.
+This is used to enable global overlays (e.g., powers) before clues load.
+  
 
 </dd>
 
@@ -812,6 +838,20 @@ notified when the object changes.
   Limpia COMPLETAMENTE el estado del juego (Global Reset)
 Implementación de IResettable
   <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="rotateSponsor" class="callable">
+  <span class="name"><a href="../features_game_providers_game_provider/GameProvider/rotateSponsor.html">rotateSponsor</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../features_admin_models_sponsor/Sponsor-class.html">Sponsor</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Selects a new sponsor from the pool via weighted random rotation.
+Call this each time a new banner display is needed.
+  
 
 </dd>
 
@@ -1090,7 +1130,7 @@ se actualizará automáticamente sin necesidad de fetch manual.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

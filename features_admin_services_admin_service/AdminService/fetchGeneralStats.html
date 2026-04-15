@@ -86,10 +86,29 @@
         .eq(&#39;status&#39;, &#39;pending&#39;)
         .count(CountOption.exact);
 
+    &#47;&#47; 4. Fetch Platform Earnings (Treasury account)
+    final treasuryData = await _supabase
+        .from(&#39;profiles&#39;)
+        .select(&#39;clovers&#39;)
+        .eq(&#39;email&#39;, &#39;tesoreria@maphunter.com&#39;)
+        .maybeSingle();
+
+    &#47;&#47; 5. Fetch Total Gross Income (from clover_orders)
+    final ordersResponse = await _supabase
+        .from(&#39;clover_orders&#39;)
+        .select(&#39;amount&#39;)
+        .eq(&#39;status&#39;, &#39;success&#39;)
+        .eq(&#39;gateway&#39;, &#39;stripe&#39;);
+
+    final totalGross = (ordersResponse as List)
+        .fold&lt;double&gt;(0.0, (sum, order) =&gt; sum + ((order[&#39;amount&#39;] as num?)?.toDouble() ?? 0.0));
+
     return AdminStats(
       activeUsers: usersCount,
       createdEvents: eventsCount,
       pendingRequests: requestsCount.count,
+      platformEarnings: (treasuryData?[&#39;clovers&#39;] as num?)?.toInt() ?? 0,
+      totalGrossIncome: totalGross,
     );
   } catch (e) {
     debugPrint(&#39;AdminService: Error fetching stats: $e&#39;);
@@ -123,7 +142,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

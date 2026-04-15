@@ -124,7 +124,8 @@
               event.spectatorConfig, &#47;&#47; NEW: Persist spectator prices
           &#39;bet_ticket_price&#39;:
               event.betTicketPrice, &#47;&#47; NEW: Persist betting price
-          &#39;sponsor_id&#39;: event.sponsorId, &#47;&#47; NEW
+          &#39;sponsors_enabled&#39;: event.sponsorsEnabled,
+          &#39;sponsors_selective&#39;: event.sponsorsSelective,
         })
         .select()
         .single();
@@ -162,7 +163,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

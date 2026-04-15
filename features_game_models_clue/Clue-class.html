@@ -96,6 +96,13 @@
           
             <div class="constructor-modifier features">factory</div>
         </dd>
+        <dt id="Clue.mock" class="callable">
+          <span class="name"><a href="../features_game_models_clue/Clue/Clue.mock.html">Clue.mock</a></span><span class="signature">(<span class="parameter" id="mock-param-type"><span class="type-annotation"><a href="../features_game_models_clue/PuzzleType.html">PuzzleType</a></span> <span class="parameter-name">type</span></span>)</span>
+        </dt>
+        <dd>
+          
+            <div class="constructor-modifier features">factory</div>
+        </dd>
     </dl>
   </section>
     
@@ -113,6 +120,19 @@
 <dd>
   
   <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="effectivePuzzleType" class="property">
+  <span class="name"><a href="../features_game_models_clue/Clue/effectivePuzzleType.html">effectivePuzzleType</a></span>
+  <span class="signature">&#8594; <a href="../features_game_models_clue/PuzzleType.html">PuzzleType</a></span>
+  
+
+</dt>
+<dd>
+  Effective puzzle type (used to be assignedPuzzleType ?? puzzleType)
+Now that Station Mode is removed, it simply returns puzzleType.
+  <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
 
@@ -442,7 +462,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

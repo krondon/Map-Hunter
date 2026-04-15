@@ -70,8 +70,10 @@
     planType: json[&#39;plan_type&#39;],
     logoUrl: json[&#39;logo_url&#39;],
     bannerUrl: json[&#39;banner_url&#39;],
+    targetUrl: json[&#39;target_url&#39;],
     minigameAssetUrl: json[&#39;minigame_asset_url&#39;],
     isActive: json[&#39;is_active&#39;] ?? true,
+    weight: json[&#39;weight&#39;] ?? _defaultWeight(json[&#39;plan_type&#39;]),
     createdAt: DateTime.parse(json[&#39;created_at&#39;]),
   );
 }</code></pre>
@@ -102,7 +104,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

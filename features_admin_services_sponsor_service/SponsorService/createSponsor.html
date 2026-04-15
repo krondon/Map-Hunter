@@ -97,11 +97,6 @@
   String? bannerUrl;
   String? assetUrl;
 
-  if (isActive) {
-    &#47;&#47; Deactivate others if this one is active (optional logic, but usually only one sponsor is active at a time)
-    await _deactivateAllSponsors();
-  }
-
   if (logoFile != null || logoBytes != null) {
     if (logoBytes != null) {
       logoUrl = await _uploadFile(
@@ -166,7 +161,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

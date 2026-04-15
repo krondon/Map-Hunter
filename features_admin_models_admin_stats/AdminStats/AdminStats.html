@@ -57,6 +57,8 @@
       <span class="name ">AdminStats</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="-param-activeUsers"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">activeUsers</span>, </span></li>
 <li><span class="parameter" id="-param-createdEvents"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">createdEvents</span>, </span></li>
 <li><span class="parameter" id="-param-pendingRequests"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">pendingRequests</span>, </span></li>
+<li><span class="parameter" id="-param-platformEarnings"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">platformEarnings</span> = <span class="default-value">0</span>, </span></li>
+<li><span class="parameter" id="-param-totalGrossIncome"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">totalGrossIncome</span> = <span class="default-value">0.0</span>, </span></li>
 </ol>})
     </section>
     
@@ -69,6 +71,8 @@
   required this.activeUsers,
   required this.createdEvents,
   required this.pendingRequests,
+  this.platformEarnings = 0,
+  this.totalGrossIncome = 0.0,
 });</code></pre>
 </section>
 
@@ -97,7 +101,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

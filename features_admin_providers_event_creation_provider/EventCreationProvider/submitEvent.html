@@ -115,7 +115,8 @@
       configuredWinners: _configuredWinners,
       spectatorConfig: _spectatorPrices,
       betTicketPrice: _betTicketPrice, &#47;&#47; NEW
-      sponsorId: _sponsorId, &#47;&#47; NEW
+      sponsorsEnabled: _sponsorsEnabled,
+      sponsorsSelective: _sponsorsSelective,
     );
 
     &#47;&#47; Update PIN state for UI feedback (domain service may have auto-generated it)
@@ -126,6 +127,15 @@
     &#47;&#47; 1. Create Event
     createdEventId =
         await eventProvider.createEvent(newEvent, _selectedImage);
+
+    &#47;&#47; 1.1 Create event_sponsors when selective
+    if (createdEventId != null &amp;&amp; _sponsorsEnabled &amp;&amp; _sponsorsSelective) {
+      final sponsorService = SponsorService();
+      await sponsorService.setEventSponsors(
+        createdEventId,
+        _selectedSponsorIds,
+      );
+    }
 
     &#47;&#47; 2. Create Clues
     if (createdEventId != null &amp;&amp; _clueForms.isNotEmpty) {
@@ -226,7 +236,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

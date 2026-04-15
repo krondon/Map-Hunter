@@ -85,7 +85,8 @@
     _eventType = event.type;
     _configuredWinners = event.configuredWinners;
     _betTicketPrice = event.betTicketPrice; &#47;&#47; NEW
-    _sponsorId = event.sponsorId; &#47;&#47; NEW
+    _sponsorsEnabled = event.sponsorsEnabled;
+    _sponsorsSelective = event.sponsorsSelective;
     &#47;&#47; Note: Image and Clues are not fully loaded here in original code either
   } else {
     resetForm();
@@ -93,8 +94,6 @@
     loadAutomationDefaults();
   }
   checkFormValidity();
-  &#47;&#47; Start loading sponsors if not loaded
-  if (_sponsors.isEmpty) loadSponsors();
 }</code></pre>
 </section>
 
@@ -123,7 +122,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

@@ -95,7 +95,8 @@
         ? Map&lt;String, dynamic&gt;.from(json[&#39;spectator_config&#39;])
         : {}, &#47;&#47; NEW
     betTicketPrice: (json[&#39;bet_ticket_price&#39;] as num?)?.toInt() ?? 100, &#47;&#47; NEW
-    sponsorId: json[&#39;sponsor_id&#39;] as String?, &#47;&#47; NEW
+    sponsorsEnabled: (json[&#39;sponsors_enabled&#39;] as bool?) ?? false,
+    sponsorsSelective: (json[&#39;sponsors_selective&#39;] as bool?) ?? false,
     storePrices: (json[&#39;store_prices&#39;] as Map&lt;String, dynamic&gt;?)?.map(
           (k, v) =&gt; MapEntry(k, (v as num).toInt()),
         ) ??
@@ -130,7 +131,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

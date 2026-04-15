@@ -150,26 +150,17 @@
     &#47;&#47; ⚡ CRÍTICO: Suscribirse o actualizar suscripción una vez que totalClues es real
     subscribeToRaceStatus();
 
-    &#47;&#47; Fetch Sponsor if not loaded (and eventId is valid)
+    &#47;&#47; Fetch Sponsor pool if not loaded (and eventId is valid)
     if (idToUse != null &amp;&amp; _currentSponsor == null) {
       try {
-        &#47;&#47; We use a small service instance here or inject usage
-        final sponsorService = SponsorService();
-        final sponsor = await sponsorService.getSponsorForEvent(idToUse);
-        if (sponsor != null) {
-          _currentSponsor = sponsor;
+        await _sponsorRotation.loadPool(idToUse);
+        _currentSponsor = _sponsorRotation.selectSponsor();
+        if (_currentSponsor != null) {
           debugPrint(
-              &#39;✅ GameProvider: Loaded Sponsor: ${sponsor.name} (${sponsor.planType})&#39;);
-        } else {
-          _currentSponsor =
-              await sponsorService.getActiveSponsor(); &#47;&#47; Fallback
-          if (_currentSponsor != null) {
-            debugPrint(
-                &#39;✅ GameProvider: Loaded Global Sponsor (Fallback): ${_currentSponsor!.name}&#39;);
-          }
+              &#39;✅ GameProvider: Selected Sponsor from pool: ${_currentSponsor!.name} (${_currentSponsor!.planType}, weight=${_currentSponsor!.weight})&#39;);
         }
       } catch (e) {
-        debugPrint(&#39;⚠️ Error fetching sponsor in GameProvider: $e&#39;);
+        debugPrint(&#39;⚠️ Error fetching sponsor pool in GameProvider: $e&#39;);
       }
     }
   } catch (e) {
@@ -206,7 +197,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

@@ -76,9 +76,8 @@
       query = query.eq(&#39;type&#39;, type);
     }
 
-    &#47;&#47; Default sort: Newest first (Descending Date)
-    &#47;&#47; This ensures &quot;Finished&quot; events and active ones are ordered by creation&#47;start date
-    final response = await query.order(&#39;date&#39;, ascending: false);
+    &#47;&#47; Default sort (Requested): Newest by Creation Date first
+    final response = await query.order(&#39;created_at&#39;, ascending: false);
     final List&lt;dynamic&gt; eventsData = response as List;
 
     &#47;&#47; 2. Fetch participant counts for these events
@@ -138,7 +137,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

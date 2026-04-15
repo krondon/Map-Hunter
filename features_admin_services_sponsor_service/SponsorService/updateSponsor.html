@@ -106,10 +106,6 @@
   String? bannerUrl = currentBannerUrl;
   String? assetUrl = currentAssetUrl;
 
-  if (isActive == true) {
-    await _deactivateAllSponsors(excludeId: id);
-  }
-
   if (logoFile != null || logoBytes != null) {
     if (logoBytes != null) {
       logoUrl = await _uploadFile(
@@ -176,7 +172,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

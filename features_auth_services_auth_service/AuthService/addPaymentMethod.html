@@ -55,7 +55,9 @@
     <section class="multi-line-signature">
       
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-<span class="name ">addPaymentMethod</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="addPaymentMethod-param-bankCode"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">bankCode</span>, </span></li>
+<span class="name ">addPaymentMethod</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="addPaymentMethod-param-bankCode"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">bankCode</span>, </span></li>
+<li><span class="parameter" id="addPaymentMethod-param-type"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">type</span>, </span></li>
+<li><span class="parameter" id="addPaymentMethod-param-identifier"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">identifier</span>, </span></li>
 </ol>})
 
       
@@ -70,12 +72,18 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; addPaymentMethod({required String bankCode}) async {
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; addPaymentMethod({
+  String? bankCode,
+  String? type,
+  String? identifier,
+}) async {
   try {
     final response = await _supabase.functions.invoke(
       &#39;auth-service&#47;add-payment-method&#39;,
       body: {
-        &#39;bank_code&#39;: bankCode,
+        if (bankCode != null) &#39;bank_code&#39;: bankCode,
+        if (type != null) &#39;type&#39;: type,
+        if (identifier != null) &#39;identifier&#39;: identifier,
       },
       method: HttpMethod.post,
     );
@@ -117,7 +125,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

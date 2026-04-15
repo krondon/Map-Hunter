@@ -384,6 +384,18 @@
 
 </dd>
 
+        <dt id="selectedSponsorIds" class="property">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/selectedSponsorIds.html">selectedSponsorIds</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
         <dt id="spectatorPrices" class="property">
   <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/spectatorPrices.html">spectatorPrices</a></span>
   <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>
@@ -396,9 +408,9 @@
 
 </dd>
 
-        <dt id="sponsorId" class="property">
-  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/sponsorId.html">sponsorId</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+        <dt id="sponsorsEnabled" class="property">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/sponsorsEnabled.html">sponsorsEnabled</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
   
 
 </dt>
@@ -408,9 +420,9 @@
 
 </dd>
 
-        <dt id="sponsors" class="property">
-  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/sponsors.html">sponsors</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_admin_models_sponsor/Sponsor-class.html">Sponsor</a></span>&gt;</span></span>
+        <dt id="sponsorsSelective" class="property">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/sponsorsSelective.html">sponsorsSelective</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
   
 
 </dt>
@@ -543,19 +555,6 @@ object is not in a usable state and should be discarded (calls to
 </dt>
 <dd>
   Loads default values from the Online Automation Dashboard (AppConfigService).
-  
-
-</dd>
-
-        <dt id="loadSponsors" class="callable">
-  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/loadSponsors.html">loadSponsors</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  
   
 
 </dd>
@@ -860,6 +859,19 @@ notified when the object changes.
 
 </dd>
 
+        <dt id="setSelectedSponsorIds" class="callable">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/setSelectedSponsorIds.html">setSelectedSponsorIds</a></span><span class="signature">(<wbr><span class="parameter" id="setSelectedSponsorIds-param-sponsorIds"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">sponsorIds</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
         <dt id="setSpectatorPrice" class="callable">
   <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/setSpectatorPrice.html">setSpectatorPrice</a></span><span class="signature">(<wbr><span class="parameter" id="setSpectatorPrice-param-powerId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">powerId</span>, </span><span class="parameter" id="setSpectatorPrice-param-price"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">price</span></span>)
     <span class="returntype parameter">&#8594; void</span>
@@ -873,8 +885,21 @@ notified when the object changes.
 
 </dd>
 
-        <dt id="setSponsorId" class="callable">
-  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/setSponsorId.html">setSponsorId</a></span><span class="signature">(<wbr><span class="parameter" id="setSponsorId-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">id</span></span>)
+        <dt id="setSponsorsEnabled" class="callable">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/setSponsorsEnabled.html">setSponsorsEnabled</a></span><span class="signature">(<wbr><span class="parameter" id="setSponsorsEnabled-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="setSponsorsSelective" class="callable">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/setSponsorsSelective.html">setSponsorsSelective</a></span><span class="signature">(<wbr><span class="parameter" id="setSponsorsSelective-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
     <span class="returntype parameter">&#8594; void</span>
   </span>
   
@@ -902,6 +927,19 @@ notified when the object changes.
         <dt id="submitEvent" class="callable">
   <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/submitEvent.html">submitEvent</a></span><span class="signature">(<wbr>{<span class="parameter" id="submitEvent-param-eventProvider"><span>required</span> <span class="type-annotation"><a href="../features_game_providers_event_provider/EventProvider-class.html">EventProvider</a></span> <span class="parameter-name">eventProvider</span>, </span><span class="parameter" id="submitEvent-param-storeProvider"><span>required</span> <span class="type-annotation"><a href="../features_mall_providers_store_provider/StoreProvider-class.html">StoreProvider</a></span> <span class="parameter-name">storeProvider</span>, </span><span class="parameter" id="submitEvent-param-onSuccess"><span>required</span> <span class="type-annotation">dynamic</span> <span class="parameter-name">onSuccess</span>(<span class="parameter" id="param-"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span></span>), </span><span class="parameter" id="submitEvent-param-onError"><span>required</span> <span class="type-annotation">dynamic</span> <span class="parameter-name">onError</span>(<span class="parameter" id="param-"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span></span>)</span>})
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="toggleSponsorSelection" class="callable">
+  <span class="name"><a href="../features_admin_providers_event_creation_provider/EventCreationProvider/toggleSponsorSelection.html">toggleSponsorSelection</a></span><span class="signature">(<wbr><span class="parameter" id="toggleSponsorSelection-param-sponsorId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">sponsorId</span>, </span><span class="parameter" id="toggleSponsorSelection-param-selected"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">selected</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
   </span>
   
 
@@ -988,7 +1026,7 @@ notified when the object changes.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

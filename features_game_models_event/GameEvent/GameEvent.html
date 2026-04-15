@@ -76,7 +76,8 @@
 <li><span class="parameter" id="-param-pot"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">pot</span> = <span class="default-value">0</span>, </span></li>
 <li><span class="parameter" id="-param-spectatorConfig"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">spectatorConfig</span> = <span class="default-value">const {}</span>, </span></li>
 <li><span class="parameter" id="-param-betTicketPrice"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">betTicketPrice</span> = <span class="default-value">100</span>, </span></li>
-<li><span class="parameter" id="-param-sponsorId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">sponsorId</span>, </span></li>
+<li><span class="parameter" id="-param-sponsorsEnabled"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">sponsorsEnabled</span> = <span class="default-value">false</span>, </span></li>
+<li><span class="parameter" id="-param-sponsorsSelective"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">sponsorsSelective</span> = <span class="default-value">false</span>, </span></li>
 <li><span class="parameter" id="-param-storePrices"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span> <span class="parameter-name">storePrices</span> = <span class="default-value">const {}</span>, </span></li>
 <li><span class="parameter" id="-param-isAutomated"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">isAutomated</span> = <span class="default-value">false</span>, </span></li>
 </ol>})
@@ -110,7 +111,8 @@
   this.pot = 0, &#47;&#47; NEW: Initialize
   this.spectatorConfig = const {}, &#47;&#47; NEW
   this.betTicketPrice = 100, &#47;&#47; NEW
-  this.sponsorId, &#47;&#47; NEW
+  this.sponsorsEnabled = false,
+  this.sponsorsSelective = false,
   this.storePrices = const {}, &#47;&#47; NEW
   this.isAutomated = false,
 });</code></pre>
@@ -141,7 +143,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

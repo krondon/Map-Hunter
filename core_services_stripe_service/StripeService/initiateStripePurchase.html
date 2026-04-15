@@ -213,32 +213,97 @@
     );
 
   } on StripeException catch (e) {
+    final String code = e.error.code.toString();
+    final String? declineCode = e.error.declineCode;
+    final String? message = e.error.localizedMessage ?? e.error.message;
+
+    debugPrint(&#39;[StripeService] ❌ Stripe error: $code&#39;);
+    if (declineCode != null) debugPrint(&#39;[StripeService] 🚩 Decline code: $declineCode&#39;);
+    debugPrint(&#39;[StripeService] 📝 Message: $message&#39;);
+    debugPrint(&#39;[StripeService] 🔍 Full Error Object: ${e.error.toJson()}&#39;);
+
     switch (e.error.code) {
       case FailureCode.Canceled:
         debugPrint(&#39;[StripeService] Payment cancelled by user.&#39;);
         return const StripePaymentResultData(result: StripePaymentResult.cancelled);
-      case FailureCode.Failed:
-        debugPrint(&#39;[StripeService] Payment failed: ${e.error.message}&#39;);
+      default:
+        &#47;&#47; Show detailed error for ANY other Stripe failure, not just FailureCode.Failed
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(&#39;Pago fallido: ${e.error.localizedMessage ?? e.error.message ?? &quot;Error desconocido&quot;}&#39;),
+              content: Text(&#39;Pago fallido: $message ${declineCode != null ? &quot;($declineCode)&quot; : &quot;&quot;}&#39;),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 10),
+              action: SnackBarAction(
+                label: &#39;VER MÁS&#39;,
+                textColor: Colors.white,
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) =&gt; AlertDialog(
+                      title: const Text(&#39;Detalle del Rechazo&#39;),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(&#39;Código del error: ${e.error.code}&#39;),
+                          const SizedBox(height: 8),
+                          Text(&#39;Motivo técnico (Decline): ${declineCode ?? &quot;No disponible&quot;}&#39;),
+                          const SizedBox(height: 8),
+                          Text(&#39;Mensaje de Stripe: $message&#39;),
+                          const SizedBox(height: 12),
+                          const Text(
+                            &#39;Sugerencia: Si es una tarjeta real, verifica si tiene activadas las compras internacionales&#47;online.&#39;,
+                            style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () =&gt; Navigator.pop(ctx),
+                          child: const Text(&#39;Entendido&#39;),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           );
         }
         return const StripePaymentResultData(result: StripePaymentResult.failed);
-      default:
-        debugPrint(&#39;[StripeService] Stripe error: ${e.error.code} — ${e.error.message}&#39;);
-        return const StripePaymentResultData(result: StripePaymentResult.failed);
     }
   } catch (e) {
-    debugPrint(&#39;[StripeService] Unexpected error: $e&#39;);
+    debugPrint(&#39;[StripeService] Unexpected error type: ${e.runtimeType}&#39;);
+    debugPrint(&#39;[StripeService] Error details: $e&#39;);
+
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(&#39;Error inesperado: $e&#39;),
-          backgroundColor: Colors.red,
+      showDialog(
+        context: context,
+        builder: (ctx) =&gt; AlertDialog(
+          title: const Text(&#39;Error en el Proceso&#39;),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(&#39;Ha ocurrido un error inesperado al procesar el pago.&#39;),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                color: Colors.grey[200],
+                child: Text(
+                  e.toString(),
+                  style: const TextStyle(fontSize: 12, fontFamily: &#39;monospace&#39;),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =&gt; Navigator.pop(ctx),
+              child: const Text(&#39;Entendido&#39;),
+            ),
+          ],
         ),
       );
     }
@@ -272,7 +337,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

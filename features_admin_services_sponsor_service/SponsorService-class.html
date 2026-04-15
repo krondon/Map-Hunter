@@ -146,6 +146,19 @@
 
 </dd>
 
+        <dt id="getEventSponsorIds" class="callable">
+  <span class="name"><a href="../features_admin_services_sponsor_service/SponsorService/getEventSponsorIds.html">getEventSponsorIds</a></span><span class="signature">(<wbr><span class="parameter" id="getEventSponsorIds-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
         <dt id="getSponsorForEvent" class="callable">
   <span class="name"><a href="../features_admin_services_sponsor_service/SponsorService/getSponsorForEvent.html">getSponsorForEvent</a></span><span class="signature">(<wbr><span class="parameter" id="getSponsorForEvent-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_admin_models_sponsor/Sponsor-class.html">Sponsor</a>?</span>&gt;</span></span>
@@ -155,6 +168,20 @@
 </dt>
 <dd>
   
+  
+
+</dd>
+
+        <dt id="getSponsorPoolForEvent" class="callable">
+  <span class="name"><a href="../features_admin_services_sponsor_service/SponsorService/getSponsorPoolForEvent.html">getSponsorPoolForEvent</a></span><span class="signature">(<wbr><span class="parameter" id="getSponsorPoolForEvent-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_admin_models_sponsor/Sponsor-class.html">Sponsor</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Fetches the full pool of active sponsors for an event via RPC.
+Returns sponsors with their computed weights (Oro=5, Plata=3, Bronce=1).
   
 
 </dd>
@@ -182,6 +209,33 @@
 <dd class="inherited">
   Invoked when a nonexistent method or property is accessed.
   <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="recordSponsorEvent" class="callable">
+  <span class="name"><a href="../features_admin_services_sponsor_service/SponsorService/recordSponsorEvent.html">recordSponsorEvent</a></span><span class="signature">(<wbr>{<span class="parameter" id="recordSponsorEvent-param-sponsorId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">sponsorId</span>, </span><span class="parameter" id="recordSponsorEvent-param-type"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">type</span>, </span><span class="parameter" id="recordSponsorEvent-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="recordSponsorEvent-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">context</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Records a sponsor analytics event (impression or click).
+Fire-and-forget — errors are logged but never thrown.
+  
+
+</dd>
+
+        <dt id="setEventSponsors" class="callable">
+  <span class="name"><a href="../features_admin_services_sponsor_service/SponsorService/setEventSponsors.html">setEventSponsors</a></span><span class="signature">(<wbr><span class="parameter" id="setEventSponsors-param-eventId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">eventId</span>, </span><span class="parameter" id="setEventSponsors-param-sponsorIds"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">sponsorIds</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
 
 </dd>
 
@@ -261,7 +315,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

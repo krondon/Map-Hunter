@@ -87,10 +87,10 @@ Si no es admin, cierra sesión automáticamente y lanza excepción.</p>
 
     final role = profile[&#39;role&#39;] as String?;
 
-    if (role != &#39;admin&#39;) {
+    if (role != &#39;admin&#39; &amp;&amp; role != &#39;staff&#39;) {
       debugPrint(&#39;AuthService: Access denied for $email (Role: $role)&#39;);
       await logout(); &#47;&#47; Limpiar sesión inmediatamente
-      throw &#39;Acceso denegado: No tienes permisos de administrador.&#39;;
+      throw &#39;Acceso denegado: No tienes permisos suficientes.&#39;;
     }
 
     return userId;
@@ -128,7 +128,7 @@ Si no es admin, cierra sesión automáticamente y lanza excepción.</p>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

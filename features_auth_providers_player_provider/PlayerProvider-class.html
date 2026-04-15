@@ -279,7 +279,7 @@
 </dd>
 
         <dt id="addPaymentMethod" class="callable">
-  <span class="name"><a href="../features_auth_providers_player_provider/PlayerProvider/addPaymentMethod.html">addPaymentMethod</a></span><span class="signature">(<wbr>{<span class="parameter" id="addPaymentMethod-param-bankCode"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">bankCode</span></span>})
+  <span class="name"><a href="../features_auth_providers_player_provider/PlayerProvider/addPaymentMethod.html">addPaymentMethod</a></span><span class="signature">(<wbr>{<span class="parameter" id="addPaymentMethod-param-bankCode"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">bankCode</span>, </span><span class="parameter" id="addPaymentMethod-param-type"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">type</span>, </span><span class="parameter" id="addPaymentMethod-param-identifier"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">identifier</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
   </span>
   
@@ -885,6 +885,19 @@ This should ONLY be called on explicit Login or App Start.
 
 </dd>
 
+        <dt id="updateUserRole" class="callable">
+  <span class="name"><a href="../features_auth_providers_player_provider/PlayerProvider/updateUserRole.html">updateUserRole</a></span><span class="signature">(<wbr><span class="parameter" id="updateUserRole-param-userId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">userId</span>, </span><span class="parameter" id="updateUserRole-param-newRole"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">newRole</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Actualiza el rol de un usuario (admin only).
+  
+
+</dd>
+
         <dt id="usePower" class="callable">
   <span class="name"><a href="../features_auth_providers_player_provider/PlayerProvider/usePower.html">usePower</a></span><span class="signature">(<wbr>{<span class="parameter" id="usePower-param-powerSlug"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">powerSlug</span>, </span><span class="parameter" id="usePower-param-targetGamePlayerId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">targetGamePlayerId</span>, </span><span class="parameter" id="usePower-param-effectProvider"><span>required</span> <span class="type-annotation"><a href="../features_game_providers_power_interfaces/PowerEffectManager-class.html">PowerEffectManager</a></span> <span class="parameter-name">effectProvider</span>, </span><span class="parameter" id="usePower-param-gameProvider"><span class="type-annotation"><a href="../features_game_providers_game_provider/GameProvider-class.html">GameProvider</a>?</span> <span class="parameter-name">gameProvider</span>, </span><span class="parameter" id="usePower-param-allowReturnForward"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowReturnForward</span> = <span class="default-value">true</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../features_auth_providers_player_provider/PowerUseResult.html">PowerUseResult</a></span>&gt;</span></span>
@@ -948,7 +961,7 @@ This should ONLY be called on explicit Login or App Start.
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

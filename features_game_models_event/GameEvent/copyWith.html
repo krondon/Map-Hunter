@@ -77,9 +77,10 @@
 <li><span class="parameter" id="copyWith-param-pot"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">pot</span>, </span></li>
 <li><span class="parameter" id="copyWith-param-spectatorConfig"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">spectatorConfig</span>, </span></li>
 <li><span class="parameter" id="copyWith-param-betTicketPrice"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">betTicketPrice</span>, </span></li>
-<li><span class="parameter" id="copyWith-param-sponsorId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">sponsorId</span>, </span></li>
+<li><span class="parameter" id="copyWith-param-sponsorsEnabled"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a>?</span> <span class="parameter-name">sponsorsEnabled</span>, </span></li>
 <li><span class="parameter" id="copyWith-param-storePrices"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span>?</span> <span class="parameter-name">storePrices</span>, </span></li>
 <li><span class="parameter" id="copyWith-param-isAutomated"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a>?</span> <span class="parameter-name">isAutomated</span>, </span></li>
+<li><span class="parameter" id="copyWith-param-sponsorsSelective"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a>?</span> <span class="parameter-name">sponsorsSelective</span>, </span></li>
 </ol>})
 
       
@@ -114,9 +115,10 @@
   int? pot,
   Map&lt;String, dynamic&gt;? spectatorConfig,
   int? betTicketPrice,
-  String? sponsorId,
+  bool? sponsorsEnabled,
   Map&lt;String, int&gt;? storePrices,
   bool? isAutomated,
+  bool? sponsorsSelective,
 }) {
   return GameEvent(
     id: id ?? this.id,
@@ -141,7 +143,8 @@
     pot: pot ?? this.pot,
     spectatorConfig: spectatorConfig ?? this.spectatorConfig,
     betTicketPrice: betTicketPrice ?? this.betTicketPrice,
-    sponsorId: sponsorId ?? this.sponsorId,
+    sponsorsEnabled: sponsorsEnabled ?? this.sponsorsEnabled,
+    sponsorsSelective: sponsorsSelective ?? this.sponsorsSelective,
     storePrices: storePrices ?? this.storePrices,
     isAutomated: isAutomated ?? this.isAutomated,
   );
@@ -173,7 +176,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

@@ -55,8 +55,9 @@
     <section class="multi-line-signature">
       
 <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>&gt;</span></span>
-<span class="name ">executeLoseLife</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="executeLoseLife-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span></span></li>
-</ol>)
+<span class="name ">executeLoseLife</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="executeLoseLife-param-context"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/widgets/BuildContext-class.html">BuildContext</a></span> <span class="parameter-name">context</span>, {</span></li>
+<li><span class="parameter" id="executeLoseLife-param-isPractice"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">isPractice</span> = <span class="default-value">false</span>, </span></li>
+</ol>})
 
       
 
@@ -76,13 +77,21 @@ Retorna la cantidad definitiva de vidas restantes.</li>
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static Future&lt;int&gt; executeLoseLife(BuildContext context) async {
+  <pre class="language-dart"><code class="language-dart">static Future&lt;int&gt; executeLoseLife(BuildContext context, {bool isPractice = false}) async {
   &#47;&#47; 1. Capturar providers INMEDIATAMENTE antes de cualquier async
   final gameProvider = Provider.of&lt;GameProvider&gt;(context, listen: false);
   final playerProvider = Provider.of&lt;PlayerProvider&gt;(context, listen: false);
-  final messenger = ScaffoldMessenger.maybeOf(context);
 
   if (playerProvider.currentPlayer == null) return 0;
+
+  &#47;&#47; Check if we are in practice mode either by explicit flag OR InheritedWidget
+  final bool effectiveIsPractice = isPractice || PracticeModeResolver.of(context);
+
+  if (effectiveIsPractice) {
+    debugPrint(&#39;[Practice] 🛡️ Life loss simulated (LogicHelper). No real life was taken.&#39;);
+    return playerProvider.currentPlayer!.lives;
+  }
+
   final userId = playerProvider.currentPlayer!.userId;
 
   &#47;&#47; 2. Backend + Source of Truth
@@ -95,9 +104,6 @@ Retorna la cantidad definitiva de vidas restantes.</li>
   &#47;&#47; 4. Sincronización (Solo si el contexto sigue vivo)
   if (context.mounted) {
     playerProvider.refreshProfile(eventId: gameProvider.currentEventId);
-  } else {
-    debugPrint(
-        &#39;MinigameLogicHelper: Context unmounted during lifecycle. Skipping refresh.&#39;);
   }
 
   return newLives;
@@ -129,7 +135,7 @@ Retorna la cantidad definitiva de vidas restantes.</li>
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>

@@ -79,7 +79,9 @@
   _selectedDate = DateTime.now();
   _configuredWinners = 3;
   _betTicketPrice = 100; &#47;&#47; Reset
-  _sponsorId = null;
+  _sponsorsEnabled = false;
+  _sponsorsSelective = false;
+  _selectedSponsorIds.clear();
   _selectedImage = null;
   _numberOfClues = 0;
   _clueForms = [];
@@ -103,8 +105,6 @@
   }
 
   notifyListeners();
-  &#47;&#47; Ensure sponsors are loaded for new forms too
-  if (_sponsors.isEmpty) loadSponsors();
 }</code></pre>
 </section>
 
@@ -133,7 +133,7 @@
 <footer>
   <span class="no-break">
     map_hunter
-      1.0.4
+      1.0.5
   </span>
   
 </footer>
